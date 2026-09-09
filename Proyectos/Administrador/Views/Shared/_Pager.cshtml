@@ -3,18 +3,19 @@
 @{
     var controller = ViewContext.RouteData.Values["controller"]?.ToString();
     var action = ViewContext.RouteData.Values["action"]?.ToString();
+    var pageKey = ViewData["PagerPageKey"] as string ?? "page";
     string UrlFor(int page)
     {
         var dict = new Dictionary<string, string?>();
         foreach (var kv in ViewContext.HttpContext.Request.Query)
         {
-            if (kv.Key is "page" or "pageSize")
+            if (kv.Key is "page" or "pageSize" || kv.Key == pageKey)
             {
                 continue;
             }
             dict[kv.Key] = kv.Value.ToString();
         }
-        dict["page"] = page.ToString();
+        dict[pageKey] = page.ToString();
         dict["pageSize"] = Model.PageSize.ToString();
         if (!dict.ContainsKey("id") && ViewContext.RouteData.Values.TryGetValue("id", out var routeId) && routeId is not null)
         {

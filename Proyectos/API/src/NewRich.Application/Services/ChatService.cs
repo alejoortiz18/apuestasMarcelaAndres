@@ -107,18 +107,35 @@ public sealed class ChatService : IChatService
 
     public async Task<Result<IReadOnlyList<ConversacionResponse>>> ListarAsync(Guid usuarioId, CancellationToken cancellationToken)
     {
-        var items = await _db.Conversaciones
-            .Where(c => c.UsuarioIniciadorId == usuarioId || c.UsuarioDestinoId == usuarioId)
-            .OrderByDescending(c => c.FechaInicio)
-            .ToListAsync(cancellationToken);
-        return Result<IReadOnlyList<ConversacionResponse>>.Ok(items.Select(Map).ToList(), SuccessMessages.OperacionExitosa);
+        var actor = await _db.Usuarios.FirstOrDefaultAsync(u => u.UsuarioId == usuarioId, cancellationToken);
+        var consulta = _db.Conversaciones
+            .Include(c => c.UsuarioIniciador)
+            .Include(c => c.UsuarioDestino)
+            .Include(c => c.Mensajes)
+            .ThenInclude(m => m.UsuarioEmisor)
+            .AsQueryable();
+        if (actor is null || actor.Rol != RolUsuario.Administrador)
+        {
+            consulta = consulta.Where(c => c.UsuarioIniciadorId == usuarioId || c.UsuarioDestinoId == usuarioId);
+        }
+
+        var items = await consulta.ToListAsync(cancellationToken);
+        var mapeadas = items
+            .Select(Map)
+            .OrderByDescending(c => c.FechaUltimoMensaje ?? c.FechaInicio)
+            .ToList();
+        return Result<IReadOnlyList<ConversacionResponse>>.Ok(mapeadas, SuccessMessages.OperacionExitosa);
     }
 
     public async Task<Result<ConversacionDetalleResponse>> ObtenerAsync(Guid conversacionId, Guid usuarioId, CancellationToken cancellationToken)
     {
         var conversacion = await _db.Conversaciones
+            .Include(c => c.UsuarioIniciador)
+            .Include(c => c.UsuarioDestino)
             .Include(c => c.Mensajes)
             .ThenInclude(m => m.Adjuntos)
+            .Include(c => c.Mensajes)
+            .ThenInclude(m => m.UsuarioEmisor)
             .FirstOrDefaultAsync(c => c.ConversacionId == conversacionId, cancellationToken);
 
         if (conversacion is null)
@@ -126,7 +143,7 @@ public sealed class ChatService : IChatService
             return Result<ConversacionDetalleResponse>.Fail(ChatMessages.ConversacionNoEncontrada, 404);
         }
 
-        if (conversacion.UsuarioIniciadorId != usuarioId && conversacion.UsuarioDestinoId != usuarioId)
+        if (!await PuedeOperarAsync(conversacion, usuarioId, cancellationToken))
         {
             return Result<ConversacionDetalleResponse>.Fail(ChatMessages.NoParticipaEnConversacion, 403);
         }
@@ -151,7 +168,7 @@ public sealed class ChatService : IChatService
             return Result<MensajeResponse>.Fail(ChatMessages.ConversacionCerrada);
         }
 
-        if (conversacion.UsuarioIniciadorId != emisorId && conversacion.UsuarioDestinoId != emisorId)
+        if (!await PuedeOperarAsync(conversacion, emisorId, cancellationToken))
         {
             return Result<MensajeResponse>.Fail(ChatMessages.NoParticipaEnConversacion, 403);
         }
@@ -187,6 +204,8 @@ public sealed class ChatService : IChatService
 
         _db.Mensajes.Add(mensaje);
         await _db.SaveChangesAsync(cancellationToken);
+        var emisor = await _db.Usuarios.FirstOrDefaultAsync(u => u.UsuarioId == emisorId, cancellationToken);
+        mensaje.UsuarioEmisor = emisor;
         return Result<MensajeResponse>.Ok(MapMensaje(mensaje), SuccessMessages.MensajeEnviado);
     }
 
@@ -199,8 +218,6 @@ public sealed class ChatService : IChatService
         }
 
         var conversacion = await _db.Conversaciones
-            .Include(c => c.Mensajes)
-            .ThenInclude(m => m.Adjuntos)
             .FirstOrDefaultAsync(c => c.ConversacionId == conversacionId, cancellationToken);
 
         if (conversacion is null)
@@ -208,13 +225,6 @@ public sealed class ChatService : IChatService
             return Result.Fail(ChatMessages.ConversacionNoEncontrada, 404);
         }
 
-        foreach (var adjunto in conversacion.Mensajes.SelectMany(m => m.Adjuntos))
-        {
-            await _files.DeleteAsync(adjunto.RutaArchivo, cancellationToken);
-        }
-
-        _db.AdjuntosChat.RemoveRange(conversacion.Mensajes.SelectMany(m => m.Adjuntos));
-        _db.Mensajes.RemoveRange(conversacion.Mensajes);
         conversacion.Estado = EstadoConversacion.Cerrada;
         conversacion.FechaCierre = _clock.UtcNow;
         await _db.SaveChangesAsync(cancellationToken);
@@ -233,7 +243,7 @@ public sealed class ChatService : IChatService
         }
 
         var conv = adjunto.Mensaje.Conversacion;
-        if (conv.UsuarioIniciadorId != usuarioId && conv.UsuarioDestinoId != usuarioId)
+        if (!await PuedeOperarAsync(conv, usuarioId, cancellationToken))
         {
             return Result<DescargaAdjuntoResponse>.Fail(ChatMessages.NoParticipaEnConversacion, 403);
         }
@@ -251,15 +261,36 @@ public sealed class ChatService : IChatService
         }, SuccessMessages.OperacionExitosa);
     }
 
-    private static ConversacionResponse Map(Conversacion c) => new()
+    private async Task<bool> PuedeOperarAsync(Conversacion conversacion, Guid usuarioId, CancellationToken cancellationToken)
     {
-        ConversacionId = c.ConversacionId,
-        UsuarioIniciadorId = c.UsuarioIniciadorId,
-        UsuarioDestinoId = c.UsuarioDestinoId,
-        Estado = c.Estado.ToString(),
-        FechaInicio = c.FechaInicio,
-        FechaCierre = c.FechaCierre
-    };
+        if (conversacion.UsuarioIniciadorId == usuarioId || conversacion.UsuarioDestinoId == usuarioId)
+        {
+            return true;
+        }
+
+        var actor = await _db.Usuarios.FirstOrDefaultAsync(u => u.UsuarioId == usuarioId, cancellationToken);
+        return actor?.Rol == RolUsuario.Administrador;
+    }
+
+    private static ConversacionResponse Map(Conversacion c)
+    {
+        var ultimo = c.Mensajes.OrderByDescending(m => m.FechaEnvio).FirstOrDefault();
+        return new ConversacionResponse
+        {
+            ConversacionId = c.ConversacionId,
+            UsuarioIniciadorId = c.UsuarioIniciadorId,
+            UsuarioDestinoId = c.UsuarioDestinoId,
+            NombreIniciador = c.UsuarioIniciador?.NombreCompleto ?? string.Empty,
+            NombreDestino = c.UsuarioDestino?.NombreCompleto ?? string.Empty,
+            RolIniciador = c.UsuarioIniciador?.Rol.ToString() ?? string.Empty,
+            RolDestino = c.UsuarioDestino?.Rol.ToString() ?? string.Empty,
+            Estado = c.Estado.ToString(),
+            FechaInicio = c.FechaInicio,
+            FechaCierre = c.FechaCierre,
+            UltimoTexto = ultimo?.Texto ?? string.Empty,
+            FechaUltimoMensaje = ultimo?.FechaEnvio
+        };
+    }
 
     private static MensajeResponse MapMensaje(Mensaje m)
     {
@@ -268,6 +299,7 @@ public sealed class ChatService : IChatService
         {
             MensajeId = m.MensajeId,
             UsuarioEmisorId = m.UsuarioEmisorId,
+            NombreEmisor = m.UsuarioEmisor?.NombreCompleto ?? string.Empty,
             Texto = m.Texto,
             FechaEnvio = m.FechaEnvio,
             AdjuntoId = adjunto?.AdjuntoId,

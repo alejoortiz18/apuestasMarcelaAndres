@@ -100,6 +100,36 @@
 
   document.querySelectorAll("select.searchable").forEach(enhanceSelect);
 
+  document.querySelectorAll("form[data-offline-generate]").forEach(function (form) {
+    const usuario = form.querySelector("[data-offline-usuario]");
+    const pdaField = form.querySelector("[data-offline-pda]");
+    const pdaValue = form.querySelector("[data-offline-pda-value]");
+    const associate = form.querySelector("[data-offline-associate]");
+    const submit = form.querySelector("[data-offline-submit]");
+    if (!usuario || !pdaField || !pdaValue || !associate || !submit) {
+      return;
+    }
+
+    function syncPda() {
+      const option = usuario.options[usuario.selectedIndex];
+      const pdaId = option ? (option.getAttribute("data-pda-id") || "").trim() : "";
+      const codigo = option ? (option.getAttribute("data-pda-codigo") || "").trim() : "";
+      const hasUser = !!(usuario.value);
+      const hasPda = hasUser && !!pdaId;
+      pdaField.hidden = !hasPda;
+      pdaValue.textContent = hasPda ? codigo : "";
+      if (hasPda) {
+        associate.hidden = true;
+      } else {
+        associate.hidden = !hasUser;
+      }
+      submit.disabled = !hasPda;
+    }
+
+    usuario.addEventListener("change", syncPda);
+    syncPda();
+  });
+
   function setControlEnabled(ctrl, enabled) {
     if (ctrl.tagName === "INPUT" && ctrl.type === "hidden") {
       return;
@@ -252,6 +282,87 @@
     });
   });
 
+  document.querySelectorAll("form[data-submit-on-change]").forEach(function (form) {
+    form.addEventListener("change", function (event) {
+      const target = event.target;
+      if (!target) {
+        return;
+      }
+      if (target.matches("input[type=date]")) {
+        const periodo = form.querySelector("select[name=periodo]");
+        if (periodo) {
+          periodo.value = "personalizado";
+        }
+      }
+      if (target.matches("input[type=date], select")) {
+        form.submit();
+      }
+    });
+  });
+
+  const codigoDialog = document.getElementById("codigoDialog");
+  const codigoClose = codigoDialog && codigoDialog.querySelector("[data-close-codigo]");
+  let codigoTrigger = null;
+
+  function closeCodigo() {
+    if (!codigoDialog) {
+      return;
+    }
+    codigoDialog.classList.add("hidden");
+    codigoDialog.setAttribute("hidden", "hidden");
+    if (codigoTrigger && typeof codigoTrigger.focus === "function") {
+      codigoTrigger.focus();
+    }
+    codigoTrigger = null;
+  }
+
+  function fillCodigoField(name, value, pill) {
+    const field = codigoDialog.querySelector('[data-codigo-field="' + name + '"]');
+    if (!field) {
+      return;
+    }
+    field.textContent = value || "";
+    if (pill) {
+      field.className = "pill " + pill;
+    }
+  }
+
+  function openCodigo(button) {
+    if (!codigoDialog) {
+      return;
+    }
+    codigoTrigger = button;
+    fillCodigoField("consecutivo", button.getAttribute("data-consecutivo"));
+    fillCodigoField("usuario", button.getAttribute("data-usuario"));
+    fillCodigoField("pda", button.getAttribute("data-pda"));
+    fillCodigoField("estado", button.getAttribute("data-estado"), button.getAttribute("data-estado-pill"));
+    fillCodigoField("fecha-creacion", button.getAttribute("data-fecha-creacion"));
+    fillCodigoField("fecha-descarga", button.getAttribute("data-fecha-descarga"));
+    fillCodigoField("fecha-venta", button.getAttribute("data-fecha-venta"));
+    fillCodigoField("fecha-registro", button.getAttribute("data-fecha-registro"));
+    codigoDialog.classList.remove("hidden");
+    codigoDialog.removeAttribute("hidden");
+    if (codigoClose) {
+      codigoClose.focus();
+    }
+  }
+
+  document.querySelectorAll("[data-codigo-detalle]").forEach(function (el) {
+    el.addEventListener("click", function () {
+      openCodigo(el);
+    });
+  });
+  if (codigoDialog) {
+    codigoDialog.addEventListener("click", function (event) {
+      if (event.target === codigoDialog) {
+        closeCodigo();
+      }
+    });
+  }
+  if (codigoClose) {
+    codigoClose.addEventListener("click", closeCodigo);
+  }
+
   const aviso = document.getElementById("avisoDialog");
   const avisoText = document.getElementById("avisoDialogText");
   const avisoClose = aviso && aviso.querySelector("[data-close-dialog]");
@@ -298,11 +409,22 @@
     avisoClose.addEventListener("click", closeAviso);
   }
   document.addEventListener("keydown", function (event) {
-    if (event.key === "Escape" && aviso && !aviso.classList.contains("hidden")) {
+    if (event.key !== "Escape") {
+      return;
+    }
+    if (codigoDialog && !codigoDialog.classList.contains("hidden")) {
+      closeCodigo();
+      return;
+    }
+    if (aviso && !aviso.classList.contains("hidden")) {
       closeAviso();
     }
   });
   if (aviso && !aviso.classList.contains("hidden") && avisoClose) {
     avisoClose.focus();
   }
+
+  document.querySelectorAll("[data-chat-scroll]").forEach(function (el) {
+    el.scrollTop = el.scrollHeight;
+  });
 })();

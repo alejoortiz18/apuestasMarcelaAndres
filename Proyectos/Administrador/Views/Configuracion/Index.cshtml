@@ -1,4 +1,6 @@
 @using NewRich.Admin.Constants
+@using NewRich.Admin.Services
+@using NewRich.Domain.Enums
 @model NewRich.Admin.Models.ConfiguracionIndexViewModel
 <div class="heading">
     <div>
@@ -7,23 +9,140 @@
         <p>@UiTexts.ConfigSub</p>
     </div>
 </div>
+<form asp-action="Guardar" method="post" class="config-form">
+    <div asp-validation-summary="ModelOnly" class="notice error"></div>
+    <div class="config-grid">
+        <section class="kpi-section">
+            <h2>@UiTexts.ConfigHorarioPremios</h2>
+            <div class="field">
+                <label asp-for="Form.HoraCierre"></label>
+                <input asp-for="Form.HoraCierre" type="time" />
+                <span class="field-help">@UiTexts.HoraCierrePdaAyuda</span>
+                <span asp-validation-for="Form.HoraCierre"></span>
+            </div>
+            <div class="field">
+                <label asp-for="Form.VigenciaPremiosDias"></label>
+                <input asp-for="Form.VigenciaPremiosDias" type="number" min="1" />
+                <span asp-validation-for="Form.VigenciaPremiosDias"></span>
+            </div>
+        </section>
+        <section class="kpi-section">
+            <h2>@UiTexts.ConfigApuestas</h2>
+            <div class="field">
+                <label asp-for="Form.MaxJuegosCombinado"></label>
+                <input asp-for="Form.MaxJuegosCombinado" type="number" min="1" />
+                <span asp-validation-for="Form.MaxJuegosCombinado"></span>
+            </div>
+            <div class="field">
+                <label asp-for="Form.MaxLineasIndividual"></label>
+                <input asp-for="Form.MaxLineasIndividual" type="number" min="1" max="6" />
+                <span asp-validation-for="Form.MaxLineasIndividual"></span>
+            </div>
+        </section>
+        <section class="kpi-section">
+            <h2>@UiTexts.ConfigAlertas</h2>
+            <div class="field">
+                <label asp-for="Form.AlertaRepeticionNumero"></label>
+                <input asp-for="Form.AlertaRepeticionNumero" type="number" min="1" />
+                <span asp-validation-for="Form.AlertaRepeticionNumero"></span>
+            </div>
+            <div class="field">
+                <label asp-for="Form.AlertaValorMinimo"></label>
+                <input asp-for="Form.AlertaValorMinimo" type="number" min="0" />
+                <span asp-validation-for="Form.AlertaValorMinimo"></span>
+            </div>
+        </section>
+        <section class="kpi-section">
+            <h2>@UiTexts.ConfigOffline</h2>
+            <div class="field">
+                <label asp-for="Form.CodigosOfflineCapacidad"></label>
+                <input asp-for="Form.CodigosOfflineCapacidad" type="number" min="3000" max="5000" />
+                <span asp-validation-for="Form.CodigosOfflineCapacidad"></span>
+            </div>
+            <div class="field">
+                <label asp-for="Form.SincronizacionModo"></label>
+                <select asp-for="Form.SincronizacionModo" class="searchable">
+                    <option value="Manual">@UiTexts.ModoManual</option>
+                    <option value="Automatica">@UiTexts.ModoAutomatica</option>
+                </select>
+                <span asp-validation-for="Form.SincronizacionModo"></span>
+            </div>
+        </section>
+    </div>
+    <div class="config-save">
+        <button class="primary" type="submit">@UiTexts.GuardarConfiguracion</button>
+    </div>
+</form>
 <div class="panel">
-    @if (!Model.Items.Any())
+    <div class="panel-head">
+        <div>
+            <h2>@UiTexts.CatalogoLoterias</h2>
+            <div class="panel-sub">@UiTexts.CatalogoLoteriasSub</div>
+        </div>
+        <a class="primary" asp-action="CrearLoteria">@UiTexts.AgregarLoteria</a>
+    </div>
+    <form class="toolbar" method="get">
+        <div class="field">
+            <label for="q">@UiTexts.BuscarLoteria</label>
+            <input id="q" name="q" value="@Model.Busqueda" placeholder="@UiTexts.PlaceholderLoteria" />
+        </div>
+        <div class="field">
+            <label for="pageSize">@UiTexts.FilasPorPagina</label>
+            <select id="pageSize" name="pageSize" class="searchable">
+                @foreach (var size in PagingHelper.PageSizes)
+                {
+                    <option value="@size" @(Model.Pagina.PageSize == size ? "selected" : null)>@size</option>
+                }
+            </select>
+        </div>
+        <button class="primary" type="submit">@UiTexts.Buscar</button>
+        <a class="secondary" asp-action="Index">@UiTexts.LimpiarFiltros</a>
+    </form>
+    @if (!Model.Pagina.Items.Any())
     {
         <div class="empty">@UiTexts.Vacio</div>
     }
     else
     {
-        @foreach (var item in Model.Items)
-        {
-            <form asp-action="Guardar" method="post" class="toolbar" style="margin-bottom:12px">
-                <input type="hidden" name="clave" value="@item.Clave" />
-                <div class="field">
-                    <label>@item.Clave</label>
-                    <input name="valor" value="@item.Valor" />
-                </div>
-                <button class="primary" type="submit">@UiTexts.GuardarConfiguracion</button>
-            </form>
-        }
+        <div class="table-wrap">
+            <table data-table-select="config-loterias">
+                <thead>
+                <tr>
+                    <th class="col-check"><span class="visually-hidden">@UiTexts.SeleccionarFila</span></th>
+                    <th>@UiTexts.Loteria</th>
+                    <th>@UiTexts.Estado</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var item in Model.Pagina.Items)
+                {
+                    var flag = item.Estado == EstadoGeneral.Activo ? "activo" : "inactivo";
+                    <tr tabindex="0" data-row-id="@item.LoteriaId" data-flags="@flag">
+                        <td class="col-check">
+                            <input class="row-check" type="checkbox" value="@item.LoteriaId" aria-label="@UiTexts.SeleccionarFila @item.Nombre" />
+                        </td>
+                        <td><strong>@item.Nombre</strong></td>
+                        <td><span class="pill @(item.Estado == EstadoGeneral.Activo ? "ok" : "info")">@item.Estado</span></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        <partial name="_Pager" model="Model.Pagina" />
+        <div class="table-actions" data-table-panel="config-loterias">
+            <h2>@UiTexts.AccionesDeLoteria</h2>
+            <p class="panel-sub">@UiTexts.SeleccionaParaAcciones</p>
+            <div class="table-actions-buttons">
+                <a class="secondary" data-needs-selection data-url-template="@Url.Action("EditarLoteria")/{id}" href="#" aria-disabled="true">@UiTexts.Editar</a>
+                <form method="post" data-needs-selection data-show-when="activo" data-url-template="@Url.Action("CambiarEstadoLoteria")/{id}" hidden>
+                    @Html.AntiForgeryToken()
+                    <button class="secondary" type="submit" disabled>@UiTexts.Deshabilitar</button>
+                </form>
+                <form method="post" data-needs-selection data-show-when="inactivo" data-url-template="@Url.Action("CambiarEstadoLoteria")/{id}" hidden>
+                    @Html.AntiForgeryToken()
+                    <button class="secondary" type="submit" disabled>@UiTexts.Habilitar</button>
+                </form>
+            </div>
+        </div>
     }
 </div>

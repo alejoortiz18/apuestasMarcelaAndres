@@ -14,6 +14,8 @@ using NewRich.Application.Contracts.Grupos;
 using NewRich.Application.Contracts.Kpi;
 using NewRich.Application.Contracts.Loterias;
 using NewRich.Application.Contracts.Notificaciones;
+using NewRich.Application.Contracts.Offline;
+using NewRich.Application.Contracts.Premios;
 using NewRich.Application.Contracts.Resultados;
 using NewRich.Application.Contracts.Usuarios;
 using NewRich.Application.Contracts.Ventas;
@@ -75,6 +77,19 @@ public interface IAdminApiClient
 
     Task<ApiCallResult<List<ConfiguracionResponse>>> ListarConfiguracionesAsync(CancellationToken cancellationToken);
     Task<ApiCallResult<ConfiguracionResponse>> ActualizarConfiguracionAsync(string clave, string valor, CancellationToken cancellationToken);
+    Task<ApiCallResult<ConfiguracionOperativaResponse>> ObtenerConfiguracionOperativaAsync(CancellationToken cancellationToken);
+    Task<ApiCallResult<ConfiguracionOperativaResponse>> GuardarConfiguracionOperativaAsync(GuardarConfiguracionOperativaRequest request, CancellationToken cancellationToken);
+
+    Task<ApiCallResult<OfflineListadoResponse>> ListarCodigosOfflineAsync(CancellationToken cancellationToken);
+    Task<ApiCallResult<CodigoOfflineResponse>> ObtenerCodigoOfflineAsync(Guid id, CancellationToken cancellationToken);
+    Task<ApiCallResult<List<CodigoOfflineResponse>>> GenerarCodigosOfflineAsync(GenerarCodigosOfflineRequest request, CancellationToken cancellationToken);
+
+    Task<ApiCallResult<List<CasoGanadorResponse>>> ListarCasosPremioAsync(CancellationToken cancellationToken);
+    Task<ApiCallResult<CasoGanadorResponse>> ObtenerCasoPremioAsync(Guid id, CancellationToken cancellationToken);
+    Task<ApiCallResult<CasoGanadorResponse>> ReportarCasoPremioAsync(ReportarCasoGanadorRequest request, CancellationToken cancellationToken);
+    Task<ApiCallResult<CasoGanadorResponse>> ValidarCasoPremioAsync(Guid id, CancellationToken cancellationToken);
+    Task<ApiCallResult<CasoGanadorResponse>> RechazarCasoPremioAsync(Guid id, CancellationToken cancellationToken);
+    Task<ApiCallResult<CasoGanadorResponse>> AsignarObservadorPremioAsync(Guid id, AsignarObservadorRequest request, CancellationToken cancellationToken);
 }
 
 public sealed class AdminApiClient : IAdminApiClient
@@ -240,8 +255,10 @@ public sealed class AdminApiClient : IAdminApiClient
     {
         var q = BuildQuery(
             ("vendedorId", request.VendedorId?.ToString()),
+            ("grupoId", request.GrupoId?.ToString()),
             ("fechaInicial", request.FechaInicial?.ToString("o")),
-            ("fechaFinal", request.FechaFinal?.ToString("o")));
+            ("fechaFinal", request.FechaFinal?.ToString("o")),
+            ("compararAnterior", request.CompararAnterior ? "true" : "false"));
         return SendAsync<KpiResponse>(HttpMethod.Get, "api/Kpi" + q, null, true, cancellationToken);
     }
 
@@ -271,6 +288,39 @@ public sealed class AdminApiClient : IAdminApiClient
 
     public Task<ApiCallResult<ConfiguracionResponse>> ActualizarConfiguracionAsync(string clave, string valor, CancellationToken cancellationToken) =>
         SendAsync<ConfiguracionResponse>(HttpMethod.Put, $"api/Configuraciones/{Uri.EscapeDataString(clave)}", new ActualizarConfiguracionRequest { Valor = valor }, true, cancellationToken);
+
+    public Task<ApiCallResult<ConfiguracionOperativaResponse>> ObtenerConfiguracionOperativaAsync(CancellationToken cancellationToken) =>
+        SendAsync<ConfiguracionOperativaResponse>(HttpMethod.Get, "api/Configuraciones/operativa", null, true, cancellationToken);
+
+    public Task<ApiCallResult<ConfiguracionOperativaResponse>> GuardarConfiguracionOperativaAsync(GuardarConfiguracionOperativaRequest request, CancellationToken cancellationToken) =>
+        SendAsync<ConfiguracionOperativaResponse>(HttpMethod.Put, "api/Configuraciones/operativa", request, true, cancellationToken);
+
+    public Task<ApiCallResult<OfflineListadoResponse>> ListarCodigosOfflineAsync(CancellationToken cancellationToken) =>
+        SendAsync<OfflineListadoResponse>(HttpMethod.Get, "api/Offline", null, true, cancellationToken);
+
+    public Task<ApiCallResult<CodigoOfflineResponse>> ObtenerCodigoOfflineAsync(Guid id, CancellationToken cancellationToken) =>
+        SendAsync<CodigoOfflineResponse>(HttpMethod.Get, $"api/Offline/{id}", null, true, cancellationToken);
+
+    public Task<ApiCallResult<List<CodigoOfflineResponse>>> GenerarCodigosOfflineAsync(GenerarCodigosOfflineRequest request, CancellationToken cancellationToken) =>
+        SendAsync<List<CodigoOfflineResponse>>(HttpMethod.Post, "api/Offline", request, true, cancellationToken);
+
+    public Task<ApiCallResult<List<CasoGanadorResponse>>> ListarCasosPremioAsync(CancellationToken cancellationToken) =>
+        SendAsync<List<CasoGanadorResponse>>(HttpMethod.Get, "api/Premios", null, true, cancellationToken);
+
+    public Task<ApiCallResult<CasoGanadorResponse>> ObtenerCasoPremioAsync(Guid id, CancellationToken cancellationToken) =>
+        SendAsync<CasoGanadorResponse>(HttpMethod.Get, $"api/Premios/{id}", null, true, cancellationToken);
+
+    public Task<ApiCallResult<CasoGanadorResponse>> ReportarCasoPremioAsync(ReportarCasoGanadorRequest request, CancellationToken cancellationToken) =>
+        SendAsync<CasoGanadorResponse>(HttpMethod.Post, "api/Premios/reportar", request, true, cancellationToken);
+
+    public Task<ApiCallResult<CasoGanadorResponse>> ValidarCasoPremioAsync(Guid id, CancellationToken cancellationToken) =>
+        SendAsync<CasoGanadorResponse>(HttpMethod.Post, $"api/Premios/{id}/validar", new { }, true, cancellationToken);
+
+    public Task<ApiCallResult<CasoGanadorResponse>> RechazarCasoPremioAsync(Guid id, CancellationToken cancellationToken) =>
+        SendAsync<CasoGanadorResponse>(HttpMethod.Post, $"api/Premios/{id}/rechazar", new { }, true, cancellationToken);
+
+    public Task<ApiCallResult<CasoGanadorResponse>> AsignarObservadorPremioAsync(Guid id, AsignarObservadorRequest request, CancellationToken cancellationToken) =>
+        SendAsync<CasoGanadorResponse>(HttpMethod.Post, $"api/Premios/{id}/asignar", request, true, cancellationToken);
 
     private async Task<ApiCallResult<T>> SendAsync<T>(HttpMethod method, string path, object? body, bool includeToken, CancellationToken cancellationToken)
     {

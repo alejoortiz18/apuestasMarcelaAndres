@@ -1,9 +1,21 @@
 @using NewRich.Admin.Constants
+@using NewRich.Admin.Services
 @using System.Globalization
 @model NewRich.Admin.Models.KpiIndexViewModel
 @{
     var kpi = Model.Kpi;
     var cultura = CultureInfo.GetCultureInfo("es-CO");
+    string Dinero(decimal valor) => valor.ToString("C0", cultura);
+    string Variacion(decimal? valor)
+    {
+        if (!valor.HasValue)
+        {
+            return string.Empty;
+        }
+        var signo = valor.Value >= 0 ? "+" : string.Empty;
+        return $"{signo}{valor.Value.ToString("N1", cultura)}% {UiTexts.VsPeriodoAnterior}";
+    }
+    bool Alerta(decimal? valor) => valor < 0;
 }
 <div class="heading">
     <div>
@@ -13,27 +25,78 @@
     </div>
 </div>
 <div class="panel">
-    <form class="toolbar" method="get">
-        <div class="field">
-            <label for="fechaInicial">@UiTexts.FechaInicial</label>
-            <input id="fechaInicial" name="fechaInicial" type="date" value="@(Model.FechaInicial?.ToString("yyyy-MM-dd"))" />
+    <form method="get" data-submit-on-change>
+        <div class="kpi-filter">
+            <div class="field">
+                <label for="periodo">@UiTexts.Periodo</label>
+                <select id="periodo" name="periodo" class="searchable">
+                    <option value="30" @(Model.Periodo == "30" ? "selected" : null)>@UiTexts.Ultimos30Dias</option>
+                    <option value="mes" @(Model.Periodo == "mes" ? "selected" : null)>@UiTexts.EsteMes</option>
+                    <option value="7" @(Model.Periodo == "7" ? "selected" : null)>@UiTexts.Ultimos7Dias</option>
+                    <option value="personalizado" @(Model.Periodo == "personalizado" ? "selected" : null)>@UiTexts.PeriodoPersonalizado</option>
+                </select>
+            </div>
+            <div class="field">
+                <label for="grupoId">@UiTexts.Grupo</label>
+                <select id="grupoId" name="grupoId" class="searchable">
+                    <option value="">@UiTexts.General</option>
+                    @foreach (var g in Model.Grupos)
+                    {
+                        <option value="@g.GrupoId" @(Model.GrupoId == g.GrupoId ? "selected" : null)>@g.Nombre</option>
+                    }
+                </select>
+            </div>
+            <div class="field">
+                <label for="vendedorId">@UiTexts.Vendedor</label>
+                <select id="vendedorId" name="vendedorId" class="searchable">
+                    <option value="">@UiTexts.Todos</option>
+                    @foreach (var v in Model.Vendedores)
+                    {
+                        <option value="@v.UsuarioId" @(Model.VendedorId == v.UsuarioId ? "selected" : null)>@v.NombreCompleto</option>
+                    }
+                </select>
+            </div>
+            <div class="field">
+                <label for="compararAnterior">@UiTexts.CompararCon</label>
+                <select id="compararAnterior" name="compararAnterior" class="searchable">
+                    <option value="true" @(Model.CompararAnterior ? "selected" : null)>@UiTexts.PeriodoAnterior</option>
+                    <option value="false" @(!Model.CompararAnterior ? "selected" : null)>@UiTexts.SinComparacion</option>
+                </select>
+            </div>
+            <button class="primary" type="submit">@UiTexts.Actualizar</button>
+            <a class="secondary" asp-action="Pdf"
+               asp-route-grupoId="@Model.GrupoId"
+               asp-route-vendedorId="@Model.VendedorId"
+               asp-route-fechaInicial="@Model.FechaInicial?.ToString("yyyy-MM-dd")"
+               asp-route-fechaFinal="@Model.FechaFinal?.ToString("yyyy-MM-dd")"
+               asp-route-periodo="@Model.Periodo"
+               asp-route-compararAnterior="@Model.CompararAnterior">@UiTexts.DescargarPdf</a>
         </div>
-        <div class="field">
-            <label for="fechaFinal">@UiTexts.FechaFinal</label>
-            <input id="fechaFinal" name="fechaFinal" type="date" value="@(Model.FechaFinal?.ToString("yyyy-MM-dd"))" />
+        <div class="kpi-filter-extra">
+            <div class="field">
+                <label for="fechaInicial">@UiTexts.FechaInicial</label>
+                <input id="fechaInicial" name="fechaInicial" type="date" value="@(Model.FechaInicial?.ToString("yyyy-MM-dd"))" />
+            </div>
+            <div class="field">
+                <label for="fechaFinal">@UiTexts.FechaFinal</label>
+                <input id="fechaFinal" name="fechaFinal" type="date" value="@(Model.FechaFinal?.ToString("yyyy-MM-dd"))" />
+            </div>
+            <div class="field">
+                <label for="pageSize">@UiTexts.FilasPorPagina</label>
+                <select id="pageSize" name="pageSize" class="searchable">
+                    @foreach (var size in PagingHelper.PageSizes)
+                    {
+                        <option value="@size" @(Model.PaginaVendedores.PageSize == size ? "selected" : null)>@size</option>
+                    }
+                </select>
+            </div>
+            <a class="secondary" asp-action="Index">@UiTexts.LimpiarFiltros</a>
         </div>
-        <div class="field">
-            <label for="vendedorId">@UiTexts.Vendedor</label>
-            <select id="vendedorId" name="vendedorId" class="searchable">
-                <option value="">@UiTexts.Todos</option>
-                @foreach (var v in Model.Vendedores)
-                {
-                    <option value="@v.UsuarioId" @(Model.VendedorId == v.UsuarioId ? "selected" : null)>@v.NombreCompleto</option>
-                }
-            </select>
-        </div>
-        <button class="primary" type="submit">@UiTexts.Actualizar</button>
     </form>
+    @if (kpi is not null)
+    {
+        <div class="kpi-note">@UiTexts.CorteDeInformacion: @kpi.Corte.ToString("dd/MM/yyyy HH:mm") · @UiTexts.FuenteSql · @UiTexts.FiltrosAplicados: @kpi.FiltroAplicado</div>
+    }
 </div>
 @if (kpi is null)
 {
@@ -41,26 +104,289 @@
 }
 else
 {
-    <div class="panel">
-        <h2>@UiTexts.IngresosYVentas</h2>
-        <div class="metric-grid">
-            <div class="metric"><small>Ventas totales</small><strong>@kpi.VentasTotales.ToString("C0", cultura)</strong></div>
-            <div class="metric"><small>Cantidad de ventas</small><strong>@kpi.CantidadVentas</strong></div>
-            <div class="metric"><small>Boletos</small><strong>@kpi.CantidadBoletos</strong></div>
-            <div class="metric"><small>Numeros ganadores</small><strong>@kpi.NumerosGanadores</strong></div>
-        </div>
-    </div>
-    <div class="panel">
-        <h2>@UiTexts.Personal</h2>
-        <div class="metric-grid">
-            <div class="metric"><small>Vendedores</small><strong>@kpi.Vendedores</strong></div>
-            <div class="metric"><small>Observadores</small><strong>@kpi.Observadores</strong></div>
-            <div class="metric"><small>Usuarios activos</small><strong>@kpi.UsuariosActivos</strong></div>
-            <div class="metric"><small>Usuarios inactivos</small><strong>@kpi.UsuariosInactivos</strong></div>
-        </div>
-        @if (kpi.LoteriasUtilizadas.Any())
-        {
-            <p class="panel-sub">Loterias utilizadas: @string.Join(", ", kpi.LoteriasUtilizadas)</p>
-        }
+    <div class="kpi-grid">
+        <section class="kpi-section kpi-section-wide">
+            <h2>@UiTexts.IngresosYVentas</h2>
+            <p>@UiTexts.ResultadoFinancieroSub</p>
+            <div class="metric-grid">
+                <div class="metric@(Alerta(kpi.VariacionIngresos) ? " alert" : null)">
+                    <small>@UiTexts.IngresosRegistrados</small>
+                    <strong>@Dinero(kpi.Ingresos)</strong>
+                    @if (kpi.VariacionIngresos.HasValue) { <em>@Variacion(kpi.VariacionIngresos)</em> }
+                </div>
+                <div class="metric">
+                    <small>@UiTexts.VentasConfirmadas</small>
+                    <strong>@kpi.VentasConfirmadas.ToString("N0", cultura)</strong>
+                    <em>@string.Format(UiTexts.VentasPorDiaEtiqueta, kpi.VentasPorDia.ToString("N1", cultura))</em>
+                </div>
+                <div class="metric@(Alerta(kpi.VariacionTicket) ? " alert" : null)">
+                    <small>@UiTexts.TicketPromedio</small>
+                    <strong>@Dinero(kpi.TicketPromedio)</strong>
+                    @if (kpi.VariacionTicket.HasValue) { <em>@Variacion(kpi.VariacionTicket)</em> }
+                </div>
+                <div class="metric">
+                    <small>@UiTexts.BoletosGanadores</small>
+                    <strong>@kpi.BoletosGanadores.ToString("N0", cultura)</strong>
+                    <em>@string.Format(UiTexts.DelTotal, kpi.PorcentajeGanadores.ToString("N1", cultura))</em>
+                </div>
+            </div>
+            <div class="kpi-split">
+                <div>
+                    <h3>@UiTexts.IngresosPorGrupo</h3>
+                    <div class="kpi-bars">
+                        @if (!kpi.IngresosPorGrupo.Any())
+                        {
+                            <div class="empty">@UiTexts.Vacio</div>
+                        }
+                        else
+                        {
+                            var i = 0;
+                            foreach (var barra in kpi.IngresosPorGrupo)
+                            {
+                                var tono = i % 3 == 1 ? " blue" : i % 3 == 2 ? " gold" : "";
+                                <div>
+                                    <div class="kpi-bar-head"><span>@barra.Nombre · @barra.Porcentaje.ToString("N0", cultura)%</span><b>@Dinero(barra.Total)</b></div>
+                                    <div class="kpi-bar@(tono)"><i style="width:@barra.Ancho.ToString("0", CultureInfo.InvariantCulture)%"></i></div>
+                                </div>
+                                i++;
+                            }
+                        }
+                    </div>
+                </div>
+                <div>
+                    <h3>@UiTexts.IngresosPorPersona</h3>
+                    @if (!Model.PaginaVendedores.Items.Any())
+                    {
+                        <div class="empty">@UiTexts.Vacio</div>
+                    }
+                    else
+                    {
+                        <div class="kpi-table-wrap">
+                            <table class="kpi-table">
+                                <thead>
+                                <tr>
+                                    <th>@UiTexts.Vendedor</th>
+                                    <th>@UiTexts.Grupo</th>
+                                    <th>@UiTexts.Ventas</th>
+                                    <th>@UiTexts.Total</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                @foreach (var fila in Model.PaginaVendedores.Items)
+                                {
+                                    <tr>
+                                        <td>@fila.Vendedor</td>
+                                        <td>@fila.Grupo</td>
+                                        <td>@fila.Ventas.ToString("N0", cultura)</td>
+                                        <td>@Dinero(fila.Total)</td>
+                                    </tr>
+                                }
+                                </tbody>
+                            </table>
+                        </div>
+                        ViewData["PagerPageKey"] = "pageV";
+                        <partial name="_Pager" model="Model.PaginaVendedores" />
+                    }
+                </div>
+            </div>
+        </section>
+        <section class="kpi-section">
+            <h2>@UiTexts.Personal</h2>
+            <p>@UiTexts.DimensionPersonasSub</p>
+            <div class="metric-grid metric-grid-2">
+                <div class="metric">
+                    <small>@UiTexts.PersonasTotales</small>
+                    <strong>@kpi.PersonasTotales</strong>
+                    <em>@string.Format(UiTexts.VendedoresEtiqueta, kpi.Vendedores)</em>
+                </div>
+                <div class="metric">
+                    <small>@UiTexts.Observador</small>
+                    <strong>@kpi.Observadores</strong>
+                    <em>@string.Format(UiTexts.ObservadoresHoy, kpi.ObservadoresActivos)</em>
+                </div>
+                <div class="metric">
+                    <small>@UiTexts.Administradores</small>
+                    <strong>@kpi.Administradores</strong>
+                    <em>@string.Format(UiTexts.ConSesion, kpi.AdministradoresConSesion)</em>
+                </div>
+                <div class="metric">
+                    <small>@UiTexts.UsuariosActivos</small>
+                    <strong>@kpi.UsuariosActivos</strong>
+                    <em>@string.Format(UiTexts.CoberturaUsuarios, kpi.CoberturaActivos.ToString("N1", cultura))</em>
+                </div>
+            </div>
+            <div class="kpi-note">@string.Format(UiTexts.GruposActivosNota, kpi.GruposConVendedores, kpi.VendedoresSinGrupo, kpi.PdasAsignados)</div>
+        </section>
+        <section class="kpi-section">
+            <h2>@UiTexts.PremiosYEntregas</h2>
+            <p>@UiTexts.PremiosYEntregasSub</p>
+            <div class="metric-grid metric-grid-2">
+                <div class="metric">
+                    <small>@UiTexts.ValorEntregado</small>
+                    <strong>@Dinero(kpi.ValorPremiosEntregados)</strong>
+                    <em>@string.Format(UiTexts.EntregasCantidad, kpi.EntregasPremio)</em>
+                </div>
+                <div class="metric">
+                    <small>@UiTexts.CasosAbiertos</small>
+                    <strong>@kpi.CasosAbiertos.ToString("00")</strong>
+                    <em>@string.Format(UiTexts.PorValidar, kpi.CasosReportados)</em>
+                </div>
+                <div class="metric">
+                    <small>@UiTexts.CasosCerrados</small>
+                    <strong>@kpi.CasosCerrados</strong>
+                    <em>@string.Format(UiTexts.DelTotalCasos, kpi.PorcentajeCasosCerrados.ToString("N1", cultura))</em>
+                </div>
+                <div class="metric@(kpi.CasosRechazados > 0 ? " alert" : null)">
+                    <small>@UiTexts.Rechazados</small>
+                    <strong>@kpi.CasosRechazados.ToString("00")</strong>
+                    <em>@UiTexts.RequierenSeguimiento</em>
+                </div>
+            </div>
+            @{
+                var totalCasos = Math.Max(kpi.CasosAbiertos + kpi.CasosCerrados + kpi.CasosRechazados, 1);
+            }
+            <div class="kpi-bars">
+                <div>
+                    <div class="kpi-bar-head"><span>@UiTexts.Reportados</span><b>@kpi.CasosReportados</b></div>
+                    <div class="kpi-bar gold"><i style="width:@Math.Round((decimal)kpi.CasosReportados * 100 / totalCasos)%"></i></div>
+                </div>
+                <div>
+                    <div class="kpi-bar-head"><span>@UiTexts.ValidadosYAsignados</span><b>@kpi.CasosValidadosYAsignados</b></div>
+                    <div class="kpi-bar blue"><i style="width:@Math.Round((decimal)kpi.CasosValidadosYAsignados * 100 / totalCasos)%"></i></div>
+                </div>
+            </div>
+        </section>
+        <section class="kpi-section">
+            <h2>@UiTexts.SaludOperativa</h2>
+            <p>@UiTexts.SaludOperativaSub</p>
+            <div class="metric-grid metric-grid-2">
+                <div class="metric">
+                    <small>@UiTexts.PdasConectados</small>
+                    <strong>@kpi.PdasConectados / @kpi.PdasTotales</strong>
+                    <em>@string.Format(UiTexts.DisponiblesPda, kpi.PorcentajePdasConectados.ToString("N1", cultura))</em>
+                </div>
+                <div class="metric">
+                    <small>@UiTexts.ConversacionesAbiertas</small>
+                    <strong>@kpi.ConversacionesAbiertas</strong>
+                    <em>@UiTexts.EnSoporte</em>
+                </div>
+                <div class="metric">
+                    <small>@UiTexts.NumerosJugadosKpi</small>
+                    <strong>@kpi.NumerosJugados</strong>
+                    <em>@string.Format(UiTexts.DelTotalBoletos, kpi.Boletos.ToString("N0", cultura))</em>
+                </div>
+                <div class="metric@(kpi.AlertasActivas > 0 ? " alert" : null)">
+                    <small>@UiTexts.AlertasActivas</small>
+                    <strong>@kpi.AlertasActivas.ToString("00")</strong>
+                    <em>@string.Format(UiTexts.AlertasDePremios, kpi.CasosReportados)</em>
+                </div>
+            </div>
+            @if (kpi.LoteriasUtilizadas.Any())
+            {
+                <div class="kpi-note">@UiTexts.LoteriasUtilizadas: @string.Join(", ", kpi.LoteriasUtilizadas)</div>
+            }
+        </section>
+        <section class="kpi-section">
+            <h2>@UiTexts.RiesgosYAlertas</h2>
+            <p>@UiTexts.RiesgosYAlertasSub</p>
+            @if (!Model.PaginaAlertas.Items.Any())
+            {
+                <div class="empty">@UiTexts.Vacio</div>
+            }
+            else
+            {
+                <div class="kpi-table-wrap">
+                    <table class="kpi-table">
+                        <thead>
+                        <tr>
+                            <th>@UiTexts.Prioridad</th>
+                            <th>@UiTexts.Evento</th>
+                            <th>@UiTexts.Impacto</th>
+                            <th>@UiTexts.Accion</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var alerta in Model.PaginaAlertas.Items)
+                        {
+                            <tr>
+                                <td><span class="pill @(alerta.Prioridad == "Alta" ? "bad" : "warn")">@alerta.Prioridad</span></td>
+                                <td>@alerta.Evento</td>
+                                <td>@alerta.Impacto</td>
+                                <td><a class="secondary table-ver" href="@alerta.Url">@UiTexts.Revisar</a></td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+                ViewData["PagerPageKey"] = "pageA";
+                <partial name="_Pager" model="Model.PaginaAlertas" />
+            }
+        </section>
+        <section class="kpi-section">
+            <h2>@UiTexts.VentasPorDia</h2>
+            @if (!Model.PaginaDias.Items.Any())
+            {
+                <div class="empty">@UiTexts.Vacio</div>
+            }
+            else
+            {
+                <div class="kpi-table-wrap">
+                    <table class="kpi-table">
+                        <thead>
+                        <tr>
+                            <th>@UiTexts.Fecha</th>
+                            <th>@UiTexts.Ventas</th>
+                            <th>@UiTexts.Total</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var dia in Model.PaginaDias.Items)
+                        {
+                            <tr>
+                                <td>@dia.Fecha.ToString("dd/MM/yyyy")</td>
+                                <td>@dia.Ventas.ToString("N0", cultura)</td>
+                                <td>@Dinero(dia.Total)</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+                ViewData["PagerPageKey"] = "pageD";
+                <partial name="_Pager" model="Model.PaginaDias" />
+            }
+        </section>
+        <section class="kpi-section">
+            <h2>@UiTexts.NumerosGanadoresKpi</h2>
+            @if (!Model.PaginaResultados.Items.Any())
+            {
+                <div class="empty">@UiTexts.Vacio</div>
+            }
+            else
+            {
+                <div class="kpi-table-wrap">
+                    <table class="kpi-table">
+                        <thead>
+                        <tr>
+                            <th>@UiTexts.Fecha</th>
+                            <th>@UiTexts.Loteria</th>
+                            <th>@UiTexts.NumeroGanador</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var fila in Model.PaginaResultados.Items)
+                        {
+                            <tr>
+                                <td>@fila.Fecha.ToString("dd/MM/yyyy")</td>
+                                <td>@fila.Loteria</td>
+                                <td>@fila.Numero</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+                ViewData["PagerPageKey"] = "pageR";
+                <partial name="_Pager" model="Model.PaginaResultados" />
+            }
+        </section>
     </div>
 }

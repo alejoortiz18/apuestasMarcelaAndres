@@ -36,6 +36,9 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
     public DbSet<Conversacion> Conversaciones => Set<Conversacion>();
     public DbSet<Mensaje> Mensajes => Set<Mensaje>();
     public DbSet<AdjuntoChat> AdjuntosChat => Set<AdjuntoChat>();
+    public DbSet<CasoGanador> CasosGanadores => Set<CasoGanador>();
+    public DbSet<EntregaGanador> EntregasGanadores => Set<EntregaGanador>();
+    public DbSet<EvidenciaGanador> EvidenciasGanador => Set<EvidenciaGanador>();
 
     public async Task ExecuteInTransactionAsync(Func<CancellationToken, Task> action, CancellationToken cancellationToken = default)
     {
@@ -54,6 +57,9 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
         var tipoJuego = new EnumToStringConverter<TipoJuego>();
         var estadoCodigoOffline = new EnumToStringConverter<EstadoCodigoOffline>();
         var estadoConversacion = new EnumToStringConverter<EstadoConversacion>();
+        var estadoCasoGanador = new EnumToStringConverter<EstadoCasoGanador>();
+        var estadoPremio = new EnumToStringConverter<EstadoDelPremio>();
+        var tipoEvidencia = new EnumToStringConverter<TipoEvidencia>();
         var estadoBoleto = new ValueConverter<EstadoBoleto, string>(
             v => EstadoBoletoToString(v),
             v => StringToEstadoBoleto(v));
@@ -153,7 +159,7 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
             e.HasKey(x => x.BoletoId);
             e.Property(x => x.CodigoPublico).HasColumnType("char(7)");
             e.Property(x => x.EstadoBoleto).HasConversion(estadoBoleto).HasMaxLength(30);
-            e.Ignore(x => x.EstadoDelPremio);
+            e.Property(x => x.EstadoDelPremio).HasConversion(estadoPremio).HasMaxLength(30);
             e.Ignore(x => x.CasoGanador);
             e.HasOne(x => x.Venta).WithMany(x => x.Boletos).HasForeignKey(x => x.VentaId);
         });
@@ -251,6 +257,36 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
             e.ToTable("AdjuntosChat");
             e.HasKey(x => x.AdjuntoId);
             e.HasOne(x => x.Mensaje).WithMany(x => x.Adjuntos).HasForeignKey(x => x.MensajeId);
+        });
+
+        modelBuilder.Entity<CasoGanador>(e =>
+        {
+            e.ToTable("CasosGanadores");
+            e.HasKey(x => x.CasoId);
+            e.Property(x => x.TicketCode).HasColumnType("char(7)");
+            e.Property(x => x.Estado).HasConversion(estadoCasoGanador).HasMaxLength(20);
+            e.HasOne(x => x.Boleto).WithMany().HasForeignKey(x => x.BoletoId);
+            e.HasOne(x => x.VendedorQueReportoNavigation).WithMany().HasForeignKey(x => x.VendedorQueReporto).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.AdminQueValidoNavigation).WithMany().HasForeignKey(x => x.AdminQueValido).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.AdminQueAsignoNavigation).WithMany().HasForeignKey(x => x.AdminQueAsigno).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.ObservadorAsignadoNavigation).WithMany().HasForeignKey(x => x.ObservadorAsignado).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<EntregaGanador>(e =>
+        {
+            e.ToTable("EntregasGanadores");
+            e.HasKey(x => x.EntregaId);
+            e.Property(x => x.ValorTotalGanado).HasColumnType("decimal(18,2)");
+            e.HasOne(x => x.CasoGanador).WithOne(x => x.EntregaGanador).HasForeignKey<EntregaGanador>(x => x.CasoId);
+            e.HasOne(x => x.PersonaQueEntregaNavigation).WithMany().HasForeignKey(x => x.PersonaQueEntrega).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<EvidenciaGanador>(e =>
+        {
+            e.ToTable("EvidenciasGanador");
+            e.HasKey(x => x.EvidenciaId);
+            e.Property(x => x.TipoEvidencia).HasConversion(tipoEvidencia).HasMaxLength(30);
+            e.HasOne(x => x.EntregaGanador).WithMany(x => x.Evidencias).HasForeignKey(x => x.EntregaId);
         });
     }
 

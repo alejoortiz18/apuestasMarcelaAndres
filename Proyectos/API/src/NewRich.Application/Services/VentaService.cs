@@ -60,11 +60,6 @@ public sealed class VentaService : IVentaService
             return Result<VentaResponse>.Fail(VentaMessages.MaximoLineasExcedido);
         }
 
-        if (request.TipoApuesta == TipoApuesta.COMBINADO && request.Juegos.Count != 1)
-        {
-            return Result<VentaResponse>.Fail(VentaMessages.CombinadoUnaSolaLinea);
-        }
-
         if (await EstaFueraDeHorario(cancellationToken))
         {
             return Result<VentaResponse>.Fail(VentaMessages.VentaFueraDeHorario, 403);

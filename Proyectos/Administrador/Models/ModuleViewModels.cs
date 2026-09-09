@@ -9,6 +9,8 @@ using NewRich.Application.Contracts.Grupos;
 using NewRich.Application.Contracts.Kpi;
 using NewRich.Application.Contracts.Loterias;
 using NewRich.Application.Contracts.Notificaciones;
+using NewRich.Application.Contracts.Offline;
+using NewRich.Application.Contracts.Premios;
 using NewRich.Application.Contracts.Resultados;
 using NewRich.Application.Contracts.Usuarios;
 using NewRich.Application.Contracts.Ventas;
@@ -192,11 +194,19 @@ public sealed class ConsultaBoletosViewModel
 
 public sealed class KpiIndexViewModel
 {
+    public Guid? GrupoId { get; init; }
     public Guid? VendedorId { get; init; }
     public DateTime? FechaInicial { get; init; }
     public DateTime? FechaFinal { get; init; }
+    public string Periodo { get; init; } = "30";
+    public bool CompararAnterior { get; init; } = true;
     public KpiResponse? Kpi { get; init; }
     public IReadOnlyList<UsuarioResponse> Vendedores { get; init; } = [];
+    public IReadOnlyList<GrupoResponse> Grupos { get; init; } = [];
+    public PagedViewModel<KpiVendedorFilaResponse> PaginaVendedores { get; init; } = new();
+    public PagedViewModel<KpiVentaDiaResponse> PaginaDias { get; init; } = new();
+    public PagedViewModel<KpiResultadoFilaResponse> PaginaResultados { get; init; } = new();
+    public PagedViewModel<KpiAlertaFilaResponse> PaginaAlertas { get; init; } = new();
 }
 
 public sealed class NotificacionesIndexViewModel
@@ -218,7 +228,44 @@ public sealed class SoporteIndexViewModel
 
 public sealed class ConfiguracionIndexViewModel
 {
-    public IReadOnlyList<ConfiguracionResponse> Items { get; init; } = [];
+    public ConfiguracionOperativaFormViewModel Form { get; set; } = new();
+    public string? Busqueda { get; init; }
+    public PagedViewModel<LoteriaResponse> Pagina { get; init; } = new();
+}
+
+public sealed class ConfiguracionOperativaFormViewModel
+{
+    [Display(Name = UiTexts.HoraCierrePda)]
+    [Required(ErrorMessage = ValidationMessages.CampoRequerido)]
+    public string HoraCierre { get; set; } = "20:00";
+
+    [Display(Name = UiTexts.VigenciaPremioDias)]
+    [Range(1, 3650, ErrorMessage = ValidationMessages.CampoRequerido)]
+    public int VigenciaPremiosDias { get; set; } = 30;
+
+    [Display(Name = UiTexts.MaxJuegosCombinado)]
+    [Range(1, 99, ErrorMessage = ValidationMessages.CampoRequerido)]
+    public int MaxJuegosCombinado { get; set; } = 1;
+
+    [Display(Name = UiTexts.MaxLineasIndividual)]
+    [Range(1, 6, ErrorMessage = ValidationMessages.CampoRequerido)]
+    public int MaxLineasIndividual { get; set; } = 6;
+
+    [Display(Name = UiTexts.AlertaNumeroJugado)]
+    [Range(1, 100000, ErrorMessage = ValidationMessages.CampoRequerido)]
+    public int AlertaRepeticionNumero { get; set; } = 10;
+
+    [Display(Name = UiTexts.AlertaValorJugada)]
+    [Range(0, 100000000, ErrorMessage = ValidationMessages.CampoRequerido)]
+    public int AlertaValorMinimo { get; set; } = 10000;
+
+    [Display(Name = UiTexts.CodigosOfflineMaximo)]
+    [Range(3000, 5000, ErrorMessage = ValidationMessages.CapacidadCodigosOfflineRango)]
+    public int CodigosOfflineCapacidad { get; set; } = 3000;
+
+    [Display(Name = UiTexts.ModoSincronizacionOffline)]
+    [Required(ErrorMessage = ValidationMessages.CampoRequerido)]
+    public string SincronizacionModo { get; set; } = "Manual";
 }
 
 public sealed class TirillaViewModel
@@ -226,4 +273,58 @@ public sealed class TirillaViewModel
     public TirillaResponse Tirilla { get; init; } = new();
     public bool VolverALoterias { get; init; }
     public Guid? VolverLoteriaId { get; init; }
+}
+
+public sealed class OfflineIndexViewModel
+{
+    public string? Busqueda { get; init; }
+    public PagedViewModel<OfflineGrupoResponse> Pagina { get; init; } = new();
+}
+
+public sealed class OfflineLoteViewModel
+{
+    public Guid UsuarioId { get; init; }
+    public Guid DispositivoId { get; init; }
+    public string Usuario { get; init; } = string.Empty;
+    public string Pda { get; init; } = string.Empty;
+    public DateTime? FechaInicial { get; init; }
+    public DateTime? FechaFinal { get; init; }
+    public OfflineResumenLoteResponse Resumen { get; init; } = new();
+    public PagedViewModel<CodigoOfflineResponse> Pagina { get; init; } = new();
+}
+
+public sealed class OfflineFormViewModel
+{
+    [Display(Name = UiTexts.UsuarioVendedor)]
+    public Guid UsuarioId { get; set; }
+
+    public Guid DispositivoId { get; set; }
+
+    [Display(Name = UiTexts.CantidadCodigos)]
+    [Range(1, 5000, ErrorMessage = ValidationMessages.CantidadCodigosOfflineRango)]
+    public int Cantidad { get; set; } = 1;
+
+    public IReadOnlyList<UsuarioResponse> Usuarios { get; set; } = [];
+}
+
+public sealed class PremiosIndexViewModel
+{
+    public string? Busqueda { get; init; }
+    public string? Estado { get; init; }
+    public PagedViewModel<CasoGanadorResponse> Pagina { get; init; } = new();
+}
+
+public sealed class PremioVerViewModel
+{
+    public CasoGanadorResponse Caso { get; init; } = new();
+    public Guid ObservadorId { get; init; }
+    public IReadOnlyList<UsuarioResponse> Observadores { get; init; } = [];
+}
+
+public sealed class PremioReportarViewModel
+{
+    [Display(Name = UiTexts.CodigoTicket)]
+    [Required(ErrorMessage = PremioMessages.TicketRequerido)]
+    [StringLength(7, ErrorMessage = PremioMessages.TicketRequerido)]
+    public string TicketCode { get; set; } = string.Empty;
 }

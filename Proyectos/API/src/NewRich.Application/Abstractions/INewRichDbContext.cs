@@ -29,6 +29,9 @@ public interface INewRichDbContext
     DbSet<Conversacion> Conversaciones { get; }
     DbSet<Mensaje> Mensajes { get; }
     DbSet<AdjuntoChat> AdjuntosChat { get; }
+    DbSet<CasoGanador> CasosGanadores { get; }
+    DbSet<EntregaGanador> EntregasGanadores { get; }
+    DbSet<EvidenciaGanador> EvidenciasGanador { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     Task ExecuteInTransactionAsync(Func<CancellationToken, Task> action, CancellationToken cancellationToken = default);

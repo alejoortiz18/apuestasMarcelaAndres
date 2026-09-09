@@ -1,0 +1,134 @@
+@using NewRich.Admin.Constants
+@using NewRich.Admin.Services
+@model NewRich.Admin.Models.OfflineLoteViewModel
+@{
+    var resumen = Model.Resumen;
+    string Formato(DateTime? fecha) => fecha.HasValue
+        ? fecha.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+        : UiTexts.NoAplica;
+}
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.OfflineKicker</div>
+        <h1>@UiTexts.CodigosDelUsuario</h1>
+        <p>@UiTexts.OfflineSub</p>
+    </div>
+    <a class="secondary" asp-action="Index">@UiTexts.VolverAlListado</a>
+</div>
+<div class="lote-meta">
+    <div class="stat">
+        <small>@UiTexts.NombreCompleto</small>
+        <strong>@Model.Usuario</strong>
+    </div>
+    <div class="stat">
+        <small>@UiTexts.Pda</small>
+        <strong>@Model.Pda</strong>
+    </div>
+</div>
+<div class="stats">
+    <div class="stat">
+        <small>@UiTexts.Generados</small>
+        <strong>@resumen.Generados.ToString("N0")</strong>
+    </div>
+    <div class="stat">
+        <small>@UiTexts.Descargados</small>
+        <strong>@resumen.Descargados.ToString("N0")</strong>
+    </div>
+    <div class="stat">
+        <small>@UiTexts.Vendidos</small>
+        <strong>@resumen.Vendidos.ToString("N0")</strong>
+    </div>
+    <div class="stat">
+        <small>@UiTexts.SinUsar</small>
+        <strong>@resumen.SinUsar.ToString("N0")</strong>
+    </div>
+</div>
+<div class="panel">
+    <form class="toolbar pda-toolbar" method="get" asp-action="Codigos" data-submit-on-change>
+        <input type="hidden" name="usuarioId" value="@Model.UsuarioId" />
+        <input type="hidden" name="dispositivoId" value="@Model.DispositivoId" />
+        <div class="field">
+            <label for="fechaInicial">@UiTexts.FechaInicial</label>
+            <input id="fechaInicial" name="fechaInicial" type="date" value="@(Model.FechaInicial?.ToString("yyyy-MM-dd"))" />
+        </div>
+        <div class="field">
+            <label for="fechaFinal">@UiTexts.FechaFinal</label>
+            <input id="fechaFinal" name="fechaFinal" type="date" value="@(Model.FechaFinal?.ToString("yyyy-MM-dd"))" />
+        </div>
+        <div class="field">
+            <label for="pageSize">@UiTexts.FilasPorPagina</label>
+            <select id="pageSize" name="pageSize" class="searchable">
+                @foreach (var size in PagingHelper.PageSizes)
+                {
+                    <option value="@size" @(Model.Pagina.PageSize == size ? "selected" : null)>@size</option>
+                }
+            </select>
+        </div>
+        <button class="primary" type="submit">@UiTexts.Aplicar</button>
+        <a class="secondary pda-clear" asp-action="Codigos" asp-route-usuarioId="@Model.UsuarioId" asp-route-dispositivoId="@Model.DispositivoId">@UiTexts.LimpiarFiltros</a>
+    </form>
+</div>
+<div class="panel">
+    @if (!Model.Pagina.Items.Any())
+    {
+        <div class="empty">@UiTexts.Vacio</div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                <tr>
+                    <th>@UiTexts.Consecutivo</th>
+                    <th>@UiTexts.FechaVenta</th>
+                    <th>@UiTexts.EstadoDelCodigo</th>
+                    <th>@UiTexts.Accion</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var item in Model.Pagina.Items)
+                {
+                    <tr tabindex="0">
+                        <td><strong>@item.Consecutivo</strong></td>
+                        <td>@Formato(item.FechaVenta)</td>
+                        <td><span class="pill @EstadoUi.Pill(item.Estado)">@item.Estado</span></td>
+                        <td>
+                            <button type="button"
+                                    class="secondary table-ver"
+                                    data-codigo-detalle
+                                    data-consecutivo="@item.Consecutivo"
+                                    data-usuario="@item.Usuario"
+                                    data-pda="@item.Pda"
+                                    data-estado="@item.Estado"
+                                    data-estado-pill="@EstadoUi.Pill(item.Estado)"
+                                    data-fecha-creacion="@item.FechaCreacion.ToLocalTime().ToString("dd/MM/yyyy HH:mm")"
+                                    data-fecha-descarga="@Formato(item.FechaDescarga)"
+                                    data-fecha-venta="@Formato(item.FechaVenta)"
+                                    data-fecha-registro="@Formato(item.FechaRegistro)">@UiTexts.Ver</button>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        <partial name="_Pager" model="Model.Pagina" />
+    }
+</div>
+<div id="codigoDialog" class="dialog-back hidden" role="dialog" aria-modal="true" aria-labelledby="codigoDialogTitle" hidden>
+    <div class="dialog dialog-codigo">
+        <h2 id="codigoDialogTitle">@UiTexts.DetalleCodigo</h2>
+        <div class="receipt">
+            <div class="receipt-row"><span>@UiTexts.Consecutivo</span><strong data-codigo-field="consecutivo"></strong></div>
+            <div class="receipt-row"><span>@UiTexts.NombreCompleto</span><strong data-codigo-field="usuario"></strong></div>
+            <div class="receipt-row"><span>@UiTexts.Pda</span><strong data-codigo-field="pda"></strong></div>
+            <div class="receipt-row"><span>@UiTexts.EstadoDelCodigo</span><strong><span class="pill" data-codigo-field="estado"></span></strong></div>
+            <div class="receipt-row"><span>@UiTexts.FechaCreacion</span><strong data-codigo-field="fecha-creacion"></strong></div>
+            <div class="receipt-row"><span>@UiTexts.FechaDescarga</span><strong data-codigo-field="fecha-descarga"></strong></div>
+            <div class="receipt-row"><span>@UiTexts.FechaVenta</span><strong data-codigo-field="fecha-venta"></strong></div>
+            <div class="receipt-row"><span>@UiTexts.FechaRegistro</span><strong data-codigo-field="fecha-registro"></strong></div>
+        </div>
+        <div class="dialog-actions">
+            <button type="button" class="primary" data-close-codigo>@UiTexts.Cerrar</button>
+        </div>
+    </div>
+</div>

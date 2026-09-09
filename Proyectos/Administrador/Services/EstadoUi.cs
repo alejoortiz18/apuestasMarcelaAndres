@@ -8,8 +8,8 @@ public static class EstadoUi
     {
         return estado switch
         {
-            "Activo" or "Jugado" or "Pagado" or "Pagado/cobrado" or "Leida" or "Validado" => "ok",
-            "Ganador" or "Pendiente" or "Reportado" or "Por jugar" => "warn",
+            "Activo" or "Jugado" or "Pagado" or "Pagado/cobrado" or "Leida" or "Validado" or "Registrado" or "Asignado" or "Premio entregado" or "Abierta" => "ok",
+            "Ganador" or "Pendiente" or "Reportado" or "Por jugar" or "Utilizado" or "En proceso" => "warn",
             "Vencido" or "Bloqueado" or "Rechazado" or "Inactivo" or "No ganador" => "bad",
             _ => "info"
         };

@@ -1,12 +1,112 @@
 @using NewRich.Admin.Constants
+@using NewRich.Admin.Services
+@model NewRich.Admin.Models.PremiosIndexViewModel
 <div class="heading">
     <div>
         <div class="eyebrow">@UiTexts.PremiosKicker</div>
         <h1>@UiTexts.PremiosTitulo</h1>
         <p>@UiTexts.PremiosSub</p>
     </div>
+    <a class="primary" asp-action="Reportar">@UiTexts.ReportarTicket</a>
 </div>
 <div class="panel">
-    <div class="notice">@UiTexts.ModuloNoDisponible</div>
-    <div class="empty">@UiTexts.Vacio</div>
+    <form class="toolbar pda-toolbar" method="get">
+        <div class="field">
+            <label for="q">@UiTexts.BuscarTicket</label>
+            <input id="q" name="q" value="@Model.Busqueda" placeholder="@UiTexts.PlaceholderPremio" />
+        </div>
+        <div class="field">
+            <label for="estado">@UiTexts.Estado</label>
+            <select id="estado" name="estado" class="searchable">
+                <option value="">@UiTexts.TodosLosEstados</option>
+                <option value="Reportado" @(Model.Estado == "Reportado" ? "selected" : null)>Reportado</option>
+                <option value="Validado" @(Model.Estado == "Validado" ? "selected" : null)>Validado</option>
+                <option value="Asignado" @(Model.Estado == "Asignado" ? "selected" : null)>Asignado</option>
+                <option value="En proceso" @(Model.Estado == "En proceso" ? "selected" : null)>En proceso</option>
+                <option value="Rechazado" @(Model.Estado == "Rechazado" ? "selected" : null)>Rechazado</option>
+                <option value="Premio entregado" @(Model.Estado == "Premio entregado" ? "selected" : null)>Premio entregado</option>
+            </select>
+        </div>
+        <div class="field">
+            <label for="pageSize">@UiTexts.FilasPorPagina</label>
+            <select id="pageSize" name="pageSize" class="searchable">
+                @foreach (var size in PagingHelper.PageSizes)
+                {
+                    <option value="@size" @(Model.Pagina.PageSize == size ? "selected" : null)>@size</option>
+                }
+            </select>
+        </div>
+        <button class="primary" type="submit">@UiTexts.Buscar</button>
+        <a class="secondary pda-clear" asp-action="Index">@UiTexts.LimpiarFiltros</a>
+    </form>
+</div>
+<div class="panel">
+    <div class="panel-head">
+        <div>
+            <h2>@UiTexts.SeguimientoDeCasos</h2>
+            <div class="panel-sub">@UiTexts.SeguimientoDeCasosSub</div>
+        </div>
+    </div>
+    @if (!Model.Pagina.Items.Any())
+    {
+        <div class="empty">@UiTexts.Vacio</div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table data-table-select="premios">
+                <thead>
+                <tr>
+                    <th class="col-check"><span class="visually-hidden">@UiTexts.SeleccionarFila</span></th>
+                    <th>@UiTexts.Ticket</th>
+                    <th>@UiTexts.UsuarioVendedor</th>
+                    <th>@UiTexts.FechaReporte</th>
+                    <th>@UiTexts.Pda</th>
+                    <th>@UiTexts.Estado</th>
+                    <th>@UiTexts.Observador</th>
+                    <th>@UiTexts.Accion</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var item in Model.Pagina.Items)
+                {
+                    var flags = item.Estado == "Reportado"
+                        ? "reportado"
+                        : (item.Estado is "Validado" or "Asignado" or "En proceso" ? "asignable" : "cerrado");
+                    <tr tabindex="0" data-row-id="@item.CasoId" data-flags="@flags">
+                        <td class="col-check">
+                            <input class="row-check" type="checkbox" value="@item.CasoId" aria-label="@UiTexts.SeleccionarFila @item.Ticket" />
+                        </td>
+                        <td><strong>@item.Ticket</strong></td>
+                        <td>@item.Vendedor</td>
+                        <td>@item.FechaReporte.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>@item.Pda</td>
+                        <td><span class="pill @EstadoUi.Pill(item.Estado)">@item.Estado</span></td>
+                        <td>@item.Observador</td>
+                        <td>
+                            <a class="secondary table-ver" asp-action="Ver" asp-route-id="@item.CasoId">@UiTexts.Ver</a>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        <partial name="_Pager" model="Model.Pagina" />
+        <div class="table-actions" data-table-panel="premios">
+            <h2>@UiTexts.AccionesDePremio</h2>
+            <p class="panel-sub">@UiTexts.SeleccionaCasoPremio</p>
+            <div class="table-actions-buttons">
+                <a class="secondary" data-needs-selection data-url-template="@Url.Action("Ver")/{id}" href="#" aria-disabled="true">@UiTexts.Ver</a>
+                <form method="post" data-needs-selection data-show-when="reportado" data-url-template="@Url.Action("Validar")/{id}" hidden>
+                    @Html.AntiForgeryToken()
+                    <button class="secondary" type="submit" disabled>@UiTexts.ValidarCaso</button>
+                </form>
+                <form method="post" data-needs-selection data-show-when="reportado" data-url-template="@Url.Action("Rechazar")/{id}" hidden>
+                    @Html.AntiForgeryToken()
+                    <button class="danger" type="submit" disabled>@UiTexts.RechazarCaso</button>
+                </form>
+                <a class="secondary" data-needs-selection data-show-when="asignable" data-url-template="@Url.Action("Ver")/{id}" href="#" hidden aria-disabled="true">@UiTexts.AsignarObservador</a>
+            </div>
+        </div>
+    }
 </div>

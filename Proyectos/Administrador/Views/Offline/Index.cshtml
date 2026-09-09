@@ -1,12 +1,65 @@
 @using NewRich.Admin.Constants
+@using NewRich.Admin.Services
+@model NewRich.Admin.Models.OfflineIndexViewModel
 <div class="heading">
     <div>
         <div class="eyebrow">@UiTexts.OfflineKicker</div>
         <h1>@UiTexts.OfflineTitulo</h1>
         <p>@UiTexts.OfflineSub</p>
     </div>
+    <a class="primary" asp-action="Crear">@UiTexts.GenerarCodigos</a>
 </div>
 <div class="panel">
-    <div class="notice">@UiTexts.ModuloNoDisponible</div>
-    <div class="empty">@UiTexts.Vacio</div>
+    <form class="toolbar pda-toolbar" method="get">
+        <div class="field">
+            <label for="q">@UiTexts.BuscarUsuarioOPda</label>
+            <input id="q" name="q" value="@Model.Busqueda" placeholder="@UiTexts.PlaceholderOffline" />
+        </div>
+        <div class="field">
+            <label for="pageSize">@UiTexts.FilasPorPagina</label>
+            <select id="pageSize" name="pageSize" class="searchable">
+                @foreach (var size in PagingHelper.PageSizes)
+                {
+                    <option value="@size" @(Model.Pagina.PageSize == size ? "selected" : null)>@size</option>
+                }
+            </select>
+        </div>
+        <button class="primary" type="submit">@UiTexts.Buscar</button>
+        <a class="secondary pda-clear" asp-action="Index">@UiTexts.LimpiarFiltros</a>
+    </form>
+</div>
+<div class="panel">
+    @if (!Model.Pagina.Items.Any())
+    {
+        <div class="empty">@UiTexts.Vacio</div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                <tr>
+                    <th>@UiTexts.Usuario</th>
+                    <th>@UiTexts.Pda</th>
+                    <th>@UiTexts.CantidadCodigosGenerados</th>
+                    <th>@UiTexts.Accion</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var item in Model.Pagina.Items)
+                {
+                    <tr tabindex="0">
+                        <td><strong>@item.Usuario</strong></td>
+                        <td>@item.Pda</td>
+                        <td>@item.Cantidad.ToString("N0")</td>
+                        <td>
+                            <a class="secondary table-ver" asp-action="Codigos" asp-route-usuarioId="@item.UsuarioId" asp-route-dispositivoId="@item.DispositivoId">@UiTexts.Ver</a>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        <partial name="_Pager" model="Model.Pagina" />
+    }
 </div>

@@ -1,0 +1,23 @@
+@using NewRich.Admin.Constants
+@model NewRich.Admin.Models.PremioReportarViewModel
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.PremiosKicker</div>
+        <h1>@UiTexts.ReportarTicket</h1>
+        <p>@UiTexts.PremiosSub</p>
+    </div>
+</div>
+<div class="panel">
+    <div asp-validation-summary="ModelOnly" class="notice error"></div>
+    <form method="post">
+        <div class="field">
+            <label asp-for="TicketCode"></label>
+            <input asp-for="TicketCode" maxlength="7" placeholder="4839190" />
+            <span asp-validation-for="TicketCode"></span>
+        </div>
+        <div class="text-center-actions">
+            <button class="primary" type="submit">@UiTexts.ReportarTicket</button>
+            <a class="secondary" asp-action="Index">@UiTexts.Cancelar</a>
+        </div>
+    </form>
+</div>

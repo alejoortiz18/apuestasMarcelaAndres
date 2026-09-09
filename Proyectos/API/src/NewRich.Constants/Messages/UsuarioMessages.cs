@@ -22,4 +22,6 @@ public static class UsuarioMessages
     public const string DispositivoSerieDuplicada = "Ya existe un dispositivo con ese número de serie.";
     public const string DispositivoYaAsociado = "El dispositivo ya está asociado a ese usuario.";
     public const string DispositivoAsociacionNoEncontrada = "No existe una asociación entre el dispositivo y el usuario.";
+    public const string CapacidadCodigosOfflineInsuficiente = "La cantidad a generar supera la capacidad disponible del PDA.";
+    public const string CodigoOfflineNoEncontrado = "El código offline no existe.";
 }

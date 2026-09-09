@@ -277,8 +277,9 @@ Estas comprobaciones se reutilizan en cada módulo. Además hay casos dedicados:
 
 **Ruta:** `/Offline`
 
-### PA-049 Módulo aún no disponible
-- **Qué probar:** Título *Ventas offline*, aviso de API no implementada, estado vacío. Menú activo.
+### PA-049 Listado, filtros y generación
+- **Qué probar:** Título *Ventas offline*, tarjetas de resumen (Generados, Descargados, Utilizados, Registrados), tabla con casilla, consecutivo, usuario, PDA, fecha venta, estado y **Ver**. Filtros, paginación y **Generar códigos**.
+- **Esperado:** Los conteos y filas salen de la API. El menú **Ventas offline** queda activo.
 
 ---
 

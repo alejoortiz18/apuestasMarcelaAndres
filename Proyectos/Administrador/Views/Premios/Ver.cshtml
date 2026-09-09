@@ -1,0 +1,83 @@
+@using NewRich.Admin.Constants
+@using NewRich.Admin.Services
+@model NewRich.Admin.Models.PremioVerViewModel
+@{
+    var caso = Model.Caso;
+    var pasos = new[] { "Reportado", "Validado", "Asignado", "En proceso", "Registrado", "Premio entregado" };
+    var actual = caso.Estado == "Premio entregado" ? "Premio entregado" : caso.Estado;
+    var indice = Array.IndexOf(pasos, actual);
+    if (indice < 0 && caso.Estado == "Rechazado")
+    {
+        indice = 0;
+    }
+    var puedeValidar = caso.Estado == "Reportado";
+    var puedeAsignar = caso.Estado is "Validado" or "Asignado" or "En proceso";
+}
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.PremiosKicker</div>
+        <h1>@UiTexts.DetalleCasoGanador</h1>
+        <p>@UiTexts.Ticket <strong>@caso.Ticket</strong> · @caso.Vendedor · @caso.Pda</p>
+    </div>
+    <a class="secondary" asp-action="Index">@UiTexts.VolverAlListado</a>
+</div>
+<div class="panel">
+    <div class="field">
+        <label>@UiTexts.EstadoActual</label>
+        <input value="@caso.Estado" readonly />
+    </div>
+    <div class="prize-steps" aria-label="@UiTexts.EstadoActual">
+        @for (var i = 0; i < pasos.Length; i++)
+        {
+            var activo = caso.Estado != "Rechazado" && i <= indice;
+            <div class="prize-step@(activo ? " is-done" : null)">
+                <span>@(i + 1)</span>
+                <strong>@pasos[i]</strong>
+            </div>
+        }
+    </div>
+    <div class="receipt">
+        <div class="receipt-row"><span>@UiTexts.Ticket</span><strong>@caso.Ticket</strong></div>
+        <div class="receipt-row"><span>@UiTexts.UsuarioVendedor</span><strong>@caso.Vendedor</strong></div>
+        <div class="receipt-row"><span>@UiTexts.Pda</span><strong>@caso.Pda</strong></div>
+        <div class="receipt-row"><span>@UiTexts.Observador</span><strong>@caso.Observador</strong></div>
+        <div class="receipt-row"><span>@UiTexts.FechaReporte</span><strong>@caso.FechaReporte.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</strong></div>
+        @if (caso.ValorTotalGanado.HasValue)
+        {
+            <div class="receipt-rule">----------------</div>
+            <div class="receipt-row"><span>@UiTexts.NombreCompleto</span><strong>@caso.NombreGanador @caso.ApellidoGanador</strong></div>
+            <div class="receipt-row"><span>@caso.NumeroContacto</span><strong>@caso.LugarGano</strong></div>
+            <div class="receipt-row"><span>@UiTexts.Valor</span><strong>@caso.ValorTotalGanado.Value.ToString("N0")</strong></div>
+        }
+    </div>
+    @if (puedeValidar)
+    {
+        <div class="table-actions-buttons" style="margin-top:18px">
+            <form method="post" asp-action="Validar" asp-route-id="@caso.CasoId">
+                @Html.AntiForgeryToken()
+                <button class="primary" type="submit">@UiTexts.ValidarCaso</button>
+            </form>
+            <form method="post" asp-action="Rechazar" asp-route-id="@caso.CasoId">
+                @Html.AntiForgeryToken()
+                <button class="danger" type="submit">@UiTexts.RechazarCaso</button>
+            </form>
+        </div>
+    }
+    @if (puedeAsignar)
+    {
+        <form method="post" asp-action="Asignar" asp-route-id="@caso.CasoId" class="toolbar" style="margin-top:18px">
+            @Html.AntiForgeryToken()
+            <div class="field">
+                <label for="observadorId">@UiTexts.AsignarObservador</label>
+                <select id="observadorId" name="observadorId" class="searchable" required>
+                    <option value="">@UiTexts.Seleccionar</option>
+                    @foreach (var observador in Model.Observadores)
+                    {
+                        <option value="@observador.UsuarioId">@observador.NombreCompleto</option>
+                    }
+                </select>
+            </div>
+            <button class="primary" type="submit">@UiTexts.AsignarObservador</button>
+        </form>
+    }
+</div>

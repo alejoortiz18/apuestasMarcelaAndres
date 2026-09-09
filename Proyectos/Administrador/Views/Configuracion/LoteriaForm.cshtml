@@ -1,0 +1,31 @@
+@using NewRich.Admin.Constants
+@using NewRich.Domain.Enums
+@model NewRich.Admin.Models.LoteriaFormViewModel
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.ConfigKicker</div>
+        <h1>@(Model.LoteriaId.HasValue ? UiTexts.Editar : UiTexts.AgregarLoteria)</h1>
+        <p>@UiTexts.CatalogoLoteriasSub</p>
+    </div>
+</div>
+<div class="panel">
+    <div asp-validation-summary="ModelOnly" class="notice error"></div>
+    <form method="post">
+        <div class="field">
+            <label asp-for="Nombre"></label>
+            <input asp-for="Nombre" />
+            <span asp-validation-for="Nombre"></span>
+        </div>
+        @if (Model.LoteriaId.HasValue)
+        {
+            <div class="field">
+                <label asp-for="Estado"></label>
+                <select asp-for="Estado" class="searchable" asp-items="Html.GetEnumSelectList<EstadoGeneral>()"></select>
+            </div>
+        }
+        <div class="text-center-actions">
+            <button class="primary" type="submit">@UiTexts.Guardar</button>
+            <a class="secondary" asp-action="Index">@UiTexts.Cancelar</a>
+        </div>
+    </form>
+</div>

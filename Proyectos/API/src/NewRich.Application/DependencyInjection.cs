@@ -20,6 +20,8 @@ public static class DependencyInjection
         services.AddScoped<IKpiService, KpiService>();
         services.AddScoped<IConsultaService, ConsultaService>();
         services.AddScoped<IChatService, ChatService>();
+        services.AddScoped<IOfflineService, OfflineService>();
+        services.AddScoped<IPremioService, PremioService>();
         return services;
     }
 }

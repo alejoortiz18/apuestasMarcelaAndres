@@ -18,15 +18,22 @@ public sealed class ConversacionResponse
     public Guid ConversacionId { get; set; }
     public Guid UsuarioIniciadorId { get; set; }
     public Guid UsuarioDestinoId { get; set; }
+    public string NombreIniciador { get; set; } = string.Empty;
+    public string NombreDestino { get; set; } = string.Empty;
+    public string RolIniciador { get; set; } = string.Empty;
+    public string RolDestino { get; set; } = string.Empty;
     public string Estado { get; set; } = string.Empty;
     public DateTime FechaInicio { get; set; }
     public DateTime? FechaCierre { get; set; }
+    public string UltimoTexto { get; set; } = string.Empty;
+    public DateTime? FechaUltimoMensaje { get; set; }
 }
 
 public sealed class MensajeResponse
 {
     public Guid MensajeId { get; set; }
     public Guid UsuarioEmisorId { get; set; }
+    public string NombreEmisor { get; set; } = string.Empty;
     public string Texto { get; set; } = string.Empty;
     public DateTime FechaEnvio { get; set; }
     public Guid? AdjuntoId { get; set; }

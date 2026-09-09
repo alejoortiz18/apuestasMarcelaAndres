@@ -2,8 +2,9 @@
 @using NewRich.Admin.Services
 @model NewRich.Admin.Models.SoporteIndexViewModel
 @{
-    var yo = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-    var nombres = Model.Destinatarios.ToDictionary(u => u.UsuarioId, u => u.NombreCompleto);
+    var yoTexto = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    _ = Guid.TryParse(yoTexto, out var yo);
+    var abierta = string.Equals(Model.Detalle?.Conversacion.Estado, "Abierta", StringComparison.Ordinal);
 }
 <div class="heading">
     <div>
@@ -12,7 +13,7 @@
         <p>@UiTexts.SoporteSub</p>
     </div>
 </div>
-<div class="panel">
+<div class="panel chat-start">
     <form asp-action="Iniciar" method="post" class="toolbar">
         <div class="field">
             <label for="destinoId">@UiTexts.Destinatario</label>
@@ -23,9 +24,9 @@
                 }
             </select>
         </div>
-        <div class="field">
-            <label for="texto">@UiTexts.Mensaje</label>
-            <input id="texto" name="texto" placeholder="@UiTexts.EscribeMensaje" />
+        <div class="field chat-start-message">
+            <label for="textoInicio">@UiTexts.Mensaje</label>
+            <input id="textoInicio" name="texto" placeholder="@UiTexts.EscribeMensaje" autocomplete="off" />
         </div>
         <button class="primary" type="submit">@UiTexts.IniciarConversacion</button>
     </form>
@@ -34,6 +35,16 @@
     <aside class="chat-list">
         <div class="chat-list-head">
             <h2>@UiTexts.Conversaciones</h2>
+            <form method="get" class="chat-search-form" data-submit-on-change>
+                <label class="sr-only" for="q">@UiTexts.BuscarChat</label>
+                <input id="q" name="q" class="chat-search" value="@Model.Busqueda" placeholder="@UiTexts.BuscarChat" />
+                @if (Model.ConversacionId.HasValue)
+                {
+                    <input type="hidden" name="id" value="@Model.ConversacionId" />
+                }
+                <button class="secondary" type="submit">@UiTexts.Buscar</button>
+                <a class="secondary" asp-action="Index">@UiTexts.LimpiarFiltros</a>
+            </form>
         </div>
         @if (!Model.Conversaciones.Any())
         {
@@ -43,11 +54,29 @@
         {
             @foreach (var c in Model.Conversaciones)
             {
-                var otro = c.UsuarioIniciadorId.ToString() == yo ? c.UsuarioDestinoId : c.UsuarioIniciadorId;
-                var nombre = nombres.TryGetValue(otro, out var n) ? n : otro.ToString()[..8];
-                <a class="chat-item @(Model.ConversacionId == c.ConversacionId ? "active" : null)" asp-action="Index" asp-route-id="@c.ConversacionId">
-                    <strong>@nombre</strong>
-                    <small>@c.Estado · @c.FechaInicio.ToLocalTime().ToString("dd/MM HH:mm")</small>
+                var persona = ChatVista.Contraparte(c, yo);
+                var activa = Model.ConversacionId == c.ConversacionId;
+                var pendiente = string.Equals(c.Estado, "Abierta", StringComparison.Ordinal);
+                <a class="chat-item @(activa ? "active" : null) @(pendiente ? null : "is-closed")"
+                   asp-action="Index"
+                   asp-route-id="@c.ConversacionId"
+                   asp-route-q="@Model.Busqueda">
+                    <div class="chat-person">
+                        <span class="chat-avatar @persona.Tono">@persona.Iniciales</span>
+                        <span class="chat-person-copy">
+                            <strong>@persona.Nombre</strong>
+                            <em>@persona.Rol</em>
+                        </span>
+                        @if (pendiente)
+                        {
+                            <span class="chat-dot" title="@c.Estado"></span>
+                        }
+                        else
+                        {
+                            <span class="pill @EstadoUi.Pill(c.Estado)">@c.Estado</span>
+                        }
+                    </div>
+                    <small>@(string.IsNullOrWhiteSpace(c.UltimoTexto) ? UiTexts.SinMensajes : c.UltimoTexto)</small>
                 </a>
             }
         }
@@ -55,35 +84,67 @@
     <section class="chat-window">
         @if (Model.Detalle is null)
         {
-            <header class="chat-head"><div><h2>@UiTexts.SoporteTitulo</h2></div></header>
-            <div class="chat-messages"><div class="empty">@UiTexts.Vacio</div></div>
+            <header class="chat-head">
+                <div>
+                    <h2>@UiTexts.SoporteTitulo</h2>
+                    <p>@UiTexts.SeleccionaConversacion</p>
+                </div>
+            </header>
+            <div class="chat-messages">
+                <div class="empty">@UiTexts.SeleccionaConversacion</div>
+            </div>
         }
         else
         {
             var conv = Model.Detalle.Conversacion;
+            var persona = ChatVista.Contraparte(conv, yo);
             <header class="chat-head">
-                <div>
-                    <h2>Conversacion</h2>
-                    <p>@conv.Estado</p>
-                </div>
-                <form asp-action="Cerrar" asp-route-id="@conv.ConversacionId" method="post">
-                    <button class="secondary" type="submit">@UiTexts.MarcarAtendida</button>
-                </form>
-            </header>
-            <div class="chat-messages">
-                @foreach (var m in Model.Detalle.Mensajes)
-                {
-                    var mine = m.UsuarioEmisorId.ToString() == yo;
-                    <div class="chat-message @(mine ? "me" : "other")">
-                        @m.Texto
-                        <time>@m.FechaEnvio.ToLocalTime().ToString("HH:mm")</time>
+                <div class="chat-head-person">
+                    <span class="chat-avatar @persona.Tono">@persona.Iniciales</span>
+                    <div>
+                        <h2>@persona.Nombre</h2>
+                        <p>@persona.Rol · @UiTexts.ConversacionDeSoporte</p>
                     </div>
+                </div>
+                <div class="chat-head-actions">
+                    <span class="pill @EstadoUi.Pill(conv.Estado)">@conv.Estado</span>
+                    @if (abierta)
+                    {
+                        <form asp-action="Cerrar" asp-route-id="@conv.ConversacionId" method="post">
+                            <button class="secondary" type="submit">@UiTexts.MarcarAtendida</button>
+                        </form>
+                    }
+                </div>
+            </header>
+            <div class="chat-messages" data-chat-scroll>
+                @if (!Model.Detalle.Mensajes.Any())
+                {
+                    <div class="empty">@UiTexts.SinMensajes</div>
+                }
+                else
+                {
+                    @foreach (var m in Model.Detalle.Mensajes)
+                    {
+                        var mine = m.UsuarioEmisorId == yo;
+                        <div class="chat-message @(mine ? "me" : "other")">
+                            @m.Texto
+                            <time>@m.FechaEnvio.ToLocalTime().ToString("dd/MM HH:mm") · @(string.IsNullOrWhiteSpace(m.NombreEmisor) ? persona.Nombre : m.NombreEmisor)</time>
+                        </div>
+                    }
                 }
             </div>
-            <form class="chat-compose" asp-action="Enviar" asp-route-id="@conv.ConversacionId" method="post">
-                <input name="texto" placeholder="@UiTexts.EscribeMensaje" autocomplete="off" />
-                <button class="primary" type="submit">@UiTexts.Enviar</button>
-            </form>
+            @if (abierta)
+            {
+                <form class="chat-compose" asp-action="Enviar" asp-route-id="@conv.ConversacionId" method="post">
+                    <label class="sr-only" for="textoMensaje">@UiTexts.EscribeMensaje</label>
+                    <input id="textoMensaje" name="texto" placeholder="@UiTexts.EscribeMensaje" autocomplete="off" />
+                    <button class="primary" type="submit">@UiTexts.Enviar</button>
+                </form>
+            }
+            else
+            {
+                <div class="chat-compose chat-compose-closed">@UiTexts.ConversacionCerradaAviso</div>
+            }
         }
     </section>
 </div>

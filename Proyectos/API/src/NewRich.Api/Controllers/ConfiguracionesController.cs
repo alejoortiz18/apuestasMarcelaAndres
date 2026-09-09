@@ -21,6 +21,19 @@ public sealed class ConfiguracionesController : ApiControllerBase
         return From(await _configuracionService.ListarAsync(cancellationToken));
     }
 
+    [HttpGet("operativa")]
+    public async Task<IActionResult> ObtenerOperativa(CancellationToken cancellationToken)
+    {
+        return From(await _configuracionService.ObtenerOperativaAsync(cancellationToken));
+    }
+
+    [Authorize(Roles = "Administrador")]
+    [HttpPut("operativa")]
+    public async Task<IActionResult> GuardarOperativa([FromBody] GuardarConfiguracionOperativaRequest request, CancellationToken cancellationToken)
+    {
+        return From(await _configuracionService.GuardarOperativaAsync(request, cancellationToken));
+    }
+
     [Authorize(Roles = "Administrador")]
     [HttpPut("{clave}")]
     public async Task<IActionResult> Actualizar(string clave, [FromBody] ActualizarConfiguracionRequest request, CancellationToken cancellationToken)

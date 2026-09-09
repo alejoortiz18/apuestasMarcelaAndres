@@ -29,7 +29,15 @@ public sealed class SoporteController : AdminControllerBase
             return unauthorized;
         }
 
-        var lista = conversacionesTask.Result.Data ?? [];
+        var lista = (conversacionesTask.Result.Data ?? []).ToList();
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var termino = q.Trim();
+            lista = lista.Where(c =>
+                c.NombreIniciador.Contains(termino, StringComparison.OrdinalIgnoreCase)
+                || c.NombreDestino.Contains(termino, StringComparison.OrdinalIgnoreCase)
+                || c.UltimoTexto.Contains(termino, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
         ConversacionDetalleResponse? detalle = null;
         var selected = id ?? lista.FirstOrDefault()?.ConversacionId;
         if (selected.HasValue)
@@ -121,6 +129,6 @@ public sealed class SoporteController : AdminControllerBase
         }
 
         SetFlash(result.Success ? SuccessMessages.ConversacionCerrada : result.Message, result.Success);
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(Index), new { id });
     }
 }

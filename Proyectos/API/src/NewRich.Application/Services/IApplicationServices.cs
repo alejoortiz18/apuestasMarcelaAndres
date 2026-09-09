@@ -9,6 +9,8 @@ using NewRich.Application.Contracts.Grupos;
 using NewRich.Application.Contracts.Kpi;
 using NewRich.Application.Contracts.Loterias;
 using NewRich.Application.Contracts.Notificaciones;
+using NewRich.Application.Contracts.Offline;
+using NewRich.Application.Contracts.Premios;
 using NewRich.Application.Contracts.Resultados;
 using NewRich.Application.Contracts.Usuarios;
 using NewRich.Application.Contracts.Ventas;
@@ -66,6 +68,8 @@ public interface IConfiguracionService
 {
     Task<Result<IReadOnlyList<ConfiguracionResponse>>> ListarAsync(CancellationToken cancellationToken);
     Task<Result<ConfiguracionResponse>> ActualizarAsync(string clave, string valor, CancellationToken cancellationToken);
+    Task<Result<ConfiguracionOperativaResponse>> ObtenerOperativaAsync(CancellationToken cancellationToken);
+    Task<Result<ConfiguracionOperativaResponse>> GuardarOperativaAsync(GuardarConfiguracionOperativaRequest request, CancellationToken cancellationToken);
 }
 
 public interface IVentaService
@@ -112,4 +116,21 @@ public interface IChatService
     Task<Result<MensajeResponse>> EnviarAsync(Guid conversacionId, Guid emisorId, EnviarMensajeRequest request, CancellationToken cancellationToken);
     Task<Result> CerrarAsync(Guid conversacionId, Guid administradorId, CancellationToken cancellationToken);
     Task<Result<DescargaAdjuntoResponse>> DescargarAdjuntoAsync(Guid adjuntoId, Guid usuarioId, CancellationToken cancellationToken);
+}
+
+public interface IOfflineService
+{
+    Task<Result<OfflineListadoResponse>> ListarAsync(CancellationToken cancellationToken);
+    Task<Result<CodigoOfflineResponse>> ObtenerAsync(Guid codigoId, CancellationToken cancellationToken);
+    Task<Result<IReadOnlyList<CodigoOfflineResponse>>> GenerarAsync(GenerarCodigosOfflineRequest request, CancellationToken cancellationToken);
+}
+
+public interface IPremioService
+{
+    Task<Result<IReadOnlyList<CasoGanadorResponse>>> ListarAsync(CancellationToken cancellationToken);
+    Task<Result<CasoGanadorResponse>> ObtenerAsync(Guid casoId, CancellationToken cancellationToken);
+    Task<Result<CasoGanadorResponse>> ReportarAsync(Guid solicitanteId, ReportarCasoGanadorRequest request, CancellationToken cancellationToken);
+    Task<Result<CasoGanadorResponse>> ValidarAsync(Guid casoId, Guid adminId, CancellationToken cancellationToken);
+    Task<Result<CasoGanadorResponse>> RechazarAsync(Guid casoId, Guid adminId, CancellationToken cancellationToken);
+    Task<Result<CasoGanadorResponse>> AsignarAsync(Guid casoId, Guid adminId, AsignarObservadorRequest request, CancellationToken cancellationToken);
 }

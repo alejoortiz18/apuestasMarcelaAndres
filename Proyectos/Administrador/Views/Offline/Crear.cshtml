@@ -1,0 +1,43 @@
+@using NewRich.Admin.Constants
+@model NewRich.Admin.Models.OfflineFormViewModel
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.OfflineKicker</div>
+        <h1>@UiTexts.GenerarCodigos</h1>
+        <p>@UiTexts.OfflineSub</p>
+    </div>
+</div>
+<div class="panel">
+    <div asp-validation-summary="ModelOnly" class="notice error"></div>
+    <form method="post" data-offline-generate>
+        <div class="field">
+            <label asp-for="UsuarioId"></label>
+            <select asp-for="UsuarioId" class="searchable" data-offline-usuario>
+                <option value="">@UiTexts.Seleccionar</option>
+                @foreach (var u in Model.Usuarios)
+                {
+                    <option value="@u.UsuarioId"
+                            data-pda-id="@(u.DispositivoId?.ToString() ?? "")"
+                            data-pda-codigo="@u.CodigoDispositivo">
+                        @u.NombreCompleto
+                    </option>
+                }
+            </select>
+            <span asp-validation-for="UsuarioId"></span>
+        </div>
+        <div class="field" data-offline-pda hidden>
+            <span>@UiTexts.PdaAsociado</span>
+            <strong class="pda-readonly" data-offline-pda-value></strong>
+        </div>
+        <a class="primary" data-offline-associate hidden asp-controller="Dispositivos" asp-action="Index">@UiTexts.AsociarPdaAntesDeGenerar</a>
+        <div class="field">
+            <label asp-for="Cantidad"></label>
+            <input asp-for="Cantidad" inputmode="numeric" />
+            <span asp-validation-for="Cantidad"></span>
+        </div>
+        <div class="text-center-actions">
+            <button class="primary" type="submit" data-offline-submit disabled>@UiTexts.Guardar</button>
+            <a class="secondary" asp-action="Index">@UiTexts.Cancelar</a>
+        </div>
+    </form>
+</div>
