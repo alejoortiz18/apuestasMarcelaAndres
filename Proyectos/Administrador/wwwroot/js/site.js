@@ -130,6 +130,47 @@
     return Array.from(el.querySelectorAll("a, button, select, input"));
   }
 
+  function syncIdFields(panel, ids) {
+    panel.querySelectorAll("form[data-post-ids]").forEach(function (form) {
+      form.querySelectorAll('input[name="ids"]').forEach(function (node) {
+        node.remove();
+      });
+      ids.forEach(function (id) {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = "ids";
+        input.value = id;
+        form.appendChild(input);
+      });
+    });
+    panel.querySelectorAll("a[data-ids-query]").forEach(function (link) {
+      const base = link.getAttribute("data-url-base") || "";
+      if (!ids.length) {
+        link.setAttribute("href", "#");
+        return;
+      }
+      const query = ids.map(function (id) {
+        return "ids=" + encodeURIComponent(id);
+      }).join("&");
+      link.setAttribute("href", base + "?" + query);
+    });
+  }
+
+  function applyMultiSelection(panel, rows) {
+    const ids = rows.map(function (row) {
+      return row.getAttribute("data-row-id") || "";
+    }).filter(Boolean);
+    syncIdFields(panel, ids);
+    panel.querySelectorAll("[data-needs-selection]").forEach(function (el) {
+      const needsOne = el.hasAttribute("data-needs-one");
+      const enabled = needsOne ? rows.length === 1 : rows.length > 0;
+      el.hidden = false;
+      controlsOf(el).forEach(function (ctrl) {
+        setControlEnabled(ctrl, enabled);
+      });
+    });
+  }
+
   function applyRowSelection(panel, row) {
     const id = row.getAttribute("data-row-id") || "";
     const flags = (row.getAttribute("data-flags") || "").split(/\s+/).filter(Boolean);
@@ -157,6 +198,7 @@
   }
 
   function clearPanel(panel) {
+    syncIdFields(panel, []);
     panel.querySelectorAll("[data-needs-selection]").forEach(function (el) {
       el.hidden = !!el.getAttribute("data-show-when");
       controlsOf(el).forEach(function (ctrl) {
@@ -179,25 +221,88 @@
     }
     table.querySelectorAll(".row-check").forEach(function (box) {
       box.addEventListener("change", function () {
-        if (box.checked) {
+        const multiple = table.getAttribute("data-table-select-mode") === "multiple";
+        if (box.checked && !multiple) {
           table.querySelectorAll(".row-check").forEach(function (other) {
             if (other !== box) {
               other.checked = false;
             }
           });
-          table.querySelectorAll("tbody tr").forEach(function (tr) {
-            tr.classList.toggle("selected", tr.contains(box));
-          });
-          if (panel) {
-            applyRowSelection(panel, box.closest("tr"));
-          }
+        }
+        table.querySelectorAll("tbody tr").forEach(function (tr) {
+          const check = tr.querySelector(".row-check");
+          tr.classList.toggle("selected", !!(check && check.checked));
+        });
+        const rows = Array.from(table.querySelectorAll(".row-check:checked"))
+          .map(function (item) { return item.closest("tr"); })
+          .filter(Boolean);
+        if (!panel) {
+          return;
+        }
+        if (rows.length === 0) {
+          clearPanel(panel);
+          return;
+        }
+        if (multiple) {
+          applyMultiSelection(panel, rows);
         } else {
-          box.closest("tr").classList.remove("selected");
-          if (panel) {
-            clearPanel(panel);
-          }
+          applyRowSelection(panel, rows[0]);
         }
       });
     });
   });
+
+  const aviso = document.getElementById("avisoDialog");
+  const avisoText = document.getElementById("avisoDialogText");
+  const avisoClose = aviso && aviso.querySelector("[data-close-dialog]");
+  let avisoTrigger = null;
+
+  function closeAviso() {
+    if (!aviso) {
+      return;
+    }
+    aviso.classList.add("hidden");
+    aviso.setAttribute("hidden", "hidden");
+    if (avisoTrigger && typeof avisoTrigger.focus === "function") {
+      avisoTrigger.focus();
+    }
+    avisoTrigger = null;
+  }
+
+  function openAviso(text, trigger) {
+    if (!aviso || !avisoText) {
+      return;
+    }
+    avisoTrigger = trigger || document.activeElement;
+    avisoText.textContent = text;
+    aviso.classList.remove("hidden");
+    aviso.removeAttribute("hidden");
+    if (avisoClose) {
+      avisoClose.focus();
+    }
+  }
+
+  document.querySelectorAll("[data-aviso]").forEach(function (el) {
+    el.addEventListener("click", function () {
+      openAviso(el.getAttribute("data-aviso") || "", el);
+    });
+  });
+  if (aviso) {
+    aviso.addEventListener("click", function (event) {
+      if (event.target === aviso) {
+        closeAviso();
+      }
+    });
+  }
+  if (avisoClose) {
+    avisoClose.addEventListener("click", closeAviso);
+  }
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" && aviso && !aviso.classList.contains("hidden")) {
+      closeAviso();
+    }
+  });
+  if (aviso && !aviso.classList.contains("hidden") && avisoClose) {
+    avisoClose.focus();
+  }
 })();

@@ -18,7 +18,7 @@ public sealed class VentasController : AdminControllerBase
 
     public async Task<IActionResult> Index(string? q, string? estado, int page = 1, int pageSize = 10, CancellationToken cancellationToken = default)
     {
-        SetNav("ventas", UiTexts.NavVentas);
+        SetVentasNav(UiTexts.VentasVistaBoleto);
         var result = await _api.FiltrarBoletosAsync(new FiltroBoletosRequest
         {
             CodigoPublico = q,
@@ -51,9 +51,10 @@ public sealed class VentasController : AdminControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> Tirilla(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> Tirilla(Guid id, string? volver = null, Guid? loteriaId = null, CancellationToken cancellationToken = default)
     {
-        SetNav("ventas", UiTexts.VerTicket);
+        var desdeLoterias = volver is "loterias" or "ver";
+        SetVentasNav(desdeLoterias ? UiTexts.VentasVistaLoteria : UiTexts.VentasVistaBoleto, UiTexts.VerTicket);
         var result = await _api.ObtenerTirillaAsync(id, cancellationToken);
         var unauthorized = RedirectIfUnauthorized(result);
         if (unauthorized is not null)
@@ -64,10 +65,20 @@ public sealed class VentasController : AdminControllerBase
         if (!result.Success || result.Data is null)
         {
             SetFlash(result.Message, false);
-            return RedirectToAction(nameof(Index));
+            if (volver == "ver" && loteriaId.HasValue)
+            {
+                return RedirectToAction("Ver", "Loterias", new { id = loteriaId.Value });
+            }
+
+            return RedirectToAction(desdeLoterias ? "Index" : nameof(Index), desdeLoterias ? "Loterias" : "Ventas");
         }
 
-        return View(new TirillaViewModel { Tirilla = result.Data });
+        return View(new TirillaViewModel
+        {
+            Tirilla = result.Data,
+            VolverALoterias = desdeLoterias,
+            VolverLoteriaId = volver == "ver" ? loteriaId : null
+        });
     }
 
     [HttpPost]

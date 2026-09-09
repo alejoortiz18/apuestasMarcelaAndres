@@ -1,0 +1,25 @@
+@using NewRich.Admin.Constants
+@model NewRich.Admin.Models.EliminarDispositivosViewModel
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.PdaKicker</div>
+        <h1>@UiTexts.AdvertenciaEliminacion</h1>
+    </div>
+</div>
+<div class="panel">
+    <div class="notice error">@UiTexts.EliminarPdaIrreversible</div>
+    <div class="field">
+        <label>@UiTexts.NavPda</label>
+        <input value="@string.Join(", ", Model.Items.Select(d => d.CodigoDispositivo))" readonly />
+    </div>
+    <form asp-action="ConfirmarEliminar" method="post">
+        @foreach (var item in Model.Items)
+        {
+            <input type="hidden" name="ids" value="@item.DispositivoId" />
+        }
+        <div class="text-center-actions">
+            <a class="secondary" asp-action="Index">@UiTexts.Cancelar</a>
+            <button class="danger" type="submit">@UiTexts.SiEliminarPda</button>
+        </div>
+    </form>
+</div>

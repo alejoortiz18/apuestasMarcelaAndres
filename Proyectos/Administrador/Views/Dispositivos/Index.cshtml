@@ -11,8 +11,7 @@
     <a class="primary" asp-action="Crear">@UiTexts.RegistrarPda</a>
 </div>
 <div class="panel">
-    <div class="notice">@UiTexts.PdaAvisoOrden</div>
-    <form class="toolbar" method="get">
+    <form class="toolbar pda-toolbar" method="get">
         <div class="field">
             <label for="q">@UiTexts.BuscarPda</label>
             <input id="q" name="q" value="@Model.Busqueda" placeholder="@UiTexts.PlaceholderPda" />
@@ -22,7 +21,7 @@
             <select id="estado" name="estado" class="searchable">
                 <option value="">@UiTexts.Todos</option>
                 <option value="@((int)EstadoGeneral.Activo)" @(Model.Estado == (int)EstadoGeneral.Activo ? "selected" : null)>Activo</option>
-                <option value="@((int)EstadoGeneral.Inactivo)" @(Model.Estado == (int)EstadoGeneral.Inactivo ? "selected" : null)>Inactivo</option>
+                <option value="@((int)EstadoGeneral.Inactivo)" @(Model.Estado == (int)EstadoGeneral.Inactivo ? "selected" : null)>@UiTexts.EstadoBloqueado</option>
             </select>
         </div>
         <div class="field">
@@ -35,7 +34,7 @@
             </select>
         </div>
         <button class="primary" type="submit">@UiTexts.Buscar</button>
-        <a class="secondary" asp-action="Index">@UiTexts.LimpiarFiltros</a>
+        <a class="secondary pda-clear" asp-action="Index">@UiTexts.LimpiarFiltros</a>
     </form>
 </div>
 <div class="panel">
@@ -46,44 +45,46 @@
     else
     {
         <div class="table-wrap">
-            <table data-table-select="pda">
+            <table data-table-select="pda" data-table-select-mode="multiple">
                 <thead>
                 <tr>
-                    <th class="col-check"><span class="visually-hidden">@UiTexts.SeleccionarFila</span></th>
+                    <th class="col-check">@UiTexts.Seleccionar</th>
                     <th>PDA</th>
-                    <th>@UiTexts.UsuarioVendedor</th>
-                    <th>@UiTexts.TipoDispositivo</th>
+                    <th>@UiTexts.UsuarioAsociado</th>
+                    <th>@UiTexts.Sistema</th>
                     <th>@UiTexts.Conexion</th>
+                    <th>@UiTexts.CodigosOffline</th>
                     <th>@UiTexts.Estado</th>
                 </tr>
                 </thead>
                 <tbody>
                 @foreach (var d in Model.Pagina.Items)
                 {
-                    var flags = (d.UsuarioAsociadoId.HasValue ? "asociado " : "") + (d.Estado == EstadoGeneral.Activo ? "activo" : "inactivo");
-                    <tr tabindex="0" data-row-id="@d.DispositivoId" data-flags="@flags.Trim()" data-usuario-id="@d.UsuarioAsociadoId" data-modelo="@d.Modelo">
+                    var estadoUi = EstadoUi.PdaEstado(d.Estado);
+                    <tr tabindex="0" data-row-id="@d.DispositivoId">
                         <td class="col-check">
                             <input class="row-check" type="checkbox" value="@d.DispositivoId" aria-label="@UiTexts.SeleccionarFila @d.CodigoDispositivo" />
                         </td>
                         <td><strong>@d.CodigoDispositivo</strong></td>
                         <td>@(d.UsuarioAsociado ?? UiTexts.SinAsociar)</td>
-                        <td>@d.Tipo</td>
-                        <td>@(d.Conectado ? UiTexts.Conectado : "Desconectado")</td>
-                        <td><span class="pill @EstadoUi.Pill(d.Estado.ToString())">@d.Estado</span></td>
+                        <td>@(string.IsNullOrWhiteSpace(d.Sistema) ? UiTexts.NoAplica : d.Sistema)</td>
+                        <td>@(d.Conectado ? UiTexts.Conectado : UiTexts.Desconectado)</td>
+                        <td>@d.CodigosOffline</td>
+                        <td><span class="pill @EstadoUi.Pill(estadoUi)">@estadoUi</span></td>
                     </tr>
                 }
                 </tbody>
             </table>
         </div>
         <partial name="_Pager" model="Model.Pagina" />
-        <div class="table-actions" data-table-panel="pda">
+        <div class="table-actions pda-actions" data-table-panel="pda">
             <h2>@UiTexts.AccionesDePda</h2>
-            <p class="panel-sub">@UiTexts.SeleccionaParaAcciones</p>
-            <div class="table-actions-buttons">
-                <form method="post" data-needs-selection data-url-template="@Url.Action("Asociar")/{id}" class="toolbar" style="margin:0">
+            <p class="panel-sub">@UiTexts.SeleccionaParaAccionesPda</p>
+            <div class="table-actions-buttons pda-action-buttons">
+                <form method="post" asp-action="Asociar" data-needs-selection data-needs-one data-post-ids>
                     @Html.AntiForgeryToken()
                     <div class="field">
-                        <label for="usuarioIdAsociar">@UiTexts.UsuarioVendedor</label>
+                        <label for="usuarioIdAsociar">@UiTexts.UsuarioParaAsociar</label>
                         <select id="usuarioIdAsociar" name="usuarioId" class="searchable" disabled>
                             <option value="">@UiTexts.Seleccionar</option>
                             @foreach (var u in Model.Usuarios.Where(x => x.Rol != RolUsuario.Administrador))
@@ -94,23 +95,21 @@
                     </div>
                     <button class="secondary" type="submit" disabled>@UiTexts.Asociar</button>
                 </form>
-                <form method="post" data-needs-selection data-show-when="asociado" data-url-template="@Url.Action("Desasociar")/{id}" hidden>
+                <form method="post" asp-action="Desasociar" data-needs-selection data-post-ids>
                     @Html.AntiForgeryToken()
-                    <input type="hidden" name="usuarioId" data-from-attr="data-usuario-id" />
                     <button class="secondary" type="submit" disabled>@UiTexts.Desasociar</button>
                 </form>
-                <form method="post" data-needs-selection data-show-when="activo" data-url-template="@Url.Action("CambiarEstado")/{id}" hidden>
+                <form method="post" asp-action="CambiarEstado" data-needs-selection data-post-ids>
                     @Html.AntiForgeryToken()
-                    <input type="hidden" name="modelo" data-from-attr="data-modelo" />
                     <input type="hidden" name="estado" value="@((int)EstadoGeneral.Inactivo)" />
                     <button class="secondary" type="submit" disabled>@UiTexts.Bloquear</button>
                 </form>
-                <form method="post" data-needs-selection data-show-when="inactivo" data-url-template="@Url.Action("CambiarEstado")/{id}" hidden>
+                <form method="post" asp-action="CambiarEstado" data-needs-selection data-post-ids>
                     @Html.AntiForgeryToken()
-                    <input type="hidden" name="modelo" data-from-attr="data-modelo" />
                     <input type="hidden" name="estado" value="@((int)EstadoGeneral.Activo)" />
                     <button class="secondary" type="submit" disabled>@UiTexts.Desbloquear</button>
                 </form>
+                <a class="danger" data-needs-selection data-ids-query data-url-base="@Url.Action("Eliminar")" href="#" aria-disabled="true">@UiTexts.Eliminar</a>
             </div>
         </div>
     }

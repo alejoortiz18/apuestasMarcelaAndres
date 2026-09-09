@@ -22,7 +22,27 @@ public sealed class LoteriaService : ILoteriaService
     public async Task<Result<IReadOnlyList<LoteriaResponse>>> ListarAsync(CancellationToken cancellationToken)
     {
         var items = await _db.Loterias.OrderBy(x => x.Nombre).ToListAsync(cancellationToken);
-        return Result<IReadOnlyList<LoteriaResponse>>.Ok(items.Select(Map).ToList(), SuccessMessages.OperacionExitosa);
+        var horaCierre = await ObtenerHoraCierreAsync(cancellationToken);
+        var resumen = await _db.JuegoLoterias
+            .Include(x => x.Juego)
+            .ThenInclude(j => j!.Boleto)
+            .ThenInclude(b => b!.Venta)
+            .ToListAsync(cancellationToken);
+
+        var porLoteria = resumen
+            .Where(x => x.Juego?.Boleto?.Venta is not null)
+            .GroupBy(x => x.LoteriaId)
+            .ToDictionary(
+                g => g.Key,
+                g => new ResumenLoteria(
+                    g.Select(x => x.Juego!.BoletoId).Distinct().Count(),
+                    g.GroupBy(x => x.JuegoId).Sum(x => x.First().Juego!.Valor),
+                    TipoApuestaResumen(g.Select(x => x.Juego!.Boleto!.Venta!.TipoApuesta).Distinct().ToList()),
+                    NumerosJugados(g.Select(x => x.Juego!.Numero).ToList())));
+
+        return Result<IReadOnlyList<LoteriaResponse>>.Ok(
+            items.Select(l => Map(l, horaCierre, porLoteria.GetValueOrDefault(l.LoteriaId))).ToList(),
+            SuccessMessages.OperacionExitosa);
     }
 
     public async Task<Result<LoteriaResponse>> CrearAsync(CrearLoteriaRequest request, CancellationToken cancellationToken)
@@ -46,7 +66,7 @@ public sealed class LoteriaService : ILoteriaService
         };
         _db.Loterias.Add(loteria);
         await _db.SaveChangesAsync(cancellationToken);
-        return Result<LoteriaResponse>.Created(Map(loteria), SuccessMessages.RegistroCreado);
+        return Result<LoteriaResponse>.Created(Map(loteria, null, null), SuccessMessages.RegistroCreado);
     }
 
     public async Task<Result<LoteriaResponse>> ActualizarAsync(Guid loteriaId, ActualizarLoteriaRequest request, CancellationToken cancellationToken)
@@ -65,13 +85,54 @@ public sealed class LoteriaService : ILoteriaService
         loteria.Nombre = request.Nombre.Trim();
         loteria.Estado = request.Estado;
         await _db.SaveChangesAsync(cancellationToken);
-        return Result<LoteriaResponse>.Ok(Map(loteria), SuccessMessages.RegistroActualizado);
+        return Result<LoteriaResponse>.Ok(Map(loteria, null, null), SuccessMessages.RegistroActualizado);
     }
 
-    private static LoteriaResponse Map(Loteria loteria) => new()
+    private async Task<string?> ObtenerHoraCierreAsync(CancellationToken cancellationToken)
+    {
+        var config = await _db.Configuraciones.FirstOrDefaultAsync(c => c.Clave == "HoraCierre", cancellationToken);
+        if (string.IsNullOrWhiteSpace(config?.Valor))
+        {
+            return null;
+        }
+
+        return TimeSpan.TryParse(config.Valor, out var hora)
+            ? hora.ToString(@"hh\:mm")
+            : config.Valor;
+    }
+
+    private static string? TipoApuestaResumen(IReadOnlyList<TipoApuesta> tipos)
+    {
+        if (tipos.Count == 0)
+        {
+            return null;
+        }
+
+        return string.Join(", ", tipos.Select(t => t == TipoApuesta.INDIVIDUAL ? "Individual" : "Combinado").OrderBy(x => x));
+    }
+
+    private static string? NumerosJugados(IReadOnlyList<string> numeros)
+    {
+        var unicos = numeros
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Select(n => n.Trim())
+            .Distinct()
+            .OrderBy(n => n)
+            .ToList();
+        return unicos.Count == 0 ? null : string.Join(", ", unicos);
+    }
+
+    private static LoteriaResponse Map(Loteria loteria, string? horaCierre, ResumenLoteria? resumen) => new()
     {
         LoteriaId = loteria.LoteriaId,
         Nombre = loteria.Nombre,
-        Estado = loteria.Estado
+        Estado = loteria.Estado,
+        HoraCierre = horaCierre,
+        NumeroJugado = resumen?.NumeroJugado,
+        BoletosVendidos = resumen?.BoletosVendidos ?? 0,
+        TotalVendido = resumen?.TotalVendido ?? 0,
+        TipoApuesta = resumen?.TipoApuesta
     };
+
+    private sealed record ResumenLoteria(int BoletosVendidos, decimal TotalVendido, string? TipoApuesta, string? NumeroJugado);
 }

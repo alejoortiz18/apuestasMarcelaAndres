@@ -30,5 +30,18 @@ public abstract class AdminControllerBase : Controller
         ViewData["Nav"] = key;
         ViewData["Crumb"] = crumb;
         ViewData["Title"] = crumb;
+        ViewData["VentasVista"] = null;
+        ViewData["CrumbLeaf"] = null;
+    }
+
+    protected void SetVentasNav(string vista, string? leaf = null)
+    {
+        var porLoteria = string.Equals(vista, UiTexts.VentasVistaLoteria, StringComparison.Ordinal);
+        ViewData["Nav"] = "ventas";
+        ViewData["VentasVista"] = porLoteria ? UiTexts.VentasVistaLoteria : UiTexts.VentasVistaBoleto;
+        ViewData["CrumbLeaf"] = leaf;
+        ViewData["VentasInicioUrl"] = Url.Action("Index", "Loterias");
+        ViewData["Crumb"] = leaf ?? UiTexts.NavVentas;
+        ViewData["Title"] = leaf ?? UiTexts.LoteriasTitulo;
     }
 }

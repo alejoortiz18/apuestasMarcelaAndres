@@ -3,7 +3,11 @@
 @{
     var nav = ViewData["Nav"] as string ?? "";
     var crumb = ViewData["Crumb"] as string ?? UiTexts.NavResumen;
+    var crumbLeaf = ViewData["CrumbLeaf"] as string;
+    var ventasInicioUrl = ViewData["VentasInicioUrl"] as string ?? Url.Action("Index", "Loterias");
+    var avisoModal = TempData["AvisoModal"] as string;
     string NavClass(string key) => nav == key ? "active" : "";
+    var enVentas = ViewData["VentasVista"] is string;
 }
 <!DOCTYPE html>
 <html lang="es-CO" data-no-results="@UiTexts.SinResultadosOpcion" data-search-option="@UiTexts.BuscarOpcion">
@@ -25,9 +29,8 @@
             <a class="@NavClass("usuarios")" asp-controller="Usuarios" asp-action="Index"><i>U</i><span>@UiTexts.NavUsuarios</span></a>
             <a class="@NavClass("grupos")" asp-controller="Grupos" asp-action="Index"><i>G</i><span>@UiTexts.NavGrupos</span></a>
             <a class="@NavClass("pda")" asp-controller="Dispositivos" asp-action="Index"><i>P</i><span>@UiTexts.NavPda</span></a>
-            <a class="@NavClass("loterias")" asp-controller="Loterias" asp-action="Index"><i>L</i><span>@UiTexts.NavLoterias</span></a>
             <a class="@NavClass("resultados")" asp-controller="Resultados" asp-action="Index"><i>R</i><span>@UiTexts.NavResultados</span></a>
-            <a class="@NavClass("ventas")" asp-controller="Ventas" asp-action="Index"><i>V</i><span>@UiTexts.NavVentas</span></a>
+            <a class="@NavClass("ventas")" asp-controller="Loterias" asp-action="Index"><i>V</i><span>@UiTexts.NavVentas</span></a>
             <a class="@NavClass("offline")" asp-controller="Offline" asp-action="Index"><i>O</i><span>@UiTexts.NavOffline</span></a>
             <a class="@NavClass("premios")" asp-controller="Premios" asp-action="Index"><i>C</i><span>@UiTexts.NavPremios</span></a>
             <a class="@NavClass("kpi")" asp-controller="Kpi" asp-action="Index"><i>K</i><span>@UiTexts.NavKpi</span></a>
@@ -44,7 +47,20 @@
     </aside>
     <main>
         <header class="top">
-            <div class="crumb">@UiTexts.CrumbPrefijo<strong>@crumb</strong></div>
+            <nav class="crumb" aria-label="@UiTexts.MigaDePan">
+                <span>@UiTexts.AppName</span>
+                <span class="crumb-sep" aria-hidden="true">/</span>
+                @if (enVentas && !string.IsNullOrEmpty(crumbLeaf))
+                {
+                    <a href="@ventasInicioUrl">@UiTexts.NavVentas</a>
+                    <span class="crumb-sep" aria-hidden="true">/</span>
+                    <strong aria-current="page">@crumbLeaf</strong>
+                }
+                else
+                {
+                    <strong aria-current="page">@crumb</strong>
+                }
+            </nav>
             <div class="top-user">
                 <a class="avisos" asp-controller="Notificaciones" asp-action="Index">@UiTexts.Avisos</a>
                 <b>@User.NombreMostrado()</b>
@@ -66,9 +82,18 @@
     <nav class="mobile-bar" aria-label="Navegacion rapida">
         <a class="@NavClass("resumen")" asp-controller="Inicio" asp-action="Index">@UiTexts.NavResumen</a>
         <a class="@NavClass("usuarios")" asp-controller="Usuarios" asp-action="Index">@UiTexts.NavUsuarios</a>
-        <a class="@NavClass("ventas")" asp-controller="Ventas" asp-action="Index">@UiTexts.NavVentas</a>
+        <a class="@NavClass("ventas")" asp-controller="Loterias" asp-action="Index">@UiTexts.NavVentas</a>
         <a class="@NavClass("soporte")" asp-controller="Soporte" asp-action="Index">@UiTexts.NavSoporte</a>
     </nav>
+</div>
+<div id="avisoDialog" class="dialog-back@(string.IsNullOrEmpty(avisoModal) ? " hidden" : "")" role="dialog" aria-modal="true" aria-labelledby="avisoDialogTitle" @(string.IsNullOrEmpty(avisoModal) ? "hidden" : null)>
+    <div class="dialog">
+        <h2 id="avisoDialogTitle">@UiTexts.Aviso</h2>
+        <p id="avisoDialogText">@avisoModal</p>
+        <div class="dialog-actions">
+            <button type="button" class="primary" data-close-dialog>@UiTexts.Cerrar</button>
+        </div>
+    </div>
 </div>
 <script src="~/js/site.js" asp-append-version="true"></script>
 @await RenderSectionAsync("Scripts", required: false)

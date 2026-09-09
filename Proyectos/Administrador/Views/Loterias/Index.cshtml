@@ -1,20 +1,25 @@
 @using NewRich.Admin.Constants
 @using NewRich.Admin.Services
 @using NewRich.Domain.Enums
+@using System.Globalization
 @model NewRich.Admin.Models.LoteriasIndexViewModel
+@{
+    var cultura = CultureInfo.GetCultureInfo("es-CO");
+}
 <div class="heading">
     <div>
         <div class="eyebrow">@UiTexts.LoteriasKicker</div>
         <h1>@UiTexts.LoteriasTitulo</h1>
         <p>@UiTexts.LoteriasSub</p>
+        <partial name="_VentasTabs" />
     </div>
-    <a class="primary" asp-action="Crear">@UiTexts.NuevaLoteria</a>
+    <a class="primary" asp-action="Crear">+ @UiTexts.NuevoRegistro</a>
 </div>
 <div class="panel">
-    <form class="toolbar" method="get">
+    <form class="toolbar pda-toolbar" method="get">
         <div class="field">
             <label for="q">@UiTexts.BuscarLoteria</label>
-            <input id="q" name="q" value="@Model.Busqueda" />
+            <input id="q" name="q" value="@Model.Busqueda" placeholder="@UiTexts.PlaceholderLoteria" />
         </div>
         <div class="field">
             <label for="estado">@UiTexts.Estado</label>
@@ -34,12 +39,16 @@
             </select>
         </div>
         <button class="primary" type="submit">@UiTexts.Buscar</button>
-        <a class="secondary" asp-action="Index">@UiTexts.LimpiarFiltros</a>
-        <a class="secondary" asp-action="Boletos">Buscar boletos</a>
+        <a class="secondary pda-clear" asp-action="Index">@UiTexts.LimpiarFiltros</a>
     </form>
 </div>
 <div class="panel">
-    <div class="panel-head"><div><h2>@UiTexts.CatalogoLoterias</h2></div></div>
+    <div class="panel-head">
+        <div>
+            <h2>@UiTexts.ResumenPorLoteria</h2>
+            <div class="panel-sub">@UiTexts.ResumenPorLoteriaSub</div>
+        </div>
+    </div>
     @if (!Model.Pagina.Items.Any())
     {
         <div class="empty">@UiTexts.Vacio</div>
@@ -47,37 +56,85 @@
     else
     {
         <div class="table-wrap">
-            <table data-table-select="loterias">
+            <table>
                 <thead>
                 <tr>
-                    <th class="col-check"><span class="visually-hidden">@UiTexts.SeleccionarFila</span></th>
                     <th>@UiTexts.Loteria</th>
+                    <th>@UiTexts.NumeroJugado</th>
+                    <th>@UiTexts.HoraCierre</th>
+                    <th>@UiTexts.BoletosVendidos</th>
+                    <th>@UiTexts.TotalVendido</th>
+                    <th>@UiTexts.TipoDeApuesta</th>
                     <th>@UiTexts.Estado</th>
-                    <th>@UiTexts.Acciones</th>
+                    <th>@UiTexts.Accion</th>
                 </tr>
                 </thead>
                 <tbody>
                 @foreach (var item in Model.Pagina.Items)
                 {
-                    <tr tabindex="0" data-row-id="@item.LoteriaId">
-                        <td class="col-check">
-                            <input class="row-check" type="checkbox" value="@item.LoteriaId" aria-label="@UiTexts.SeleccionarFila @item.Nombre" />
-                        </td>
+                    var pill = item.Estado == EstadoGeneral.Activo ? "ok" : "info";
+                    <tr tabindex="0">
                         <td><strong>@item.Nombre</strong></td>
-                        <td><span class="pill @EstadoUi.Pill(item.Estado.ToString())">@item.Estado</span></td>
-                        <td><a class="secondary" asp-action="Editar" asp-route-id="@item.LoteriaId">@UiTexts.Ver</a></td>
+                        <td>@(string.IsNullOrWhiteSpace(item.NumeroJugado) ? UiTexts.NoAplica : item.NumeroJugado)</td>
+                        <td>@(string.IsNullOrWhiteSpace(item.HoraCierre) ? UiTexts.NoAplica : item.HoraCierre)</td>
+                        <td>@item.BoletosVendidos</td>
+                        <td>@item.TotalVendido.ToString("C0", cultura)</td>
+                        <td>@(string.IsNullOrWhiteSpace(item.TipoApuesta) ? UiTexts.NoAplica : item.TipoApuesta)</td>
+                        <td><span class="pill @pill">@item.Estado</span></td>
+                        <td>
+                            @if (item.BoletosVendidos == 0)
+                            {
+                                <button type="button" class="secondary table-ver" data-aviso="@UiTexts.SinBoletosEnLoteria">@UiTexts.Ver</button>
+                            }
+                            else
+                            {
+                                <a class="secondary table-ver" asp-action="Ver" asp-route-id="@item.LoteriaId">@UiTexts.Ver</a>
+                            }
+                        </td>
                     </tr>
                 }
                 </tbody>
             </table>
         </div>
         <partial name="_Pager" model="Model.Pagina" />
-        <div class="table-actions" data-table-panel="loterias">
-            <h2>@UiTexts.AccionesDeLoteria</h2>
-            <p class="panel-sub">@UiTexts.SeleccionaParaAcciones</p>
-            <div class="table-actions-buttons">
-                <a class="secondary" data-needs-selection data-url-template="@Url.Action("Editar")/{id}" href="#" aria-disabled="true">@UiTexts.Editar</a>
-            </div>
-        </div>
     }
+</div>
+<div class="panel">
+    <div class="panel-head">
+        <div>
+            <h2>@UiTexts.BuscarBoletosVendidos</h2>
+            <div class="panel-sub">@UiTexts.BuscarBoletosVendidosSub</div>
+        </div>
+    </div>
+    <form class="toolbar" method="get" asp-action="Boletos">
+        <div class="field">
+            <label for="codigoBoleto">@UiTexts.CodigoBoleto</label>
+            <input id="codigoBoleto" name="codigoBoleto" placeholder="@UiTexts.PlaceholderCodigoBoleto" />
+        </div>
+        <div class="field">
+            <label for="numero">@UiTexts.NumeroJugado</label>
+            <input id="numero" name="numero" placeholder="@UiTexts.PlaceholderNumeroJugado" inputmode="numeric" />
+        </div>
+        <div class="field">
+            <label for="vendedor">@UiTexts.Vendedor</label>
+            <input id="vendedor" name="vendedor" placeholder="@UiTexts.PlaceholderVendedorBoleto" />
+        </div>
+        <div class="field">
+            <label for="fecha">@UiTexts.Fecha</label>
+            <input id="fecha" name="fecha" type="date" />
+        </div>
+        <div class="field">
+            <label for="estadoBoleto">@UiTexts.Estado</label>
+            <select id="estadoBoleto" name="estado" class="searchable">
+                <option value="">@UiTexts.Todos</option>
+                <option value="Jugado">Jugado</option>
+                <option value="Ganador">Ganador</option>
+                <option value="Pagado/cobrado">Pagado</option>
+                <option value="Vencido">Vencido</option>
+                <option value="No ganador">No ganador</option>
+            </select>
+        </div>
+        <button class="primary" type="submit">@UiTexts.BuscarBoletos</button>
+        <a class="secondary" asp-action="Index">@UiTexts.Limpiar</a>
+    </form>
 </div>

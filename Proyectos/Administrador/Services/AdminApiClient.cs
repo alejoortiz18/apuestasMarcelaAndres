@@ -39,6 +39,8 @@ public interface IAdminApiClient
     Task<ApiCallResult<DispositivoResponse>> ActualizarDispositivoAsync(Guid id, ActualizarDispositivoRequest request, CancellationToken cancellationToken);
     Task<ApiCallResult<DispositivoResponse>> AsociarDispositivoAsync(Guid dispositivoId, Guid usuarioId, CancellationToken cancellationToken);
     Task<ApiCallResult<DispositivoResponse>> DesasociarDispositivoAsync(Guid dispositivoId, Guid usuarioId, CancellationToken cancellationToken);
+    Task<ApiCallResult<object>> DesasociarDispositivoAsync(Guid dispositivoId, CancellationToken cancellationToken);
+    Task<ApiCallResult<object>> EliminarDispositivoAsync(Guid dispositivoId, CancellationToken cancellationToken);
 
     Task<ApiCallResult<List<LoteriaResponse>>> ListarLoteriasAsync(CancellationToken cancellationToken);
     Task<ApiCallResult<LoteriaResponse>> CrearLoteriaAsync(CrearLoteriaRequest request, CancellationToken cancellationToken);
@@ -135,6 +137,12 @@ public sealed class AdminApiClient : IAdminApiClient
 
     public Task<ApiCallResult<DispositivoResponse>> DesasociarDispositivoAsync(Guid dispositivoId, Guid usuarioId, CancellationToken cancellationToken) =>
         SendAsync<DispositivoResponse>(HttpMethod.Post, $"api/Dispositivos/{dispositivoId}/desasociar/{usuarioId}", null, true, cancellationToken);
+
+    public Task<ApiCallResult<object>> DesasociarDispositivoAsync(Guid dispositivoId, CancellationToken cancellationToken) =>
+        SendAsync<object>(HttpMethod.Post, $"api/Dispositivos/{dispositivoId}/desasociar", null, true, cancellationToken);
+
+    public Task<ApiCallResult<object>> EliminarDispositivoAsync(Guid dispositivoId, CancellationToken cancellationToken) =>
+        SendAsync<object>(HttpMethod.Delete, $"api/Dispositivos/{dispositivoId}", null, true, cancellationToken);
 
     public Task<ApiCallResult<List<LoteriaResponse>>> ListarLoteriasAsync(CancellationToken cancellationToken) =>
         SendAsync<List<LoteriaResponse>>(HttpMethod.Get, "api/Loterias", null, true, cancellationToken);

@@ -41,6 +41,8 @@ public interface IDispositivoService
     Task<Result<DispositivoResponse>> ActualizarAsync(Guid dispositivoId, ActualizarDispositivoRequest request, CancellationToken cancellationToken);
     Task<Result> AsociarAsync(Guid dispositivoId, Guid usuarioId, CancellationToken cancellationToken);
     Task<Result> DesasociarAsync(Guid dispositivoId, Guid usuarioId, CancellationToken cancellationToken);
+    Task<Result> DesasociarAsync(Guid dispositivoId, CancellationToken cancellationToken);
+    Task<Result> EliminarAsync(Guid dispositivoId, CancellationToken cancellationToken);
 }
 
 public interface ILoteriaService

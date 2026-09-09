@@ -18,9 +18,9 @@ public sealed class LoteriasController : AdminControllerBase
         _api = api;
     }
 
-    public async Task<IActionResult> Index(string? q, int? estado, int page = 1, int pageSize = 10, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> Index(string? q, int? estado, int page = 1, int pageSize = 5, CancellationToken cancellationToken = default)
     {
-        SetNav("loterias", UiTexts.NavLoterias);
+        SetVentasNav(UiTexts.VentasVistaLoteria);
         var result = await _api.ListarLoteriasAsync(cancellationToken);
         var unauthorized = RedirectIfUnauthorized(result);
         if (unauthorized is not null)
@@ -31,7 +31,11 @@ public sealed class LoteriasController : AdminControllerBase
         IReadOnlyList<LoteriaResponse> items = result.Data ?? [];
         if (!string.IsNullOrWhiteSpace(q))
         {
-            items = items.Where(l => l.Nombre.Contains(q.Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
+            var term = q.Trim();
+            items = items.Where(l =>
+                    l.Nombre.Contains(term, StringComparison.OrdinalIgnoreCase)
+                    || (l.NumeroJugado?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false))
+                .ToList();
         }
 
         if (estado.HasValue && Enum.IsDefined(typeof(EstadoGeneral), estado.Value))
@@ -50,9 +54,50 @@ public sealed class LoteriasController : AdminControllerBase
     }
 
     [HttpGet]
+    public async Task<IActionResult> Ver(Guid id, int page = 1, int pageSize = 5, CancellationToken cancellationToken = default)
+    {
+        var loterias = await _api.ListarLoteriasAsync(cancellationToken);
+        var unauthorized = RedirectIfUnauthorized(loterias);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
+        var loteria = (loterias.Data ?? []).FirstOrDefault(l => l.LoteriaId == id);
+        if (loteria is null)
+        {
+            SetFlash(VentaMessages.LoteriaNoEncontrada, false);
+            return RedirectToAction(nameof(Index));
+        }
+
+        var busqueda = await _api.BuscarConsultasAsync(new BusquedaAdministrativaRequest { LoteriaId = id }, cancellationToken);
+        unauthorized = RedirectIfUnauthorized(busqueda);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
+        var boletos = busqueda.Data ?? [];
+        if (boletos.Count == 0)
+        {
+            TempData["AvisoModal"] = UiTexts.SinBoletosEnLoteria;
+            return RedirectToAction(nameof(Index));
+        }
+
+        SetVentasNav(UiTexts.VentasVistaLoteria, loteria.Nombre);
+        return View(new ConsultaBoletosViewModel
+        {
+            LoteriaId = id,
+            NombreLoteria = loteria.Nombre,
+            Loterias = loterias.Data ?? [],
+            Pagina = PagingHelper.Paginate(boletos.OrderByDescending(x => x.Fecha).ToList(), page, pageSize)
+        });
+    }
+
+    [HttpGet]
     public IActionResult Crear()
     {
-        SetNav("loterias", UiTexts.NuevaLoteria);
+        SetVentasNav(UiTexts.VentasVistaLoteria, UiTexts.NuevaLoteria);
         return View("Form", new LoteriaFormViewModel());
     }
 
@@ -60,7 +105,7 @@ public sealed class LoteriasController : AdminControllerBase
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Crear(LoteriaFormViewModel model, CancellationToken cancellationToken)
     {
-        SetNav("loterias", UiTexts.NuevaLoteria);
+        SetVentasNav(UiTexts.VentasVistaLoteria, UiTexts.NuevaLoteria);
         if (!ModelState.IsValid)
         {
             return View("Form", model);
@@ -86,7 +131,7 @@ public sealed class LoteriasController : AdminControllerBase
     [HttpGet]
     public async Task<IActionResult> Editar(Guid id, CancellationToken cancellationToken)
     {
-        SetNav("loterias", UiTexts.Editar);
+        SetVentasNav(UiTexts.VentasVistaLoteria, UiTexts.Editar);
         var result = await _api.ListarLoteriasAsync(cancellationToken);
         var unauthorized = RedirectIfUnauthorized(result);
         if (unauthorized is not null)
@@ -113,7 +158,7 @@ public sealed class LoteriasController : AdminControllerBase
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Editar(Guid id, LoteriaFormViewModel model, CancellationToken cancellationToken)
     {
-        SetNav("loterias", UiTexts.Editar);
+        SetVentasNav(UiTexts.VentasVistaLoteria, UiTexts.Editar);
         if (!ModelState.IsValid)
         {
             return View("Form", model);
@@ -152,7 +197,7 @@ public sealed class LoteriasController : AdminControllerBase
         int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
-        SetNav("loterias", UiTexts.NavLoterias);
+        SetVentasNav(UiTexts.VentasVistaLoteria, UiTexts.BuscarBoletosVendidos);
         var loterias = await _api.ListarLoteriasAsync(cancellationToken);
         var unauthorized = RedirectIfUnauthorized(loterias);
         if (unauthorized is not null)

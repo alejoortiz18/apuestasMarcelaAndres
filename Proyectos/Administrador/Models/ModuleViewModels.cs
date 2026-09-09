@@ -79,6 +79,11 @@ public sealed class DispositivosIndexViewModel
     public IReadOnlyList<UsuarioResponse> Usuarios { get; init; } = [];
 }
 
+public sealed class EliminarDispositivosViewModel
+{
+    public IReadOnlyList<DispositivoResponse> Items { get; init; } = [];
+}
+
 public sealed class DispositivoFormViewModel
 {
     [Display(Name = UiTexts.CodigoDispositivo)]
@@ -180,6 +185,7 @@ public sealed class ConsultaBoletosViewModel
     public DateTime? Fecha { get; init; }
     public string? Estado { get; init; }
     public Guid? LoteriaId { get; init; }
+    public string? NombreLoteria { get; init; }
     public IReadOnlyList<LoteriaResponse> Loterias { get; init; } = [];
     public PagedViewModel<BusquedaAdministrativaResponse> Pagina { get; init; } = new();
 }
@@ -218,4 +224,6 @@ public sealed class ConfiguracionIndexViewModel
 public sealed class TirillaViewModel
 {
     public TirillaResponse Tirilla { get; init; } = new();
+    public bool VolverALoterias { get; init; }
+    public Guid? VolverLoteriaId { get; init; }
 }

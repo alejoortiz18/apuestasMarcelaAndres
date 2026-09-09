@@ -32,6 +32,7 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
     public DbSet<ConfiguracionTipoApuesta> ConfiguracionesTipoApuesta => Set<ConfiguracionTipoApuesta>();
     public DbSet<Notificacion> Notificaciones => Set<Notificacion>();
     public DbSet<Sincronizacion> Sincronizaciones => Set<Sincronizacion>();
+    public DbSet<CodigoPreventaOffline> CodigosPreventaOffline => Set<CodigoPreventaOffline>();
     public DbSet<Conversacion> Conversaciones => Set<Conversacion>();
     public DbSet<Mensaje> Mensajes => Set<Mensaje>();
     public DbSet<AdjuntoChat> AdjuntosChat => Set<AdjuntoChat>();
@@ -51,6 +52,7 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
         var estadoGeneral = new EnumToStringConverter<EstadoGeneral>();
         var tipoApuesta = new EnumToStringConverter<TipoApuesta>();
         var tipoJuego = new EnumToStringConverter<TipoJuego>();
+        var estadoCodigoOffline = new EnumToStringConverter<EstadoCodigoOffline>();
         var estadoConversacion = new EnumToStringConverter<EstadoConversacion>();
         var estadoBoleto = new ValueConverter<EstadoBoleto, string>(
             v => EstadoBoletoToString(v),
@@ -214,6 +216,17 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
             e.ToTable("Sincronizaciones");
             e.HasKey(x => x.SincronizacionId);
             e.HasOne(x => x.Dispositivo).WithMany(x => x.Sincronizaciones).HasForeignKey(x => x.DispositivoId);
+        });
+
+        modelBuilder.Entity<CodigoPreventaOffline>(e =>
+        {
+            e.ToTable("CodigosPreventaOffline");
+            e.HasKey(x => x.CodigoId);
+            e.Property(x => x.EstadoDelCodigo).HasConversion(estadoCodigoOffline).HasMaxLength(20);
+            e.HasOne(x => x.Dispositivo).WithMany().HasForeignKey(x => x.DispositivoId);
+            e.HasOne(x => x.Usuario).WithMany().HasForeignKey(x => x.UsuarioId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.AdminQueRegistroNavigation).WithMany().HasForeignKey(x => x.AdminQueRegistro).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Venta).WithMany().HasForeignKey(x => x.VentaId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<Conversacion>(e =>

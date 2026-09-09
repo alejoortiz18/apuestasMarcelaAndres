@@ -31,7 +31,9 @@ public sealed class DispositivoService : IDispositivoService
             .Select(s => s.DispositivoId!.Value)
             .ToListAsync(cancellationToken);
 
-        var response = items.Select(d => Map(d, sesiones.Contains(d.DispositivoId))).ToList();
+        var disponibles = await ContarCodigosDisponiblesAsync(cancellationToken);
+
+        var response = items.Select(d => Map(d, sesiones.Contains(d.DispositivoId), disponibles.GetValueOrDefault(d.DispositivoId))).ToList();
         return Result<IReadOnlyList<DispositivoResponse>>.Ok(response, SuccessMessages.OperacionExitosa);
     }
 
@@ -66,7 +68,7 @@ public sealed class DispositivoService : IDispositivoService
         };
         _db.Dispositivos.Add(dispositivo);
         await _db.SaveChangesAsync(cancellationToken);
-        return Result<DispositivoResponse>.Created(Map(dispositivo, false), SuccessMessages.RegistroCreado);
+        return Result<DispositivoResponse>.Created(Map(dispositivo, false, 0), SuccessMessages.RegistroCreado);
     }
 
     public async Task<Result<DispositivoResponse>> ActualizarAsync(Guid dispositivoId, ActualizarDispositivoRequest request, CancellationToken cancellationToken)
@@ -81,10 +83,15 @@ public sealed class DispositivoService : IDispositivoService
             return Result<DispositivoResponse>.Fail(UsuarioMessages.DispositivoNoEncontrado, 404);
         }
 
-        dispositivo.Modelo = request.Modelo;
+        if (!string.IsNullOrWhiteSpace(request.Modelo))
+        {
+            dispositivo.Modelo = request.Modelo;
+        }
+
         dispositivo.Estado = request.Estado;
         await _db.SaveChangesAsync(cancellationToken);
-        return Result<DispositivoResponse>.Ok(Map(dispositivo, false), SuccessMessages.RegistroActualizado);
+        var disponibles = await ContarCodigosDisponiblesAsync(cancellationToken);
+        return Result<DispositivoResponse>.Ok(Map(dispositivo, false, disponibles.GetValueOrDefault(dispositivoId)), SuccessMessages.RegistroActualizado);
     }
 
     public async Task<Result> AsociarAsync(Guid dispositivoId, Guid usuarioId, CancellationToken cancellationToken)
@@ -99,6 +106,22 @@ public sealed class DispositivoService : IDispositivoService
         if (usuario is null)
         {
             return Result.Fail(UsuarioMessages.UsuarioNoEncontrado, 404);
+        }
+
+        var activasDispositivo = await _db.DispositivosUsuarios
+            .Where(x => x.DispositivoId == dispositivoId && x.Activo)
+            .ToListAsync(cancellationToken);
+        foreach (var asociacion in activasDispositivo)
+        {
+            asociacion.Activo = false;
+        }
+
+        var activasUsuario = await _db.DispositivosUsuarios
+            .Where(x => x.UsuarioId == usuarioId && x.Activo)
+            .ToListAsync(cancellationToken);
+        foreach (var asociacion in activasUsuario)
+        {
+            asociacion.Activo = false;
         }
 
         var existente = await _db.DispositivosUsuarios
@@ -117,6 +140,7 @@ public sealed class DispositivoService : IDispositivoService
         else
         {
             existente.Activo = true;
+            existente.FechaAsociacion = _clock.UtcNow;
         }
 
         await _db.SaveChangesAsync(cancellationToken);
@@ -138,7 +162,82 @@ public sealed class DispositivoService : IDispositivoService
         return Result.Ok(SuccessMessages.RegistroActualizado);
     }
 
-    private static DispositivoResponse Map(Dispositivo dispositivo, bool conectado)
+    public async Task<Result> DesasociarAsync(Guid dispositivoId, CancellationToken cancellationToken)
+    {
+        var activas = await _db.DispositivosUsuarios
+            .Where(x => x.DispositivoId == dispositivoId && x.Activo)
+            .ToListAsync(cancellationToken);
+
+        if (activas.Count == 0)
+        {
+            return Result.Fail(UsuarioMessages.DispositivoAsociacionNoEncontrada, 404);
+        }
+
+        foreach (var asociacion in activas)
+        {
+            asociacion.Activo = false;
+        }
+
+        await _db.SaveChangesAsync(cancellationToken);
+        return Result.Ok(SuccessMessages.RegistroActualizado);
+    }
+
+    public async Task<Result> EliminarAsync(Guid dispositivoId, CancellationToken cancellationToken)
+    {
+        var dispositivo = await _db.Dispositivos.FirstOrDefaultAsync(d => d.DispositivoId == dispositivoId, cancellationToken);
+        if (dispositivo is null)
+        {
+            return Result.Fail(UsuarioMessages.DispositivoNoEncontrado, 404);
+        }
+
+        var asociaciones = await _db.DispositivosUsuarios
+            .Where(x => x.DispositivoId == dispositivoId)
+            .ToListAsync(cancellationToken);
+        _db.DispositivosUsuarios.RemoveRange(asociaciones);
+
+        var sesiones = await _db.Sesiones
+            .Where(s => s.DispositivoId == dispositivoId)
+            .ToListAsync(cancellationToken);
+        foreach (var sesion in sesiones)
+        {
+            sesion.DispositivoId = null;
+            sesion.Activa = false;
+        }
+
+        var ventas = await _db.Ventas
+            .Where(v => v.DispositivoId == dispositivoId)
+            .ToListAsync(cancellationToken);
+        foreach (var venta in ventas)
+        {
+            venta.DispositivoId = null;
+        }
+
+        var sincronizaciones = await _db.Sincronizaciones
+            .Where(s => s.DispositivoId == dispositivoId)
+            .ToListAsync(cancellationToken);
+        _db.Sincronizaciones.RemoveRange(sincronizaciones);
+
+        var codigos = await _db.CodigosPreventaOffline
+            .Where(c => c.DispositivoId == dispositivoId)
+            .ToListAsync(cancellationToken);
+        _db.CodigosPreventaOffline.RemoveRange(codigos);
+
+        _db.Dispositivos.Remove(dispositivo);
+        await _db.SaveChangesAsync(cancellationToken);
+        return Result.Ok(SuccessMessages.RegistroEliminado);
+    }
+
+    private async Task<Dictionary<Guid, int>> ContarCodigosDisponiblesAsync(CancellationToken cancellationToken)
+    {
+        return await _db.CodigosPreventaOffline
+            .Where(c => c.EstadoDelCodigo == EstadoCodigoOffline.Generado
+                || c.EstadoDelCodigo == EstadoCodigoOffline.Descargado)
+            .GroupBy(c => c.DispositivoId)
+            .Select(g => new { g.Key, Total = g.Count() })
+            .ToDictionaryAsync(x => x.Key, x => x.Total, cancellationToken);
+    }
+
+    private static DispositivoResponse Map(Dispositivo dispositivo, bool conectado, int codigosOffline)
     {
         var asociacion = dispositivo.DispositivosUsuarios.FirstOrDefault(x => x.Activo);
         return new DispositivoResponse
@@ -151,7 +250,9 @@ public sealed class DispositivoService : IDispositivoService
             NumeroSerie = dispositivo.NumeroSerie,
             UsuarioAsociadoId = asociacion?.UsuarioId,
             UsuarioAsociado = asociacion?.Usuario?.NombreCompleto,
-            Conectado = conectado
+            Conectado = conectado,
+            Sistema = dispositivo.Modelo,
+            CodigosOffline = codigosOffline
         };
     }
 }

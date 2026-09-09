@@ -1,0 +1,76 @@
+@using NewRich.Admin.Constants
+@using NewRich.Admin.Services
+@using System.Globalization
+@model NewRich.Admin.Models.ConsultaBoletosViewModel
+@{
+    var cultura = CultureInfo.GetCultureInfo("es-CO");
+}
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.LoteriasKicker</div>
+        <h1>@UiTexts.BoletosDeLoteria</h1>
+        <p>@UiTexts.BoletosDeLoteriaSub</p>
+        @if (!string.IsNullOrWhiteSpace(Model.NombreLoteria))
+        {
+            <p><strong>@UiTexts.Loteria:</strong> @Model.NombreLoteria</p>
+        }
+    </div>
+    <a class="secondary" asp-action="Index">@UiTexts.VolverAlResumen</a>
+</div>
+<div class="panel">
+    <form class="toolbar pda-toolbar" method="get" asp-action="Ver" asp-route-id="@Model.LoteriaId">
+        <div class="field">
+            <label for="pageSize">@UiTexts.FilasPorPagina</label>
+            <select id="pageSize" name="pageSize" class="searchable">
+                @foreach (var size in PagingHelper.PageSizes)
+                {
+                    <option value="@size" @(Model.Pagina.PageSize == size ? "selected" : null)>@size</option>
+                }
+            </select>
+        </div>
+        <button class="primary" type="submit">@UiTexts.Buscar</button>
+    </form>
+    <div class="status-legend">
+        <strong>@UiTexts.LeyendaEstados</strong>
+        <span>@UiTexts.EstadoJugado</span>
+        <span>@UiTexts.EstadoGanador</span>
+        <span>@UiTexts.EstadoPagado</span>
+        <span>@UiTexts.EstadoVencido</span>
+        <span>@UiTexts.EstadoNoGanador</span>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+            <tr>
+                <th>@UiTexts.CodigoBoleto</th>
+                <th>@UiTexts.Vendedor</th>
+                <th>@UiTexts.FechaYHora</th>
+                <th>@UiTexts.Total</th>
+                <th>@UiTexts.Estado</th>
+                <th>@UiTexts.Accion</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var row in Model.Pagina.Items)
+            {
+                <tr tabindex="0">
+                    <td><strong>@row.CodigoPublico</strong></td>
+                    <td>@row.Vendedor</td>
+                    <td>@row.Fecha.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                    <td>@row.Total.ToString("C0", cultura)</td>
+                    <td><span class="pill @EstadoUi.Pill(row.Estado)">@row.Estado</span></td>
+                    <td>
+                        <a class="secondary table-ver"
+                           asp-controller="Ventas"
+                           asp-action="Tirilla"
+                           asp-route-id="@row.BoletoId"
+                           asp-route-volver="ver"
+                           asp-route-loteriaId="@Model.LoteriaId">@UiTexts.VerTicket</a>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    <partial name="_Pager" model="Model.Pagina" />
+</div>

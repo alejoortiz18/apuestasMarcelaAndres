@@ -16,6 +16,10 @@
         }
         dict["page"] = page.ToString();
         dict["pageSize"] = Model.PageSize.ToString();
+        if (!dict.ContainsKey("id") && ViewContext.RouteData.Values.TryGetValue("id", out var routeId) && routeId is not null)
+        {
+            dict["id"] = routeId.ToString();
+        }
         return Url.Action(action, controller, dict) ?? "#";
     }
     var total = Model.TotalPages;

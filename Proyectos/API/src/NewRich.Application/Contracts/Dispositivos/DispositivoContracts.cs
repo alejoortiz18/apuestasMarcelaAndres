@@ -27,4 +27,6 @@ public sealed class DispositivoResponse
     public Guid? UsuarioAsociadoId { get; set; }
     public string? UsuarioAsociado { get; set; }
     public bool Conectado { get; set; }
+    public string? Sistema { get; set; }
+    public int CodigosOffline { get; set; }
 }

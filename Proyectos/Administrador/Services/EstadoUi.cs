@@ -17,4 +17,7 @@ public static class EstadoUi
 
     public static string UsuarioEstado(bool bloqueado, EstadoUsuario estado) =>
         bloqueado ? "Bloqueado" : estado.ToString();
+
+    public static string PdaEstado(EstadoGeneral estado) =>
+        estado == EstadoGeneral.Inactivo ? "Bloqueado" : "Activo";
 }

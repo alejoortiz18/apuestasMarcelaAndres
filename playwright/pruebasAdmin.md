@@ -78,8 +78,8 @@ Las pruebas se ejecutarán **en este orden**. Cada caso cubre un recorro de usua
 Estas comprobaciones se reutilizan en cada módulo. Además hay casos dedicados:
 
 ### PA-010 Menú lateral completo y activo
-- **Qué probar:** Los 13 destinos, en este orden: Resumen, Usuarios, Grupos, PDA, Loterías, Resultados, Ventas, Ventas offline, Casos de premios, KPI, Notificaciones, Soporte, Configuración.
-- **Esperado:** Cada enlace abre su módulo. El ítem actual tiene estado `active` (no solo color). El migas muestra `New Rich /` más el nombre de la sección.
+- **Qué probar:** Los 12 destinos, en este orden: Resumen, Usuarios, Grupos, PDA, Resultados, Ventas, Ventas offline, Casos de premios, KPI, Notificaciones, Soporte, Configuración. Ventas abre Loterías vendidas con pestañas Por lotería y Por boleto.
+- **Esperado:** Cada enlace abre su módulo. El ítem actual tiene estado `active` (no solo color). El migas muestra `New Rich /` más el nombre de la sección. En Ventas: `New Rich / Ventas` y las pestañas cambian la vista.
 
 ### PA-011 Marca y cabecera
 - **Qué probar:** Enlace NR al Resumen, texto Administración, **Avisos** (texto, no emoji), nombre e iniciales del usuario.

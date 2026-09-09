@@ -31,6 +31,17 @@
         <p>@t.Leyenda</p>
     </div>
     <div class="text-center-actions" style="margin-top:18px">
-        <a class="secondary" asp-action="Index">@UiTexts.Cerrar</a>
+        @if (Model.VolverLoteriaId.HasValue)
+        {
+            <a class="secondary" asp-controller="Loterias" asp-action="Ver" asp-route-id="@Model.VolverLoteriaId">@UiTexts.Cerrar</a>
+        }
+        else if (Model.VolverALoterias)
+        {
+            <a class="secondary" asp-controller="Loterias" asp-action="Index">@UiTexts.Cerrar</a>
+        }
+        else
+        {
+            <a class="secondary" asp-controller="Ventas" asp-action="Index">@UiTexts.Cerrar</a>
+        }
     </div>
 </div>

@@ -48,4 +48,18 @@ public sealed class DispositivosController : ApiControllerBase
     {
         return From(await _dispositivoService.DesasociarAsync(id, usuarioId, cancellationToken));
     }
+
+    [Authorize(Roles = "Administrador")]
+    [HttpPost("{id:guid}/desasociar")]
+    public async Task<IActionResult> DesasociarPorDispositivo(Guid id, CancellationToken cancellationToken)
+    {
+        return From(await _dispositivoService.DesasociarAsync(id, cancellationToken));
+    }
+
+    [Authorize(Roles = "Administrador")]
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Eliminar(Guid id, CancellationToken cancellationToken)
+    {
+        return From(await _dispositivoService.EliminarAsync(id, cancellationToken));
+    }
 }

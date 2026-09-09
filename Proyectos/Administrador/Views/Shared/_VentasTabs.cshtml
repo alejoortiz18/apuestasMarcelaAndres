@@ -1,0 +1,16 @@
+@using NewRich.Admin.Constants
+@{
+    var porLoteria = ViewData["VentasVista"] as string == UiTexts.VentasVistaLoteria;
+}
+<nav class="view-tabs" aria-label="@UiTexts.VistaDeVentas">
+    @if (porLoteria)
+    {
+        <a class="view-tab is-active" asp-controller="Loterias" asp-action="Index" aria-current="page">@UiTexts.CrumbPorLoteria</a>
+        <a class="view-tab" asp-controller="Ventas" asp-action="Index">@UiTexts.CrumbPorBoleto</a>
+    }
+    else
+    {
+        <a class="view-tab" asp-controller="Loterias" asp-action="Index">@UiTexts.CrumbPorLoteria</a>
+        <a class="view-tab is-active" asp-controller="Ventas" asp-action="Index" aria-current="page">@UiTexts.CrumbPorBoleto</a>
+    }
+</nav>

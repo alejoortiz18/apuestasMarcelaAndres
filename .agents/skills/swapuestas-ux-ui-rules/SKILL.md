@@ -51,10 +51,10 @@ Every data table created in the MVC application must include pagination. A table
 - Ensure row highlighting works with keyboard navigation and does not depend only on `:hover`.
 - On narrow screens, use a deliberate strategy: responsive columns, wrapped content, controlled table overflow, or a compact row/card representation. Important values and row actions must remain available.
 - Keep action buttons in a stable column and provide accessible names that include the affected record when needed.
-- En cada fila de tabla de datos: una casilla de selección (checkbox) a la izquierda y, si existe consulta de detalle, el botón **Ver** a la derecha de la fila.
+- En cada fila de tabla de datos: una casilla de selección (checkbox) a la izquierda y, si existe consulta de detalle, el botón **Ver** a la derecha de la fila. Excepción: en Ventas > Por lotería la tabla de resumen no usa casilla; **Ver** abre la lista de las N boletas vendidas de esa lotería, y en esa lista **Ver ticket** abre la tirilla de cada boleta.
 - Las acciones administrativas (Editar, Restablecer contraseña, Desbloquear, Eliminar, Asociar, Desasociar, Inactivar, Activar, Autorizar pago y equivalentes) van en un panel debajo de la tabla y la paginación, no dentro de la fila.
-- El panel permanece visible; sus botones se habilitan al seleccionar una fila. Una sola fila seleccionada a la vez. La fila seleccionada tiene un estilo persistente distinto del hover.
-- El título del panel describe el tipo de registro (por ejemplo *Seguridad y acciones de usuario*). El texto de ayuda indica que hay que seleccionar un registro para habilitar las acciones.
+- El panel permanece visible; sus botones se habilitan al seleccionar una fila. Una sola fila seleccionada a la vez, excepto en PDA, donde se permite seleccionar uno o varios dispositivos. La fila seleccionada tiene un estilo persistente distinto del hover.
+- El título del panel describe el tipo de registro (por ejemplo *Seguridad y acciones de usuario*). El texto de ayuda indica que hay que seleccionar un registro para habilitar las acciones. En PDA el texto indica que se puede seleccionar uno o varios dispositivos.
 
 ## Page shell
 
@@ -72,6 +72,7 @@ Every data table created in the MVC application must include pagination. A table
 - Support collapsed and mobile states without trapping keyboard focus.
 - The content area must resize or reflow when the menu changes; it must not be covered by the menu.
 - Do not show links for actions the current role cannot use unless the product explicitly needs them disabled with an explanation.
+- Loterías y boletos individuales viven en un solo ítem **Ventas**. El menú abre **Loterías vendidas**. En esa vista, pestañas compactas a la izquierda (**Por lotería** y **Por boleto**) cambian entre el consolidado y el listado de boletos. Van en mayúsculas, alineadas al título, sin ocupar el ancho de la página. El activo se distingue por color verde, peso tipográfico y subrayado, no solo por color. La miga de pan queda `New Rich / Ventas`; las páginas internas añaden un tramo (nombre de lotería, Ver ticket, Nueva lotería).
 
 ### Main content
 
@@ -125,7 +126,7 @@ Every data table created in the MVC application must include pagination. A table
 
 ### Dialogos y menus
 
-- Use dialogs for focused decisions, confirmation, or short forms, not for entire workflows.
+- Use dialogs for focused decisions, confirmation, short forms, or avisos puntuales (por ejemplo cuando no hay boletos en una lotería). No usar la franja roja de error para ese tipo de aviso.
 - Keep the title, content, primary action, and close action clear.
 - Move focus into an opened dialog, keep it contained while open, and return it to the triggering control when closed.
 - Menus close predictably with Escape and do not become inaccessible at small widths.

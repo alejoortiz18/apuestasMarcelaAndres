@@ -17,7 +17,7 @@ public sealed class DispositivosController : AdminControllerBase
         _api = api;
     }
 
-    public async Task<IActionResult> Index(string? q, int? estado, int page = 1, int pageSize = 10, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> Index(string? q, int? estado, int page = 1, int pageSize = 5, CancellationToken cancellationToken = default)
     {
         SetNav("pda", UiTexts.NavPda);
         var dispositivosTask = _api.ListarDispositivosAsync(cancellationToken);
@@ -100,9 +100,28 @@ public sealed class DispositivosController : AdminControllerBase
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Asociar(Guid id, Guid usuarioId, CancellationToken cancellationToken)
+    public async Task<IActionResult> Asociar(Guid[]? ids, Guid usuarioId, CancellationToken cancellationToken)
     {
-        var result = await _api.AsociarDispositivoAsync(id, usuarioId, cancellationToken);
+        var seleccion = NormalizeIds(ids);
+        if (seleccion.Length == 0)
+        {
+            SetFlash(UiTexts.SeleccionePda, false);
+            return RedirectToAction(nameof(Index));
+        }
+
+        if (seleccion.Length != 1)
+        {
+            SetFlash(UiTexts.AsociarUnSoloPda, false);
+            return RedirectToAction(nameof(Index));
+        }
+
+        if (usuarioId == Guid.Empty)
+        {
+            SetFlash(UiTexts.SeleccioneUsuario, false);
+            return RedirectToAction(nameof(Index));
+        }
+
+        var result = await _api.AsociarDispositivoAsync(seleccion[0], usuarioId, cancellationToken);
         var unauthorized = RedirectIfUnauthorized(result);
         if (unauthorized is not null)
         {
@@ -115,36 +134,90 @@ public sealed class DispositivosController : AdminControllerBase
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Desasociar(Guid id, Guid usuarioId, CancellationToken cancellationToken)
+    public async Task<IActionResult> Desasociar(Guid[]? ids, CancellationToken cancellationToken)
     {
-        var result = await _api.DesasociarDispositivoAsync(id, usuarioId, cancellationToken);
-        var unauthorized = RedirectIfUnauthorized(result);
-        if (unauthorized is not null)
-        {
-            return unauthorized;
-        }
-
-        SetFlash(result.Success ? SuccessMessages.RegistroActualizado : result.Message, result.Success);
-        return RedirectToAction(nameof(Index));
+        return await RunOnSelectionAsync(ids, id => _api.DesasociarDispositivoAsync(id, cancellationToken), cancellationToken);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> CambiarEstado(Guid id, EstadoGeneral estado, string? modelo, CancellationToken cancellationToken)
+    public async Task<IActionResult> CambiarEstado(Guid[]? ids, EstadoGeneral estado, CancellationToken cancellationToken)
     {
-        var result = await _api.ActualizarDispositivoAsync(id, new ActualizarDispositivoRequest
+        return await RunOnSelectionAsync(ids, id => _api.ActualizarDispositivoAsync(id, new ActualizarDispositivoRequest
         {
-            Estado = estado,
-            Modelo = modelo
-        }, cancellationToken);
+            Estado = estado
+        }, cancellationToken), cancellationToken);
+    }
 
-        var unauthorized = RedirectIfUnauthorized(result);
+    [HttpGet]
+    public async Task<IActionResult> Eliminar(Guid[]? ids, CancellationToken cancellationToken)
+    {
+        SetNav("pda", UiTexts.EliminarPda);
+        var seleccion = NormalizeIds(ids);
+        if (seleccion.Length == 0)
+        {
+            SetFlash(UiTexts.SeleccionePda, false);
+            return RedirectToAction(nameof(Index));
+        }
+
+        var listado = await _api.ListarDispositivosAsync(cancellationToken);
+        var unauthorized = RedirectIfUnauthorized(listado);
         if (unauthorized is not null)
         {
             return unauthorized;
         }
 
-        SetFlash(result.Success ? SuccessMessages.RegistroActualizado : result.Message, result.Success);
+        var items = (listado.Data ?? []).Where(d => seleccion.Contains(d.DispositivoId)).ToList();
+        if (items.Count == 0)
+        {
+            SetFlash(UsuarioMessages.DispositivoNoEncontrado, false);
+            return RedirectToAction(nameof(Index));
+        }
+
+        return View(new EliminarDispositivosViewModel { Items = items });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ConfirmarEliminar(Guid[]? ids, CancellationToken cancellationToken)
+    {
+        return await RunOnSelectionAsync(ids, id => _api.EliminarDispositivoAsync(id, cancellationToken), cancellationToken, SuccessMessages.RegistroEliminado);
+    }
+
+    private async Task<IActionResult> RunOnSelectionAsync<T>(
+        Guid[]? ids,
+        Func<Guid, Task<ApiCallResult<T>>> action,
+        CancellationToken cancellationToken,
+        string? successMessage = null)
+    {
+        var seleccion = NormalizeIds(ids);
+        if (seleccion.Length == 0)
+        {
+            SetFlash(UiTexts.SeleccionePda, false);
+            return RedirectToAction(nameof(Index));
+        }
+
+        ApiCallResult<T>? last = null;
+        foreach (var id in seleccion)
+        {
+            last = await action(id);
+            var unauthorized = RedirectIfUnauthorized(last);
+            if (unauthorized is not null)
+            {
+                return unauthorized;
+            }
+
+            if (!last.Success)
+            {
+                SetFlash(last.Message, false);
+                return RedirectToAction(nameof(Index));
+            }
+        }
+
+        SetFlash(successMessage ?? SuccessMessages.RegistroActualizado, true);
         return RedirectToAction(nameof(Index));
     }
+
+    private static Guid[] NormalizeIds(Guid[]? ids) =>
+        (ids ?? []).Where(id => id != Guid.Empty).Distinct().ToArray();
 }

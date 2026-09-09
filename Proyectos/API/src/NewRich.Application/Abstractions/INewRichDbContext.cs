@@ -25,6 +25,7 @@ public interface INewRichDbContext
     DbSet<ConfiguracionTipoApuesta> ConfiguracionesTipoApuesta { get; }
     DbSet<Notificacion> Notificaciones { get; }
     DbSet<Sincronizacion> Sincronizaciones { get; }
+    DbSet<CodigoPreventaOffline> CodigosPreventaOffline { get; }
     DbSet<Conversacion> Conversaciones { get; }
     DbSet<Mensaje> Mensajes { get; }
     DbSet<AdjuntoChat> AdjuntosChat { get; }
