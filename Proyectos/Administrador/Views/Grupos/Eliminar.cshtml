@@ -1,0 +1,21 @@
+@using NewRich.Admin.Constants
+@model NewRich.Application.Contracts.Grupos.GrupoResponse
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.GruposKicker</div>
+        <h1>@UiTexts.AdvertenciaEliminarGrupo</h1>
+    </div>
+</div>
+<div class="panel">
+    <div class="notice error">@UiTexts.EliminarGrupoIrreversible</div>
+    <div class="field">
+        <label>@UiTexts.NombreGrupo</label>
+        <input value="@Model.Nombre" readonly />
+    </div>
+    <form asp-action="ConfirmarEliminar" asp-route-id="@Model.GrupoId" method="post">
+        <div class="text-center-actions">
+            <a class="secondary" asp-action="Index">@UiTexts.Cancelar</a>
+            <button class="danger" type="submit">@UiTexts.SiEliminarGrupo</button>
+        </div>
+    </form>
+</div>

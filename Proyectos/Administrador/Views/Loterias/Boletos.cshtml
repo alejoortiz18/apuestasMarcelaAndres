@@ -1,0 +1,117 @@
+@using NewRich.Admin.Constants
+@using NewRich.Admin.Services
+@using System.Globalization
+@model NewRich.Admin.Models.ConsultaBoletosViewModel
+@{
+    var cultura = CultureInfo.GetCultureInfo("es-CO");
+}
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.LoteriasKicker</div>
+        <h1>Buscar boletos vendidos</h1>
+        <p>Consulta el ticket por codigo, numero, vendedor, fecha o estado.</p>
+    </div>
+</div>
+<div class="panel">
+    <form class="toolbar" method="get">
+        <div class="field">
+            <label for="codigoBoleto">@UiTexts.CodigoBoleto</label>
+            <input id="codigoBoleto" name="codigoBoleto" value="@Model.CodigoBoleto" />
+        </div>
+        <div class="field">
+            <label for="numero">Numero jugado</label>
+            <input id="numero" name="numero" value="@Model.Numero" inputmode="numeric" />
+        </div>
+        <div class="field">
+            <label for="vendedor">@UiTexts.Vendedor</label>
+            <input id="vendedor" name="vendedor" value="@Model.Vendedor" />
+        </div>
+        <div class="field">
+            <label for="fecha">@UiTexts.Fecha</label>
+            <input id="fecha" name="fecha" type="date" value="@(Model.Fecha?.ToString("yyyy-MM-dd"))" />
+        </div>
+        <div class="field">
+            <label for="estado">@UiTexts.Estado</label>
+            <select id="estado" name="estado" class="searchable">
+                <option value="">@UiTexts.Todos</option>
+                <option value="Jugado" @(Model.Estado == "Jugado" ? "selected" : null)>Jugado</option>
+                <option value="Ganador" @(Model.Estado == "Ganador" ? "selected" : null)>Ganador</option>
+                <option value="Pagado/cobrado" @(Model.Estado == "Pagado/cobrado" ? "selected" : null)>Pagado</option>
+                <option value="Vencido" @(Model.Estado == "Vencido" ? "selected" : null)>Vencido</option>
+                <option value="No ganador" @(Model.Estado == "No ganador" ? "selected" : null)>No ganador</option>
+            </select>
+        </div>
+        <div class="field">
+            <label for="loteriaId">@UiTexts.Loteria</label>
+            <select id="loteriaId" name="loteriaId" class="searchable">
+                <option value="">@UiTexts.Todos</option>
+                @foreach (var l in Model.Loterias)
+                {
+                    <option value="@l.LoteriaId" @(Model.LoteriaId == l.LoteriaId ? "selected" : null)>@l.Nombre</option>
+                }
+            </select>
+        </div>
+        <div class="field">
+            <label for="pageSize">@UiTexts.FilasPorPagina</label>
+            <select id="pageSize" name="pageSize" class="searchable">
+                @foreach (var size in PagingHelper.PageSizes)
+                {
+                    <option value="@size" @(Model.Pagina.PageSize == size ? "selected" : null)>@size</option>
+                }
+            </select>
+        </div>
+        <button class="primary" type="submit">@UiTexts.Buscar</button>
+        <a class="secondary" asp-action="Boletos">@UiTexts.Limpiar</a>
+    </form>
+</div>
+<div class="panel">
+    <div class="status-legend">
+        <strong>@UiTexts.LeyendaEstados</strong>
+        <span>@UiTexts.EstadoJugado</span>
+        <span>@UiTexts.EstadoGanador</span>
+        <span>@UiTexts.EstadoPagado</span>
+        <span>@UiTexts.EstadoVencido</span>
+        <span>@UiTexts.EstadoNoGanador</span>
+    </div>
+    @if (!Model.Pagina.Items.Any())
+    {
+        <div class="empty">@UiTexts.Vacio</div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table data-table-select="boletos">
+                <thead>
+                <tr>
+                    <th class="col-check"><span class="visually-hidden">@UiTexts.SeleccionarFila</span></th>
+                    <th>@UiTexts.CodigoBoleto</th>
+                    <th>@UiTexts.Vendedor</th>
+                    <th>@UiTexts.Loteria</th>
+                    <th>@UiTexts.FechaYHora</th>
+                    <th>@UiTexts.Total</th>
+                    <th>@UiTexts.Estado</th>
+                    <th>@UiTexts.Acciones</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var row in Model.Pagina.Items)
+                {
+                    <tr tabindex="0" data-row-id="@row.BoletoId">
+                        <td class="col-check">
+                            <input class="row-check" type="checkbox" value="@row.BoletoId" aria-label="@UiTexts.SeleccionarFila @row.CodigoPublico" />
+                        </td>
+                        <td><strong>@row.CodigoPublico</strong></td>
+                        <td>@row.Vendedor</td>
+                        <td>@row.Loterias</td>
+                        <td>@row.Fecha.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>@row.Total.ToString("C0", cultura)</td>
+                        <td><span class="pill @EstadoUi.Pill(row.Estado)">@row.Estado</span></td>
+                        <td><a class="secondary" asp-controller="Ventas" asp-action="Tirilla" asp-route-id="@row.BoletoId">@UiTexts.Ver</a></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        <partial name="_Pager" model="Model.Pagina" />
+    }
+</div>

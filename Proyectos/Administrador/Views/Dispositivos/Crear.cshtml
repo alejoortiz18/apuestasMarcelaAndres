@@ -1,0 +1,36 @@
+@using NewRich.Admin.Constants
+@using NewRich.Domain.Enums
+@model NewRich.Admin.Models.DispositivoFormViewModel
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.PdaKicker</div>
+        <h1>@UiTexts.RegistrarPda</h1>
+        <p>@UiTexts.PdaAvisoOrden</p>
+    </div>
+</div>
+<div class="panel">
+    <div asp-validation-summary="ModelOnly" class="notice error"></div>
+    <form method="post">
+        <div class="field">
+            <label asp-for="CodigoDispositivo"></label>
+            <input asp-for="CodigoDispositivo" />
+            <span asp-validation-for="CodigoDispositivo"></span>
+        </div>
+        <div class="field">
+            <label asp-for="Tipo"></label>
+            <select asp-for="Tipo" class="searchable" asp-items="Html.GetEnumSelectList<TipoDispositivo>()"></select>
+        </div>
+        <div class="field">
+            <label asp-for="Modelo"></label>
+            <input asp-for="Modelo" />
+        </div>
+        <div class="field">
+            <label asp-for="NumeroSerie"></label>
+            <input asp-for="NumeroSerie" />
+        </div>
+        <div class="text-center-actions">
+            <button class="primary" type="submit">@UiTexts.Guardar</button>
+            <a class="secondary" asp-action="Index">@UiTexts.Cancelar</a>
+        </div>
+    </form>
+</div>

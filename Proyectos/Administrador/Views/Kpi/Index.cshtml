@@ -1,0 +1,66 @@
+@using NewRich.Admin.Constants
+@using System.Globalization
+@model NewRich.Admin.Models.KpiIndexViewModel
+@{
+    var kpi = Model.Kpi;
+    var cultura = CultureInfo.GetCultureInfo("es-CO");
+}
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.KpiKicker</div>
+        <h1>@UiTexts.KpiTitulo</h1>
+        <p>@UiTexts.KpiSub</p>
+    </div>
+</div>
+<div class="panel">
+    <form class="toolbar" method="get">
+        <div class="field">
+            <label for="fechaInicial">@UiTexts.FechaInicial</label>
+            <input id="fechaInicial" name="fechaInicial" type="date" value="@(Model.FechaInicial?.ToString("yyyy-MM-dd"))" />
+        </div>
+        <div class="field">
+            <label for="fechaFinal">@UiTexts.FechaFinal</label>
+            <input id="fechaFinal" name="fechaFinal" type="date" value="@(Model.FechaFinal?.ToString("yyyy-MM-dd"))" />
+        </div>
+        <div class="field">
+            <label for="vendedorId">@UiTexts.Vendedor</label>
+            <select id="vendedorId" name="vendedorId" class="searchable">
+                <option value="">@UiTexts.Todos</option>
+                @foreach (var v in Model.Vendedores)
+                {
+                    <option value="@v.UsuarioId" @(Model.VendedorId == v.UsuarioId ? "selected" : null)>@v.NombreCompleto</option>
+                }
+            </select>
+        </div>
+        <button class="primary" type="submit">@UiTexts.Actualizar</button>
+    </form>
+</div>
+@if (kpi is null)
+{
+    <div class="panel"><div class="empty">@UiTexts.Vacio</div></div>
+}
+else
+{
+    <div class="panel">
+        <h2>@UiTexts.IngresosYVentas</h2>
+        <div class="metric-grid">
+            <div class="metric"><small>Ventas totales</small><strong>@kpi.VentasTotales.ToString("C0", cultura)</strong></div>
+            <div class="metric"><small>Cantidad de ventas</small><strong>@kpi.CantidadVentas</strong></div>
+            <div class="metric"><small>Boletos</small><strong>@kpi.CantidadBoletos</strong></div>
+            <div class="metric"><small>Numeros ganadores</small><strong>@kpi.NumerosGanadores</strong></div>
+        </div>
+    </div>
+    <div class="panel">
+        <h2>@UiTexts.Personal</h2>
+        <div class="metric-grid">
+            <div class="metric"><small>Vendedores</small><strong>@kpi.Vendedores</strong></div>
+            <div class="metric"><small>Observadores</small><strong>@kpi.Observadores</strong></div>
+            <div class="metric"><small>Usuarios activos</small><strong>@kpi.UsuariosActivos</strong></div>
+            <div class="metric"><small>Usuarios inactivos</small><strong>@kpi.UsuariosInactivos</strong></div>
+        </div>
+        @if (kpi.LoteriasUtilizadas.Any())
+        {
+            <p class="panel-sub">Loterias utilizadas: @string.Join(", ", kpi.LoteriasUtilizadas)</p>
+        }
+    </div>
+}

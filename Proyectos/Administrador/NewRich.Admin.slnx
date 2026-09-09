@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="NewRich.Admin.csproj" />
+  <Project Path="..\API\src\NewRich.Application\NewRich.Application.csproj" />
+  <Project Path="..\API\src\NewRich.Constants\NewRich.Constants.csproj" />
+  <Project Path="..\API\src\NewRich.Domain\NewRich.Domain.csproj" />
+  <Project Path="..\API\src\NewRich.Shared\NewRich.Shared.csproj" />
+</Solution>

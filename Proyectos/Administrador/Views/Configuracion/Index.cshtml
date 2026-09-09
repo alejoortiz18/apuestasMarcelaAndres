@@ -1,0 +1,29 @@
+@using NewRich.Admin.Constants
+@model NewRich.Admin.Models.ConfiguracionIndexViewModel
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.ConfigKicker</div>
+        <h1>@UiTexts.ConfigTitulo</h1>
+        <p>@UiTexts.ConfigSub</p>
+    </div>
+</div>
+<div class="panel">
+    @if (!Model.Items.Any())
+    {
+        <div class="empty">@UiTexts.Vacio</div>
+    }
+    else
+    {
+        @foreach (var item in Model.Items)
+        {
+            <form asp-action="Guardar" method="post" class="toolbar" style="margin-bottom:12px">
+                <input type="hidden" name="clave" value="@item.Clave" />
+                <div class="field">
+                    <label>@item.Clave</label>
+                    <input name="valor" value="@item.Valor" />
+                </div>
+                <button class="primary" type="submit">@UiTexts.GuardarConfiguracion</button>
+            </form>
+        }
+    }
+</div>

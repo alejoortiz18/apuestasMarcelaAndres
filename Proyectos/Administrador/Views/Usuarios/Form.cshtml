@@ -1,0 +1,65 @@
+@using NewRich.Admin.Constants
+@using NewRich.Domain.Enums
+@model NewRich.Admin.Models.UsuarioFormViewModel
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.UsuariosKicker</div>
+        <h1>@(Model.UsuarioId.HasValue ? UiTexts.Editar : UiTexts.CrearUsuario)</h1>
+    </div>
+</div>
+<div class="panel">
+    <div asp-validation-summary="ModelOnly" class="notice error"></div>
+    <form method="post">
+        <div class="field">
+            <label asp-for="NombreCompleto"></label>
+            <input asp-for="NombreCompleto" />
+            <span asp-validation-for="NombreCompleto"></span>
+        </div>
+        <div class="field">
+            <label asp-for="Usuario"></label>
+            <input asp-for="Usuario" readonly="@(Model.UsuarioId.HasValue)" />
+            <span asp-validation-for="Usuario"></span>
+        </div>
+        <div class="field">
+            <label asp-for="Alias"></label>
+            <input asp-for="Alias" />
+        </div>
+        <div class="field">
+            <label asp-for="Documento"></label>
+            <input asp-for="Documento" />
+        </div>
+        <div class="field">
+            <label asp-for="Celular"></label>
+            <input asp-for="Celular" />
+        </div>
+        <div class="field">
+            <label asp-for="Email"></label>
+            <input asp-for="Email" />
+        </div>
+        <div class="field">
+            <label asp-for="Rol"></label>
+            <select asp-for="Rol" class="searchable" asp-items="Html.GetEnumSelectList<RolUsuario>()"></select>
+        </div>
+        @if (Model.UsuarioId.HasValue)
+        {
+            <div class="field">
+                <label asp-for="Estado"></label>
+                <select asp-for="Estado" class="searchable" asp-items="Html.GetEnumSelectList<EstadoUsuario>()"></select>
+            </div>
+        }
+        <div class="field">
+            <label asp-for="DispositivoId"></label>
+            <select asp-for="DispositivoId" class="searchable">
+                <option value="">@UiTexts.SinAsociar</option>
+                @foreach (var d in Model.Dispositivos)
+                {
+                    <option value="@d.DispositivoId">@d.CodigoDispositivo</option>
+                }
+            </select>
+        </div>
+        <div class="text-center-actions">
+            <button class="primary" type="submit">@UiTexts.Guardar</button>
+            <a class="secondary" asp-action="Index">@UiTexts.Cancelar</a>
+        </div>
+    </form>
+</div>

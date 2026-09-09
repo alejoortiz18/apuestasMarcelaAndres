@@ -1,0 +1,31 @@
+@using NewRich.Admin.Constants
+@using NewRich.Domain.Enums
+@model NewRich.Admin.Models.LoginViewModel
+@{
+    Layout = "_LoginLayout";
+    ViewData["Title"] = UiTexts.IniciarSesion;
+}
+<section class="login">
+    <div class="login-box">
+        <div class="logo">@UiTexts.AppName.ToUpperInvariant()<small>@UiTexts.AppSubtitle.ToUpperInvariant()</small></div>
+        <h1>@UiTexts.IniciarSesion</h1>
+        <p>@UiTexts.LoginAyuda</p>
+        <form asp-action="Ingresar" method="post">
+            <div class="field">
+                <label asp-for="Usuario"></label>
+                <input asp-for="Usuario" autocomplete="username" />
+                <span asp-validation-for="Usuario"></span>
+            </div>
+            <div class="field">
+                <label asp-for="Password"></label>
+                <input asp-for="Password" autocomplete="current-password" />
+                <span asp-validation-for="Password"></span>
+            </div>
+            @if (!string.IsNullOrWhiteSpace(Model.Error))
+            {
+                <div class="notice error" role="alert">@Model.Error</div>
+            }
+            <button class="primary" type="submit">@UiTexts.Ingresar</button>
+        </form>
+    </div>
+</section>

@@ -1,0 +1,21 @@
+@using NewRich.Admin.Constants
+@model NewRich.Application.Contracts.Usuarios.UsuarioResponse
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.UsuariosKicker</div>
+        <h1>@UiTexts.AdvertenciaEliminacion</h1>
+    </div>
+</div>
+<div class="panel">
+    <div class="notice error">@UiTexts.EliminacionIrreversible</div>
+    <div class="field">
+        <label>@UiTexts.NombreCompleto</label>
+        <input value="@Model.NombreCompleto" readonly />
+    </div>
+    <form asp-action="ConfirmarEliminar" asp-route-id="@Model.UsuarioId" method="post">
+        <div class="text-center-actions">
+            <a class="secondary" asp-action="Index">@UiTexts.Cancelar</a>
+            <button class="danger" type="submit">@UiTexts.SiEliminarUsuario</button>
+        </div>
+    </form>
+</div>

@@ -1,0 +1,117 @@
+@using NewRich.Admin.Constants
+@using NewRich.Admin.Services
+@using NewRich.Domain.Enums
+@model NewRich.Admin.Models.DispositivosIndexViewModel
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.PdaKicker</div>
+        <h1>@UiTexts.PdaTitulo</h1>
+        <p>@UiTexts.PdaSub</p>
+    </div>
+    <a class="primary" asp-action="Crear">@UiTexts.RegistrarPda</a>
+</div>
+<div class="panel">
+    <div class="notice">@UiTexts.PdaAvisoOrden</div>
+    <form class="toolbar" method="get">
+        <div class="field">
+            <label for="q">@UiTexts.BuscarPda</label>
+            <input id="q" name="q" value="@Model.Busqueda" placeholder="@UiTexts.PlaceholderPda" />
+        </div>
+        <div class="field">
+            <label for="estado">@UiTexts.Estado</label>
+            <select id="estado" name="estado" class="searchable">
+                <option value="">@UiTexts.Todos</option>
+                <option value="@((int)EstadoGeneral.Activo)" @(Model.Estado == (int)EstadoGeneral.Activo ? "selected" : null)>Activo</option>
+                <option value="@((int)EstadoGeneral.Inactivo)" @(Model.Estado == (int)EstadoGeneral.Inactivo ? "selected" : null)>Inactivo</option>
+            </select>
+        </div>
+        <div class="field">
+            <label for="pageSize">@UiTexts.FilasPorPagina</label>
+            <select id="pageSize" name="pageSize" class="searchable">
+                @foreach (var size in PagingHelper.PageSizes)
+                {
+                    <option value="@size" @(Model.Pagina.PageSize == size ? "selected" : null)>@size</option>
+                }
+            </select>
+        </div>
+        <button class="primary" type="submit">@UiTexts.Buscar</button>
+        <a class="secondary" asp-action="Index">@UiTexts.LimpiarFiltros</a>
+    </form>
+</div>
+<div class="panel">
+    @if (!Model.Pagina.Items.Any())
+    {
+        <div class="empty">@UiTexts.Vacio</div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table data-table-select="pda">
+                <thead>
+                <tr>
+                    <th class="col-check"><span class="visually-hidden">@UiTexts.SeleccionarFila</span></th>
+                    <th>PDA</th>
+                    <th>@UiTexts.UsuarioVendedor</th>
+                    <th>@UiTexts.TipoDispositivo</th>
+                    <th>@UiTexts.Conexion</th>
+                    <th>@UiTexts.Estado</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var d in Model.Pagina.Items)
+                {
+                    var flags = (d.UsuarioAsociadoId.HasValue ? "asociado " : "") + (d.Estado == EstadoGeneral.Activo ? "activo" : "inactivo");
+                    <tr tabindex="0" data-row-id="@d.DispositivoId" data-flags="@flags.Trim()" data-usuario-id="@d.UsuarioAsociadoId" data-modelo="@d.Modelo">
+                        <td class="col-check">
+                            <input class="row-check" type="checkbox" value="@d.DispositivoId" aria-label="@UiTexts.SeleccionarFila @d.CodigoDispositivo" />
+                        </td>
+                        <td><strong>@d.CodigoDispositivo</strong></td>
+                        <td>@(d.UsuarioAsociado ?? UiTexts.SinAsociar)</td>
+                        <td>@d.Tipo</td>
+                        <td>@(d.Conectado ? UiTexts.Conectado : "Desconectado")</td>
+                        <td><span class="pill @EstadoUi.Pill(d.Estado.ToString())">@d.Estado</span></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        <partial name="_Pager" model="Model.Pagina" />
+        <div class="table-actions" data-table-panel="pda">
+            <h2>@UiTexts.AccionesDePda</h2>
+            <p class="panel-sub">@UiTexts.SeleccionaParaAcciones</p>
+            <div class="table-actions-buttons">
+                <form method="post" data-needs-selection data-url-template="@Url.Action("Asociar")/{id}" class="toolbar" style="margin:0">
+                    @Html.AntiForgeryToken()
+                    <div class="field">
+                        <label for="usuarioIdAsociar">@UiTexts.UsuarioVendedor</label>
+                        <select id="usuarioIdAsociar" name="usuarioId" class="searchable" disabled>
+                            <option value="">@UiTexts.Seleccionar</option>
+                            @foreach (var u in Model.Usuarios.Where(x => x.Rol != RolUsuario.Administrador))
+                            {
+                                <option value="@u.UsuarioId">@u.NombreCompleto</option>
+                            }
+                        </select>
+                    </div>
+                    <button class="secondary" type="submit" disabled>@UiTexts.Asociar</button>
+                </form>
+                <form method="post" data-needs-selection data-show-when="asociado" data-url-template="@Url.Action("Desasociar")/{id}" hidden>
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="usuarioId" data-from-attr="data-usuario-id" />
+                    <button class="secondary" type="submit" disabled>@UiTexts.Desasociar</button>
+                </form>
+                <form method="post" data-needs-selection data-show-when="activo" data-url-template="@Url.Action("CambiarEstado")/{id}" hidden>
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="modelo" data-from-attr="data-modelo" />
+                    <input type="hidden" name="estado" value="@((int)EstadoGeneral.Inactivo)" />
+                    <button class="secondary" type="submit" disabled>@UiTexts.Bloquear</button>
+                </form>
+                <form method="post" data-needs-selection data-show-when="inactivo" data-url-template="@Url.Action("CambiarEstado")/{id}" hidden>
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="modelo" data-from-attr="data-modelo" />
+                    <input type="hidden" name="estado" value="@((int)EstadoGeneral.Activo)" />
+                    <button class="secondary" type="submit" disabled>@UiTexts.Desbloquear</button>
+                </form>
+            </div>
+        </div>
+    }
+</div>

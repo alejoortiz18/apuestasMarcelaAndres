@@ -1,0 +1,68 @@
+@using NewRich.Admin.Constants
+@using System.Globalization
+@model NewRich.Admin.Models.ResumenViewModel
+@{
+    var cultura = CultureInfo.GetCultureInfo("es-CO");
+}
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.ResumenKicker</div>
+        <h1>@UiTexts.ResumenTitulo</h1>
+        <p>@UiTexts.ResumenSub</p>
+    </div>
+    <a class="primary" asp-controller="Resultados" asp-action="Crear">@UiTexts.RegistrarResultado</a>
+</div>
+<div class="stats">
+    <div class="stat"><small>@UiTexts.VentasDelDia</small><strong>@Model.VentasDelDia.ToString("C0", cultura)</strong></div>
+    <div class="stat"><small>@UiTexts.BoletosEmitidos</small><strong>@Model.BoletosEmitidos</strong></div>
+    <div class="stat"><small>@UiTexts.VendedoresActivos</small><strong>@Model.VendedoresActivos / @Model.VendedoresTotales</strong></div>
+    <div class="stat"><small>@UiTexts.AlertasPendientes</small><strong>@Model.AlertasPendientes.ToString("00")</strong></div>
+</div>
+<div class="panel">
+    <div class="panel-head">
+        <div>
+            <h2>@UiTexts.UltimasVentas</h2>
+        </div>
+        <a class="secondary" asp-controller="Ventas" asp-action="Index">@UiTexts.VerModuloVentas</a>
+    </div>
+    @if (!Model.UltimasVentas.Any())
+    {
+        <div class="empty">@UiTexts.Vacio</div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table data-table-select="resumen">
+                <thead>
+                <tr>
+                    <th class="col-check"><span class="visually-hidden">@UiTexts.SeleccionarFila</span></th>
+                    <th>@UiTexts.CodigoBoleto</th>
+                    <th>@UiTexts.Vendedor</th>
+                    <th>@UiTexts.FechaYHora</th>
+                    <th>@UiTexts.Total</th>
+                    <th>@UiTexts.Estado</th>
+                    <th>@UiTexts.Acciones</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var venta in Model.UltimasVentas)
+                {
+                    <tr tabindex="0" data-row-id="@venta.BoletoId">
+                        <td class="col-check">
+                            <input class="row-check" type="checkbox" value="@venta.BoletoId" aria-label="@UiTexts.SeleccionarFila @venta.CodigoPublico" />
+                        </td>
+                        <td><strong>@venta.CodigoPublico</strong></td>
+                        <td>@venta.Vendedor</td>
+                        <td>@venta.FechaVenta.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>@venta.Total.ToString("C0", cultura)</td>
+                        <td><span class="pill info">@venta.EstadoBoleto</span></td>
+                        <td>
+                            <a class="secondary" asp-controller="Ventas" asp-action="Tirilla" asp-route-id="@venta.BoletoId">@UiTexts.Ver</a>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

@@ -1,0 +1,36 @@
+@using NewRich.Admin.Constants
+@using System.Globalization
+@model NewRich.Admin.Models.TirillaViewModel
+@{
+    var t = Model.Tirilla;
+    var cultura = CultureInfo.GetCultureInfo("es-CO");
+}
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.VentasKicker</div>
+        <h1>@UiTexts.VerTicket</h1>
+    </div>
+</div>
+<div class="panel">
+    <div class="receipt">
+        <div class="receipt-row"><span>RECIBO DE VENTA</span><strong>@t.CodigoImpreso</strong></div>
+        <div class="receipt-rule">=================================================</div>
+        <div class="receipt-row"><span>Fecha: @t.Fecha.ToLocalTime().ToString("yyyy-MM-dd")</span><strong>Hora: @t.Fecha.ToLocalTime().ToString("HH:mm")</strong></div>
+        <div class="receipt-row"><span>@UiTexts.Vendedor</span><strong>@t.Vendedor</strong></div>
+        <div class="receipt-rule">=================================================</div>
+        @foreach (var juego in t.Juegos)
+        {
+            <div class="receipt-row">
+                <span>@juego.Numero</span>
+                <span>@juego.Valor.ToString("C0", cultura)</span>
+                <span>@string.Join(", ", juego.Loterias)</span>
+            </div>
+        }
+        <div class="receipt-rule">=================================================</div>
+        <div class="receipt-row"><strong>TOTAL</strong><strong>@t.Total.ToString("C0", cultura)</strong></div>
+        <p>@t.Leyenda</p>
+    </div>
+    <div class="text-center-actions" style="margin-top:18px">
+        <a class="secondary" asp-action="Index">@UiTexts.Cerrar</a>
+    </div>
+</div>

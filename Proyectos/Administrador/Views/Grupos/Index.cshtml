@@ -1,0 +1,83 @@
+@using NewRich.Admin.Constants
+@using NewRich.Admin.Services
+@model NewRich.Admin.Models.GruposIndexViewModel
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.GruposKicker</div>
+        <h1>@UiTexts.GruposTitulo</h1>
+        <p>@UiTexts.GruposSub</p>
+    </div>
+    <a class="primary" asp-action="Crear">@UiTexts.CrearGrupo</a>
+</div>
+<div class="panel">
+    <form class="toolbar" method="get">
+        <div class="field">
+            <label for="q">@UiTexts.BuscarGrupo</label>
+            <input id="q" name="q" value="@Model.Busqueda" placeholder="@UiTexts.PlaceholderGrupo" />
+        </div>
+        <div class="field">
+            <label for="pageSize">@UiTexts.FilasPorPagina</label>
+            <select id="pageSize" name="pageSize" class="searchable">
+                @foreach (var size in PagingHelper.PageSizes)
+                {
+                    <option value="@size" @(Model.Pagina.PageSize == size ? "selected" : null)>@size</option>
+                }
+            </select>
+        </div>
+        <button class="primary" type="submit">@UiTexts.Buscar</button>
+        <a class="secondary" asp-action="Index">@UiTexts.LimpiarFiltros</a>
+    </form>
+</div>
+<div class="panel">
+    <div class="panel-head">
+        <div>
+            <h2>@UiTexts.CatalogoGrupos</h2>
+            <div class="panel-sub">@Model.Pagina.TotalCount registros</div>
+        </div>
+    </div>
+    @if (!Model.Pagina.Items.Any())
+    {
+        <div class="empty">@UiTexts.Vacio</div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table data-table-select="grupos">
+                <thead>
+                <tr>
+                    <th class="col-check"><span class="visually-hidden">@UiTexts.SeleccionarFila</span></th>
+                    <th>@UiTexts.NombreGrupo</th>
+                    <th>@UiTexts.Descripcion</th>
+                    <th>@UiTexts.CantidadVendedores</th>
+                    <th>@UiTexts.Acciones</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var g in Model.Pagina.Items)
+                {
+                    <tr tabindex="0" data-row-id="@g.GrupoId">
+                        <td class="col-check">
+                            <input class="row-check" type="checkbox" value="@g.GrupoId" aria-label="@UiTexts.SeleccionarFila @g.Nombre" />
+                        </td>
+                        <td><strong>@g.Nombre</strong></td>
+                        <td>@(g.Descripcion ?? UiTexts.NoAplica)</td>
+                        <td>@g.CantidadVendedores</td>
+                        <td>
+                            <a class="secondary" asp-action="Detalle" asp-route-id="@g.GrupoId">@UiTexts.Ver</a>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        <partial name="_Pager" model="Model.Pagina" />
+        <div class="table-actions" data-table-panel="grupos">
+            <h2>@UiTexts.AccionesDeGrupo</h2>
+            <p class="panel-sub">@UiTexts.SeleccionaParaAcciones</p>
+            <div class="table-actions-buttons">
+                <a class="secondary" data-needs-selection data-url-template="@Url.Action("Editar")/{id}" href="#" aria-disabled="true">@UiTexts.Editar</a>
+                <a class="danger" data-needs-selection data-url-template="@Url.Action("Eliminar")/{id}" href="#" aria-disabled="true">@UiTexts.EliminarGrupo</a>
+            </div>
+        </div>
+    }
+</div>

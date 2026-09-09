@@ -1,0 +1,123 @@
+@using NewRich.Admin.Constants
+@using NewRich.Admin.Services
+@using NewRich.Domain.Enums
+@model NewRich.Admin.Models.UsuariosIndexViewModel
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.UsuariosKicker</div>
+        <h1>@UiTexts.UsuariosTitulo</h1>
+        <p>@UiTexts.UsuariosSub</p>
+    </div>
+    <a class="primary" asp-action="Crear">@UiTexts.CrearUsuario</a>
+</div>
+<div class="panel">
+    <form class="toolbar" method="get">
+        <div class="field">
+            <label for="q">@UiTexts.BuscarUsuario</label>
+            <input id="q" name="q" value="@Model.Busqueda" placeholder="@UiTexts.PlaceholderUsuario" />
+        </div>
+        <div class="field">
+            <label for="rol">@UiTexts.Rol</label>
+            <select id="rol" name="rol" class="searchable">
+                <option value="">@UiTexts.TodosLosRoles</option>
+                <option value="@((int)RolUsuario.Administrador)" @(Model.Rol == (int)RolUsuario.Administrador ? "selected" : null)>Administrador</option>
+                <option value="@((int)RolUsuario.Vendedor)" @(Model.Rol == (int)RolUsuario.Vendedor ? "selected" : null)>Vendedor</option>
+                <option value="@((int)RolUsuario.Observador)" @(Model.Rol == (int)RolUsuario.Observador ? "selected" : null)>Observador</option>
+            </select>
+        </div>
+        <div class="field">
+            <label for="pageSize">@UiTexts.FilasPorPagina</label>
+            <select id="pageSize" name="pageSize" class="searchable">
+                @foreach (var size in PagingHelper.PageSizes)
+                {
+                    <option value="@size" @(Model.Pagina.PageSize == size ? "selected" : null)>@size</option>
+                }
+            </select>
+        </div>
+        <button class="primary" type="submit">@UiTexts.Buscar</button>
+        <a class="secondary" asp-action="Index">@UiTexts.LimpiarFiltros</a>
+    </form>
+</div>
+<div class="panel">
+    <div class="panel-head">
+        <div>
+            <h2>@UiTexts.DirectorioUsuarios</h2>
+            <div class="panel-sub">@Model.Pagina.TotalCount registros</div>
+        </div>
+    </div>
+    @if (!Model.Pagina.Items.Any())
+    {
+        <div class="empty">@UiTexts.Vacio</div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table data-table-select="usuarios">
+                <thead>
+                <tr>
+                    <th class="col-check"><span class="visually-hidden">@UiTexts.SeleccionarFila</span></th>
+                    <th>@UiTexts.Identificador</th>
+                    <th>@UiTexts.NombreCompleto</th>
+                    <th>@UiTexts.Rol</th>
+                    <th>@UiTexts.Grupo</th>
+                    <th>@UiTexts.PdaAsociado</th>
+                    <th>@UiTexts.Estado</th>
+                    <th>@UiTexts.Acciones</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var u in Model.Pagina.Items)
+                {
+                    var estado = EstadoUi.UsuarioEstado(u.EstadoBloqueado, u.Estado);
+                    var flags = $"{(u.EstadoBloqueado ? "bloqueado" : "")} {(u.Rol == RolUsuario.Vendedor ? "vendedor" : "")}".Trim();
+                    <tr tabindex="0" data-row-id="@u.UsuarioId" data-flags="@flags">
+                        <td class="col-check">
+                            <input class="row-check" type="checkbox" value="@u.UsuarioId" aria-label="@UiTexts.SeleccionarFila @u.NombreCompleto" />
+                        </td>
+                        <td><strong>@u.Usuario</strong></td>
+                        <td>@u.NombreCompleto</td>
+                        <td>@u.Rol</td>
+                        <td>@(u.GrupoNombre ?? UiTexts.SinGrupo)</td>
+                        <td>@(u.CodigoDispositivo ?? UiTexts.SinAsociar)</td>
+                        <td><span class="pill @EstadoUi.Pill(estado)">@estado</span></td>
+                        <td>
+                            <a class="secondary" asp-action="Detalle" asp-route-id="@u.UsuarioId">@UiTexts.Ver</a>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        <partial name="_Pager" model="Model.Pagina" />
+        <div class="table-actions" data-table-panel="usuarios">
+            <h2>@UiTexts.AccionesDeUsuario</h2>
+            <p class="panel-sub">@UiTexts.SeleccionaParaAcciones</p>
+            <div class="table-actions-buttons">
+                <a class="secondary" data-needs-selection data-url-template="@Url.Action("Editar")/{id}" href="#" aria-disabled="true">@UiTexts.Editar</a>
+                <form method="post" data-needs-selection data-url-template="@Url.Action("Restablecer")/{id}">
+                    @Html.AntiForgeryToken()
+                    <button class="secondary" type="submit" disabled>@UiTexts.RestablecerContrasena</button>
+                </form>
+                <form method="post" data-needs-selection data-show-when="bloqueado" data-url-template="@Url.Action("Desbloquear")/{id}" hidden>
+                    @Html.AntiForgeryToken()
+                    <button class="secondary" type="submit" disabled>@UiTexts.DesbloquearUsuario</button>
+                </form>
+                <form method="post" data-needs-selection data-show-when="vendedor" data-url-template="@Url.Action("CambiarGrupo")/{id}" hidden>
+                    @Html.AntiForgeryToken()
+                    <div class="field">
+                        <label for="grupoIdAccion">@UiTexts.CambiarGrupo</label>
+                        <select id="grupoIdAccion" name="grupoId" class="searchable" disabled>
+                            <option value="">@UiTexts.SinGrupo</option>
+                            @foreach (var g in Model.Grupos)
+                            {
+                                <option value="@g.GrupoId">@g.Nombre</option>
+                            }
+                        </select>
+                    </div>
+                    <button class="secondary" type="submit" disabled>@UiTexts.CambiarGrupo</button>
+                </form>
+                <a class="danger" data-needs-selection data-url-template="@Url.Action("Eliminar")/{id}" href="#" aria-disabled="true">@UiTexts.EliminarUsuario</a>
+            </div>
+        </div>
+    }
+</div>

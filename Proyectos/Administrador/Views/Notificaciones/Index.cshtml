@@ -1,0 +1,84 @@
+@using NewRich.Admin.Constants
+@using NewRich.Admin.Services
+@model NewRich.Admin.Models.NotificacionesIndexViewModel
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.NotifKicker</div>
+        <h1>@UiTexts.NotifTitulo</h1>
+        <p>@UiTexts.NotifSub</p>
+    </div>
+    <form asp-action="MarcarLeidas" method="post">
+        <button class="primary" type="submit">@UiTexts.MarcarLeidas</button>
+    </form>
+</div>
+<div class="panel">
+    <form class="toolbar" method="get">
+        <div class="field">
+            <label for="q">Buscar notificacion</label>
+            <input id="q" name="q" value="@Model.Busqueda" />
+        </div>
+        <div class="field">
+            <label for="leida">@UiTexts.Estado</label>
+            <select id="leida" name="leida" class="searchable">
+                <option value="">@UiTexts.Todos</option>
+                <option value="false" @(Model.Leida == false ? "selected" : null)>@UiTexts.Pendiente</option>
+                <option value="true" @(Model.Leida == true ? "selected" : null)>@UiTexts.Leida</option>
+            </select>
+        </div>
+        <div class="field">
+            <label for="pageSize">@UiTexts.FilasPorPagina</label>
+            <select id="pageSize" name="pageSize" class="searchable">
+                @foreach (var size in PagingHelper.PageSizes)
+                {
+                    <option value="@size" @(Model.Pagina.PageSize == size ? "selected" : null)>@size</option>
+                }
+            </select>
+        </div>
+        <button class="primary" type="submit">@UiTexts.Buscar</button>
+        <a class="secondary" asp-action="Index">@UiTexts.LimpiarFiltros</a>
+    </form>
+</div>
+<div class="panel">
+    <div class="panel-head">
+        <div>
+            <h2>Bandeja de notificaciones</h2>
+            <div class="panel-sub">Pendientes: @Model.Pendientes</div>
+        </div>
+    </div>
+    @if (!Model.Pagina.Items.Any())
+    {
+        <div class="empty">@UiTexts.Vacio</div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table data-table-select="notificaciones">
+                <thead>
+                <tr>
+                    <th class="col-check"><span class="visually-hidden">@UiTexts.SeleccionarFila</span></th>
+                    <th>@UiTexts.Tipo</th>
+                    <th>@UiTexts.Mensaje</th>
+                    <th>@UiTexts.Fecha</th>
+                    <th>@UiTexts.Estado</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var n in Model.Pagina.Items)
+                {
+                    var estado = n.Leida ? UiTexts.Leida : UiTexts.Pendiente;
+                    <tr tabindex="0" data-row-id="@n.NotificacionId">
+                        <td class="col-check">
+                            <input class="row-check" type="checkbox" value="@n.NotificacionId" aria-label="@UiTexts.SeleccionarFila @n.Tipo" />
+                        </td>
+                        <td>@n.Tipo</td>
+                        <td>@n.Mensaje</td>
+                        <td>@n.FechaCreacion.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                        <td><span class="pill @EstadoUi.Pill(estado)">@estado</span></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        <partial name="_Pager" model="Model.Pagina" />
+    }
+</div>

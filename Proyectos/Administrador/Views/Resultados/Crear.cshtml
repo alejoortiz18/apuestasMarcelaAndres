@@ -1,0 +1,38 @@
+@using NewRich.Admin.Constants
+@model NewRich.Admin.Models.ResultadoFormViewModel
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.ResultadosKicker</div>
+        <h1>@UiTexts.RegistrarResultado</h1>
+    </div>
+</div>
+<div class="panel">
+    <div asp-validation-summary="ModelOnly" class="notice error"></div>
+    <div class="notice">Solo puedes registrar un numero ganador por combinacion de fecha y loteria.</div>
+    <form method="post">
+        <div class="field">
+            <label asp-for="LoteriaId"></label>
+            <select asp-for="LoteriaId" class="searchable">
+                <option value="">@UiTexts.SeleccionaLoteria</option>
+                @foreach (var l in Model.Loterias.Where(x => x.Estado == NewRich.Domain.Enums.EstadoGeneral.Activo))
+                {
+                    <option value="@l.LoteriaId">@l.Nombre</option>
+                }
+            </select>
+            <span asp-validation-for="LoteriaId"></span>
+        </div>
+        <div class="field">
+            <label asp-for="FechaJuego"></label>
+            <input asp-for="FechaJuego" type="date" />
+        </div>
+        <div class="field">
+            <label asp-for="Numero"></label>
+            <input asp-for="Numero" inputmode="numeric" />
+            <span asp-validation-for="Numero"></span>
+        </div>
+        <div class="text-center-actions">
+            <button class="primary" type="submit">@UiTexts.GuardarResultado</button>
+            <a class="secondary" asp-action="Index">@UiTexts.Cancelar</a>
+        </div>
+    </form>
+</div>

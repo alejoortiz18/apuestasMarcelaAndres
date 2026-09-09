@@ -1,0 +1,27 @@
+@using NewRich.Admin.Constants
+@model NewRich.Admin.Models.GrupoFormViewModel
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.GruposKicker</div>
+        <h1>@(Model.GrupoId.HasValue ? UiTexts.Editar : UiTexts.CrearGrupo)</h1>
+    </div>
+</div>
+<div class="panel">
+    <div asp-validation-summary="ModelOnly" class="notice error"></div>
+    <form method="post">
+        <div class="field">
+            <label asp-for="Nombre"></label>
+            <input asp-for="Nombre" maxlength="100" />
+            <span asp-validation-for="Nombre"></span>
+        </div>
+        <div class="field">
+            <label asp-for="Descripcion"></label>
+            <input asp-for="Descripcion" maxlength="255" />
+            <span asp-validation-for="Descripcion"></span>
+        </div>
+        <div class="text-center-actions">
+            <button class="primary" type="submit">@UiTexts.Guardar</button>
+            <a class="secondary" asp-action="Index">@UiTexts.Cancelar</a>
+        </div>
+    </form>
+</div>

@@ -1,0 +1,94 @@
+@using NewRich.Admin.Constants
+@using NewRich.Admin.Services
+@model NewRich.Admin.Models.GrupoDetalleViewModel
+@{
+    var grupo = Model.Grupo;
+}
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.GruposKicker</div>
+        <h1>@grupo.Nombre</h1>
+        <p>@(grupo.Descripcion ?? UiTexts.GruposSub)</p>
+    </div>
+    <a class="secondary" asp-action="Index">@UiTexts.Cerrar</a>
+</div>
+<div class="panel">
+    <form class="toolbar" asp-action="Asignar" asp-route-id="@grupo.GrupoId" method="post">
+        <div class="field">
+            <label for="usuarioId">@UiTexts.AgregarVendedor</label>
+            <select id="usuarioId" name="usuarioId" class="searchable" required>
+                <option value="">@UiTexts.SeleccioneVendedor</option>
+                @foreach (var u in Model.VendedoresDisponibles)
+                {
+                    <option value="@u.UsuarioId">@u.NombreCompleto (@u.Usuario)</option>
+                }
+            </select>
+        </div>
+        <button class="primary" type="submit">@UiTexts.AgregarVendedor</button>
+    </form>
+    <form class="toolbar" method="get" asp-action="Detalle" asp-route-id="@grupo.GrupoId">
+        <div class="field">
+            <label for="pageSize">@UiTexts.FilasPorPagina</label>
+            <select id="pageSize" name="pageSize" class="searchable">
+                @foreach (var size in PagingHelper.PageSizes)
+                {
+                    <option value="@size" @(Model.Pagina.PageSize == size ? "selected" : null)>@size</option>
+                }
+            </select>
+        </div>
+        <button class="secondary" type="submit">@UiTexts.Buscar</button>
+    </form>
+</div>
+<div class="panel">
+    <div class="panel-head">
+        <div>
+            <h2>@UiTexts.VendedoresDelGrupo</h2>
+            <div class="panel-sub">@grupo.CantidadVendedores registros</div>
+        </div>
+    </div>
+    @if (!Model.Pagina.Items.Any())
+    {
+        <div class="empty">@UiTexts.Vacio</div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table data-table-select="grupo-vendedores">
+                <thead>
+                <tr>
+                    <th class="col-check"><span class="visually-hidden">@UiTexts.SeleccionarFila</span></th>
+                    <th>@UiTexts.Identificador</th>
+                    <th>@UiTexts.NombreCompleto</th>
+                    <th>@UiTexts.Acciones</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var v in Model.Pagina.Items)
+                {
+                    <tr tabindex="0" data-row-id="@v.UsuarioId">
+                        <td class="col-check">
+                            <input class="row-check" type="checkbox" value="@v.UsuarioId" aria-label="@UiTexts.SeleccionarFila @v.NombreCompleto" />
+                        </td>
+                        <td><strong>@v.Usuario</strong></td>
+                        <td>@v.NombreCompleto</td>
+                        <td>
+                            <a class="secondary" asp-controller="Usuarios" asp-action="Detalle" asp-route-id="@v.UsuarioId">@UiTexts.Ver</a>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        <partial name="_Pager" model="Model.Pagina" />
+        <div class="table-actions" data-table-panel="grupo-vendedores">
+            <h2>@UiTexts.AccionesDeGrupo</h2>
+            <p class="panel-sub">@UiTexts.SeleccionaParaAcciones</p>
+            <div class="table-actions-buttons">
+                <form method="post" data-needs-selection data-url-template="@(Url.Action("Quitar", new { id = grupo.GrupoId }))?usuarioId={id}">
+                    @Html.AntiForgeryToken()
+                    <button class="danger" type="submit" disabled>@UiTexts.QuitarDelGrupo</button>
+                </form>
+            </div>
+        </div>
+    }
+</div>

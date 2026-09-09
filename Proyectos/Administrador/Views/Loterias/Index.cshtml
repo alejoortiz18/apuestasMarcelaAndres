@@ -1,0 +1,83 @@
+@using NewRich.Admin.Constants
+@using NewRich.Admin.Services
+@using NewRich.Domain.Enums
+@model NewRich.Admin.Models.LoteriasIndexViewModel
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.LoteriasKicker</div>
+        <h1>@UiTexts.LoteriasTitulo</h1>
+        <p>@UiTexts.LoteriasSub</p>
+    </div>
+    <a class="primary" asp-action="Crear">@UiTexts.NuevaLoteria</a>
+</div>
+<div class="panel">
+    <form class="toolbar" method="get">
+        <div class="field">
+            <label for="q">@UiTexts.BuscarLoteria</label>
+            <input id="q" name="q" value="@Model.Busqueda" />
+        </div>
+        <div class="field">
+            <label for="estado">@UiTexts.Estado</label>
+            <select id="estado" name="estado" class="searchable">
+                <option value="">@UiTexts.Todos</option>
+                <option value="@((int)EstadoGeneral.Activo)" @(Model.Estado == (int)EstadoGeneral.Activo ? "selected" : null)>Activo</option>
+                <option value="@((int)EstadoGeneral.Inactivo)" @(Model.Estado == (int)EstadoGeneral.Inactivo ? "selected" : null)>Inactivo</option>
+            </select>
+        </div>
+        <div class="field">
+            <label for="pageSize">@UiTexts.FilasPorPagina</label>
+            <select id="pageSize" name="pageSize" class="searchable">
+                @foreach (var size in PagingHelper.PageSizes)
+                {
+                    <option value="@size" @(Model.Pagina.PageSize == size ? "selected" : null)>@size</option>
+                }
+            </select>
+        </div>
+        <button class="primary" type="submit">@UiTexts.Buscar</button>
+        <a class="secondary" asp-action="Index">@UiTexts.LimpiarFiltros</a>
+        <a class="secondary" asp-action="Boletos">Buscar boletos</a>
+    </form>
+</div>
+<div class="panel">
+    <div class="panel-head"><div><h2>@UiTexts.CatalogoLoterias</h2></div></div>
+    @if (!Model.Pagina.Items.Any())
+    {
+        <div class="empty">@UiTexts.Vacio</div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table data-table-select="loterias">
+                <thead>
+                <tr>
+                    <th class="col-check"><span class="visually-hidden">@UiTexts.SeleccionarFila</span></th>
+                    <th>@UiTexts.Loteria</th>
+                    <th>@UiTexts.Estado</th>
+                    <th>@UiTexts.Acciones</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var item in Model.Pagina.Items)
+                {
+                    <tr tabindex="0" data-row-id="@item.LoteriaId">
+                        <td class="col-check">
+                            <input class="row-check" type="checkbox" value="@item.LoteriaId" aria-label="@UiTexts.SeleccionarFila @item.Nombre" />
+                        </td>
+                        <td><strong>@item.Nombre</strong></td>
+                        <td><span class="pill @EstadoUi.Pill(item.Estado.ToString())">@item.Estado</span></td>
+                        <td><a class="secondary" asp-action="Editar" asp-route-id="@item.LoteriaId">@UiTexts.Ver</a></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        <partial name="_Pager" model="Model.Pagina" />
+        <div class="table-actions" data-table-panel="loterias">
+            <h2>@UiTexts.AccionesDeLoteria</h2>
+            <p class="panel-sub">@UiTexts.SeleccionaParaAcciones</p>
+            <div class="table-actions-buttons">
+                <a class="secondary" data-needs-selection data-url-template="@Url.Action("Editar")/{id}" href="#" aria-disabled="true">@UiTexts.Editar</a>
+            </div>
+        </div>
+    }
+</div>

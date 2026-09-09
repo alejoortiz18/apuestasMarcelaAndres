@@ -1,0 +1,28 @@
+@using NewRich.Admin.Constants
+@using NewRich.Admin.Services
+@model NewRich.Application.Contracts.Usuarios.UsuarioResponse
+@{
+    var estado = EstadoUi.UsuarioEstado(Model.EstadoBloqueado, Model.Estado);
+}
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.UsuariosKicker</div>
+        <h1>@UiTexts.Detalle</h1>
+        <p>@Model.NombreCompleto</p>
+    </div>
+</div>
+<div class="panel">
+    <div class="notice"><strong>@Model.NombreCompleto</strong><br />@UiTexts.Identificador: @Model.Usuario</div>
+    <p><strong>@UiTexts.Rol:</strong> @Model.Rol</p>
+    <p><strong>@UiTexts.Grupo:</strong> @(Model.GrupoNombre ?? UiTexts.SinGrupo)</p>
+    <p><strong>@UiTexts.Estado:</strong> <span class="pill @EstadoUi.Pill(estado)">@estado</span></p>
+    <p><strong>@UiTexts.PdaAsociado:</strong> @(Model.CodigoDispositivo ?? UiTexts.SinAsociar)</p>
+    <p><strong>@UiTexts.Documento:</strong> @(Model.Documento ?? UiTexts.NoAplica)</p>
+    <p><strong>@UiTexts.Email:</strong> @(Model.Email ?? UiTexts.NoAplica)</p>
+    <div class="text-center-actions">
+        <a class="secondary" asp-action="Index">@UiTexts.Cerrar</a>
+        <form asp-action="Restablecer" asp-route-id="@Model.UsuarioId" method="post">
+            <button class="primary" type="submit">@UiTexts.RestablecerContrasena</button>
+        </form>
+    </div>
+</div>

@@ -1,0 +1,55 @@
+@using NewRich.Admin.Constants
+@model NewRich.Admin.Models.PagerInfo
+@{
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString();
+    var action = ViewContext.RouteData.Values["action"]?.ToString();
+    string UrlFor(int page)
+    {
+        var dict = new Dictionary<string, string?>();
+        foreach (var kv in ViewContext.HttpContext.Request.Query)
+        {
+            if (kv.Key is "page" or "pageSize")
+            {
+                continue;
+            }
+            dict[kv.Key] = kv.Value.ToString();
+        }
+        dict["page"] = page.ToString();
+        dict["pageSize"] = Model.PageSize.ToString();
+        return Url.Action(action, controller, dict) ?? "#";
+    }
+    var total = Model.TotalPages;
+    var current = Model.Page;
+    var start = Math.Max(1, current - 2);
+    var end = Math.Min(total, start + 4);
+    start = Math.Max(1, end - 4);
+}
+<div class="pager" aria-label="Paginacion">
+    <span>@string.Format(UiTexts.MostrandoFormato, Model.From, Model.To, Model.TotalCount)</span>
+    <div class="pages">
+        @if (current <= 1)
+        {
+            <span class="disabled">@UiTexts.Inicio</span>
+            <span class="disabled">@UiTexts.Anterior</span>
+        }
+        else
+        {
+            <a href="@UrlFor(1)">@UiTexts.Inicio</a>
+            <a href="@UrlFor(current - 1)">@UiTexts.Anterior</a>
+        }
+        @for (var n = start; n <= end; n++)
+        {
+            <a class="@(n == current ? "active" : null)" href="@UrlFor(n)">@n</a>
+        }
+        @if (current >= total)
+        {
+            <span class="disabled">@UiTexts.Siguiente</span>
+            <span class="disabled">@UiTexts.Ultimo</span>
+        }
+        else
+        {
+            <a href="@UrlFor(current + 1)">@UiTexts.Siguiente</a>
+            <a href="@UrlFor(total)">@UiTexts.Ultimo</a>
+        }
+    </div>
+</div>

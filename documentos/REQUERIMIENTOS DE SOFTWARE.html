@@ -1,0 +1,2425 @@
+<!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>ESPECIFICACI&Oacute;N DE REQUERIMIENTOS DE SOFTWARE</title>
+            <style>
+/* From extension vscode.github */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.vscode-dark img[src$=\#gh-light-mode-only],
+.vscode-light img[src$=\#gh-dark-mode-only],
+.vscode-high-contrast:not(.vscode-high-contrast-light) img[src$=\#gh-light-mode-only],
+.vscode-high-contrast-light img[src$=\#gh-dark-mode-only] {
+	display: none;
+}
+
+</style>
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex/dist/katex.min.css">
+<link href="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.css" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item {
+    list-style-type: none;
+}
+
+.task-list-item-checkbox {
+    margin-left: -20px;
+    vertical-align: middle;
+    pointer-events: none;
+}
+</style>
+<style>
+:root {
+  --color-note: #0969da;
+  --color-tip: #1a7f37;
+  --color-warning: #9a6700;
+  --color-severe: #bc4c00;
+  --color-caution: #d1242f;
+  --color-important: #8250df;
+}
+
+</style>
+<style>
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-note: #2f81f7;
+    --color-tip: #3fb950;
+    --color-warning: #d29922;
+    --color-severe: #db6d28;
+    --color-caution: #f85149;
+    --color-important: #a371f7;
+  }
+}
+
+</style>
+<style>
+.markdown-alert {
+  padding: 0.5rem 1rem;
+  margin-bottom: 16px;
+  color: inherit;
+  border-left: .25em solid #888;
+}
+
+.markdown-alert>:first-child {
+  margin-top: 0
+}
+
+.markdown-alert>:last-child {
+  margin-bottom: 0
+}
+
+.markdown-alert .markdown-alert-title {
+  display: flex;
+  font-weight: 500;
+  align-items: center;
+  line-height: 1
+}
+
+.markdown-alert .markdown-alert-title .octicon {
+  margin-right: 0.5rem;
+  display: inline-block;
+  overflow: visible !important;
+  vertical-align: text-bottom;
+  fill: currentColor;
+}
+
+.markdown-alert.markdown-alert-note {
+  border-left-color: var(--color-note);
+}
+
+.markdown-alert.markdown-alert-note .markdown-alert-title {
+  color: var(--color-note);
+}
+
+.markdown-alert.markdown-alert-important {
+  border-left-color: var(--color-important);
+}
+
+.markdown-alert.markdown-alert-important .markdown-alert-title {
+  color: var(--color-important);
+}
+
+.markdown-alert.markdown-alert-warning {
+  border-left-color: var(--color-warning);
+}
+
+.markdown-alert.markdown-alert-warning .markdown-alert-title {
+  color: var(--color-warning);
+}
+
+.markdown-alert.markdown-alert-tip {
+  border-left-color: var(--color-tip);
+}
+
+.markdown-alert.markdown-alert-tip .markdown-alert-title {
+  color: var(--color-tip);
+}
+
+.markdown-alert.markdown-alert-caution {
+  border-left-color: var(--color-caution);
+}
+
+.markdown-alert.markdown-alert-caution .markdown-alert-title {
+  color: var(--color-caution);
+}
+
+</style>
+        
+        </head>
+        <body class="vscode-body vscode-light">
+            <span id="markdown-mermaid" aria-hidden="true" data-config="{&quot;darkModeTheme&quot;:&quot;vscode&quot;,&quot;lightModeTheme&quot;:&quot;vscode&quot;,&quot;maxTextSize&quot;:50000,&quot;clickDrag&quot;:&quot;alt&quot;,&quot;showControls&quot;:&quot;onHoverOrFocus&quot;,&quot;resizable&quot;:true,&quot;maxHeight&quot;:&quot;&quot;}"></span>
+				<h1 id="especificación-de-requerimientos-de-software">ESPECIFICACIÓN DE REQUERIMIENTOS DE SOFTWARE</h1>
+<blockquote>
+<p>Versión 1.4. Restablecimiento de contraseña solo por el administrador (<code>estadoValidado</code>); chat de soporte vendedor–administrador.</p>
+</blockquote>
+<p>NEW RICH</p>
+<p>Versión: 1.4
+Estado: Documento para revisión y aprobación del cliente
+Tipo de documento: Levantamiento de requerimientos / Especificación de Requerimientos de Software (ERS)</p>
+<h2 id="new-rich">New Rich</h2>
+<hr>
+<h2 id="índice-de-perfiles">Índice de perfiles</h2>
+<table>
+<thead>
+<tr>
+<th>Bloque</th>
+<th>RS</th>
+<th>Contenido</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>I. Administrador</td>
+<td>RS-001 a RS-040A</td>
+<td>Gobierno, configuración, seguridad, reglas y aceptación</td>
+</tr>
+<tr>
+<td>II. Observador</td>
+<td>RS-041 a RS-059</td>
+<td>Consulta, validación QR y chat con administrador</td>
+</tr>
+<tr>
+<td>III. Vendedor</td>
+<td>RS-060 a RS-086</td>
+<td>Venta, boleto, histórico, conectividad y flujos</td>
+</tr>
+<tr>
+<td>IV. Tirilla de impresión</td>
+<td>RS-087</td>
+<td>Formato de comprobante</td>
+</tr>
+</tbody>
+</table>
+<h1 id="i-perfil-administrador">I. Perfil Administrador</h1>
+<p>El administrador usa la aplicación web MVC y es responsable de administrar la operación, configuraciones, seguridad, información central y criterios de aceptación.</p>
+<hr>
+<h2 id="rs-001--1-información-general">RS-001 — 1. INFORMACIÓN GENERAL</h2>
+<h3 id="11-nombre-del-proyecto">1.1. Nombre del proyecto</h3>
+<p>New Rich</p>
+<h3 id="12-objetivo">1.2. Objetivo</h3>
+<p>Desarrollar una plataforma integral para la gestión de apuestas que permita registrar, almacenar, consultar, imprimir y validar boletos de apuestas, así como administrar vendedores, observadores, dispositivos PDA, loterías, números ganadores, configuraciones, notificaciones, históricos, soporte y KPI administrativos.</p>
+<h3 id="13-tecnologías">1.3. Tecnologías</h3>
+<table>
+<thead>
+<tr>
+<th>Componente</th>
+<th>Tecnología</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Lenguaje principal</td>
+<td>C#</td>
+</tr>
+<tr>
+<td>Framework</td>
+<td>.NET</td>
+</tr>
+<tr>
+<td>Aplicación vendedor</td>
+<td>Android</td>
+</tr>
+<tr>
+<td>Aplicación observador</td>
+<td>Android</td>
+</tr>
+<tr>
+<td>Aplicación administrador</td>
+<td><a href="http://ASP.NET">ASP.NET</a> MVC</td>
+</tr>
+<tr>
+<td>Servidor web</td>
+<td>IIS</td>
+</tr>
+<tr>
+<td>Base de datos</td>
+<td>Microsoft SQL Server</td>
+</tr>
+<tr>
+<td>Comunicación</td>
+<td>API .NET</td>
+</tr>
+<tr>
+<td>Impresión</td>
+<td>Impresora térmica integrada del PDA</td>
+</tr>
+<tr>
+<td>QR</td>
+<td>Generación y lectura QR</td>
+</tr>
+<tr>
+<td>Seguridad</td>
+<td>HTTPS/TLS + autenticación + criptografía</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="rs-002--2-descripción-general-del-sistema">RS-002 — 2. DESCRIPCIÓN GENERAL DEL SISTEMA</h2>
+<p>El sistema estará compuesto por tres aplicaciones principales:</p>
+<ul>
+<li><strong>Aplicación Android — Vendedor:</strong> registra apuestas, crea uno o varios juegos por boleto, selecciona números y loterías, registra valores, imprime o genera PDF de contingencia, consulta históricos/resultados y solicita soporte.</li>
+<li><strong>Aplicación Android — Observador:</strong> consulta vendedores, ventas, boletos, números ganadores, dispositivos, históricos y configuraciones; valida boletos mediante QR y puede chatear con el administrador. No atiende chats de vendedores.</li>
+<li><strong>Aplicación Web — Administrador:</strong> administra usuarios, PDA, loterías, números ganadores, horarios, vigencia, notificaciones y configuraciones; consulta ventas/boletos/vendedores, visualiza KPI y autoriza el estado <code>PAGADO</code> de un boleto ganador.</li>
+</ul>
+<hr>
+<h2 id="rs-003--3-arquitectura-general">RS-003 — 3. ARQUITECTURA GENERAL</h2>
+<p>La solución estará basada en una arquitectura centralizada. La base de datos SQL Server será la fuente central de información del sistema.</p>
+<pre class="mermaid" style="all: unset;">flowchart TB
+    DB[(SQL Server
+Base de datos)]
+    API[API .NET
+  Servicios del sistema]
+    V[Android
+  Vendedor]
+    O[Android
+  Observador]
+    A[Web MVC
+  Administrador]
+    DB &lt;--&gt; API
+    API &lt;--&gt; V
+    API &lt;--&gt; O
+    API &lt;--&gt; A</pre>
+<hr>
+<h2 id="rs-004--4-perfiles-del-sistema">RS-004 — 4. PERFILES DEL SISTEMA</h2>
+<p>El sistema contará con los perfiles Vendedor, Observador y Administrador. Cada perfil tendrá permisos según la matriz de permisos vigente.</p>
+<hr>
+<h2 id="rs-005--5-solicitud-para-ser-vendedor">RS-005 — 5. SOLICITUD PARA SER VENDEDOR</h2>
+<p>La persona interesada en ser vendedor diligenciará un formulario externo. El administrador revisará la solicitud antes de crear el usuario.</p>
+<hr>
+<h2 id="rs-006--6-creación-del-vendedor">RS-006 — 6. CREACIÓN DEL VENDEDOR</h2>
+<p>El administrador podrá registrar la información del vendedor, asignar su PDA y crear una contraseña temporal. Al crear el usuario, <code>estadoValidado</code> quedará en true y deberá cambiar la contraseña en el primer acceso.</p>
+<hr>
+<h2 id="rs-007--7-gestión-y-autenticación-del-pda">RS-007 — 7. GESTIÓN Y AUTENTICACIÓN DEL PDA</h2>
+<p>El administrador asociará el PDA al vendedor. El acceso requiere usuario activo, contraseña correcta, PDA registrado, activo y asociado, sesión válida y horario permitido.</p>
+<p>Abrirá la aplicación.</p>
+<p>Ingresará usuario.</p>
+<p>Ingresará contraseña temporal.</p>
+<p>El servidor validará las credenciales.</p>
+<p>El servidor validará el PDA.</p>
+<p>El sistema solicitará establecer una nueva contraseña.</p>
+<p>El vendedor establecerá su contraseña definitiva.</p>
+<p>El sistema habilitará el acceso.</p>
+<p>RF-007 – Validación del dispositivo</p>
+<p>Para permitir el acceso deberán validarse como mínimo:</p>
+<p>Usuario existente.</p>
+<p>Usuario activo.</p>
+<p>Contraseña correcta.</p>
+<p>PDA registrado.</p>
+<p>PDA activo.</p>
+<p>PDA asociado al usuario.</p>
+<p>Sesión válida.</p>
+<p>Horario permitido.</p>
+<p>Si alguna condición no se cumple, el acceso deberá ser rechazado.</p>
+<hr>
+<h2 id="rs-008--8-horario-de-operación">RS-008 — 8. HORARIO DE OPERACIÓN</h2>
+<p>RF-008 – Configuración de hora de cierre</p>
+<p>El administrador podrá configurar la hora máxima en la cual los vendedores podrán operar.</p>
+<p>Ejemplo:</p>
+<p>Hora de cierre: 20:00:00</p>
+<p>RF-009 – Bloqueo después del cierre</p>
+<p>Una vez alcanzada la hora configurada:</p>
+<p>Los PDA no podrán iniciar nuevas sesiones.</p>
+<p>Los vendedores no podrán iniciar nuevas apuestas.</p>
+<p>El sistema mostrará:</p>
+<p>LOS JUEGOS ESTÁN CERRADOS</p>
+<p>RF-008b – Sincronización de hora de cierre al PDA</p>
+<p>Cuando el PDA inicia sesión con conexión disponible, deberá descargar y almacenar localmente la hora de cierre configurada en el servidor. Esta descarga ocurrirá:</p>
+<ul>
+<li>Durante el primer inicio de sesión con conexión.</li>
+<li>Cada vez que el PDA se conecta posteriormente.</li>
+<li>Como parte de la sincronización de códigos offline (RS-090).</li>
+</ul>
+<p>La configuración descargada incluirá: hora de cierre (HH:MM:SS), timestamp del servidor, versión de configuración. El PDA almacenará esta información en memoria de forma segura y la utilizará como referencia definitiva para validaciones de horario, incluso en modo offline.</p>
+<p>RF-010 – Venta en curso durante el cierre</p>
+<p>Si un vendedor ya tiene una venta en curso cuando llega la hora de cierre:</p>
+<p>El sistema permitirá terminar la venta actual.</p>
+<p>La venta será almacenada.</p>
+<p>El boleto será generado.</p>
+<p>El boleto será impreso o almacenado como PDF si existe una falla de impresión.</p>
+<p>Finalizada la operación, el sistema cerrará la sesión del vendedor.</p>
+<p>El sistema mostrará:</p>
+<p>No está disponible la operación</p>
+<p>El vendedor deberá volver a autenticarse cuando el sistema se encuentre habilitado.</p>
+<hr>
+<h2 id="rs-009--48-perfil-administrador">RS-009 — 48. PERFIL ADMINISTRADOR</h2>
+<p>RF-058</p>
+<p>El administrador utilizará la aplicación web desarrollada con MVC .NET y desplegada sobre IIS.</p>
+<hr>
+<h2 id="rs-010--49-login-administrador">RS-010 — 49. LOGIN ADMINISTRADOR</h2>
+<p>RF-059</p>
+<p>El administrador deberá autenticarse mediante:</p>
+<p>Usuario.</p>
+<p>Contraseña.</p>
+<hr>
+<h2 id="rs-011--50-administración-de-números-ganadores">RS-011 — 50. ADMINISTRACIÓN DE NÚMEROS GANADORES</h2>
+<p>RF-060</p>
+<p>El administrador podrá registrar:</p>
+<p>Número ganador.</p>
+<p>Lotería.</p>
+<p>Fecha de juego.</p>
+<hr>
+<h2 id="rs-012--51-múltiples-números-ganadores">RS-012 — 51. MÚLTIPLES NÚMEROS GANADORES</h2>
+<p>RF-061</p>
+<p>El sistema deberá permitir registrar múltiples números ganadores para una misma fecha de juego siempre que correspondan a diferentes loterías.</p>
+<p>Ejemplo:</p>
+<p>30/08/2026</p>
+<p>Medellín → 1234</p>
+<p>Bogotá   → 4561</p>
+<p>Cali     → 7890</p>
+<p>Armenia  → 3456</p>
+<p>Pasto    → 5678</p>
+<p>Todos estos registros serán válidos.</p>
+<hr>
+<h2 id="rs-013--52-restricción-de-número-ganador">RS-013 — 52. RESTRICCIÓN DE NÚMERO GANADOR</h2>
+<p>RF-062</p>
+<p>Para una misma combinación:</p>
+<p>Fecha de juego + Lotería</p>
+<p>solo podrá existir un único número ganador.</p>
+<p>Ejemplo válido</p>
+<p>30/08/2026 → Medellín → 1234</p>
+<p>30/08/2026 → Bogotá   → 4561</p>
+<p>30/08/2026 → Cali     → 7890</p>
+<p>Ejemplo no válido</p>
+<p>Si ya existe:</p>
+<p>30/08/2026 → Medellín → 1234</p>
+<p>el sistema deberá impedir:</p>
+<p>30/08/2026 → Medellín → 4561</p>
+<p>y también:</p>
+<p>30/08/2026 → Medellín → 9999</p>
+<p>El número puede ser diferente, pero la combinación:</p>
+<p>Medellín + 30/08/2026</p>
+<p>ya tiene un número ganador registrado.</p>
+<p>Regla de base de datos</p>
+<p>La tabla correspondiente deberá implementar una restricción única equivalente a:</p>
+<p>UNIQUE (FechaJuego, LoteriaId)</p>
+<p>Esto garantizará que no puedan existir dos números ganadores para la misma lotería y fecha.</p>
+<p>Consideración</p>
+<p>El mismo número sí podrá aparecer como ganador en diferentes loterías.</p>
+<p>Ejemplo:</p>
+<p>30/08/2026 → Medellín → 1234</p>
+<p>30/08/2026 → Bogotá   → 1234</p>
+<p>Esto será válido.</p>
+<hr>
+<h2 id="rs-014--53-administración-de-usuarios">RS-014 — 53. ADMINISTRACIÓN DE USUARIOS</h2>
+<p>RF-063</p>
+<p>El administrador podrá:</p>
+<p>Crear usuarios.</p>
+<p>Modificar usuarios.</p>
+<p>Activar usuarios.</p>
+<p>Desactivar usuarios.</p>
+<p>Eliminar usuarios.</p>
+<p>Asociar PDA.</p>
+<hr>
+<h2 id="rs-015--54-administración-de-pda">RS-015 — 54. ADMINISTRACIÓN DE PDA</h2>
+<p>RF-064</p>
+<p>El administrador podrá:</p>
+<p>Registrar PDA.</p>
+<p>Asociar PDA.</p>
+<p>Desasociar PDA.</p>
+<p>Activar PDA.</p>
+<p>Desactivar PDA.</p>
+<p>Consultar estado.</p>
+<p>Consultar usuario asociado.</p>
+<hr>
+<h2 id="rs-016--55-administración-de-loterías">RS-016 — 55. ADMINISTRACIÓN DE LOTERÍAS</h2>
+<p>RF-065</p>
+<p>El administrador podrá:</p>
+<p>Crear loterías.</p>
+<p>Modificar loterías.</p>
+<p>Activarlas.</p>
+<p>Desactivarlas.</p>
+<p>Eliminarlas cuando las reglas de negocio lo permitan.</p>
+<hr>
+<h2 id="rs-017--56-configuraciones-variables">RS-017 — 56. CONFIGURACIONES VARIABLES</h2>
+<p>RF-066</p>
+<p>El administrador podrá parametrizar:</p>
+<p>Hora de cierre.</p>
+<p>Vigencia de premios.</p>
+<p>Loterías disponibles.</p>
+<p>Notificaciones.</p>
+<p>Cantidad máxima de veces que se puede jugar un número antes de generar alerta.</p>
+<p>Valor mínimo para generar alerta.</p>
+<p>Otros parámetros definidos posteriormente.</p>
+<hr>
+<h2 id="rs-018--57-notificación-por-repetición-de-número">RS-018 — 57. NOTIFICACIÓN POR REPETICIÓN DE NÚMERO</h2>
+<p>RF-067</p>
+<p>El administrador podrá configurar una cantidad máxima de veces que un número puede ser jugado para una misma fecha.</p>
+<p>Ejemplo:</p>
+<p>Alertar cuando un número sea jugado 10 veces para una misma fecha.</p>
+<p>Cuando se alcance el valor configurado se generará una notificación.</p>
+<hr>
+<h2 id="rs-019--58-notificación-por-valor-alto">RS-019 — 58. NOTIFICACIÓN POR VALOR ALTO</h2>
+<p>RF-068</p>
+<p>El administrador podrá establecer un valor de alerta.</p>
+<p>Ejemplo:</p>
+<p>Valor de alerta: $10.000</p>
+<p>Si un vendedor registra una apuesta igual o superior:</p>
+<p>$10.000</p>
+<p>el sistema generará una notificación.</p>
+<hr>
+<h2 id="rs-020--59-centro-de-notificaciones">RS-020 — 59. CENTRO DE NOTIFICACIONES</h2>
+<p>RF-069</p>
+<p>El administrador contará con un módulo:</p>
+<p>Notificaciones</p>
+<p>Además, existirá un icono de campana en la parte superior derecha.</p>
+<p>Ejemplo:</p>
+<p>🔔 5</p>
+<p>El número representará la cantidad de notificaciones pendientes.</p>
+<hr>
+<h2 id="rs-021--60-búsqueda-administrativa">RS-021 — 60. BÚSQUEDA ADMINISTRATIVA</h2>
+<p>RF-070</p>
+<p>El administrador podrá buscar información mediante diferentes criterios.</p>
+<p>Por número</p>
+<p>Número apostado.</p>
+<p>Por vendedor</p>
+<p>Cédula.</p>
+<p>Nombre.</p>
+<p>Alias.</p>
+<p>Fecha.</p>
+<p>Por boleto</p>
+<p>Código.</p>
+<p>Número.</p>
+<p>Vendedor.</p>
+<p>Fecha.</p>
+<p>Estado.</p>
+<p>Por lotería</p>
+<p>Lotería.</p>
+<p>Fecha.</p>
+<p>Número.</p>
+<hr>
+<h2 id="rs-022--61-visualización-de-boleto">RS-022 — 61. VISUALIZACIÓN DE BOLETO</h2>
+<p>RF-071</p>
+<p>Al seleccionar una venta, número o boleto, el administrador podrá visualizar la información completa de la boleta en un formato similar a la tirilla impresa.</p>
+<hr>
+<h2 id="rs-023--62-kpi-administrativos">RS-023 — 62. KPI ADMINISTRATIVOS</h2>
+<p>RF-072</p>
+<p>Únicamente el administrador tendrá acceso al módulo de KPI.</p>
+<p>Podrá consultar:</p>
+<p>Usuarios</p>
+<p>Cantidad de vendedores.</p>
+<p>Cantidad de observadores.</p>
+<p>Usuarios activos.</p>
+<p>Usuarios inactivos.</p>
+<p>Ventas</p>
+<p>Ventas totales.</p>
+<p>Ventas por rango de fechas.</p>
+<p>Ventas por vendedor.</p>
+<p>Ventas por día.</p>
+<p>Números</p>
+<p>Números jugados.</p>
+<p>Números ganadores.</p>
+<p>Fechas de números ganadores.</p>
+<hr>
+<h2 id="rs-024--63-kpi-por-vendedor">RS-024 — 63. KPI POR VENDEDOR</h2>
+<p>RF-073</p>
+<p>El administrador podrá seleccionar un vendedor y un rango de fechas.</p>
+<p>El sistema mostrará:</p>
+<p>Cantidad de ventas.</p>
+<p>Total vendido.</p>
+<p>Cantidad de boletos.</p>
+<p>Números jugados.</p>
+<p>Loterías utilizadas.</p>
+<hr>
+<h2 id="rs-025--64-eliminación-de-usuarios">RS-025 — 64. ELIMINACIÓN DE USUARIOS</h2>
+<p>RF-074</p>
+<p>Únicamente el administrador podrá eliminar usuarios.</p>
+<p>Deberá buscar previamente al usuario mediante los criterios disponibles.</p>
+<hr>
+<h2 id="rs-026--65-confirmación-de-eliminación">RS-026 — 65. CONFIRMACIÓN DE ELIMINACIÓN</h2>
+<p>RF-075</p>
+<p>Al seleccionar eliminar usuario, el sistema deberá mostrar:</p>
+<p>Al eliminar el usuario se perderá absolutamente todo el histórico perteneciente al usuario junto con loterías vendidas y números ganadores, y ya no podrá recuperarlo. ¿Está seguro de eliminar el usuario?</p>
+<p>Opciones:</p>
+<p>Sí.</p>
+<p>No.</p>
+<hr>
+<h2 id="rs-027--66-eliminación-en-cascada">RS-027 — 66. ELIMINACIÓN EN CASCADA</h2>
+<p>RF-076</p>
+<p>Al confirmar la eliminación, el sistema deberá eliminar los datos relacionados con el usuario.</p>
+<p>Como mínimo:</p>
+<p>Accesos.</p>
+<p>Usuario.</p>
+<p>Asociación PDA.</p>
+<p>Boletos.</p>
+<p>Ventas.</p>
+<p>Juegos.</p>
+<p>Relaciones con loterías.</p>
+<p>Información relacionada.</p>
+<p>No se requiere conservar auditoría histórica de la eliminación.</p>
+<hr>
+<h2 id="rs-028--72-seguridad">RS-028 — 72. SEGURIDAD</h2>
+<p>El sistema deberá implementar como mínimo:</p>
+<p>Autenticación.</p>
+<p>Autorización.</p>
+<p>Control de roles.</p>
+<p>Asociación de dispositivos.</p>
+<p>Control de sesiones.</p>
+<p>HTTPS/TLS.</p>
+<p>Hash seguro de contraseñas.</p>
+<p>Protección del QR.</p>
+<p>Validación de servidor.</p>
+<p>Control de duplicidad.</p>
+<p>Protección de información sensible.</p>
+<hr>
+<h2 id="rs-029--73-seguridad-del-pda">RS-029 — 73. SEGURIDAD DEL PDA</h2>
+<p>Un PDA no será considerado autorizado simplemente por tener instalada la aplicación.</p>
+<p>El acceso dependerá de:</p>
+<p>Usuario válido</p>
+<ul>
+<li></li>
+</ul>
+<p>Contraseña válida</p>
+<ul>
+<li></li>
+</ul>
+<p>PDA autorizado</p>
+<ul>
+<li></li>
+</ul>
+<p>PDA asociado al usuario</p>
+<ul>
+<li></li>
+</ul>
+<p>Usuario activo</p>
+<ul>
+<li></li>
+</ul>
+<p>Horario permitido</p>
+<p>=</p>
+<p>ACCESO PERMITIDO</p>
+<hr>
+<h2 id="rs-030--74-control-de-horario-en-el-pda">RS-030 — 74. CONTROL DE HORARIO EN EL PDA</h2>
+<p>El horario de operación deberá ser controlado por el servidor.</p>
+<p>La aplicación no deberá confiar únicamente en la hora configurada localmente en el PDA.</p>
+<p><strong>Mecanismo de blindaje contra manipulación de hora local:</strong></p>
+<ul>
+<li>El servidor sincroniza la hora de cierre al PDA durante el inicio de sesión con conexión.</li>
+<li>El PDA almacena esta hora sincronizada (proveniente del servidor) como referencia definitiva.</li>
+<li>Todas las validaciones de horario en el PDA <strong>utilizan la hora sincronizada, no la hora local del dispositivo</strong>.</li>
+<li>Si hay divergencia entre la hora local y la sincronizada, se confía en la sincronizada.</li>
+<li>El PDA valida periódicamente que la hora sincronizada no haya sido manipulada comparándola con puntos de referencia (timestamp de primer acceso, duración de sesión sin desconexión).</li>
+<li>Si el usuario intenta modificar la hora local del dispositivo para eludir el cierre, el PDA detecta la anomalía mediante la comparación de hora sincronizada vs. hora local y toma las acciones definidas en RS-101 (cierre forzado de sesión).</li>
+</ul>
+<p>Esto evita que un usuario malintencionado modifique la hora del dispositivo para intentar continuar realizando apuestas después del cierre.</p>
+<hr>
+<h2 id="rs-031--75-requerimientos-no-funcionales">RS-031 — 75. REQUERIMIENTOS NO FUNCIONALES</h2>
+<p>RNF-001 – Rendimiento</p>
+<p>Las operaciones normales deberán responder en tiempos adecuados para permitir una venta rápida.</p>
+<p>RNF-002 – Disponibilidad</p>
+<p>El sistema deberá estar disponible durante los horarios operativos establecidos.</p>
+<p>RNF-003 – Integridad</p>
+<p>Las operaciones de venta deberán manejarse de forma transaccional.</p>
+<p>RNF-004 – Concurrencia</p>
+<p>El sistema deberá soportar múltiples vendedores realizando ventas simultáneamente.</p>
+<p>RNF-005 – Seguridad</p>
+<p>La comunicación deberá utilizar HTTPS/TLS.</p>
+<p>RNF-006 – Escalabilidad</p>
+<p>La arquitectura deberá permitir incrementar progresivamente la cantidad de vendedores y dispositivos.</p>
+<p>RNF-007 – Base de datos</p>
+<p>Todo el sistema utilizará una base de datos centralizada SQL Server.</p>
+<hr>
+<h2 id="rs-032--76-matriz-de-permisos">RS-032 — 76. MATRIZ DE PERMISOS</h2>
+<table>
+<thead>
+<tr>
+<th>Funcionalidad</th>
+<th>Vendedor</th>
+<th>Observador</th>
+<th>Administrador</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Iniciar sesión</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Restablecer contraseña</td>
+<td>Admin solo</td>
+<td>Admin solo</td>
+<td>Admin solo</td>
+</tr>
+<tr>
+<td>Desbloquear usuario</td>
+<td>Admin solo</td>
+<td>Admin solo</td>
+<td>Admin solo</td>
+</tr>
+<tr>
+<td>Crear apuesta</td>
+<td>✅</td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>Imprimir boleto</td>
+<td>✅</td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>Generar PDF</td>
+<td>✅</td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>Consultar propias ventas</td>
+<td>✅</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Consultar ventas</td>
+<td>❌</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Consultar históricos</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Validar QR</td>
+<td>❌</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Ver vendedores</td>
+<td>❌</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Crear usuarios</td>
+<td>❌</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Modificar usuarios</td>
+<td>❌</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Eliminar usuarios</td>
+<td>❌</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Administrar PDA</td>
+<td>❌</td>
+<td>Lectura</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Administrar loterías</td>
+<td>❌</td>
+<td>Lectura</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Crear y administrar grupos</td>
+<td>❌</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Cambiar grupo de vendedor</td>
+<td>❌</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Registrar números ganadores</td>
+<td>❌</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Configurar horario</td>
+<td>❌</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Configurar vigencia</td>
+<td>❌</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Configurar notificaciones</td>
+<td>❌</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Consultar KPI con filtro por grupos</td>
+<td>❌</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Descargar KPI en PDF</td>
+<td>❌</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Validar ticket ganador (prevalidación QR)</td>
+<td>✅</td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>Validar ticket ganador (validación manual)</td>
+<td>❌</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Acceder a casos de premios</td>
+<td>❌</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Validar casos administración</td>
+<td>❌</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Asignar observador</td>
+<td>❌</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Registrar ganador</td>
+<td>❌</td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>Ver histórico de premios</td>
+<td>❌</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Chat</td>
+<td>Con administrador</td>
+<td>Con administrador</td>
+<td>Con vendedores y observadores</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="rs-033--77-reglas-de-negocio">RS-033 — 77. REGLAS DE NEGOCIO</h2>
+<table>
+<thead>
+<tr>
+<th>Código</th>
+<th>Regla</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RN-001</td>
+<td>Un vendedor solo podrá operar desde un PDA autorizado.</td>
+</tr>
+<tr>
+<td>RN-002</td>
+<td>El primer acceso utilizará una contraseña temporal.</td>
+</tr>
+<tr>
+<td>RN-003</td>
+<td>El vendedor deberá cambiar la contraseña durante el primer acceso.</td>
+</tr>
+<tr>
+<td>RN-004</td>
+<td>Un boleto debe seleccionar un tipo inmutable: COMBINADA o INDIVIDUAL. No se pueden mezclar tipos.</td>
+</tr>
+<tr>
+<td>RN-005</td>
+<td>COMBINADA usa un número, un valor y múltiples loterías por juego; INDIVIDUAL usa líneas independientes con número, valor y una sola lotería.</td>
+</tr>
+<tr>
+<td>RN-006</td>
+<td>En COMBINADA, el total del juego es <code>valor × cantidad de loterías</code>; en INDIVIDUAL, el total es la suma de los valores de sus líneas.</td>
+</tr>
+<tr>
+<td>RN-007</td>
+<td>El administrador configura el máximo de juegos COMBINADA y el máximo de líneas INDIVIDUAL; este último no puede superar 6.</td>
+</tr>
+<tr>
+<td>RN-008</td>
+<td>Al alcanzar el máximo configurado, el botón Agregar correspondiente se desactiva y la API rechaza excedentes.</td>
+</tr>
+<tr>
+<td>RN-009</td>
+<td>Cada boleto tendrá un código público único de exactamente 7 dígitos; los ceros a la izquierda se conservarán y la base de datos garantizará su unicidad.</td>
+</tr>
+<tr>
+<td>RN-010</td>
+<td>El QR contendrá la clave de validación única del boleto dentro de un payload cifrado y autenticado que el servidor pueda descifrar y verificar.</td>
+</tr>
+<tr>
+<td>RN-011</td>
+<td>El cliente paga la apuesta al momento de confirmar JUGAR.</td>
+</tr>
+<tr>
+<td>RN-012</td>
+<td>El sistema no almacenará información personal del comprador.</td>
+</tr>
+<tr>
+<td>RN-013</td>
+<td>El boleto se paga al portador.</td>
+</tr>
+<tr>
+<td>RN-014</td>
+<td>El sistema no calculará el valor del premio.</td>
+</tr>
+<tr>
+<td>RN-015</td>
+<td>El vendedor informará directamente el valor del premio al comprador.</td>
+</tr>
+<tr>
+<td>RN-016</td>
+<td>Para determinar un ganador deberán coincidir número, lotería y fecha de juego.</td>
+</tr>
+<tr>
+<td>RN-017</td>
+<td>El boleto ganador deberá encontrarse dentro de la vigencia establecida.</td>
+</tr>
+<tr>
+<td>RN-018</td>
+<td>El QR deberá ser auténtico y pertenecer al sistema.</td>
+</tr>
+<tr>
+<td>RN-019</td>
+<td>El boleto deberá existir en la base de datos.</td>
+</tr>
+<tr>
+<td>RN-020</td>
+<td>Un boleto ganador que ya haya sido cobrado deberá mostrar PAGADO.</td>
+</tr>
+<tr>
+<td>RN-021</td>
+<td>Un boleto ganador pendiente de cobro deberá mostrar GANADOR.</td>
+</tr>
+<tr>
+<td>RN-022</td>
+<td>La vigencia inicial será de 30 días calendario.</td>
+</tr>
+<tr>
+<td>RN-023</td>
+<td>El administrador podrá modificar la vigencia.</td>
+</tr>
+<tr>
+<td>RN-024</td>
+<td>Una misma fecha podrá tener múltiples números ganadores.</td>
+</tr>
+<tr>
+<td>RN-025</td>
+<td>Para una misma fecha y lotería solo podrá existir un número ganador.</td>
+</tr>
+<tr>
+<td>RN-026</td>
+<td>El mismo número podrá ser ganador en diferentes loterías.</td>
+</tr>
+<tr>
+<td>RN-027</td>
+<td>El administrador podrá configurar la hora de cierre.</td>
+</tr>
+<tr>
+<td>RN-028</td>
+<td>Después del cierre no podrán iniciarse nuevas apuestas.</td>
+</tr>
+<tr>
+<td>RN-029</td>
+<td>Una venta que ya esté en curso podrá finalizar antes de cerrar la sesión.</td>
+</tr>
+<tr>
+<td>RN-030</td>
+<td>Finalizada una venta después del cierre, el vendedor será desconectado.</td>
+</tr>
+<tr>
+<td>RN-031</td>
+<td>El PDA requiere conexión con el servidor para crear y confirmar ventas mediante el flujo normal (API genera código público). Excepción: si cuenta con códigos offline preasignados y descargados, puede crear ventas offline usando esos códigos solo si ha perdido la conexión.</td>
+</tr>
+<tr>
+<td>RN-032</td>
+<td>Si la conexión falla durante una venta en preparación: (A) sin códigos offline: el borrador se conserva en memoria y solo puede confirmarse después de reconectar y revalidar; (B) con códigos offline disponibles: el vendedor puede usar un código offline para completar la venta e informar al administrador por chat.</td>
+</tr>
+<tr>
+<td>RN-033</td>
+<td>El servidor será la fuente definitiva de información.</td>
+</tr>
+<tr>
+<td>RN-034</td>
+<td>Si la impresión falla, el boleto deberá poder guardarse como PDF.</td>
+</tr>
+<tr>
+<td>RN-035</td>
+<td>El PDF podrá enviarse manualmente al cliente.</td>
+</tr>
+<tr>
+<td>RN-036</td>
+<td>El vendedor podrá registrar solicitudes de soporte directamente con el administrador.</td>
+</tr>
+<tr>
+<td>RN-037</td>
+<td>El observador no atenderá chats de vendedores ni modificará información operativa; podrá iniciar y responder chat únicamente con el administrador.</td>
+</tr>
+<tr>
+<td>RN-038</td>
+<td>El administrador atenderá el soporte de los vendedores y podrá iniciar y responder chat con observadores.</td>
+</tr>
+<tr>
+<td>RN-039</td>
+<td>El cierre de una conversación y la eliminación de su historial solo podrán ejecutarse desde un perfil con permiso de modificación definido por el administrador.</td>
+</tr>
+<tr>
+<td>RN-040</td>
+<td>Las imágenes originales del dispositivo no serán eliminadas.</td>
+</tr>
+<tr>
+<td>RN-041</td>
+<td>El administrador podrá eliminar usuarios y sus datos relacionados.</td>
+</tr>
+<tr>
+<td>RN-042</td>
+<td>El sistema no almacenará el valor monetario del premio ganado.</td>
+</tr>
+<tr>
+<td>RN-043</td>
+<td>El resultado ganador se determina por número + lotería + fecha.</td>
+</tr>
+<tr>
+<td>RN-044</td>
+<td>Si un usuario ingresa contraseña incorrecta 3 veces seguidas, queda bloqueado (<code>estadoBloqueado = true</code>) y no puede iniciar sesión hasta que el administrador lo desbloquee.</td>
+</tr>
+<tr>
+<td>RN-045</td>
+<td>El contador de intentos fallidos se resetea cuando el usuario ingresa la contraseña correcta, después de que el administrador lo desbloquea, o cuando el administrador restablece la contraseña.</td>
+</tr>
+<tr>
+<td>RN-046</td>
+<td>Solo los vendedores pertenecen a grupos; observadores y administrador no pertenecen a ningún grupo.</td>
+</tr>
+<tr>
+<td>RN-047</td>
+<td>Al crear un vendedor es obligatorio asignarle un grupo de la lista disponible; cada vendedor pertenece a un solo grupo. El administrador puede crear grupos con nombre libremente definible.</td>
+</tr>
+<tr>
+<td>RN-048</td>
+<td>Al cambiar de grupo un vendedor, el sistema reemplaza automáticamente el grupo anterior y el vendedor se mueve con todo su histórico y datos asociados (ventas, boletos, juegos) al nuevo grupo.</td>
+</tr>
+<tr>
+<td>RN-049</td>
+<td>Los indicadores KPI son completamente dinámicos: pueden filtrar por general (todos los vendedores) o por un grupo específico; todos los datos, gráficos y estadísticas se actualizan en tiempo real según el filtro seleccionado.</td>
+</tr>
+<tr>
+<td>RN-050</td>
+<td>El administrador puede descargar el informe KPI en PDF, conservando absolutamente todos los datos, indicadores, filtros de grupo y el estado de la consulta al momento de la descarga.</td>
+</tr>
+<tr>
+<td>RN-051</td>
+<td>El administrador puede generar códigos QR offline y asignarlos a un usuario y PDA específico; cada código tiene un consecutivo único e inmutable y un payload cifrado que contiene código público, identificador de boleto, clave de validación y metadatos de seguridad.</td>
+</tr>
+<tr>
+<td>RN-051A</td>
+<td>El PDA debe contar con una base de datos local tipo Lite para almacenar los códigos offline asignados, con capacidad de entre 3.000 y 5.000 códigos. La base local no es la fuente definitiva; SQL Server y la API conservan la autoridad central.</td>
+</tr>
+<tr>
+<td>RN-052</td>
+<td>Los códigos offline transitan por estados: Generado → Descargado → Utilizado → Registrado; cada transición se registra con fecha/hora y usuario responsable.</td>
+</tr>
+<tr>
+<td>RN-053</td>
+<td>Cuando el PDA se conecta y autentica correctamente, consulta códigos asignados cuyo estado sea &quot;Generado&quot;. En modo Manual muestra el aviso y permite descargar; en modo Automático descarga sin mostrarlo. Los códigos se almacenan en la base local tipo Lite y se marcan en BD como &quot;Descargado&quot;.</td>
+</tr>
+<tr>
+<td>RN-054</td>
+<td>Si el vendedor cierra la aplicación, cierra sesión o apaga el PDA, los códigos offline y sus estados permanecen almacenados en la base local tipo Lite. Solo pueden eliminarse códigos ya utilizados cuya evidencia QR haya sido enviada al chat del administrador.</td>
+</tr>
+<tr>
+<td>RN-055</td>
+<td>Durante una venta en modo offline, el sistema consume un código offline del almacenamiento local, asigna su payload a los datos de la jugada, genera el QR desde el payload precifrado y después de confirmar, envía automáticamente la evidencia del QR al chat interno del administrador en un mensaje permanente que dice &quot;CÓDIGO VENDIDO OFFLINE — Favor registrar&quot;.</td>
+</tr>
+<tr>
+<td>RN-056</td>
+<td>Al registrar un código offline escaneado, el sistema valida autenticidad e integridad del payload, desencripta los datos de la jugada, crea la venta oficial en BD con todos los datos, actualiza el código a estado &quot;Registrado&quot; e impide registrar el mismo código nuevamente.</td>
+</tr>
+<tr>
+<td>RN-057</td>
+<td>Cuando el PDA recupera conexión, revalida automáticamente sesión, dispositivo y horario; si todo es válido, cambia automáticamente al modo online y las ventas nuevas utilizan el flujo normal sin consumir códigos offline.</td>
+</tr>
+<tr>
+<td>RN-058</td>
+<td>Si se agotan los códigos offline descargados durante una venta en modo offline, el sistema informa al vendedor que debe conectarse para continuar operando.</td>
+</tr>
+<tr>
+<td>RN-059</td>
+<td>Cada código offline registrado oficialmente se asocia a la VentaId creada, permitiendo trazabilidad completa desde generación hasta registro final.</td>
+</tr>
+<tr>
+<td>RN-060</td>
+<td>El módulo &quot;Ventas Offline&quot; permite al administrador visualizar el reporte de códigos generados, descargados, utilizados y registrados, con filtros por usuario, PDA, fecha, estado y rango de fechas.</td>
+</tr>
+<tr>
+<td>RN-060A</td>
+<td>El Home del vendedor debe mostrar la cantidad de códigos offline disponibles para su usuario y PDA, contando códigos en estado &quot;Generado&quot; o &quot;Descargado&quot; y excluyendo &quot;Utilizado&quot; y &quot;Registrado&quot;. El contador se actualiza después de sincronizar, utilizar, registrar o eliminar un código permitido.</td>
+</tr>
+<tr>
+<td>RN-061</td>
+<td>El PDA debe descargar y almacenar localmente la hora de cierre configurada en el servidor durante cada inicio de sesión con conexión disponible. Esta información sincronizada se utiliza como referencia definitiva para todas las validaciones de horario, incluso en modo offline.</td>
+</tr>
+<tr>
+<td>RN-062</td>
+<td>El PDA debe validar y utilizar únicamente la hora de cierre sincronizada (proveniente del servidor), nunca la hora local del dispositivo. Si la hora local ha sido manipulada (diferencia mayor a 1 minuto respecto a la sincronizada), el PDA detecta la anomalía y ejecuta el cierre forzado de sesión definido en RS-101.</td>
+</tr>
+<tr>
+<td>RN-063</td>
+<td>Cuando el PDA está en modo offline sin conexión, debe cumplir automáticamente el cierre de sesión en la hora de cierre sincronizada. Si el vendedor intenta modificar la hora del dispositivo para eludir este cierre, el sistema detecta la manipulación y cierra la sesión de todas formas, impidiendo cualquier intento de burlar el horario de operación.</td>
+</tr>
+<tr>
+<td>RN-064</td>
+<td>Cuando el vendedor escanea un ticket para validación de ganador, el sistema ejecuta prevalidación automática verificando: QR válido, boleto existe, estado &quot;Jugado&quot;, vigente, no &quot;Premio entregado&quot;, y número + lotería + fecha coinciden con ganador registrado. Si todo es válido, registra automáticamente un <code>CasoGanador</code> con estado &quot;Reportado&quot; y notifica al administrador.</td>
+</tr>
+<tr>
+<td>RN-065</td>
+<td>Si la prevalidación de ticket ganador falla, el sistema muestra motivo específico (boleto vencido, no es ganador, ya registrado, etc.) sin registrar caso alguno. El vendedor puede intentar de nuevo.</td>
+</tr>
+<tr>
+<td>RN-066</td>
+<td>El administrador debe solicitar <strong>fotografía del ticket con código QR claramente visible</strong> antes de validar un caso reportado. La validación es manual: el administrador verifica que la foto corresponda al ticket y que el QR sea legible. Solo si es válido, cambia estado a &quot;Validado&quot;. Si rechaza, marca permanentemente como &quot;Rechazado&quot;.</td>
+</tr>
+<tr>
+<td>RN-067</td>
+<td>El administrador asigna un observador activo a un caso validado. El observador recibe notificación inmediata en su PDA. El caso pasa a estado &quot;Asignado&quot;. El administrador puede cambiar de observador mientras el caso no esté en estado &quot;Registrado&quot; o &quot;Premio entregado&quot;.</td>
+</tr>
+<tr>
+<td>RN-068</td>
+<td>Cuando el observador comienza a registrar un ganador, el estado del caso cambia automáticamente a &quot;En proceso&quot;. El observador no puede cambiar este estado manualmente.</td>
+</tr>
+<tr>
+<td>RN-069</td>
+<td>El observador debe ingresar obligatoriamente: nombre y apellido del ganador, número de contacto, lugar donde ganó, nombre del vendedor (relacionado al ticket), y valor total ganado (ingreso manual). El campo &quot;Persona que entrega el premio&quot; se autocompleta con el observador autenticado y no es editable. El sistema NO calcula premios según RN-042.</td>
+</tr>
+<tr>
+<td>RN-070</td>
+<td>El observador debe capturar exactamente <strong>tres fotografías obligatorias</strong>: (1) ticket ganador con código QR visible, (2) ganador sosteniendo el ticket, (3) cédula de identidad. Las fotos se capturan desde cámara o galería del PDA. Se almacenan como imágenes binarias sin procesamiento automático (sin OCR, sin extracción de datos).</td>
+</tr>
+<tr>
+<td>RN-071</td>
+<td>El botón <strong>&quot;Registrar entrega del premio&quot;</strong> solo se habilita cuando <strong>TODOS</strong> los campos obligatorios y las <strong>3 fotografías</strong> están presentes. Si falta algún elemento, el botón permanece deshabilitado y el sistema indica claramente cuál es el elemento pendiente.</td>
+</tr>
+<tr>
+<td>RN-072</td>
+<td>Un boleto ganador solamente puede ser registrado y marcado como <strong>&quot;Premio entregado&quot;</strong> una única vez. Una vez entregado, queda permanentemente bloqueado. Si se intenta escanear un ticket &quot;Premio entregado&quot;, el sistema muestra: &quot;Este ticket ya fue registrado y el premio ya fue entregado. No se pueden iniciar nuevos procesos de reclamación.&quot;</td>
+</tr>
+<tr>
+<td>RN-073</td>
+<td>El campo <code>EstadoDelPremio</code> en tabla <code>Boletos</code> marca la condición final del premio: <strong>Vigente</strong> (ganador pero no entregado), <strong>PremioEntregado</strong> (entregado formalmente por observador), o <strong>Rechazado</strong> (caso fue rechazado en validación administrativa). Una vez marcado como &quot;PremioEntregado&quot;, no puede cambiar.</td>
+</tr>
+<tr>
+<td>RN-074</td>
+<td>El sistema mantiene trazabilidad completa de cada caso de ganador: fechas de reporte, validación, asignación, registro y entrega; usuarios responsables (vendedor, administrador, observador); datos del ganador; fotografías; y valor registrado. Todo queda disponible para auditoría e investigación de fraude.</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="rs-034--79-flujo-de-cierre-de-jornada">RS-034 — 79. FLUJO DE CIERRE DE JORNADA</h2>
+<p>RF-010 — Venta en curso durante el cierre</p>
+<p>Cuando llega la hora configurada, se bloquean nuevos accesos y nuevas apuestas. Una venta que ya estaba en curso puede finalizar; después se cierra la sesión del vendedor.</p>
+<pre class="mermaid" style="all: unset;">flowchart TD
+    A[Administrador configura hora de cierre] --&gt; B[Servidor alcanza hora límite]
+    B --&gt; C{¿Qué operación ocurre?}
+    C --&gt;|Nuevo inicio o nueva apuesta| D[Bloquear acceso]
+    D --&gt; E[Mostrar: LOS JUEGOS ESTÁN CERRADOS]
+    C --&gt;|Venta ya iniciada| F[Permitir finalizar venta]
+    F --&gt; G[Registrar venta en servidor]
+    G --&gt; H{¿Impresión disponible?}
+    H --&gt;|Sí| I[Imprimir tirilla]
+    H --&gt;|No| J[Guardar boleto y generar PDF]
+    I --&gt; K[Cerrar sesión]
+    J --&gt; K
+    K --&gt; L[Informar fin de conexión]</pre>
+<hr>
+<h2 id="rs-035--81-flujo-de-números-ganadores">RS-035 — 81. FLUJO DE NÚMEROS GANADORES</h2>
+<p>Para una fecha determinada se podrán registrar múltiples números ganadores.</p>
+<p>Ejemplo:</p>
+<p>FECHA: 30/08/2026</p>
+<p>┌─────────────┬────────────────┐</p>
+<p>│ LOTERÍA     │ GANADOR        │</p>
+<p>├─────────────┼────────────────┤</p>
+<p>│ Medellín    │ 1234           │</p>
+<p>│ Bogotá      │ 4561           │</p>
+<p>│ Cali        │ 7890           │</p>
+<p>│ Armenia     │ 3456           │</p>
+<p>│ Pasto       │ 5678           │</p>
+<p>└─────────────┴────────────────┘</p>
+<p>No se podrá registrar:</p>
+<p>30/08/2026</p>
+<p>Medellín</p>
+<p>9999</p>
+<p>si ya existe:</p>
+<p>30/08/2026</p>
+<p>Medellín</p>
+<p>1234</p>
+<p>La restricción será:</p>
+<p>FechaJuego + LoteriaId = único</p>
+<hr>
+<h2 id="rs-036--82-modelo-conceptual-de-información">RS-036 — 82. MODELO CONCEPTUAL DE INFORMACIÓN</h2>
+<p>La solución deberá contemplar, como mínimo, entidades similares a:</p>
+<p>Usuarios</p>
+<p>Roles</p>
+<p>Permisos</p>
+<p>UsuariosRoles</p>
+<p>Grupos</p>
+<p>UsuariosGrupos</p>
+<p>Dispositivos</p>
+<p>DispositivosUsuarios</p>
+<p>Sesiones</p>
+<p>Loterias</p>
+<p>Ventas</p>
+<p>Boletos</p>
+<p>Juegos</p>
+<p>JuegoLoteria</p>
+<p>NumerosGanadores</p>
+<p>EstadosBoleto</p>
+<p>Configuraciones</p>
+<p>Notificaciones</p>
+<p>Conversaciones</p>
+<p>Mensajes</p>
+<p>AdjuntosChat</p>
+<p>Sincronizaciones</p>
+<p>ClavesValidacionBoleto</p>
+<p>IntentosFallidos</p>
+<p>ConfiguracionesTipoApuesta</p>
+<p>La estructura definitiva será definida durante la etapa de diseño de base de datos.</p>
+<p><code>Boletos.TipoApuesta</code> será un campo obligatorio e inmutable con valores COMBINADO o INDIVIDUAL. <code>ConfiguracionesTipoApuesta</code> almacenará por separado los máximos permitidos para cada tipo.</p>
+<hr>
+<h2 id="rs-037--83-criterios-generales-de-aceptación">RS-037 — 83. CRITERIOS GENERALES DE ACEPTACIÓN</h2>
+<p>El sistema será considerado funcionalmente aceptado cuando:</p>
+<p>Un vendedor pueda autenticarse desde un PDA autorizado.</p>
+<p>Un vendedor pueda cambiar su contraseña durante el primer acceso.</p>
+<p>Un vendedor pueda crear un boleto.</p>
+<p>El vendedor pueda seleccionar COMBINADA o INDIVIDUAL sin mezclar tipos en un boleto.</p>
+<p>Un boleto COMBINADO pueda contener el máximo de juegos configurado y cada juego pueda contener múltiples loterías.</p>
+<p>Un boleto INDIVIDUAL pueda contener hasta 6 líneas, cada una con una sola lotería.</p>
+<p>El vendedor pueda editar o eliminar líneas individuales antes de confirmar.</p>
+<p>El sistema calcule correctamente el total según el tipo de apuesta.</p>
+<p>El administrador pueda configurar los máximos por tipo y el sistema desactive el botón Agregar al alcanzar el máximo.</p>
+<p>La venta quede almacenada.</p>
+<p>Se genere un código público único de exactamente 7 dígitos, preservando ceros a la izquierda y protegido mediante una restricción única en la base de datos.</p>
+<p>Se genere una clave de validación única por boleto y su hash sea almacenado en la base de datos.</p>
+<p>Se genere un QR cifrado y autenticado que incluya el identificador del boleto, el código público y la clave de validación.</p>
+<p>El servidor pueda descifrar el QR y comprobar que la clave de validación corresponda al boleto.</p>
+<p>El boleto pueda imprimirse.</p>
+<p>El boleto pueda recuperarse como PDF si falla la impresión.</p>
+<p>El histórico permita consultar ventas.</p>
+<p>El administrador pueda registrar números ganadores.</p>
+<p>Puedan existir múltiples ganadores en una misma fecha para diferentes loterías.</p>
+<p>No pueda existir más de un ganador para la misma lotería y fecha.</p>
+<p>El mismo número pueda ser ganador en diferentes loterías.</p>
+<p>El observador pueda validar boletos mediante QR.</p>
+<p>El sistema determine si un boleto es ganador.</p>
+<p>El sistema determine si está pagado/cobrado.</p>
+<p>El sistema determine si está vencido.</p>
+<p>El sistema controle el horario de cierre.</p>
+<p>Una venta en curso pueda finalizar después de llegar la hora de cierre.</p>
+<p>El vendedor sea desconectado después de finalizar dicha venta.</p>
+<p>Si no hay conexión, el PDA informe que debe conectarse para realizar una venta y continuar operando.</p>
+<p>Si se pierde conexión durante una venta en preparación, el borrador permanezca en memoria y pueda confirmarse solo tras reconectar y revalidar.</p>
+<p>El administrador pueda gestionar usuarios.</p>
+<p>El administrador pueda gestionar PDA.</p>
+<p>El administrador pueda gestionar loterías.</p>
+<p>El administrador pueda configurar parámetros.</p>
+<p>El sistema pueda generar notificaciones.</p>
+<p>El administrador pueda consultar KPI.</p>
+<p>El sistema pueda gestionar el chat.</p>
+<p>El sistema pueda enviar imágenes.</p>
+<p>El historial del chat pueda eliminarse al cerrar la conversación.</p>
+<p>El administrador pueda eliminar usuarios y sus datos relacionados.</p>
+<h2 id="rs-038--84-definición-de-lo-que-el-sistema-hace-y-no-hace">RS-038 — 84. DEFINICIÓN DE LO QUE EL SISTEMA HACE Y NO HACE</h2>
+<p>El sistema SÍ:</p>
+<p>Registra apuestas.</p>
+<p>Registra vendedores.</p>
+<p>Registra observadores.</p>
+<p>Registra PDA.</p>
+<p>Registra loterías.</p>
+<p>Registra números ganadores.</p>
+<p>Valida boletos.</p>
+<p>Determina si un boleto es ganador.</p>
+<p>Determina si un boleto está vigente.</p>
+<p>Determina si un boleto ya fue cobrado.</p>
+<p>Registra al ganador al momento de confirmar la entrega del premio por parte del observador, incluyendo sus datos, el valor informado manualmente y las evidencias obligatorias.</p>
+<p>Marca el boleto como <strong>&quot;Premio entregado&quot;</strong> después de confirmar la entrega y lo bloquea permanentemente para evitar una segunda entrega.</p>
+<p>Genera códigos únicos.</p>
+<p>Genera QR.</p>
+<p>Imprime boletos.</p>
+<p>Genera PDF de contingencia.</p>
+<p>Requiere conexión con el servidor para registrar ventas y generar elementos verificables del boleto.</p>
+<p>Conserva en memoria el borrador de una venta interrumpida hasta recuperar conexión.</p>
+<p>Gestiona históricos.</p>
+<p>Gestiona soporte.</p>
+<p>Genera notificaciones.</p>
+<p>Genera KPI.</p>
+<p>Controla el horario de operación.</p>
+<p>El sistema NO:</p>
+<p>Calcula premios.</p>
+<p>Determina cuánto dinero gana el portador ni calcula el premio.</p>
+<p>Calcula fórmulas, multiplicadores o liquidaciones de premios. El valor ingresado manualmente por el observador sí se almacena como parte del registro de entrega.</p>
+<p>Registra quién compró el boleto.</p>
+<p>Registra información personal del comprador.</p>
+<p>Administra diferentes tipos de premios.</p>
+<p>Realiza cálculos de multiplicadores de premios.</p>
+<p>El vendedor será responsable de informar al comprador el valor correspondiente del premio.</p>
+<hr>
+<h2 id="rs-039--85-requerimientos-explícitamente-aprobados">RS-039 — 85. REQUERIMIENTOS EXPLÍCITAMENTE APROBADOS</h2>
+<p>Como resultado de las aclaraciones realizadas al levantamiento, quedan establecidos los siguientes puntos:</p>
+<p>Ganador</p>
+<p>Un boleto gana cuando:</p>
+<p>Número + Lotería + Fecha coinciden con un resultado ganador válido.</p>
+<p>Además:</p>
+<p>QR válido.</p>
+<p>Boleto existente.</p>
+<p>Dentro del período de reclamación.</p>
+<p>No cobrado previamente.</p>
+<p>Premio</p>
+<p>El sistema:</p>
+<p>Múltiples loterías</p>
+<p>Un número puede jugarse en múltiples loterías.</p>
+<p>Números ganadores</p>
+<p>Para una misma fecha:</p>
+<p>Se pueden registrar múltiples números ganadores.</p>
+<p>Pero:</p>
+<p>Una misma lotería solo puede tener un número ganador para una fecha determinada.</p>
+<p>Pago de la apuesta</p>
+<p>El cliente paga la apuesta al momento de presionar:</p>
+<p>JUGAR</p>
+<p>Cobro del premio</p>
+<p>El sistema podrá indicar si un boleto ganador ya fue cobrado.</p>
+<p>Código</p>
+<p>Cada boleto tendrá un:</p>
+<p>Código público único de exactamente 7 dígitos, preservando ceros a la izquierda y garantizado por la base de datos. La autenticidad se comprobará mediante un QR que contiene una clave de validación única por boleto dentro de un payload cifrado y autenticado por el servidor.</p>
+<p>Impresión</p>
+<p>Si falla la impresora:</p>
+<p>El boleto permanece almacenado y puede generarse como PDF.</p>
+<p>Conectividad</p>
+<p>El PDA requiere conexión con el servidor para confirmar una venta. Si la conexión se pierde durante la preparación, el borrador se conserva en memoria y se informa al vendedor que debe conectarse para realizar la venta y continuar operando el software.</p>
+<p>Cierre</p>
+<p>Al llegar la hora configurada:</p>
+<p>Los nuevos accesos serán bloqueados.</p>
+<p>Una venta que ya esté en curso podrá finalizar.</p>
+<p>Posteriormente:</p>
+<p>El usuario será desconectado.</p>
+<p>Eliminación</p>
+<p>El administrador podrá eliminar usuarios y sus datos relacionados sin conservar auditoría histórica de la eliminación.</p>
+<h2 id="rs-040a--86a-configuración-de-máximos-por-tipo-de-apuesta">RS-040A — 86A. CONFIGURACIÓN DE MÁXIMOS POR TIPO DE APUESTA</h2>
+<p>RF-086A – Configuración de límites</p>
+<p>El administrador podrá configurar por separado el máximo de juegos para boletos COMBINADOS y el máximo de líneas para boletos INDIVIDUALES.</p>
+<p>El máximo de juegos COMBINADO tendrá como valor inicial 1 y el máximo de líneas INDIVIDUAL tendrá como valor inicial 6. El máximo de líneas INDIVIDUAL no podrá superar 6.</p>
+<p>Los cambios aplicarán a nuevas apuestas y no modificarán boletos ya creados.</p>
+<p>El sistema desactivará <strong>Agregar juego</strong> o <strong>Agregar línea</strong> al alcanzar el máximo vigente y rechazará cualquier intento de superar el límite en la API.</p>
+<p>RF-086B – Configuración de sincronización offline en el PDA</p>
+<p>El vendedor podrá configurar directamente en su PDA si la sincronización de códigos offline será <strong>Manual</strong> o <strong>Automática</strong>. La configuración será específica del PDA y del vendedor autenticado.</p>
+<p>En modo Manual, después de una autenticación positiva el PDA consultará códigos asignados pendientes y mostrará la ventana <strong>&quot;Tiene códigos offline listos para descargar&quot;</strong>, con las opciones <strong>&quot;Descargar&quot;</strong>, <strong>&quot;Más tarde&quot;</strong> y <strong>&quot;Buscar y descargar códigos offline&quot;</strong>. Si se asignan códigos mientras el vendedor está conectado, la ventana aparecerá inmediatamente.</p>
+<p>En modo Automático, el PDA descargará los códigos asignados sin mostrar la ventana de aviso. El sistema actualizará el contador de códigos disponibles después de cada descarga.</p>
+<hr>
+<h2 id="rs-040--86-aprobación-del-documento">RS-040 — 86. APROBACIÓN DEL DOCUMENTO</h2>
+<p>La aprobación del presente documento por parte del cliente representa la aceptación del alcance funcional definido.</p>
+<p>La aprobación incluye:</p>
+<p>Perfiles.</p>
+<p>Funcionalidades.</p>
+<p>Flujos.</p>
+<p>Reglas de negocio.</p>
+<p>Operación de vendedores.</p>
+<p>Operación de observadores.</p>
+<p>Administración.
+Gestión de PDA.</p>
+<p>Gestión de loterías.</p>
+<p>Gestión de apuestas.</p>
+<p>Gestión de boletos.</p>
+<p>QR.</p>
+<p>Validación.</p>
+<p>Números ganadores.</p>
+<p>Vigencia.</p>
+<p>Horarios.</p>
+<p>Operación offline.</p>
+<p>Sincronización.</p>
+<p>Chat.</p>
+<p>Notificaciones.</p>
+<p>KPI.</p>
+<p>Cualquier funcionalidad, modificación o comportamiento no contemplado en este documento deberá ser tratado como una solicitud de cambio y deberá ser evaluado antes de incorporarse al desarrollo.</p>
+<hr>
+<h1 id="ii-perfil-observador">II. Perfil Observador</h1>
+<h2 id="rs-041--30-perfil-observador">RS-041 — 30. PERFIL OBSERVADOR</h2>
+<p>RF-040
+El observador utilizará una aplicación Android.</p>
+<p>La información y las acciones operativas disponibles para el observador serán exclusivamente de lectura.</p>
+<p>El observador podrá escanear y consultar la validación de un QR, pero no podrá cambiar el estado de un boleto, autorizar pagos, crear, modificar, eliminar, configurar ni alterar datos. Podrá iniciar y responder chat con el Administrador. No atenderá chats de vendedores.</p>
+<hr>
+<h2 id="rs-042--31-home-observador">RS-042 — 31. HOME OBSERVADOR</h2>
+<p>RF-041</p>
+<p>El Home podrá mostrar:</p>
+<p>Número ganador.</p>
+<p>Lotería.</p>
+<p>Fecha.</p>
+<p>Información operativa relevante.</p>
+<p>Los resultados serán ingresados por el administrador.</p>
+<hr>
+<h2 id="rs-043--32-consulta-de-vendedores">RS-043 — 32. CONSULTA DE VENDEDORES</h2>
+<p>RF-042</p>
+<p>El observador podrá consultar todos los vendedores registrados.</p>
+<p>Podrá visualizar:</p>
+<p>Nombre.</p>
+<p>Alias.</p>
+<p>Estado.</p>
+<p>PDA asociado.</p>
+<p>Información operativa disponible.</p>
+<hr>
+<h2 id="rs-044--33-consulta-de-ventas">RS-044 — 33. CONSULTA DE VENTAS</h2>
+<p>RF-043</p>
+<p>El observador podrá consultar las ventas.</p>
+<p>Filtros:</p>
+<p>Vendedor.</p>
+<p>Fecha inicial.</p>
+<p>Fecha final.</p>
+<p>Número.</p>
+<p>Lotería.</p>
+<hr>
+<h2 id="rs-045--34-consulta-de-números">RS-045 — 34. CONSULTA DE NÚMEROS</h2>
+<p>RF-044</p>
+<p>El observador podrá consultar:</p>
+<p>Número.</p>
+<p>Valor apostado.</p>
+<p>Vendedor.</p>
+<p>Fecha.</p>
+<p>Loterías.</p>
+<p>Estado.</p>
+<hr>
+<h2 id="rs-046--35-consulta-de-dispositivos">RS-046 — 35. CONSULTA DE DISPOSITIVOS</h2>
+<p>RF-045</p>
+<p>El observador podrá consultar:</p>
+<p>PDA conectados.</p>
+<p>PDA desconectados.</p>
+<p>Usuario asociado.</p>
+<p>Estado del dispositivo.</p>
+<hr>
+<h2 id="rs-047--36-consulta-de-configuraciones">RS-047 — 36. CONSULTA DE CONFIGURACIONES</h2>
+<p>RF-046</p>
+<p>El observador podrá consultar las configuraciones realizadas por el administrador.</p>
+<p>La información será únicamente de lectura.</p>
+<hr>
+<h2 id="rs-048--37-validación-de-boletos-mediante-qr">RS-048 — 37. VALIDACIÓN DE BOLETOS MEDIANTE QR</h2>
+<p>RF-047</p>
+<p>El observador contará con una funcionalidad:</p>
+<p>VALIDAR BOLETO</p>
+<p>Podrá:</p>
+<p>Escanear QR.</p>
+<p>Utilizar la cámara.</p>
+<p>Leer el QR.</p>
+<p>Validar su autenticidad.</p>
+<p>Consultar el boleto.</p>
+<hr>
+<h2 id="rs-049--38-boleto-inexistente">RS-049 — 38. BOLETO INEXISTENTE</h2>
+<p>RF-048</p>
+<p>Si el QR no corresponde a un boleto registrado:</p>
+<p>NO SE ENCONTRÓ INFORMACIÓN</p>
+<hr>
+<h2 id="rs-050--39-boleto-existente">RS-050 — 39. BOLETO EXISTENTE</h2>
+<p>RF-049</p>
+<p>Si el boleto existe, el sistema mostrará:</p>
+<p>Código del boleto.</p>
+<p>Vendedor.</p>
+<p>Fecha.</p>
+<p>Hora.</p>
+<p>Juegos.</p>
+<p>Números.</p>
+<p>Valores.</p>
+<p>Loterías.</p>
+<p>Total apostado.</p>
+<p>Estado.</p>
+<p>Resultado.</p>
+<p>Vigencia.</p>
+<hr>
+<h2 id="rs-051--40-validaciones-del-boleto">RS-051 — 40. VALIDACIONES DEL BOLETO</h2>
+<p>RF-050</p>
+<p>El sistema deberá validar:</p>
+<p>Existencia del boleto.</p>
+<p>Autenticidad del QR.</p>
+<p>Número.</p>
+<p>Lotería.</p>
+<p>Fecha del juego.</p>
+<p>Resultado.</p>
+<p>Vigencia.</p>
+<p>Estado de cobro.</p>
+<hr>
+<h2 id="rs-052--41-filtros-de-boletos">RS-052 — 41. FILTROS DE BOLETOS</h2>
+<p>RF-051</p>
+<p>El observador podrá filtrar boletos por:</p>
+<p>Por jugar.</p>
+<p>Jugados.</p>
+<p>Ganadores.</p>
+<p>No ganadores.</p>
+<p>Vencidos.</p>
+<p>Pagados/cobrados.</p>
+<hr>
+<h2 id="rs-053--42-chat-interno">RS-053 — 42. CHAT INTERNO</h2>
+<p>RF-052</p>
+<p>El vendedor podrá iniciar un chat interno de soporte directamente con el administrador. El sistema no asignará observadores ni revisará disponibilidad.</p>
+<p>El flujo principal será:</p>
+<pre class="mermaid" style="all: unset;">flowchart LR
+    V[Vendedor inicia chat] --&gt; A[Administrador atiende y responde]
+    V --&gt;|Envía imágenes| A
+    A &lt;--&gt; O[Observador]</pre>
+<hr>
+<h2 id="rs-054--43-reglas-del-chat">RS-054 — 43. REGLAS DEL CHAT</h2>
+<p>RF-053</p>
+<p>Vendedor</p>
+<p>Podrá iniciar una conversación de soporte directamente con el administrador.</p>
+<p>No podrá comunicarse por chat con observadores.</p>
+<p>Observador</p>
+<p>Podrá iniciar y responder chat con el administrador.</p>
+<p>No atenderá chats de vendedores ni podrá iniciar conversaciones con vendedores.</p>
+<p>No podrá modificar datos operativos, autorizar pagos, crear configuraciones ni cerrar conversaciones.</p>
+<p>Administrador</p>
+<p>Atenderá todas las solicitudes de soporte iniciadas por vendedores.</p>
+<p>Podrá iniciar y responder chat con observadores. El observador también podrá iniciar chat con el administrador.</p>
+<hr>
+<h2 id="rs-055--44-conexión-directa-de-soporte">RS-055 — 44. CONEXIÓN DIRECTA DE SOPORTE</h2>
+<p>RF-054</p>
+<p>El sistema no revisará quién está desocupado ni asignará un observador a una solicitud de soporte. Cualquier vendedor que necesite soporte se conectará directamente con el administrador.</p>
+<hr>
+<h2 id="rs-056--45-envío-de-imágenes">RS-056 — 45. ENVÍO DE IMÁGENES</h2>
+<p>RF-055</p>
+<p>El chat permitirá enviar imágenes desde:</p>
+<p>Galería.</p>
+<p>Almacenamiento del dispositivo.</p>
+<p>Cámara.</p>
+<hr>
+<h2 id="rs-057--46-eliminación-del-historial-del-chat">RS-057 — 46. ELIMINACIÓN DEL HISTORIAL DEL CHAT</h2>
+<p>RF-056</p>
+<p>El observador no podrá cerrar conversaciones ni eliminar historial o imágenes. Cualquier acción de cierre o eliminación deberá ejecutarse desde un perfil con permiso de modificación definido por el administrador.</p>
+<hr>
+<h2 id="rs-058--47-descarga-de-imágenes">RS-058 — 47. DESCARGA DE IMÁGENES</h2>
+<p>RF-057</p>
+<p>El administrador podrá recibir, consultar y descargar imágenes enviadas por el vendedor, sin modificar ni eliminar su contenido.</p>
+<p>En el chat entre administrador y observador, cualquiera de los dos podrá descargar las imágenes compartidas.</p>
+<p>El nombre del archivo será generado mediante:</p>
+<p>YYYY-MM-DD_HH-MM-SS</p>
+<p>Ejemplo:</p>
+<p>2026-08-30_14-30-25.jpg</p>
+<hr>
+<h2 id="rs-059--80-flujo-de-validación-del-boleto">RS-059 — 80. FLUJO DE VALIDACIÓN DEL BOLETO</h2>
+<p>El Observador consulta y valida el boleto sin modificar datos. El Administrador es el único perfil que puede autorizar el cambio posterior a <code>PAGADO</code>.</p>
+<pre class="mermaid" style="all: unset;">flowchart TD
+    A[Observador escanea QR] --&gt; B{¿QR cifrado y autenticado válido?}
+    B --&gt;|No| X[Mostrar: NO SE ENCONTRÓ INFORMACIÓN]
+    B --&gt;|Sí| C[Consultar boleto en servidor]
+    C --&gt; D{¿Existe y coincide clave de validación?}
+    D --&gt;|No| X
+    D --&gt;|Sí| E[Validar número, lotería, fecha y vigencia]
+    E --&gt; F{Resultado de validación}
+    F --&gt;|Ganador pendiente| G[Mostrar: GANADOR]
+    F --&gt;|Ganador ya autorizado por Administrador| H[Mostrar: PAGADO]
+    F --&gt;|Sin coincidencia| I[Mostrar: NO GANADOR]
+    F --&gt;|Fuera de vigencia| J[Mostrar: BOLETO VENCIDO]</pre>
+<hr>
+<h2 id="rs-060--9-perfil-vendedor">RS-060 — 9. PERFIL VENDEDOR</h2>
+<p>RF-011 – Inicio de sesión</p>
+<p>El vendedor deberá autenticarse mediante:</p>
+<p>Usuario.</p>
+<p>Contraseña.</p>
+<p>Validación del dispositivo.</p>
+<hr>
+<h2 id="rs-061--10-home-del-vendedor">RS-061 — 10. HOME DEL VENDEDOR</h2>
+<p>RF-012 – Dashboard</p>
+<p>El Home deberá mostrar:</p>
+<p>Total vendido durante el día.</p>
+<p>Botón Juego nuevo.</p>
+<p>Menú principal.</p>
+<p>Estado de sesión.</p>
+<p>Cantidad de códigos offline disponibles para el PDA. El valor se actualiza después de sincronizar, utilizar o eliminar un código permitido.</p>
+<p>Ejemplo:</p>
+<p>VENTAS DEL DÍA</p>
+<p>$250.000</p>
+<p>[ JUEGO NUEVO ]</p>
+<hr>
+<h2 id="rs-062--11-tipo-y-creación-de-apuesta">RS-062 — 11. TIPO Y CREACIÓN DE APUESTA</h2>
+<p>RF-013 – Selección de tipo</p>
+<p>Al seleccionar <strong>JUEGO NUEVO</strong>, el vendedor debe elegir <strong>COMBINADA</strong> o <strong>INDIVIDUAL</strong>. El tipo se guarda en <code>Boletos.TipoApuesta</code>, es inmutable después del primer juego o línea y no permite mezclar tipos.</p>
+<p>RF-014 – Juego COMBINADO</p>
+<p>El vendedor ingresa un número, un valor y una o más loterías activas para la fecha. El mismo número y valor se aplican a todas las loterías. El total es <code>valor × cantidad de loterías</code>.</p>
+<p>RF-015 – Línea INDIVIDUAL</p>
+<p>El vendedor ingresa un número, un valor y exactamente una lotería activa. <strong>Agregar línea</strong> valida los campos, muestra la línea en una tabla, limpia el formulario y recalcula el total.</p>
+<p>RF-016 – Edición y eliminación</p>
+<p>Antes de confirmar, el vendedor puede editar o eliminar líneas individuales. El sistema solicita confirmación al eliminar y recalcula el total.</p>
+<hr>
+<h2 id="rs-063--12-límites-y-totales-por-tipo-de-apuesta">RS-063 — 12. LÍMITES Y TOTALES POR TIPO DE APUESTA</h2>
+<p>RF-017 – Límite COMBINADO</p>
+<p>Un boleto COMBINADO permite el máximo de juegos configurado por el administrador; el valor inicial es 1. <strong>Agregar juego</strong> se desactiva al alcanzar el máximo.</p>
+<p>RF-018 – Límite INDIVIDUAL</p>
+<p>Un boleto INDIVIDUAL permite hasta 6 líneas, o el límite menor configurado por el administrador. <strong>Agregar línea</strong> se desactiva al alcanzar el máximo.</p>
+<p>RF-019 – Total del boleto</p>
+<p>En COMBINADA, el total suma juegos y cada juego es <code>valor × cantidad de loterías</code>. En INDIVIDUAL, el total suma los valores de sus líneas.</p>
+<hr>
+<h2 id="rs-064--13-modificación-del-boleto">RS-064 — 13. MODIFICACIÓN DEL BOLETO</h2>
+<p>RF-020 – Modificar boleto</p>
+<p>Mientras el boleto no haya sido confirmado, el vendedor podrá editar o quitar un juego COMBINADO o una línea INDIVIDUAL, respetando el tipo y el máximo configurado.</p>
+<p>RF-021 – Eliminar juego o línea</p>
+<p>El sistema deberá solicitar confirmación mediante un modal:</p>
+<p>¿Está seguro de eliminar este juego?</p>
+<p>Opciones:</p>
+<p>Sí.</p>
+<p>No.</p>
+<p>Al confirmar, el sistema descontará el valor correspondiente del total.</p>
+<p>RF-022 – Cancelar boleto</p>
+<p>El vendedor podrá cancelar completamente el boleto antes de confirmar la venta.</p>
+<hr>
+<h2 id="rs-065--14-confirmación-de-la-venta">RS-065 — 14. CONFIRMACIÓN DE LA VENTA</h2>
+<p>El vendedor seleccionará:</p>
+<p>JUGAR</p>
+<p>El sistema mostrará un modal:</p>
+<p>Cancelar.</p>
+<p>RF-023 – Pago de la apuesta</p>
+<p>El sistema no almacenará información personal del comprador.</p>
+<h2 id="el-boleto-se-considera">El boleto se considera:</h2>
+<h2 id="rs-066--15-registro-de-la-venta">RS-066 — 15. REGISTRO DE LA VENTA</h2>
+<p>RF-024</p>
+<p>Al confirmar la venta se deberá almacenar:</p>
+<p>ID de venta.
+ID del vendedor.</p>
+<p>Nombre o alias del vendedor.</p>
+<p>Juegos.</p>
+<p>Números.</p>
+<p>Valores.</p>
+<p>Loterías.</p>
+<p>Total apostado.</p>
+<p>Estado del boleto.</p>
+<p>Estado de sincronización cuando corresponda.</p>
+<hr>
+<h2 id="rs-067--16-estados-del-boleto">RS-067 — 16. ESTADOS DEL BOLETO</h2>
+<p>El sistema deberá manejar los diferentes estados de negocio del boleto.</p>
+<p>Como mínimo deberá contemplar:</p>
+<p>Por jugar.</p>
+<p>Jugado.</p>
+<p>Ganador.</p>
+<p>No ganador.</p>
+<p>Vencido.</p>
+<p>Pagado/cobrado.</p>
+<p>La implementación técnica podrá utilizar un catálogo de estados para evitar depender exclusivamente de múltiples campos booleanos.</p>
+<hr>
+<h2 id="rs-068--17-identificador-del-boleto">RS-068 — 17. IDENTIFICADOR DEL BOLETO</h2>
+<p>RF-025 – Código único</p>
+<p>Cada boleto deberá tener un identificador único dentro del sistema.</p>
+<p>Se manejarán dos identificadores:</p>
+<p>Identificador interno</p>
+<p>Identificador técnico de la base de datos, generado como GUID / UUID.</p>
+<p>Código público</p>
+<p>Código numérico de exactamente 7 dígitos, con valores entre <code>0000000</code> y <code>9999999</code>.</p>
+<p>El código público deberá ser único dentro del sistema, no repetirse, estar asociado inequívocamente al boleto y conservar los ceros a la izquierda. No podrá modificarse después de confirmar la venta.</p>
+<p>La base de datos deberá garantizar la unicidad mediante una restricción o índice único sobre <code>CodigoPublico</code>. Si se presenta una colisión durante la generación, el sistema deberá generar y validar un nuevo código antes de confirmar la venta.</p>
+<p>El código público no reemplaza el GUID / UUID ni constituye por sí solo una prueba de autenticidad del boleto.</p>
+<hr>
+<h2 id="rs-069--18-código-qr">RS-069 — 18. CÓDIGO QR</h2>
+<p>RF-026</p>
+<p>Cada boleto deberá contener un código QR.</p>
+<p>El QR deberá permitir identificar y validar el boleto.</p>
+<p>Al confirmar la venta, el servidor deberá generar una clave de validación única por boleto, aleatoria y criptográficamente segura.</p>
+<p>El QR deberá contener un payload cifrado y autenticado con, como mínimo:</p>
+<ul>
+<li>Identificador interno del boleto.</li>
+<li>Código público de 7 dígitos.</li>
+<li>Clave de validación única del boleto.</li>
+<li>Versión del formato e identificador de la clave de cifrado activa.</li>
+</ul>
+<p>El payload será cifrado en el servidor con un mecanismo estándar de cifrado autenticado, como AES-GCM. El QR contendrá la versión, identificador de clave, nonce, texto cifrado y etiqueta de autenticación necesarios para que el servidor lo valide.</p>
+<p>La clave maestra de cifrado permanecerá exclusivamente en el servidor. No se incluirá en el QR, el PDA ni la tirilla, ni siquiera cifrada. La base de datos almacenará únicamente el hash criptográfico de la clave de validación, no su valor en texto plano.</p>
+<p>Durante la validación, el servidor deberá identificar la clave maestra aplicable, descifrar y verificar la autenticidad del payload, comprobar que el boleto exista, comparar el hash de la clave de validación con el almacenado y validar código público, estado, vigencia y reglas de negocio.</p>
+<p>No se desarrollará un algoritmo criptográfico propio. El objetivo será impedir que un tercero modifique o fabrique información de un boleto válido.</p>
+<hr>
+<h2 id="rs-070--19-impresión-del-boleto">RS-070 — 19. IMPRESIÓN DEL BOLETO</h2>
+<p>RF-027</p>
+<p>Después de confirmar la venta, el PDA deberá imprimir automáticamente el boleto utilizando la impresora térmica integrada.</p>
+<hr>
+<h2 id="rs-071--20-formato-del-boleto">RS-071 — 20. FORMATO DEL BOLETO</h2>
+<p>El boleto deberá contener como mínimo uno de los siguientes formatos.</p>
+<p><strong>Formato COMBINADO: un solo juego</strong></p>
+<pre><code>===========================
+RECIBO DE VENTA AOL-1234567
+===========================
+Fecha: YYYY-MM-DD  Hora: HH:MM:SS
+Tipo de apuesta: COMBINADO
+===========================
+JUGADO
+===========================
+NÚMERO       VALOR       TOTAL
+1234         $1000       $5000
+LOTERÍAS: BOGOTÁ, CALI, MEDELLÍN, ARMENIA, PASTO
+===========================
+TOTAL APOSTADO             $5000
+===========================
+QR
+===========================
+</code></pre>
+<p><strong>Formato INDIVIDUAL: varias líneas, hasta el máximo configurado</strong></p>
+<pre><code>===========================
+RECIBO DE VENTA AOL-1234567
+===========================
+Fecha: YYYY-MM-DD  Hora: HH:MM:SS
+Tipo de apuesta: INDIVIDUAL
+===========================
+JUGADO
+===========================
+NÚMERO       VALOR       LOTERÍA
+1234         $1000       BOGOTÁ
+652          $2000       CALI
+3654         $3000       MEDELLÍN
+===========================
+TOTAL APOSTADO             $6000
+===========================
+QR
+===========================
+</code></pre>
+<p>En ambos formatos se imprime la leyenda de pago al portador y la vigencia del boleto.</p>
+<p>**GRACIAS POR SU COMPRA.</p>
+<p>CONSERVE SU TICKET EN PERFECTO ESTADO.** Será requisito indispensable para el cobro del premio. <strong>Vigencia: 30 días calendario</strong> desde su emisión. Vencido este plazo, <strong>el premio caducará y no será pagado.</strong></p>
+<p><strong>Se realizará el pago a partir de las 24 horas despues de haber realizado la validación del boleto ganador.</strong></p>
+<hr>
+<h2 id="rs-072--21-falla-de-impresión">RS-072 — 21. FALLA DE IMPRESIÓN</h2>
+<p>RF-028</p>
+<p>Si la venta se registra correctamente pero la impresora presenta una falla:</p>
+<p>La venta deberá permanecer registrada.</p>
+<p>El boleto deberá almacenarse localmente en el PDA.</p>
+<p>El vendedor podrá visualizar nuevamente el boleto.</p>
+<p>El sistema permitirá seleccionar un nombre para el archivo.</p>
+<p>Se generará un PDF.</p>
+<p>El usuario podrá enviar manualmente el PDF al cliente mediante WhatsApp u otro medio disponible.</p>
+<p>La falla de impresión no deberá provocar la pérdida de la venta.</p>
+<hr>
+<h2 id="rs-073--22-finalización-de-la-venta">RS-073 — 22. FINALIZACIÓN DE LA VENTA</h2>
+<p>RF-029</p>
+<p>Después de finalizar una venta:</p>
+<p>Se registra la venta.</p>
+<p>Se registra el boleto.</p>
+<p>Se genera el código único.</p>
+<p>Se genera la clave de validación única y se almacena únicamente su hash.</p>
+<p>Se genera el QR.</p>
+<p>Se imprime el boleto.</p>
+<p>Si la impresión falla, se habilita el mecanismo PDF.</p>
+<p>Se actualiza el total vendido del día.</p>
+<p>El sistema retorna al Home.</p>
+<hr>
+<h2 id="rs-074--23-histórico-del-vendedor">RS-074 — 23. HISTÓRICO DEL VENDEDOR</h2>
+<p>RF-030 – Histórico</p>
+<p>El menú deberá contener:</p>
+<p>Histórico</p>
+<p>El vendedor podrá consultar sus ventas anteriores.</p>
+<p>RF-031 – Calendario</p>
+<p>El histórico mostrará un calendario.</p>
+<p>El usuario podrá seleccionar un rango de fechas.</p>
+<p>La ventana máxima de consulta será:</p>
+<p>Hoy → 10 días atrás.</p>
+<p>RF-032 – Información histórica</p>
+<p>Para el período seleccionado se mostrará:</p>
+<p>Total vendido.</p>
+<p>Ventas.</p>
+<p>Boletos.</p>
+<p>Juegos.</p>
+<p>Números.</p>
+<p>Valores.</p>
+<p>Loterías.</p>
+<p>Estado.</p>
+<p>La información será de solo lectura.</p>
+<hr>
+<h2 id="rs-075--24-resultados-y-números-ganadores">RS-075 — 24. RESULTADOS Y NÚMEROS GANADORES</h2>
+<p>RF-033</p>
+<p>El vendedor podrá consultar los números ganadores registrados por el administrador.</p>
+<p>Número apostado.</p>
+<p>Lotería.</p>
+<p>Fecha del juego.</p>
+<p>Número ganador.</p>
+<p>Vigencia.</p>
+<p>Estado del boleto.</p>
+<p>Autenticidad del QR.</p>
+<hr>
+<h2 id="rs-076--25-definición-de-boleto-ganador">RS-076 — 25. DEFINICIÓN DE BOLETO GANADOR</h2>
+<p>RF-034</p>
+<p>Un boleto será considerado GANADOR cuando se cumplan todas las siguientes condiciones:</p>
+<p>El número apostado coincide exactamente con el número ganador.</p>
+<p>La lotería apostada coincide con la lotería que tiene registrado dicho número ganador.</p>
+<p>La fecha del juego corresponde a la fecha del resultado.</p>
+<p>El boleto se encuentra dentro del período de reclamación.</p>
+<p>El QR es válido.</p>
+<p>El QR pertenece al sistema.</p>
+<p>El boleto existe en la base de datos.</p>
+<p>El boleto no ha sido cobrado previamente.</p>
+<hr>
+<h2 id="rs-077--26-cálculo-del-premio">RS-077 — 26. CÁLCULO DEL PREMIO</h2>
+<p>RF-035</p>
+<p>El sistema NO realizará cálculo de premios.</p>
+<p>No existirá dentro del sistema:</p>
+<p>Fórmula de premio.</p>
+<p>Multiplicador.</p>
+<p>Tabla de premios.</p>
+<p>Valor ganado.</p>
+<p>Registro del dinero ganado por el portador.</p>
+<p>El vendedor será responsable de informar directamente al comprador el valor correspondiente al premio según las reglas comerciales definidas por el propietario del sistema.</p>
+<p>El sistema únicamente determinará si el boleto corresponde a un resultado ganador.</p>
+<hr>
+<h2 id="rs-078--27-cobro-del-premio">RS-078 — 27. COBRO DEL PREMIO</h2>
+<p>RF-036</p>
+<p>El sistema deberá permitir determinar si un boleto ganador ya fue cobrado.</p>
+<p>Solo el Administrador podrá autorizar el pago y cambiar el estado de un boleto ganador a <code>PAGADO</code>. El Observador únicamente podrá consultar y visualizar ese estado.</p>
+<p>El sistema no almacenará información personal del comprador o portador.</p>
+<p>El boleto se considera:</p>
+<p>Pagado al portador</p>
+<p>cuando corresponda.</p>
+<p>RF-037 – Estado de premio</p>
+<p>Al validar un boleto:</p>
+<p>Ganador no cobrado</p>
+<p>Mostrar:</p>
+<p>GANADOR
+Ganador ya cobrado</p>
+<p>Mostrar:
+No ganador</p>
+<p>Mostrar:</p>
+<p>Fuera del período
+Mostrar:</p>
+<p>BOLETO VENCIDO</p>
+<hr>
+<h2 id="rs-079--28-vigencia-del-premio">RS-079 — 28. VIGENCIA DEL PREMIO</h2>
+<p>RF-038</p>
+<p>El administrador podrá configurar la cantidad de días permitidos para reclamar un premio.</p>
+<p>Valor inicial:</p>
+<p>30 días calendario</p>
+<p>El sistema deberá realizar automáticamente la validación de vigencia.</p>
+<hr>
+<h2 id="rs-080--29-múltiples-loterías-por-juego">RS-080 — 29. MÚLTIPLES LOTERÍAS POR JUEGO</h2>
+<p>RF-039</p>
+<p>Un mismo número podrá jugarse en diferentes loterías.</p>
+<p>Ejemplo:</p>
+<p>Número: 1234</p>
+<p>Valor: $1.000</p>
+<p>Loterías:</p>
+<p>Bogotá</p>
+<p>Cali</p>
+<p>Medellín</p>
+<p>Armenia</p>
+<p>Pasto</p>
+<p>El sistema deberá considerar cada combinación:</p>
+<p>Número + Lotería + Fecha de juego</p>
+<p>para efectos de validación.</p>
+<p>Un número podrá resultar ganador en una lotería y no ganador en otra.</p>
+<p>Ejemplo:</p>
+<p>Número jugado: 1234</p>
+<p>Medellín → 1234 → GANADOR</p>
+<p>Bogotá   → 4561 → NO GANADOR</p>
+<p>Cali     → 7890 → NO GANADOR</p>
+<hr>
+<h2 id="rs-081--67-disponibilidad-de-conexión-para-ventas">RS-081 — 67. DISPONIBILIDAD DE CONEXIÓN PARA VENTAS</h2>
+<p>RF-077</p>
+<p>El PDA deberá tener conexión con el servidor para crear, confirmar y registrar una venta mediante el flujo normal (API genera código público, clave de validación y QR).</p>
+<p>Excepción: si el dispositivo cuenta con códigos offline preasignados y descargados, puede crear una venta offline usando esos códigos solo si ha perdido la conexión. Si el dispositivo no tiene conexión y no cuenta con códigos offline disponibles, el sistema deberá informar al vendedor que debe conectarse para realizar la venta y continuar operando el software.</p>
+<hr>
+<h2 id="rs-082--68-pérdida-de-conexión-durante-una-venta">RS-082 — 68. PÉRDIDA DE CONEXIÓN DURANTE UNA VENTA</h2>
+<p>Si la conexión se pierde mientras el vendedor está armando una venta:</p>
+<p><strong>Caso A (Modo normal sin códigos offline):</strong> El sistema conservará en memoria el borrador de juegos, números, valores y loterías seleccionadas. Muestra un aviso indicando que debe conectarse al servidor para realizar la venta y continuar operando. Mientras no exista conexión, no se puede confirmar la venta ni generar código público, clave de validación, QR, impresión o PDF.</p>
+<p><strong>Caso B (Modo offline con códigos preasignados):</strong> Si existen códigos offline sincronizados, el vendedor puede aceptar continuar en modo offline. El sistema consume uno de los códigos locales, asigna su payload a los datos de la jugada, genera el QR desde el payload precifrado, muestra el mensaje <strong>&quot;Por favor, tomar foto de este código vendido. GRACIAS.&quot;</strong> con botón obligatorio <strong>&quot;Listo&quot;</strong>, y tras confirmar, envía automáticamente el QR como evidencia al chat interno del administrador en un mensaje permanente que dice <strong>&quot;CÓDIGO VENDIDO OFFLINE — Favor registrar&quot;</strong>.</p>
+<hr>
+<h2 id="rs-083--69-reanudación-después-de-recuperar-conexión">RS-083 — 69. REANUDACIÓN DESPUÉS DE RECUPERAR CONEXIÓN</h2>
+<p>RF-078</p>
+<p>Cuando el PDA recupere la conexión, conservará disponible el borrador en memoria y validará nuevamente el estado del dispositivo, la sesión y el horario de operación.</p>
+<p>Solo después de esas validaciones el vendedor podrá confirmar la venta. El servidor registrará la operación una única vez y devolverá la confirmación antes de generar los elementos del boleto.</p>
+<hr>
+<h2 id="rs-084--70-control-de-duplicidad-de-confirmación">RS-084 — 70. CONTROL DE DUPLICIDAD DE CONFIRMACIÓN</h2>
+<p>RF-079</p>
+<p>Como no se almacenan ventas offline, no existirá sincronización de ventas pendientes. La API deberá controlar que una confirmación enviada después de reconectar no registre la misma venta más de una vez.</p>
+<p>La solución deberá contemplar un identificador de intento de confirmación, control de duplicidad y respuesta idempotente del servidor.</p>
+<hr>
+<h2 id="rs-085--71-servidor-como-fuente-definitiva">RS-085 — 71. SERVIDOR COMO FUENTE DEFINITIVA</h2>
+<p>RF-080</p>
+<p>La información central del servidor será considerada la fuente definitiva del sistema.</p>
+<p>Ante una reconexión o reintento de confirmación, el servidor detectará duplicidad, conservará la integridad y devolverá el resultado de la operación. El PDA no decidirá ni registrará ventas de forma autónoma.</p>
+<hr>
+<h2 id="rs-086--78-flujo-completo-de-una-venta">RS-086 — 78. FLUJO COMPLETO DE UNA VENTA</h2>
+<p>El vendedor requiere conexión con el servidor para confirmar la venta y generar código público, clave de validación y QR. Si la conexión se pierde mientras arma el boleto, el borrador queda solo en memoria hasta reconectar.</p>
+<pre class="mermaid" style="all: unset;">flowchart TD
+    A[LOGIN] --&gt; B[Validar usuario, contraseña, PDA y horario]
+    B --&gt; C{¿Acceso permitido?}
+    C --&gt;|No| D[Mostrar causa y bloquear acceso]
+    C --&gt;|Sí| E[HOME]
+    E --&gt; F[JUEGO NUEVO]
+    F --&gt; G[Número + valor + loterías]
+    G --&gt; H[Agregar juego]
+    H --&gt; I{¿Agregar otro juego?}
+    I --&gt;|Sí| F
+    I --&gt;|No| J[JUGAR y confirmar total]
+    J --&gt; K{¿Hay conexión con el servidor?}
+    K --&gt;|No| L[Conservar borrador en memoria
+Mostrar aviso de reconexión]
+    L --&gt; M[Esperar conexión]
+    M --&gt; N[Revalidar sesión, PDA y horario]
+    N --&gt; J
+    K --&gt;|Sí| O[Registrar venta una sola vez]
+    O --&gt; P[Generar código público, clave de validación y QR]
+    P --&gt; Q{¿Impresión disponible?}
+    Q --&gt;|Sí| R[Imprimir tirilla]
+    Q --&gt;|No| S[Guardar boleto y generar PDF]
+    R --&gt; T[Actualizar total del día y volver a HOME]
+    S --&gt; T</pre>
+<hr>
+<h1 id="iv-tirilla-de-impresión">IV. Tirilla de impresión</h1>
+<p>El siguiente requisito conserva el formato de comprobante definido para la impresión y la contingencia PDF.</p>
+<hr>
+<h2 id="rs-087--87-tirilla-de-impresión">RS-087 — 87. TIRILLA DE IMPRESIÓN</h2>
+<p><strong>Formato COMBINADO: un solo juego</strong></p>
+<pre><code>===========================
+RECIBO DE VENTA AOL-1234567
+===========================
+Fecha: YYYY-MM-DD  Hora: HH:MM:SS
+Tipo de apuesta: COMBINADO
+===========================
+JUGADO
+===========================
+NÚMERO       VALOR       TOTAL
+1234         $1000       $5000
+LOTERÍAS: BOGOTÁ, CALI, MEDELLÍN, ARMENIA, PASTO
+===========================
+TOTAL APOSTADO             $5000
+===========================
+QR
+===========================
+</code></pre>
+<p><strong>Formato INDIVIDUAL: varias líneas</strong></p>
+<pre><code>===========================
+RECIBO DE VENTA AOL-1234567
+===========================
+Fecha: YYYY-MM-DD  Hora: HH:MM:SS
+Tipo de apuesta: INDIVIDUAL
+===========================
+JUGADO
+===========================
+NÚMERO       VALOR       LOTERÍA
+1234         $1000       BOGOTÁ
+652          $2000       CALI
+3654         $3000       MEDELLÍN
+===========================
+TOTAL APOSTADO             $6000
+===========================
+QR
+===========================
+</code></pre>
+<p>En ambos formatos se imprime la leyenda de pago al portador y la vigencia del boleto.
+**GRACIAS POR SU COMPRA.</p>
+<p>CONSERVE SU TICKET EN PERFECTO ESTADO.** Será requisito indispensable para el cobro del premio. Vigencia: 30 días calendario desde su emisión. Vencido este plazo, el premio caducará y no será pagado.</p>
+<hr>
+<h2 id="rs-088--88-módulo-de-ventas-offline">RS-088 — 88. MÓDULO DE VENTAS OFFLINE</h2>
+<p>RF-081</p>
+<p>El administrador contará con un módulo nuevo denominado <strong>&quot;Ventas Offline&quot;</strong> en la aplicación web MVC.</p>
+<p>Desde allí podrá:</p>
+<ul>
+<li>Consultar usuarios activos y PDA registrados en el sistema.</li>
+<li>Generar una cantidad determinada de códigos QR offline y asignarlos a un usuario y PDA específico.</li>
+<li>Visualizar un listado de todos los códigos generados, con filtros por usuario, PDA, fecha, estado y rango de fechas.</li>
+<li>Conectar una pistola lectora / escáner al computador para registrar códigos offline escaneados.</li>
+<li>Consultar el estado y trazabilidad completa de cada código.</li>
+</ul>
+<hr>
+<h2 id="rs-089--89-generación-de-códigos-offline">RS-089 — 89. GENERACIÓN DE CÓDIGOS OFFLINE</h2>
+<p>RF-082</p>
+<p>Al generar códigos offline, el administrador deberá especificar:</p>
+<ul>
+<li>Usuario vendedor.</li>
+<li>PDA destino.</li>
+<li>Cantidad de códigos a generar.</li>
+</ul>
+<p>El sistema generará N códigos con las siguientes propiedades:</p>
+<ul>
+<li>Cada código tendrá un <strong>consecutivo único e inmutable</strong> diferente de otros códigos.</li>
+<li>Cada código contendrá un <strong>payload cifrado y autenticado</strong> que incluya: código público, identificador interno de boleto (GUID/UUID), clave de validación única, versión del formato, identificador de clave de cifrado activa, y metadatos de seguridad.</li>
+<li>El sistema registrará en BD: consecutivo, UsuarioId, DispositivoId, PayloadCifrado, estado = <strong>&quot;Generado&quot;</strong>, FechaCreación, FechaDescarga (NULL inicialmente), FechaVentaOffline (NULL inicialmente), FechaRegistro (NULL inicialmente), AdminQueRegistro (NULL inicialmente).</li>
+<li>Los códigos quedarán listos para ser sincronizados al PDA en el siguiente inicio de sesión con conexión disponible.</li>
+</ul>
+<hr>
+<h2 id="rs-090--90-sincronización-de-códigos-offline-al-pda">RS-090 — 90. SINCRONIZACIÓN DE CÓDIGOS OFFLINE AL PDA</h2>
+<p>RF-083</p>
+<p>Cuando el PDA se conecta y completa correctamente la autenticación, consulta al servidor si tiene códigos asignados pendientes de descarga:</p>
+<ul>
+<li>El cliente solicita a la API: (1) todos los códigos asignados cuyo estado sea <strong>&quot;Generado&quot;</strong>, (2) la configuración de sincronización Manual/Automática del PDA y (3) la configuración actual de hora de cierre del servidor.</li>
+<li>La API retorna: el listado de payloads cifrados correspondientes y la configuración de hora de cierre con timestamp del servidor.</li>
+<li>En modo Manual, el PDA muestra <strong>&quot;Tiene códigos offline listos para descargar&quot;</strong> con botones <strong>&quot;Descargar&quot;</strong>, <strong>&quot;Más tarde&quot;</strong> y <strong>&quot;Buscar y descargar códigos offline&quot;</strong>. En modo Automático, descarga sin mostrar la ventana.</li>
+<li>El PDA almacena localmente en una base de datos tipo Lite: (1) los payloads cifrados, estados y metadatos de los códigos, y (2) la hora de cierre sincronizada como referencia definitiva para validaciones de horario.</li>
+<li>La base local del PDA debe soportar entre 3.000 y 5.000 códigos offline, de acuerdo con la capacidad configurada. Debe controlar el espacio disponible y rechazar una descarga que supere el límite.</li>
+<li>El sistema marca en BD cada código sincronizado con: estado = <strong>&quot;Descargado&quot;</strong>, FechaDescarga = fecha/hora actual.</li>
+<li>Si el vendedor cierra la aplicación, cierra sesión o apaga el PDA, los códigos offline y sus estados permanecen almacenados en la base local tipo Lite. Solo se pueden eliminar códigos ya utilizados cuya evidencia QR haya sido enviada al chat del administrador.</li>
+</ul>
+<p>Cuando el administrador asigna códigos a un vendedor cuyo PDA está conectado, el servidor notifica al PDA y, en modo Manual, este muestra inmediatamente la ventana de descarga; en modo Automático, inicia la descarga sin mostrarla.</p>
+<p><strong>Sincronización de hora de cierre (nueva):</strong></p>
+<ul>
+<li>La configuración de hora de cierre se descarga junto con los códigos offline.</li>
+<li>El PDA almacena: hora configurada, timestamp del servidor, versión de configuración.</li>
+<li>Esta información se utiliza como referencia definitiva para todas las validaciones de horario, incluso en modo offline (ver RS-101).</li>
+<li>Si el PDA está en modo offline y la hora descargada expira, ejecuta automáticamente el cierre de sesión definido en RS-101 sin posibilidad de que el usuario lo evite.</li>
+</ul>
+<hr>
+<h2 id="rs-091--91-validación-de-códigos-offline-en-el-pda">RS-091 — 91. VALIDACIÓN DE CÓDIGOS OFFLINE EN EL PDA</h2>
+<p>RF-084</p>
+<p>Antes de utilizar un código offline para una venta, el PDA deberá:</p>
+<ul>
+<li>Verificar que el payload descargado sea íntegro y auténtico mediante validación criptográfica.</li>
+<li>Comprobar que el código no haya sido marcado como &quot;Utilizado&quot; o &quot;Registrado&quot; en BD (consulta ocasional a la API si hay conexión).</li>
+<li>Confirmar que el código tiene una vigencia válida y no ha expirado.</li>
+</ul>
+<p>Si alguna validación falla, el código no podrá ser utilizado.</p>
+<hr>
+<h2 id="rs-092--92-venta-offline-con-códigos-preasignados">RS-092 — 92. VENTA OFFLINE CON CÓDIGOS PREASIGNADOS</h2>
+<p>RF-085</p>
+<p>Cuando el PDA detecta pérdida de conexión y el vendedor inicia una venta:</p>
+<ul>
+<li>El sistema informa: <strong>&quot;Conexión no disponible. ¿Desea continuar en modo offline?&quot;</strong></li>
+<li>Si el vendedor acepta:
+<ul>
+<li>Si existen códigos offline disponibles y validados, permite crear la venta consumiendo uno de los códigos.</li>
+<li>Si no hay códigos disponibles, informa: <strong>&quot;No hay códigos offline disponibles. Debe conectarse para continuar operando.&quot;</strong></li>
+</ul>
+</li>
+<li>El vendedor crea una venta normal (número, valor, loterías) como en el flujo online.</li>
+<li>Al confirmar <strong>&quot;JUGAR&quot;</strong>, el sistema asigna el payload del código offline a los datos de la jugada y consume el código de la memoria local, marcándolo como no disponible para futuras ventas.</li>
+<li>Se genera un QR desde el payload precifrado del código (sin reencifrar en el dispositivo).</li>
+<li>Se imprime o genera PDF de la tirilla de forma normal, mostrando el QR generado.</li>
+</ul>
+<hr>
+<h2 id="rs-093--93-envío-de-evidencia-de-venta-offline-al-chat">RS-093 — 93. ENVÍO DE EVIDENCIA DE VENTA OFFLINE AL CHAT</h2>
+<p>RF-086</p>
+<p>Tras confirmar una venta offline:</p>
+<ul>
+<li>El sistema muestra: <strong>&quot;Por favor, tomar foto de este código vendido. GRACIAS.&quot;</strong></li>
+<li>Presenta un botón obligatorio <strong>&quot;Listo&quot;</strong> que el vendedor debe pulsar para confirmar.</li>
+<li>Al pulsar <strong>&quot;Listo&quot;</strong>, el sistema automáticamente:
+<ul>
+<li>Guarda la venta offline localmente en el dispositivo.</li>
+<li>Captura la imagen del QR o genera una captura automática de la pantalla.</li>
+<li>Envía un mensaje al chat interno del administrador que dice: <strong>&quot;CÓDIGO VENDIDO OFFLINE — Favor registrar&quot;</strong>, adjuntando la imagen del QR.</li>
+<li>Marca este mensaje como <strong>permanente</strong> para que no se elimine automáticamente al cerrar la conversación.</li>
+<li>Registra en BD: estado del código = <strong>&quot;Utilizado&quot;</strong>, FechaVentaOffline = fecha/hora actual, datos de la jugada asociados.</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 id="rs-094--94-registro-de-códigos-offline-por-administrador">RS-094 — 94. REGISTRO DE CÓDIGOS OFFLINE POR ADMINISTRADOR</h2>
+<p>RF-087</p>
+<p>Dentro del módulo <strong>&quot;Ventas Offline&quot;</strong>, el administrador puede conectar una pistola lectora / escáner de códigos de barras.</p>
+<p>Al escanear un QR offline fotografiado:</p>
+<ul>
+<li>El sistema intenta desencriptar y verificar la autenticidad del payload.</li>
+<li>Si la validación es satisfactoria:
+<ul>
+<li>Muestra al administrador los datos descifrados: consecutivo del código, números jugados, valor, loterías, fecha/hora de venta offline, usuario vendedor y PDA origen.</li>
+<li>Habilita un botón <strong>&quot;Registrar&quot;</strong>.</li>
+</ul>
+</li>
+<li>Si la validación falla (payload inválido, expirado o alterado):
+<ul>
+<li>Muestra mensaje: <strong>&quot;QR inválido o alterado&quot;</strong> y bloquea el registro.</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 id="rs-095--95-confirmación-y-registro-de-venta-offline">RS-095 — 95. CONFIRMACIÓN Y REGISTRO DE VENTA OFFLINE</h2>
+<p>RF-088</p>
+<p>Al confirmar el registro de un código offline válido:</p>
+<ul>
+<li>El sistema registra oficialmente la venta en BD con todos los datos descifrados:
+<ul>
+<li>Crea un registro de Venta con: VendedorId, DispositivoId, FechaCreación = FechaVentaOffline (del código), datos de juego/números/valor/loterías, estado = <strong>&quot;Jugado&quot;</strong> (vigente).</li>
+<li>Crea un registro de Boleto asociado con estado = <strong>&quot;Jugado&quot;</strong> (no vencido).</li>
+<li>Asigna un consecutivo público único de 7 dígitos al boleto si no lo tenía previamente (o usa el contenido en el payload del código).</li>
+<li>Actualiza en BD: estado del código = <strong>&quot;Registrado&quot;</strong>, FechaRegistro = fecha/hora actual, AdminQueRegistro = ID del administrador que realizó el registro, VentaId = ID de la venta creada.</li>
+<li>Descuenta el código del saldo disponible del vendedor y PDA asignados y actualiza ese saldo en backend y SQL Server.</li>
+</ul>
+</li>
+<li>La venta queda oficial y sujeta a todas las reglas de negocio (validación de números ganadores, vigencia, etc.).</li>
+</ul>
+<hr>
+<h2 id="rs-096--96-prevención-de-duplicidad-en-registro-offline">RS-096 — 96. PREVENCIÓN DE DUPLICIDAD EN REGISTRO OFFLINE</h2>
+<p>RF-089</p>
+<p>Si el administrador intenta escanear un código que ya fue registrado previamente:</p>
+<ul>
+<li>El sistema valida que el estado del código sea <strong>&quot;Registrado&quot;</strong>.</li>
+<li>Muestra el mensaje: <strong>&quot;QR ya registrado&quot;</strong> en pantalla.</li>
+<li>No permite realizar el registro nuevamente.</li>
+<li>Solo permite cerrar la ventana de escaneo.</li>
+</ul>
+<hr>
+<h2 id="rs-097--97-trazabilidad-completa-de-códigos-offline">RS-097 — 97. TRAZABILIDAD COMPLETA DE CÓDIGOS OFFLINE</h2>
+<p>RF-090</p>
+<p>El sistema mantiene un registro completo de cada código offline:</p>
+<ul>
+<li><strong>Generado:</strong> cuándo fue creado, por qué administrador, a qué usuario y PDA asignado, cantidad generada en la operación.</li>
+<li><strong>Descargado:</strong> fecha/hora de descarga al PDA.</li>
+<li><strong>Utilizado:</strong> fecha/hora de uso en venta offline, datos de la jugada (números, valor, loterías), usuario vendedor, PDA.</li>
+<li><strong>Registrado:</strong> fecha/hora de registro en sistema, administrador que procesó el registro, VentaId asociada.</li>
+</ul>
+<p>Esta información se muestra en un reporte dentro del módulo &quot;Ventas Offline&quot; con filtros por usuario, PDA, fecha, estado y rango de fechas.</p>
+<hr>
+<h2 id="rs-098--98-retorno-a-modo-online-automático">RS-098 — 98. RETORNO A MODO ONLINE AUTOMÁTICO</h2>
+<p>RF-091</p>
+<p>Cuando el PDA detecta que ha recuperado conexión con el servidor:</p>
+<ul>
+<li>Revalida automáticamente: sesión, dispositivo, horario de operación.</li>
+<li>Si todas las validaciones son satisfactorias, cambia automáticamente al modo online.</li>
+<li>Las ventas nuevas se crean mediante el flujo normal: API genera código público, clave de validación y QR (no se consumen códigos offline).</li>
+<li>El vendedor recibe notificación: <strong>&quot;Sistema online. Puede continuar operando normalmente.&quot;</strong></li>
+<li>Si la reconexión es temporal y vuelve a perderse, el sistema automáticamente retorna a modo offline si hay códigos disponibles.</li>
+</ul>
+<hr>
+<h2 id="rs-099--99-agotamiento-de-códigos-offline">RS-099 — 99. AGOTAMIENTO DE CÓDIGOS OFFLINE</h2>
+<p>RF-092</p>
+<p>Si durante una venta en modo offline se agotan todos los códigos offline descargados:</p>
+<ul>
+<li>El sistema informa al vendedor: <strong>&quot;No hay más códigos offline disponibles. Debe conectarse para continuar operando.&quot;</strong></li>
+<li>Bloquea la creación de nuevas ventas offline.</li>
+<li>El vendedor debe esperar a que se recupere la conexión o solicitar nuevos códigos offline desde administración.</li>
+</ul>
+<hr>
+<h2 id="rs-100--100-modelo-conceptual-ampliado-para-operación-offline">RS-100 — 100. MODELO CONCEPTUAL AMPLIADO PARA OPERACIÓN OFFLINE</h2>
+<p>La solución incorpora una nueva tabla:</p>
+<p><strong>CodigosPreventaOffline</strong></p>
+<ul>
+<li>ConsecutivoUnico (string, clave única)</li>
+<li>Id (GUID/UUID, clave primaria)</li>
+<li>UsuarioId (FK → Usuarios)</li>
+<li>DispositivoId (FK → Dispositivos)</li>
+<li>PayloadCifrado (binary, contiene código público + ID boleto + clave validación + metadatos de seguridad)</li>
+<li>EstadoDelCodigo (enum: Generado, Descargado, Utilizado, Registrado)</li>
+<li>FechaCreacion (datetime)</li>
+<li>FechaDescarga (datetime, nullable)</li>
+<li>FechaVentaOffline (datetime, nullable)</li>
+<li>FechaRegistro (datetime, nullable)</li>
+<li>AdminQueRegistro (FK → Usuarios, nullable)</li>
+<li>VentaId (FK → Ventas, nullable)</li>
+</ul>
+<p>Esta tabla mantiene trazabilidad completa de códigos generados, descargados, utilizados y registrados.</p>
+<p><strong>Base de datos local tipo Lite del PDA:</strong></p>
+<ul>
+<li>Almacena una réplica local de los códigos offline asignados al PDA.</li>
+<li>Cada registro incluye como mínimo el identificador del código, payload cifrado, estado, metadatos de seguridad, fecha de descarga y fecha de utilización.</li>
+<li>Tiene capacidad para entre 3.000 y 5.000 códigos offline.</li>
+<li>No reemplaza a SQL Server: la base central y la API son la autoridad definitiva.</li>
+<li>Al cerrar la aplicación, cerrar sesión o apagar el PDA, conserva los códigos no utilizados. Solo elimina códigos ya utilizados cuando su evidencia QR haya sido enviada al chat del administrador, conforme a RN-054.</li>
+</ul>
+<hr>
+<h2 id="rs-101--101-cierre-forzado-de-sesión-en-modo-offline-por-expiración-de-horario">RS-101 — 101. CIERRE FORZADO DE SESIÓN EN MODO OFFLINE POR EXPIRACIÓN DE HORARIO</h2>
+<p>RF-087</p>
+<p>Aunque el PDA esté en modo offline sin conexión con el servidor, el sistema deberá cumplir automáticamente el cierre de sesión cuando se cumple la hora de cierre sincronizada.</p>
+<p><strong>Validación de hora:</strong></p>
+<ul>
+<li>El PDA utiliza <strong>únicamente</strong> la hora de cierre sincronizada (descargada del servidor en la última conexión), no la hora local del dispositivo.</li>
+<li>El PDA monitorea continuamente: si la hora sincronizada más el timestamp de descarga llega a la hora configurada, ejecuta el cierre inmediato.</li>
+<li>Si el usuario intenta modificar la hora local del dispositivo para eludir el cierre, el PDA detecta la inconsistencia (comparación hora local vs. hora sincronizada) y ejecuta el cierre de sesión de todas formas.</li>
+</ul>
+<p><strong>Acciones en el cierre por expiración de horario en offline:</strong></p>
+<ul>
+<li>Si el vendedor tiene una venta en curso (no confirmada), se conserva el borrador en memoria local.</li>
+<li>Se cierra la sesión del vendedor automáticamente.</li>
+<li>El sistema muestra: <strong>&quot;LOS JUEGOS ESTÁN CERRADOS. Deberá reconectar cuando se reanude la operación.&quot;</strong></li>
+<li>El vendedor NO podrá iniciar nuevas apuestas ni acceder a funcionalidades de venta.</li>
+<li>Cuando el PDA reconecta al servidor, revalida usuario, contraseña, dispositivo y horario. Solo entonces el vendedor puede volver a acceder si el horario lo permite.</li>
+</ul>
+<p><strong>Prevención de manipulación:</strong></p>
+<ul>
+<li>Si el PDA detecta que la hora local ha sido modificada dramáticamente hacia atrás (más de 1 minuto de diferencia respecto a la hora sincronizada), registra un evento de seguridad local y ejecuta cierre inmediato de sesión como precaución.</li>
+<li>Cuando reconecte, el servidor revisará logs de anomalías de hora y podrá investigar intentos de evasión.</li>
+</ul>
+<hr>
+<h1 id="iii-proceso-de-validación-y-entrega-de-premios-ganadores">III. Proceso de Validación y Entrega de Premios Ganadores</h1>
+<p>El vendedor, administrador y observador participan en un flujo escalonado de validación de tickets ganadores. El vendedor escanea el QR para prevalidación. El administrador valida con fotografía y asigna observador. El observador registra ganador con datos obligatorios y 3 fotografías para marcar el premio como entregado. Un ticket ganador solo puede ser entregado una única vez.</p>
+<hr>
+<h2 id="rs-102--102-opción-de-validación-de-ticket-ganador-en-pda-del-vendedor">RS-102 — 102. OPCIÓN DE VALIDACIÓN DE TICKET GANADOR EN PDA DEL VENDEDOR</h2>
+<p>RF-088</p>
+<p>El vendedor accede a una opción <strong>&quot;Validar ticket ganador&quot;</strong> desde el menú principal del PDA.</p>
+<p>Permite seleccionar la cámara para escanear el código QR del ticket que un cliente reporta como ganador.</p>
+<hr>
+<h2 id="rs-103--103-prevalidación-automática-de-ticket-ganador">RS-103 — 103. PREVALIDACIÓN AUTOMÁTICA DE TICKET GANADOR</h2>
+<p>RF-089</p>
+<p>Cuando el vendedor escanea el QR:</p>
+<ul>
+<li>El PDA desencripta el payload y valida automáticamente:
+<ul>
+<li>QR es válido y pertenece al sistema.</li>
+<li>Boleto existe en BD.</li>
+<li>Boleto tiene estado &quot;Jugado&quot; (no otro estado).</li>
+<li>Boleto está dentro de vigencia.</li>
+<li>Boleto no tiene estado &quot;Premio entregado&quot;.</li>
+<li>Número + lotería + fecha del boleto coinciden con un número ganador registrado.</li>
+</ul>
+</li>
+</ul>
+<p><strong>Si prevalidación es exitosa:</strong></p>
+<ul>
+<li>Sistema registra automáticamente un <code>CasoGanador</code> con estado = <strong>&quot;Reportado&quot;</strong>.</li>
+<li>Notifica al administrador que se ha presentado un posible ganador.</li>
+<li>Muestra al vendedor: <strong>&quot;Ticket validado. Se ha informado al administrador. Queda pendiente su aprobación.&quot;</strong></li>
+</ul>
+<p><strong>Si prevalidación falla:</strong></p>
+<ul>
+<li>Muestra motivo específico (ejemplo: &quot;Boleto vencido&quot;, &quot;No es ganador&quot;, &quot;Ticket ya registrado&quot;, &quot;Boleto no vigente&quot;).</li>
+<li>No registra caso alguno.</li>
+<li>Vendedor puede intentar de nuevo.</li>
+</ul>
+<hr>
+<h2 id="rs-104--104-módulo-de-casos-de-premios-ganadores-para-administrador">RS-104 — 104. MÓDULO DE CASOS DE PREMIOS GANADORES PARA ADMINISTRADOR</h2>
+<p>RF-090</p>
+<p>El administrador accede a un módulo <strong>&quot;Casos de premios ganadores&quot;</strong> en la aplicación web MVC.</p>
+<p>Visualiza listado de casos con columnas: código del ticket, vendedor, estado, fecha de reporte.</p>
+<p>Permite filtrar por: fecha, vendedor, estado, PDA donde se reportó.</p>
+<hr>
+<h2 id="rs-105--105-visualización-de-datos-del-ticket-en-caso-reportado">RS-105 — 105. VISUALIZACIÓN DE DATOS DEL TICKET EN CASO REPORTADO</h2>
+<p>RF-091</p>
+<p>Al seleccionar un caso con estado <strong>&quot;Reportado&quot;</strong>, el sistema muestra:</p>
+<ul>
+<li>Código del ticket (7 dígitos).</li>
+<li>Números jugados, loterías, valor total apostado, fecha de venta.</li>
+<li>Vendedor que reportó el caso.</li>
+<li>Estado actual del caso.</li>
+<li>Opción para solicitar foto: <strong>&quot;Solicitar fotografía del ticket con QR visible&quot;</strong>.</li>
+</ul>
+<hr>
+<h2 id="rs-106--106-validación-administrativa-con-fotografía">RS-106 — 106. VALIDACIÓN ADMINISTRATIVA CON FOTOGRAFÍA</h2>
+<p>RF-092</p>
+<p>El administrador requiere que se envíe la <strong>fotografía del ticket con código QR claramente visible</strong>.</p>
+<p>Esta fotografía se envía a través del chat de soporte (RS-053 a RS-058).</p>
+<p>Cuando recibe la fotografía:</p>
+<ul>
+<li>Valida manualmente que el QR corresponda al ticket reportado.</li>
+<li>Verifica que la foto sea legible y muestre claramente el código QR y datos del ticket.</li>
+</ul>
+<p><strong>Si validación es exitosa:</strong></p>
+<ul>
+<li>Cambia estado del caso a <strong>&quot;Validado&quot;</strong>.</li>
+<li>Habilita opción para asignar observador.</li>
+</ul>
+<p><strong>Si validación es rechazada:</strong></p>
+<ul>
+<li>Puede rechazar el caso completamente.</li>
+<li>Caso queda con estado <strong>&quot;Rechazado&quot;</strong> y no avanza.</li>
+<li>Notifica al vendedor el motivo del rechazo.</li>
+</ul>
+<hr>
+<h2 id="rs-107--107-asignación-de-observador-al-caso">RS-107 — 107. ASIGNACIÓN DE OBSERVADOR AL CASO</h2>
+<p>RF-093</p>
+<p>El administrador accede a un caso con estado <strong>&quot;Validado&quot;</strong>.</p>
+<p>Visualiza opción <strong>&quot;Asignar observador&quot;</strong>.</p>
+<p>Se despliega lista de observadores activos disponibles en el sistema.</p>
+<p>El administrador selecciona un observador de la lista y confirma la asignación.</p>
+<p>Al confirmar:</p>
+<ul>
+<li>Estado del caso cambia a <strong>&quot;Asignado&quot;</strong>.</li>
+<li>El observador seleccionado recibe notificación en su PDA.</li>
+<li>Se registra: fecha/hora de asignación, usuario administrador que asignó.</li>
+</ul>
+<p>El administrador puede cambiar de observador mientras el caso no esté en estado <strong>&quot;Registrado&quot;</strong> o <strong>&quot;Premio entregado&quot;</strong>.</p>
+<hr>
+<h2 id="rs-108--108-notificación-al-observador-de-caso-asignado">RS-108 — 108. NOTIFICACIÓN AL OBSERVADOR DE CASO ASIGNADO</h2>
+<p>RF-094</p>
+<p>El observador recibe notificación en su PDA: <strong>&quot;Tiene un nuevo caso de ganador asignado. Presione aquí para ver detalles.&quot;</strong></p>
+<p>Puede acceder directamente al caso desde la notificación.</p>
+<p>Visualiza información del ticket, números jugados, loterías, valor apostado, vendedor y fotografía del ticket con QR (si está disponible).</p>
+<hr>
+<h2 id="rs-109--109-opción-de-registrar-ganador-en-pda-del-observador">RS-109 — 109. OPCIÓN DE REGISTRAR GANADOR EN PDA DEL OBSERVADOR</h2>
+<p>RF-095</p>
+<p>El observador accede a opción <strong>&quot;Registrar ganador&quot;</strong> desde el menú de su PDA.</p>
+<p>Visualiza listado de casos asignados con estado <strong>&quot;Asignado&quot;</strong> o <strong>&quot;En proceso&quot;</strong>.</p>
+<p>Selecciona un caso y accede a formulario de registro.</p>
+<p>El estado del caso cambia automáticamente a <strong>&quot;En proceso&quot;</strong> cuando el observador comienza el registro.</p>
+<hr>
+<h2 id="rs-110--110-campos-obligatorios-para-registro-de-ganador">RS-110 — 110. CAMPOS OBLIGATORIOS PARA REGISTRO DE GANADOR</h2>
+<p>RF-096</p>
+<p>El formulario de registro contiene campos obligatorios:</p>
+<ul>
+<li><strong>Nombre completo del ganador</strong> (texto, obligatorio).</li>
+<li><strong>Apellido del ganador</strong> (texto, obligatorio).</li>
+<li><strong>Número de contacto / celular</strong> (numérico, obligatorio).</li>
+<li><strong>Lugar donde ganó</strong> (texto abierto, obligatorio; ej: &quot;Comercio XXX en calle Y&quot;, &quot;Punto de venta ubicado en...&quot;).</li>
+<li><strong>Nombre del vendedor</strong> (autocompleta desde datos del ticket, obligatorio, no editable).</li>
+<li><strong>Valor total ganado</strong> (ingreso manual en moneda del sistema, obligatorio; el sistema NO calcula premios según RN-042).</li>
+<li><strong>Persona que entrega el premio</strong> (autofill con nombre del observador autenticado en el PDA, NO editable, de solo lectura).</li>
+</ul>
+<p>El sistema valida que todos los campos están diligenciados antes de permitir siguiente etapa.</p>
+<hr>
+<h2 id="rs-111--111-captura-de-tres-fotografías-obligatorias">RS-111 — 111. CAPTURA DE TRES FOTOGRAFÍAS OBLIGATORIAS</h2>
+<p>RF-097</p>
+<p>El observador debe capturar <strong>tres evidencias fotográficas obligatorias</strong>:</p>
+<ol>
+<li><strong>Fotografía del ticket ganador:</strong> debe mostrar claramente el código QR.</li>
+<li><strong>Fotografía del ganador:</strong> ganador sosteniendo el ticket.</li>
+<li><strong>Fotografía de documento de identidad:</strong> cédula de identidad o documento de identidad del ganador.</li>
+</ol>
+<p>El observador puede capturar desde cámara en vivo o seleccionar de la galería del PDA.</p>
+<p>Las fotografías se almacenan como imágenes binarias asociadas al registro sin procesamiento automático de datos (sin OCR, sin extracción de información de cédula, sin reconocimiento facial).</p>
+<p>El sistema mantiene referencias a cada fotografía con tipo de evidencia (TicketConQR, GanadorConTicket, CedulaIdentidad).</p>
+<p>El sistema valida que las 3 fotografías hayan sido cargadas antes de permitir finalizar.</p>
+<hr>
+<h2 id="rs-112--112-finalización-del-registro-de-entrega-de-premio">RS-112 — 112. FINALIZACIÓN DEL REGISTRO DE ENTREGA DE PREMIO</h2>
+<p>RF-098</p>
+<p>El botón <strong>&quot;Registrar entrega del premio&quot;</strong> solo se habilita cuando <strong>TODOS</strong> los datos obligatorios y las <strong>3 fotografías</strong> están presentes.</p>
+<p>Si falta algún campo o fotografía, el sistema indica cuál es el elemento pendiente y mantiene el botón deshabilitado.</p>
+<p>Al confirmar &quot;Registrar entrega del premio&quot;:</p>
+<ul>
+<li>Estado del caso cambia a <strong>&quot;Registrado&quot;</strong>.</li>
+<li>Se registra en BD: <code>EntregaGanador</code> con todos los datos ingresados, referencias a las 3 fotografías, fecha/hora, observador que registró.</li>
+<li>Marca el <code>Boleto</code> con estado = <strong>&quot;Premio entregado&quot;</strong> y asigna <code>FechaEntregaPremio</code> = fecha/hora actual.</li>
+<li>Genera comprobante de entrega que el observador puede visualizar y, opcionalmente, compartir.</li>
+</ul>
+<hr>
+<h2 id="rs-113--113-bloqueo-de-ticket-después-de-entrega-de-premio">RS-113 — 113. BLOQUEO DE TICKET DESPUÉS DE ENTREGA DE PREMIO</h2>
+<p>RF-099</p>
+<p>Un ticket ganador solamente puede ser registrado y marcado como <strong>&quot;Premio entregado&quot;</strong> una única vez.</p>
+<p>Una vez que el ticket tiene estado <strong>&quot;Premio entregado&quot;</strong>:</p>
+<ul>
+<li>No se puede escanear el QR para iniciar un nuevo proceso de validación.</li>
+<li>Si se intenta escanear muestra: <strong>&quot;Este ticket ya fue registrado y el premio ya fue entregado. No se pueden iniciar nuevos procesos de reclamación.&quot;</strong></li>
+<li>El registro de entrega queda bloqueado para edición.</li>
+<li>No permite cambio de estado.</li>
+<li>Queda visible en lectura para auditoría.</li>
+</ul>
+<hr>
+<h2 id="rs-114--114-visualización-de-histórico-de-caso-completado">RS-114 — 114. VISUALIZACIÓN DE HISTÓRICO DE CASO COMPLETADO</h2>
+<p>RF-100</p>
+<p>El administrador y observador pueden visualizar el histórico completo de un caso con estado <strong>&quot;Registrado&quot;</strong> o <strong>&quot;Premio entregado&quot;</strong>:</p>
+<ul>
+<li>Datos del ganador registrado.</li>
+<li>Fecha/hora de entrega.</li>
+<li>Observador que realizó la entrega.</li>
+<li>Valor total ganado registrado.</li>
+<li>Fotografías asociadas (visualizables pero no editables).</li>
+<li>Trazabilidad completa: fechas de reporte, validación, asignación, registro y entrega.</li>
+</ul>
+<hr>
+<h2 id="rs-115--115-actualización-de-matriz-de-permisos-para-proceso-de-premios">RS-115 — 115. ACTUALIZACIÓN DE MATRIZ DE PERMISOS PARA PROCESO DE PREMIOS</h2>
+<p>La matriz de permisos (RS-032) se amplía con nuevas funcionalidades:</p>
+<table>
+<thead>
+<tr>
+<th>Funcionalidad</th>
+<th>Vendedor</th>
+<th>Observador</th>
+<th>Administrador</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Validar ticket ganador</td>
+<td>✅</td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>Acceder a &quot;Casos de premios&quot;</td>
+<td>❌</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Validar administración</td>
+<td>❌</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Asignar observador</td>
+<td>❌</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Registrar ganador</td>
+<td>❌</td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>Ver histórico de premios</td>
+<td>❌</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="rs-116--116-cambios-en-modelo-de-datos-para-proceso-de-premios">RS-116 — 116. CAMBIOS EN MODELO DE DATOS PARA PROCESO DE PREMIOS</h2>
+<p>Se incorporan nuevas tablas y campos:</p>
+<p><strong>Tabla <code>CasosGanadores</code>:</strong></p>
+<ul>
+<li>CasoId (GUID, PK)</li>
+<li>BoletoId (FK → Boletos)</li>
+<li>TicketCode (string, 7 dígitos)</li>
+<li>Estado (enum: Reportado, Validado, Asignado, EnProceso, Registrado, Rechazado, PremioEntregado)</li>
+<li>FechaReporte (datetime)</li>
+<li>FechaValidacionAdmin (datetime, nullable)</li>
+<li>FechaAsignacion (datetime, nullable)</li>
+<li>FechaRegistro (datetime, nullable)</li>
+<li>VendedorQueReporto (FK → Usuarios)</li>
+<li>AdminQueValido (FK → Usuarios, nullable)</li>
+<li>AdminQueAsigno (FK → Usuarios, nullable)</li>
+<li>ObservadorAsignado (FK → Usuarios, nullable)</li>
+</ul>
+<p><strong>Tabla <code>EntregasGanadores</code>:</strong></p>
+<ul>
+<li>EntregaId (GUID, PK)</li>
+<li>CasoId (FK → CasosGanadores)</li>
+<li>NombreGanador (string)</li>
+<li>ApellidoGanador (string)</li>
+<li>NumeroContacto (string)</li>
+<li>LugarGano (string)</li>
+<li>NombreVendedor (string)</li>
+<li>ValorTotalGanado (decimal)</li>
+<li>PersonaQueEntrega (FK → Usuarios)</li>
+<li>FechaEntrega (datetime)</li>
+</ul>
+<p><strong>Tabla <code>EvidenciasGanador</code>:</strong></p>
+<ul>
+<li>EvidenciaId (GUID, PK)</li>
+<li>EntregaId (FK → EntregasGanadores)</li>
+<li>TipoEvidencia (enum: TicketConQR, GanadorConTicket, CedulaIdentidad)</li>
+<li>RutaImagen (string, path a archivo binario)</li>
+<li>FechaCaptura (datetime)</li>
+</ul>
+<p><strong>Cambios en tabla <code>Boletos</code>:</strong></p>
+<ul>
+<li>Agregar campo <code>EstadoDelPremio</code> (enum: Vigente, PremioEntregado, Rechazado)</li>
+<li>Agregar campo <code>FechaEntregaPremio</code> (datetime, nullable)</li>
+<li>Agregar campo <code>CasoGanadorId</code> (FK → CasosGanadores, nullable)</li>
+</ul>
+<hr>
+<h2 id="rs-117--117-criterios-de-aceptación-para-proceso-de-premios">RS-117 — 117. CRITERIOS DE ACEPTACIÓN PARA PROCESO DE PREMIOS</h2>
+<p>El proceso será considerado completamente funcional cuando:</p>
+<ul>
+<li>Un vendedor pueda acceder a &quot;Validar ticket ganador&quot; desde su PDA.</li>
+<li>El sistema ejecute prevalidación automática y registre caso si es válido.</li>
+<li>El administrador reciba notificación de nuevo caso reportado.</li>
+<li>El administrador pueda solicitar fotografía y validar manualmente.</li>
+<li>El administrador pueda asignar observador a un caso validado.</li>
+<li>El observador reciba notificación de caso asignado en su PDA.</li>
+<li>El observador pueda registrar ganador con todos los campos obligatorios.</li>
+<li>El observador pueda capturar 3 fotografías obligatorias desde cámara o galería.</li>
+<li>El botón de finalización solo se habilite cuando todos los datos y fotos están presentes.</li>
+<li>Al finalizar, el boleto quede marcado con estado <strong>&quot;Premio entregado&quot;</strong>.</li>
+<li>Un ticket &quot;Premio entregado&quot; no pueda scanearse de nuevo para abrir otro caso.</li>
+<li>El histórico del caso quede visible para auditoría con trazabilidad completa.</li>
+<li>El sistema no calcule premios; solo registre valor ingresado manualmente por observador.</li>
+</ul>
+<hr>
+<h1 id="conclusión-de-los-requisitos-del-sistema">Conclusión de los requisitos del sistema</h1>
+
+            <script async src="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.js"></script>
+            
+        </body>
+        </html>

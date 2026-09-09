@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="es-CO">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>New Rich | Vendedor</title>
+<style>
+:root{--ink:#17212b;--muted:#71808a;--paper:#f5f7f5;--white:#fff;--green:#087f5b;--dark:#123d35;--mint:#e0f4e8;--line:#dfe8e3;--gold:#f3bb46;--warn:#a9670c;--warn2:#fbedd6;--danger:#b3261e;--danger2:#fbe4e1;--info:#1f5fa8;--info2:#e3edf8}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(135deg,#dceee5,#f7f8f3 55%);color:var(--ink);font-family:"Manrope","Avenir Next",sans-serif}
+.phone{width:min(100%,430px);min-height:100vh;margin:auto;background:var(--paper);box-shadow:0 0 50px #173b3520;display:flex;flex-direction:column}
+.hidden{display:none!important}
+button{font-family:inherit;cursor:pointer}
+input,select,textarea{font-family:inherit}
+/* login */
+.login-wrap{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:28px}
+.login-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:24px}
+.brand{font-size:12px;font-weight:800;letter-spacing:2px;color:var(--green);margin-bottom:6px}
+.login-card h1{font-size:22px;margin:0 0 6px}
+.login-card p{color:var(--muted);font-size:13px;margin:0 0 18px}
+.demo-hint{margin-top:14px;font-size:11px;color:var(--muted);background:var(--mint);border-radius:8px;padding:10px}
+.error-box{margin-top:12px;font-size:12px;color:var(--danger);background:var(--danger2);border-radius:8px;padding:10px}
+/* top bar */
+.top{background:var(--dark);color:#fff;padding:18px 18px 22px;border-radius:0 0 20px 20px}
+.topline,.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.top small{color:#aed8c4}
+.top h1{font-size:22px;margin:14px 0 2px;letter-spacing:-0.5px}
+.status-line{font-size:11px;color:#bce9cc;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.iconbtn{background:#ffffff22;border:0;color:#fff;border-radius:10px;padding:8px 10px;font-size:13px}
+.back{background:transparent;border:0;color:#fff;font-size:18px;padding:4px 8px}
+.content{padding:18px 16px 90px;flex:1;overflow-y:auto}
+/* banners */
+.banner{border-radius:12px;padding:12px 14px;font-size:12px;margin-bottom:14px}
+.banner-danger{background:var(--danger2);color:var(--danger)}
+.banner-warn{background:var(--warn2);color:var(--warn)}
+.banner-info{background:var(--info2);color:var(--info)}
+/* home */
+.hero{background:var(--gold);padding:20px;border-radius:15px;position:relative;overflow:hidden}
+.hero:after{content:"";position:absolute;width:125px;height:125px;border:20px solid #ffffff35;border-radius:50%;right:-25px;top:-35px}
+.hero span{font-size:12px;font-weight:800}
+.hero strong{display:block;font-size:30px;margin:5px 0 15px}
+.button{width:100%;border:0;border-radius:10px;padding:13px 15px;font-weight:800;background:var(--dark);color:#fff}
+.button:disabled{background:#d9dedb;color:#87918c;cursor:not-allowed}
+.button.secondary{background:#fff;color:var(--dark);border:1px solid var(--line)}
+.button.danger{background:var(--danger);color:#fff}
+.button.small{padding:9px 12px;font-size:12px;width:auto}
+.section{margin-top:22px}
+.section-title{font-size:14px;font-weight:800;margin-bottom:10px}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mini{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px}
+.mini b{font-size:19px;display:block;margin-top:4px}
+.mini span{font-size:11px;color:var(--muted)}
+.menu-list{display:grid;gap:10px}
+.menu-item{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;justify-content:space-between;align-items:center;text-align:left}
+.menu-item b{display:block;font-size:13px}
+.menu-item span{font-size:11px;color:var(--muted)}
+/* forms */
+.form{background:#fff;padding:16px;border:1px solid var(--line);border-radius:14px}
+.field{display:grid;gap:6px;margin-bottom:14px}
+.field label{font-size:12px;font-weight:800}
+.field input,.field select,.field textarea{width:100%;border:1px solid var(--line);border-radius:9px;padding:11px;background:#fbfdfb;color:var(--ink)}
+.check-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.check-item{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:9px;padding:9px 10px;font-size:13px;background:#fbfdfb}
+.type-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.type-card{background:#fff;border:2px solid var(--line);border-radius:14px;padding:16px;text-align:left}
+.type-card b{display:block;font-size:15px;margin-bottom:4px}
+.type-card span{font-size:11px;color:var(--muted)}
+.type-card.active{border-color:var(--green);background:var(--mint)}
+/* table */
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:#fff}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{padding:10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{color:var(--muted);font-size:11px;text-transform:uppercase}
+.total-row{display:flex;justify-content:space-between;align-items:center;background:var(--dark);color:#fff;border-radius:12px;padding:14px 16px;margin:14px 0}
+.total-row b{font-size:19px}
+.tag{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700}
+.tag-jugado{background:var(--info2);color:var(--info)}
+.tag-ganador{background:var(--warn2);color:var(--warn)}
+.tag-pagado{background:var(--mint);color:var(--green)}
+.tag-vencido{background:var(--danger2);color:var(--danger)}
+.tag-noganador{background:#eef0ef;color:var(--muted)}
+/* modal */
+.modal-back{position:fixed;inset:0;background:#0d1f19aa;display:flex;align-items:flex-end;justify-content:center;z-index:20}
+.modal{background:#fff;width:100%;max-width:430px;border-radius:18px 18px 0 0;padding:20px;max-height:88vh;overflow-y:auto}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.modal-head h2{font-size:16px;margin:0}
+.modal-head .close{border:0;background:var(--mint);color:var(--dark);border-radius:8px;padding:6px 10px;font-weight:700}
+.modal-actions{display:grid;gap:10px;margin-top:16px}
+/* receipt: mismo formato que administracion > Loterias > Ver */
+.receipt{width:100%;max-width:100%;margin:0;padding:18px;border:1px dashed var(--line);background:#fbfdfc;overflow:hidden;border-radius:10px}
+.receipt-text{width:100%;margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.45 monospace}
+.qr-test{width:min(128px,100%);aspect-ratio:1;margin:14px auto;background-color:#fff;background-image:linear-gradient(90deg,#173e55 10%,transparent 10%,transparent 20%,#173e55 20%,#173e55 30%,transparent 30%,transparent 40%,#173e55 40%,#173e55 50%,transparent 50%,transparent 60%,#173e55 60%,#173e55 70%,transparent 70%,transparent 80%,#173e55 80%,#173e55 90%,transparent 90%),linear-gradient(#173e55 10%,transparent 10%,transparent 20%,#173e55 20%,#173e55 30%,transparent 30%,transparent 40%,#173e55 40%,#173e55 50%,transparent 50%,transparent 60%,#173e55 60%,#173e55 70%,transparent 70%,transparent 80%,#173e55 80%,#173e55 90%,transparent 90%);border:8px solid #173e55}
+/* chat */
+.chat-scroll{display:flex;flex-direction:column;gap:10px;max-height:52vh;overflow-y:auto;padding:4px}
+.bubble{max-width:78%;padding:9px 12px;border-radius:12px;font-size:12.5px}
+.bubble.mine{align-self:flex-end;background:var(--dark);color:#fff;border-bottom-right-radius:2px}
+.bubble.theirs{align-self:flex-start;background:#fff;border:1px solid var(--line);border-bottom-left-radius:2px}
+.bubble small{display:block;margin-top:4px;font-size:10px;opacity:.7}
+.chat-input{display:flex;gap:8px;margin-top:12px}
+.chat-input input{flex:1;border:1px solid var(--line);border-radius:9px;padding:10px}
+/* bottom nav */
+.bottomnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(100%,430px);background:#fff;border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:8px 4px;z-index:15}
+.navbtn{background:transparent;border:0;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;color:var(--muted);padding:6px 4px;border-radius:10px}
+.navbtn.active{color:var(--green);font-weight:800}
+.navbtn i{font-size:17px;font-style:normal}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font-size:12px;z-index:40;opacity:0;transition:opacity .2s}
+.toast.show{opacity:1}
+.switch-row{display:flex;justify-content:space-between;align-items:center;border:1px solid var(--line);border-radius:10px;padding:12px;background:#fff;margin-bottom:10px}
+.switch-row b{font-size:13px;display:block}
+.switch-row span{font-size:11px;color:var(--muted)}
+.switch{width:44px;height:24px;border-radius:999px;background:#d9dedb;position:relative;border:0;flex:none}
+.switch.on{background:var(--green)}
+.switch::after{content:"";position:absolute;width:18px;height:18px;background:#fff;border-radius:50%;top:3px;left:3px;transition:left .15s}
+.switch.on::after{left:23px}
+.linefield{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);font-size:12px}
+.linefield:last-child{border-bottom:0}
+</style>
+</head>
+<body>
+<div class="phone" id="phone">
+  <div id="loginScreen" class="login-wrap">
+    <div class="login-card">
+      <div class="brand">NEW RICH · PDA VENDEDOR</div>
+      <h1 id="loginTitle">Iniciar sesión</h1>
+      <p>Ingresa con tu usuario y contraseña asignados por el administrador.</p>
+      <div class="field"><label>Usuario</label><input id="loginUser" value="crojas"></div>
+      <div class="field"><label>Contraseña</label><input id="loginPass" type="password" value="vendedor123"></div>
+      <button class="button" onclick="attemptLogin()">Ingresar</button>
+      <div id="loginError"></div>
+      <div class="demo-hint">Acceso de demostración: <b>crojas / vendedor123</b> (contraseña temporal, exige cambio en el primer acceso). PDA-042 asociado y autorizado.</div>
+    </div>
+  </div>
+
+  <div id="passwordScreen" class="login-wrap hidden">
+    <div class="login-card">
+      <div class="brand">PRIMER ACCESO</div>
+      <h1>Establecer nueva contraseña</h1>
+      <p>Por seguridad debes definir una contraseña definitiva antes de operar el PDA.</p>
+      <div class="field"><label>Nueva contraseña</label><input id="newPass1" type="password" placeholder="Mínimo 8 caracteres"></div>
+      <div class="field"><label>Confirmar contraseña</label><input id="newPass2" type="password"></div>
+      <button class="button" onclick="setDefinitivePassword()">Guardar y continuar</button>
+    </div>
+  </div>
+
+  <div id="app" class="hidden" style="display:flex;flex-direction:column;min-height:100vh">
+    <div class="top">
+      <div class="topline">
+        <div>
+          <button class="back hidden" id="backBtn" onclick="goBack()">←</button>
+        </div>
+        <div class="row" style="gap:6px">
+          <button class="iconbtn" onclick="openSimPanel()">⚙ Demo</button>
+          <button class="iconbtn" onclick="logout()">Salir</button>
+        </div>
+      </div>
+      <h1 id="topTitle">Inicio</h1>
+      <div class="status-line" id="statusLine"></div>
+    </div>
+    <div class="content" id="content"></div>
+    <div class="bottomnav" id="bottomnav">
+      <button class="navbtn" data-tab="home" onclick="goHome()"><i>⌂</i>Inicio</button>
+      <button class="navbtn" data-tab="venta" onclick="goVenta()"><i>+</i>Vender</button>
+      <button class="navbtn" data-tab="historico" onclick="goHistorico()"><i>▤</i>Histórico</button>
+      <button class="navbtn" data-tab="soporte" onclick="goSoporte()"><i>💬</i>Soporte</button>
+      <button class="navbtn" data-tab="mas" onclick="goMas()"><i>≡</i>Más</button>
+    </div>
+  </div>
+</div>
+<div id="toast" class="toast"></div>
+
+<script>
+/* ---------- datos de muestra ---------- */
+const vendedor={nombre:'Camila Rojas',alias:'Cami',usuario:'crojas',documento:'1.020.456.789',pda:'PDA-042',grupo:'Grupo Norte'};
+const loterias=[{nombre:'Bogotá',activa:true},{nombre:'Cali',activa:true},{nombre:'Medellín',activa:true},{nombre:'Armenia',activa:true},{nombre:'Pasto',activa:true}];
+const numerosGanadores=[
+ {fecha:'2026-08-30',loteria:'Medellín',numero:'1234'},
+ {fecha:'2026-08-30',loteria:'Bogotá',numero:'4561'},
+ {fecha:'2026-08-30',loteria:'Cali',numero:'7890'},
+ {fecha:'2026-08-29',loteria:'Armenia',numero:'3456'},
+ {fecha:'2026-08-29',loteria:'Pasto',numero:'5678'}
+];
+const historico=[
+ {codigo:'AOL-4839201',fecha:'2026-08-30 14:32',total:45000,tipo:'INDIVIDUAL',estado:'Jugado'},
+ {codigo:'AOL-4839167',fecha:'2026-08-30 13:41',total:55000,tipo:'COMBINADO',estado:'Jugado'},
+ {codigo:'AOL-4831902',fecha:'2026-08-29 19:12',total:20000,tipo:'INDIVIDUAL',estado:'Ganador'},
+ {codigo:'AOL-4829845',fecha:'2026-08-28 18:05',total:10000,tipo:'COMBINADO',estado:'Pagado'},
+ {codigo:'AOL-4811230',fecha:'2026-08-20 17:50',total:15000,tipo:'INDIVIDUAL',estado:'Vencido'}
+];
+let chatMessages=[
+ {from:'vendedor',text:'Buenas tardes, tengo un boleto que el cliente dice que es vencido, ¿me confirman?',time:'14:02'},
+ {from:'admin',text:'Claro Camila, indícame el código del boleto para revisarlo.',time:'14:05'}
+];
+/* ---------- estado de sesión y demo ---------- */
+let session={
+ loggedIn:false,
+ estadoValidado:true, // exige cambio de contraseña en primer acceso
+ failedAttempts:0,
+ online:true,
+ horarioAbierto:true,
+ syncMode:'Manual',
+ offlineCount:6,
+ ventasDia:100000,
+ boletosHoy:2
+};
+let history=['home'];
+let ticket=null; // {tipo:'COMBINADA'|'INDIVIDUAL', juegos:[...]}
+const MAX_COMBINADA=1;
+const MAX_INDIVIDUAL=6;
+/* ---------- utilidades ---------- */
+function money(n){return '$'+Number(n).toLocaleString('es-CO')}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)}
+function pad7(n){return String(n).padStart(7,'0')}
+function randomCode(){return pad7(Math.floor(Math.random()*10000000))}
+function statusLine(){return `PDA ${vendedor.pda} · ${session.online?'<b style="color:#bce9cc">Conectado</b>':'<b style="color:#f7c9c2">Sin conexión</b>'} · ${session.horarioAbierto?'Horario abierto':'Horario cerrado'} · Códigos offline: ${session.offlineCount}`}
+function refreshStatus(){document.getElementById('statusLine').innerHTML=statusLine()}
+/* ---------- login ---------- */
+function attemptLogin(){
+ const u=document.getElementById('loginUser').value.trim();
+ const p=document.getElementById('loginPass').value;
+ const box=document.getElementById('loginError');
+ if(session.failedAttempts>=3){box.innerHTML='<div class="error-box">Usuario bloqueado por 3 intentos fallidos. Solo el administrador puede desbloquearlo.</div>';return}
+ if(u!==vendedor.usuario||p!=='vendedor123'){session.failedAttempts++;box.innerHTML=`<div class="error-box">Usuario o contraseña incorrectos. Intento ${session.failedAttempts} de 3.</div>`;return}
+ box.innerHTML='';session.failedAttempts=0;
+ if(session.estadoValidado){document.getElementById('loginScreen').classList.add('hidden');document.getElementById('passwordScreen').classList.remove('hidden');return}
+ enterApp();
+}
+function setDefinitivePassword(){
+ const p1=document.getElementById('newPass1').value;const p2=document.getElementById('newPass2').value;
+ if(p1.length<8){toast('La contraseña debe tener mínimo 8 caracteres');return}
+ if(p1!==p2){toast('Las contraseñas no coinciden');return}
+ session.estadoValidado=false;document.getElementById('passwordScreen').classList.add('hidden');enterApp();
+}
+function enterApp(){session.loggedIn=true;document.getElementById('app').classList.remove('hidden');history=['home'];goHome()}
+function logout(){session.loggedIn=false;document.getElementById('app').classList.add('hidden');document.getElementById('loginScreen').classList.remove('hidden');document.getElementById('loginPass').value='';toast('Sesión cerrada')}
+/* ---------- navegación ---------- */
+function setActiveTab(tab){document.querySelectorAll('.navbtn').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab))}
+function pushView(name){if(history[history.length-1]!==name)history.push(name)}
+function goBack(){history.pop();const prev=history.pop()||'home';render(prev)}
+function goHome(){history=['home'];render('home')}
+function goVenta(){history=['home'];render('tipoApuesta')}
+function goHistorico(){history=['home'];render('historico')}
+function goSoporte(){history=['home'];render('soporte')}
+function goMas(){history=['home'];render('mas')}
+function openView(name){pushView(name);render(name)}
+function render(view){
+ const back=document.getElementById('backBtn');
+ back.classList.toggle('hidden',view==='home');
+ document.getElementById('content').innerHTML=views[view]?views[view]():'';
+ document.getElementById('topTitle').textContent=titles[view]||'New Rich';
+ refreshStatus();
+ setActiveTab({home:'home',tipoApuesta:'venta',construirApuesta:'venta',historico:'historico',soporte:'soporte'}[view]||'');
+ window.scrollTo(0,0);
+}
+const titles={home:'Inicio',tipoApuesta:'Juego nuevo',construirApuesta:'Juego nuevo',historico:'Histórico',resultados:'Resultados',validarTicket:'Validar ticket ganador',soporte:'Soporte',configuracion:'Configuración',mas:'Más opciones'};
+/* ---------- vistas ---------- */
+const views={
+ home:homeView,
+ tipoApuesta:tipoApuestaView,
+ construirApuesta:construirApuestaView,
+ historico:historicoView,
+ resultados:resultadosView,
+ validarTicket:validarTicketView,
+ soporte:soporteView,
+ configuracion:configuracionView,
+ mas:masView
+};
+function homeView(){
+ const bannerCierre=!session.horarioAbierto?'<div class="banner banner-danger"><b>LOS JUEGOS ESTÁN CERRADOS.</b> No se pueden iniciar nuevas apuestas hasta la próxima apertura de horario.</div>':'';
+ return `${bannerCierre}
+ <div class="hero"><span>VENTAS DEL DÍA</span><strong>${money(session.ventasDia)}</strong>
+ <button class="button" ${session.horarioAbierto?'':'disabled'} onclick="goVenta()">+ Juego nuevo</button></div>
+ <div class="section"><div class="section-title">Resumen de turno</div>
+ <div class="cards">
+ <div class="mini"><span>Boletos hoy</span><b>${session.boletosHoy}</b></div>
+ <div class="mini"><span>Códigos offline</span><b>${session.offlineCount}</b></div>
+ <div class="mini"><span>PDA asociado</span><b>${vendedor.pda}</b></div>
+ <div class="mini"><span>Grupo</span><b>${vendedor.grupo}</b></div>
+ </div></div>
+ <div class="section"><div class="section-title">Accesos rápidos</div>
+ <div class="menu-list">
+ <button class="menu-item" onclick="openView('historico')"><div><b>Histórico de ventas</b><span>Consulta hasta 10 días atrás</span></div><span>›</span></button>
+ <button class="menu-item" onclick="openView('resultados')"><div><b>Resultados y números ganadores</b><span>Consulta por lotería y fecha</span></div><span>›</span></button>
+ <button class="menu-item" onclick="openView('validarTicket')"><div><b>Validar ticket ganador</b><span>Escanear QR y prevalidar</span></div><span>›</span></button>
+ <button class="menu-item" onclick="openView('soporte')"><div><b>Soporte</b><span>Chat directo con el administrador</span></div><span>›</span></button>
+ </div></div>`;
+}
+function masView(){
+ return `<div class="menu-list">
+ <button class="menu-item" onclick="openView('resultados')"><div><b>Resultados y números ganadores</b><span>Solo lectura</span></div><span>›</span></button>
+ <button class="menu-item" onclick="openView('validarTicket')"><div><b>Validar ticket ganador</b><span>Prevalidación con QR</span></div><span>›</span></button>
+ <button class="menu-item" onclick="openView('configuracion')"><div><b>Configuración de sincronización</b><span>Códigos offline manual/automático</span></div><span>›</span></button>
+ <button class="menu-item" onclick="logout()"><div><b>Cerrar sesión</b><span>Salir del PDA</span></div><span>›</span></button>
+ </div>`;
+}
+/* ---------- crear apuesta ---------- */
+function tipoApuestaView(){
+ if(!session.horarioAbierto){return '<div class="banner banner-danger"><b>LOS JUEGOS ESTÁN CERRADOS.</b> Vuelve a intentarlo cuando el administrador habilite el horario.</div>'}
+ return `<p style="color:var(--muted);font-size:13px;margin-top:0">Selecciona el tipo de apuesta. El tipo no se puede mezclar dentro del mismo boleto.</p>
+ <div class="type-grid">
+ <button class="type-card" onclick="startTicket('COMBINADA')"><b>COMBINADA</b><span>Un número y valor jugados en varias loterías. Máximo ${MAX_COMBINADA} juego.</span></button>
+ <button class="type-card" onclick="startTicket('INDIVIDUAL')"><b>INDIVIDUAL</b><span>Líneas independientes, cada una con su propia lotería. Máximo ${MAX_INDIVIDUAL} líneas.</span></button>
+ </div>`;
+}
+function startTicket(tipo){ticket={tipo,juegos:[]};openView('construirApuesta')}
+function ticketTotal(){
+ if(!ticket)return 0;
+ if(ticket.tipo==='COMBINADA')return ticket.juegos.reduce((a,j)=>a+j.valor*j.loterias.length,0);
+ return ticket.juegos.reduce((a,j)=>a+j.valor,0);
+}
+function construirApuestaView(){
+ if(!ticket)return tipoApuestaView();
+ const max=ticket.tipo==='COMBINADA'?MAX_COMBINADA:MAX_INDIVIDUAL;
+ const alMax=ticket.juegos.length>=max;
+ const formulario=ticket.tipo==='COMBINADA'?formCombinada(alMax):formIndividual(alMax);
+ const filas=ticket.juegos.map((j,i)=>filaJuego(j,i)).join('')||`<tr><td colspan="4" style="text-align:center;color:var(--muted)">Aún no hay juegos agregados</td></tr>`;
+ return `<div class="banner banner-info"><b>Tipo de apuesta: ${ticket.tipo}.</b> No se puede mezclar con el otro tipo en este boleto.</div>
+ <div class="form">${formulario}</div>
+ <div class="section"><div class="section-title">Juegos del boleto</div>
+ <div class="table-wrap"><table><thead><tr><th>Número</th><th>Valor</th><th>${ticket.tipo==='COMBINADA'?'Loterías':'Lotería'}</th><th></th></tr></thead><tbody>${filas}</tbody></table></div></div>
+ <div class="total-row"><span>Total apostado</span><b>${money(ticketTotal())}</b></div>
+ <button class="button" ${ticket.juegos.length?'':'disabled'} onclick="openConfirmVenta()">JUGAR</button>
+ <button class="button secondary" style="margin-top:10px" onclick="cancelarBoleto()">Cancelar boleto</button>`;
+}
+function formCombinada(alMax){
+ const opciones=loterias.filter(l=>l.activa).map((l,i)=>`<label class="check-item"><input type="checkbox" class="lot-check" value="${l.nombre}"> ${l.nombre}</label>`).join('');
+ return `<div class="field"><label>Número apostado</label><input id="numCombinada" placeholder="Ej. 1234" maxlength="4"></div>
+ <div class="field"><label>Valor apostado</label><input id="valCombinada" type="number" placeholder="Ej. 1000"></div>
+ <div class="field"><label>Loterías</label><div class="check-grid">${opciones}</div></div>
+ <button class="button" ${alMax?'disabled':''} onclick="addJuegoCombinada()">${alMax?'Máximo de juegos alcanzado':'Agregar juego'}</button>`;
+}
+function formIndividual(alMax){
+ const opciones=loterias.filter(l=>l.activa).map(l=>`<option>${l.nombre}</option>`).join('');
+ return `<div class="field"><label>Número apostado</label><input id="numIndividual" placeholder="Ej. 1234" maxlength="4"></div>
+ <div class="field"><label>Valor apostado</label><input id="valIndividual" type="number" placeholder="Ej. 1000"></div>
+ <div class="field"><label>Lotería</label><select id="lotIndividual">${opciones}</select></div>
+ <button class="button" ${alMax?'disabled':''} onclick="addLineaIndividual()">${alMax?'Máximo de líneas alcanzado':'Agregar línea'}</button>`;
+}
+function filaJuego(j,i){
+ const lot=Array.isArray(j.loterias)?j.loterias.join(', '):j.loteria;
+ return `<tr><td>${j.numero}</td><td>${money(j.valor)}</td><td>${lot}</td><td><button class="button small danger" onclick="confirmRemoveJuego(${i})">Quitar</button></td></tr>`;
+}
+function addJuegoCombinada(){
+ const numero=document.getElementById('numCombinada').value.trim();
+ const valor=Number(document.getElementById('valCombinada').value);
+ const loteriasSel=Array.from(document.querySelectorAll('.lot-check:checked')).map(c=>c.value);
+ if(!numero||!valor||!loteriasSel.length){toast('Completa número, valor y al menos una lotería');return}
+ if(ticket.juegos.length>=MAX_COMBINADA){toast('Ya alcanzaste el máximo de juegos configurado');return}
+ ticket.juegos.push({numero,valor,loterias:loteriasSel});
+ render('construirApuesta');
+}
+function addLineaIndividual(){
+ const numero=document.getElementById('numIndividual').value.trim();
+ const valor=Number(document.getElementById('valIndividual').value);
+ const loteria=document.getElementById('lotIndividual').value;
+ if(!numero||!valor){toast('Completa número y valor');return}
+ if(ticket.juegos.length>=MAX_INDIVIDUAL){toast('Ya alcanzaste el máximo de líneas configurado');return}
+ ticket.juegos.push({numero,valor,loteria});
+ render('construirApuesta');
+}
+function confirmRemoveJuego(i){
+ const j=ticket.juegos[i];
+ openModal(`<div class="modal-head"><h2>Eliminar juego</h2><button class="close" onclick="closeModal()">Cerrar</button></div>
+ <p>¿Está seguro de eliminar este juego? Se descontará ${money(ticket.tipo==='COMBINADA'?j.valor*j.loterias.length:j.valor)} del total.</p>
+ <div class="modal-actions"><button class="button secondary" onclick="closeModal()">No</button><button class="button danger" onclick="removeJuego(${i})">Sí, eliminar</button></div>`);
+}
+function removeJuego(i){ticket.juegos.splice(i,1);closeModal();render('construirApuesta')}
+function cancelarBoleto(){
+ openModal(`<div class="modal-head"><h2>Cancelar boleto</h2><button class="close" onclick="closeModal()">Cerrar</button></div>
+ <p>Se perderán los juegos agregados en este boleto. ¿Deseas continuar?</p>
+ <div class="modal-actions"><button class="button secondary" onclick="closeModal()">No</button><button class="button danger" onclick="confirmCancelarBoleto()">Sí, cancelar</button></div>`);
+}
+function confirmCancelarBoleto(){ticket=null;closeModal();goHome()}
+function openConfirmVenta(){
+ openModal(`<div class="modal-head"><h2>Confirmar venta</h2><button class="close" onclick="closeModal()">Cerrar</button></div>
+ <p>VALOR TOTAL A PAGAR</p><div class="total-row"><span>Total apostado</span><b>${money(ticketTotal())}</b></div>
+ <p style="font-size:12px;color:var(--muted)">El cliente paga al confirmar. El sistema no almacena información personal del comprador.</p>
+ <div class="modal-actions"><button class="button secondary" onclick="closeModal()">Cancelar</button><button class="button" onclick="confirmarVenta()">Aceptar y pagar</button></div>`);
+}
+function confirmarVenta(){
+ closeModal();
+ if(session.online){registrarVentaOnline();return}
+ if(session.offlineCount>0){
+  openModal(`<div class="modal-head"><h2>Conexión no disponible</h2><button class="close" onclick="closeModal()">Cerrar</button></div>
+  <p>No hay conexión con el servidor. ¿Desea continuar en modo offline usando un código preasignado?</p>
+  <div class="modal-actions"><button class="button secondary" onclick="closeModal()">Esperar conexión</button><button class="button" onclick="registrarVentaOffline()">Continuar en modo offline</button></div>`);
+  return;
+ }
+ openModal(`<div class="modal-head"><h2>Sin conexión ni códigos offline</h2><button class="close" onclick="closeModal()">Cerrar</button></div>
+ <p>El borrador de este boleto se conserva en memoria. Debes conectarte al servidor para realizar la venta y continuar operando.</p>
+ <div class="modal-actions"><button class="button" onclick="closeModal()">Entendido</button></div>`);
+}
+function registrarVentaOnline(){
+ const codigo=randomCode();
+ session.ventasDia+=ticketTotal();session.boletosHoy++;
+ historico.unshift({codigo:'AOL-'+codigo,fecha:new Date().toISOString().slice(0,16).replace('T',' '),total:ticketTotal(),tipo:ticket.tipo,estado:'Jugado'});
+ mostrarTirilla(codigo,false);
+}
+function registrarVentaOffline(){
+ closeModal();
+ const codigo=randomCode();
+ session.offlineCount--;
+ session.ventasDia+=ticketTotal();session.boletosHoy++;
+ historico.unshift({codigo:'AOL-'+codigo,fecha:new Date().toISOString().slice(0,16).replace('T',' '),total:ticketTotal(),tipo:ticket.tipo,estado:'Jugado'});
+ mostrarTirilla(codigo,true);
+}
+function receiptRow(a,b){return `<div class="receipt-row" style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;width:100%">${a}${b}</div>`}
+function receiptRule(extra){return `<div class="receipt-rule" style="width:100%;overflow:hidden;white-space:nowrap${extra?';'+extra:''}">${'='.repeat(49)}</div>`}
+function receiptHtml(codigo){
+ const now=new Date();
+ const fecha=now.toISOString().slice(0,10);
+ const hora=now.toTimeString().slice(0,8);
+ const footer='GRACIAS POR SU COMPRA.\nCONSERVE SU TICKET EN PERFECTO ESTADO.\nVigencia: 30 dias calendario desde su emision. Vencido este plazo, el premio caducara y no sera pagado.';
+ let details,total;
+ const gridStyle='display:grid;grid-template-columns:1fr 1fr 1fr;width:100%;gap:8px;font:12px monospace';
+ if(ticket.tipo==='COMBINADA'){
+  const j=ticket.juegos[0];total=j.valor*j.loterias.length;
+  details=`<div class="receipt-grid" style="${gridStyle}"><strong>NUMERO</strong><strong style="text-align:center">VALOR</strong><strong style="text-align:right">TOTAL</strong><span>${j.numero}</span><span style="text-align:center">${money(j.valor)}</span><span style="text-align:right">${money(total)}</span></div><div class="receipt-text" style="width:100%;margin-top:7px">LOTERIAS: ${j.loterias.join(', ').toUpperCase()}</div>`;
+ }else{
+  total=ticketTotal();
+  const filas=ticket.juegos.map(j=>`<span>${j.numero}</span><span style="text-align:center">${money(j.valor)}</span><span style="text-align:right">${j.loteria.toUpperCase()}</span>`).join('');
+  details=`<div class="receipt-grid" style="${gridStyle}"><strong>NUMERO</strong><strong style="text-align:center">VALOR</strong><strong style="text-align:right">LOTERIA</strong>${filas}</div>`;
+ }
+ return `${receiptRule()}
+ ${receiptRow('<span>RECIBO DE VENTA</span>',`<strong>AOL-${codigo}</strong>`)}
+ ${receiptRule()}
+ ${receiptRow(`<span>Fecha: ${fecha}</span>`,`<strong>Hora: ${hora}</strong>`)}
+ ${receiptRow('<span>Tipo de apuesta:</span>',`<strong>${ticket.tipo}</strong>`)}
+ ${receiptRule()}
+ <div class="receipt-center" style="text-align:center;width:100%">JUGADO</div>
+ ${receiptRule()}
+ ${details}
+ ${receiptRule('margin-top:7px')}
+ ${receiptRow('<strong>TOTAL APOSTADO</strong>',`<strong>${money(total)}</strong>`)}
+ ${receiptRule()}
+ <div class="qr-test" aria-label="QR de prueba visual"></div>
+ ${receiptRule()}
+ <pre class="receipt-text receipt-footer" style="width:100%;overflow:hidden;white-space:pre-wrap">${footer}</pre>
+ ${receiptRule()}`;
+}
+function mostrarTirilla(codigo,offline){
+ const avisoOffline=offline?`<div class="banner banner-warn">Por favor, tome foto de este código vendido. Al confirmar se enviará como evidencia al chat del administrador.</div>`:'';
+ openModal(`<div class="modal-head"><h2>Boleto generado</h2><button class="close" onclick="cerrarTirilla(${offline})">Cerrar</button></div>
+ ${avisoOffline}
+ <div class="receipt receipt-layout">${receiptHtml(codigo)}</div>
+ <div class="modal-actions">
+ <button class="button" onclick="imprimirBoleto()">Imprimir tirilla</button>
+ <button class="button secondary" onclick="generarPdf()">Generar PDF de contingencia</button>
+ ${offline?`<button class="button danger" onclick="confirmarEnvioOffline()">Listo, ya tomé la foto</button>`:`<button class="button secondary" onclick="cerrarTirilla(false)">Volver al inicio</button>`}
+ </div>`);
+}
+function imprimirBoleto(){toast('Enviando a la impresora térmica del PDA...')}
+function generarPdf(){toast('PDF de contingencia generado y disponible para compartir')}
+function confirmarEnvioOffline(){
+ chatMessages.push({from:'vendedor',text:'CÓDIGO VENDIDO OFFLINE — Favor registrar (evidencia QR adjunta)',time:new Date().toTimeString().slice(0,5),permanente:true});
+ toast('Evidencia enviada al chat del administrador');
+ cerrarTirilla(true);
+}
+function cerrarTirilla(){closeModal();ticket=null;goHome()}
+/* ---------- histórico ---------- */
+function historicoView(){
+ const filas=historico.map(v=>`<tr><td>${v.codigo}</td><td>${v.fecha}</td><td>${v.tipo}</td><td>${money(v.total)}</td><td>${estadoTag(v.estado)}</td></tr>`).join('');
+ return `<div class="field"><label>Rango de consulta (máximo hoy → 10 días atrás)</label>
+ <div style="display:flex;gap:8px"><input type="date" id="histDesde"><input type="date" id="histHasta"></div></div>
+ <div class="table-wrap"><table><thead><tr><th>Código</th><th>Fecha</th><th>Tipo</th><th>Total</th><th>Estado</th></tr></thead><tbody>${filas}</tbody></table></div>`;
+}
+function estadoTag(estado){
+ const map={Jugado:'tag-jugado',Ganador:'tag-ganador',Pagado:'tag-pagado',Vencido:'tag-vencido','No ganador':'tag-noganador'};
+ return `<span class="tag ${map[estado]||'tag-jugado'}">${estado}</span>`;
+}
+/* ---------- resultados ---------- */
+function resultadosView(){
+ const filas=numerosGanadores.map(r=>`<tr><td>${r.fecha}</td><td>${r.loteria}</td><td><b>${r.numero}</b></td></tr>`).join('');
+ return `<p style="color:var(--muted);font-size:13px;margin-top:0">Números ganadores registrados por el administrador. Información de solo lectura.</p>
+ <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Lotería</th><th>Número ganador</th></tr></thead><tbody>${filas}</tbody></table></div>`;
+}
+/* ---------- validar ticket ganador ---------- */
+function validarTicketView(){
+ return `<p style="color:var(--muted);font-size:13px;margin-top:0">Escanea el QR del ticket que el cliente reporta como ganador. El sistema realiza una prevalidación automática.</p>
+ <div class="form"><div class="field"><label>Código del boleto (simula el escaneo)</label><input id="codigoValidar" placeholder="Ej. AOL-4839190"></div>
+ <button class="button" onclick="escanearTicket()">Escanear QR</button></div>
+ <div id="resultadoValidacion" style="margin-top:14px"></div>
+ <p style="font-size:11px;color:var(--muted);margin-top:14px">Prueba con <b>AOL-4839190</b> (ganador válido), <b>AOL-4811230</b> (vencido) o cualquier otro código (no ganador).</p>`;
+}
+function escanearTicket(){
+ const codigo=(document.getElementById('codigoValidar').value||'').trim().toUpperCase();
+ const box=document.getElementById('resultadoValidacion');
+ if(codigo==='AOL-4839190'){
+  box.innerHTML='<div class="banner banner-info"><b>Ticket validado.</b> Se ha informado al administrador. Queda pendiente su aprobación.</div>';
+  toast('Caso de ganador reportado al administrador');
+ }else if(codigo==='AOL-4811230'){
+  box.innerHTML='<div class="banner banner-danger"><b>No se registró el caso.</b> Motivo: boleto vencido.</div>';
+ }else if(!codigo){
+  box.innerHTML='<div class="banner banner-warn">Ingresa o escanea un código para validar.</div>';
+ }else{
+  box.innerHTML='<div class="banner banner-danger"><b>No se registró el caso.</b> Motivo: el número no coincide con un resultado ganador.</div>';
+ }
+}
+/* ---------- soporte ---------- */
+function soporteView(){
+ const bubbles=chatMessages.map(m=>`<div class="bubble ${m.from==='vendedor'?'mine':'theirs'}">${m.text}<small>${m.from==='vendedor'?'Tú':'Administrador'} · ${m.time}${m.permanente?' · Mensaje permanente':''}</small></div>`).join('');
+ return `<div class="chat-scroll" id="chatScroll">${bubbles}</div>
+ <div class="chat-input"><input id="chatText" placeholder="Escribe tu mensaje"><button class="button small" onclick="adjuntarImagen()">📎</button><button class="button small" onclick="enviarChat()">Enviar</button></div>`;
+}
+function enviarChat(){
+ const input=document.getElementById('chatText');const text=input.value.trim();
+ if(!text)return;
+ chatMessages.push({from:'vendedor',text,time:new Date().toTimeString().slice(0,5)});
+ input.value='';render('soporte');
+ const scroll=document.getElementById('chatScroll');if(scroll)scroll.scrollTop=scroll.scrollHeight;
+}
+function adjuntarImagen(){
+ chatMessages.push({from:'vendedor',text:'📷 Imagen adjunta desde la galería del PDA',time:new Date().toTimeString().slice(0,5)});
+ render('soporte');toast('Imagen enviada al administrador');
+}
+/* ---------- configuración offline ---------- */
+function configuracionView(){
+ return `<div class="switch-row"><div><b>Sincronización de códigos offline</b><span>Modo actual: ${session.syncMode}</span></div>
+ <button class="switch ${session.syncMode==='Automático'?'on':''}" onclick="toggleSyncMode()"></button></div>
+ <div class="form"><p style="margin-top:0;font-size:13px">Códigos offline disponibles: <b>${session.offlineCount}</b></p>
+ <button class="button secondary" onclick="buscarCodigosOffline()">Buscar y descargar códigos offline</button></div>`;
+}
+function toggleSyncMode(){session.syncMode=session.syncMode==='Manual'?'Automático':'Manual';render('configuracion');toast('Modo de sincronización: '+session.syncMode)}
+function buscarCodigosOffline(){
+ if(session.syncMode==='Manual'){
+  openModal(`<div class="modal-head"><h2>Tiene códigos offline listos para descargar</h2><button class="close" onclick="closeModal()">Cerrar</button></div>
+  <p>Se encontraron 5 códigos nuevos asignados por el administrador.</p>
+  <div class="modal-actions"><button class="button secondary" onclick="closeModal()">Más tarde</button><button class="button" onclick="descargarCodigos()">Descargar</button></div>`);
+ }else{descargarCodigos()}
+}
+function descargarCodigos(){closeModal();session.offlineCount+=5;render('configuracion');toast('5 códigos offline descargados y almacenados localmente')}
+/* ---------- modal + simulación demo ---------- */
+function openModal(html){
+ let back=document.getElementById('modalBack');
+ if(!back){back=document.createElement('div');back.id='modalBack';back.className='modal-back';back.innerHTML='<div class="modal" id="modal"></div>';document.body.appendChild(back)}
+ back.classList.remove('hidden');document.getElementById('modal').innerHTML=html;
+}
+function closeModal(){const back=document.getElementById('modalBack');if(back)back.classList.add('hidden')}
+function openSimPanel(){
+ openModal(`<div class="modal-head"><h2>Panel de simulación</h2><button class="close" onclick="closeModal()">Cerrar</button></div>
+ <p style="font-size:12px;color:var(--muted)">Controles solo para explorar el prototipo, no forman parte de la aplicación real.</p>
+ <div class="switch-row"><div><b>Conexión con el servidor</b><span>${session.online?'Conectado':'Sin conexión'}</span></div><button class="switch ${session.online?'on':''}" onclick="toggleOnline()"></button></div>
+ <div class="switch-row"><div><b>Horario de operación</b><span>${session.horarioAbierto?'Abierto':'LOS JUEGOS ESTÁN CERRADOS'}</span></div><button class="switch ${session.horarioAbierto?'on':''}" onclick="toggleHorario()"></button></div>
+ <div class="linefield"><span>Códigos offline disponibles</span><b>${session.offlineCount}</b></div>`);
+}
+function toggleOnline(){session.online=!session.online;openSimPanel();refreshStatus()}
+function toggleHorario(){session.horarioAbierto=!session.horarioAbierto;openSimPanel();refreshStatus()}
+</script>
+</body>
+</html>

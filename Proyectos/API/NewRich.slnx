@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/NewRich.Api/NewRich.Api.csproj" />
+    <Project Path="src/NewRich.Application/NewRich.Application.csproj" />
+    <Project Path="src/NewRich.Constants/NewRich.Constants.csproj" />
+    <Project Path="src/NewRich.Domain/NewRich.Domain.csproj" />
+    <Project Path="src/NewRich.Infrastructure/NewRich.Infrastructure.csproj" />
+    <Project Path="src/NewRich.Shared/NewRich.Shared.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/NewRich.IntegrationTests/NewRich.IntegrationTests.csproj" />
+    <Project Path="tests/NewRich.UnitTests/NewRich.UnitTests.csproj" />
+  </Folder>
+</Solution>

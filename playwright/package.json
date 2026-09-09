@@ -1,0 +1,15 @@
+{
+  "name": "swapuestas-playwright",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Pruebas E2E Playwright del administrador New Rich",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0"
+  }
+}
