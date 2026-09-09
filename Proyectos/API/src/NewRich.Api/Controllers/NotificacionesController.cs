@@ -20,6 +20,12 @@ public sealed class NotificacionesController : ApiControllerBase
         return From(await _notificacionService.ListarAsync(UsuarioId, cancellationToken));
     }
 
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> Obtener(Guid id, CancellationToken cancellationToken)
+    {
+        return From(await _notificacionService.ObtenerAsync(id, UsuarioId, cancellationToken));
+    }
+
     [HttpPost("marcar-leidas")]
     public async Task<IActionResult> MarcarLeidas(CancellationToken cancellationToken)
     {

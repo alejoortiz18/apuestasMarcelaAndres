@@ -10,10 +10,12 @@ namespace NewRich.Admin.Controllers;
 public sealed class NotificacionesController : AdminControllerBase
 {
     private readonly IAdminApiClient _api;
+    private readonly IConfiguration _config;
 
-    public NotificacionesController(IAdminApiClient api)
+    public NotificacionesController(IAdminApiClient api, IConfiguration config)
     {
         _api = api;
+        _config = config;
     }
 
     public async Task<IActionResult> Index(string? q, bool? leida, int page = 1, int pageSize = 10, CancellationToken cancellationToken = default)
@@ -64,5 +66,37 @@ public sealed class NotificacionesController : AdminControllerBase
 
         SetFlash(result.Success ? SuccessMessages.NotificacionesMarcadasLeidas : result.Message, result.Success);
         return RedirectToAction(nameof(Index));
+    }
+
+    public async Task<IActionResult> Ver(Guid id, CancellationToken cancellationToken)
+    {
+        SetNav("notificaciones", UiTexts.DetalleNotificacion);
+        var result = await _api.ObtenerNotificacionAsync(id, cancellationToken);
+        var unauthorized = RedirectIfUnauthorized(result);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
+        if (!result.Success || result.Data is null)
+        {
+            SetFlash(result.Message, false);
+            return RedirectToAction(nameof(Index));
+        }
+
+        return View(result.Data);
+    }
+
+    [HttpGet]
+    public IActionResult Conexion()
+    {
+        var token = Request.Cookies[AuthCookieNames.AccessToken];
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return Unauthorized();
+        }
+
+        var baseUrl = (_config["Api:BaseUrl"] ?? "http://localhost:5295/").TrimEnd('/');
+        return Json(new { token, hubUrl = baseUrl + UiTexts.HubNotificaciones });
     }
 }

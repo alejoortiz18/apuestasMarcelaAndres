@@ -418,7 +418,11 @@
     }
     if (aviso && !aviso.classList.contains("hidden")) {
       closeAviso();
+      return;
     }
+    document.querySelectorAll("[data-bell-menu][open]").forEach(function (menu) {
+      menu.removeAttribute("open");
+    });
   });
   if (aviso && !aviso.classList.contains("hidden") && avisoClose) {
     avisoClose.focus();
@@ -427,4 +431,113 @@
   document.querySelectorAll("[data-chat-scroll]").forEach(function (el) {
     el.scrollTop = el.scrollHeight;
   });
+
+  document.addEventListener("click", function (event) {
+    document.querySelectorAll("[data-bell-menu][open]").forEach(function (menu) {
+      if (!menu.contains(event.target)) {
+        menu.removeAttribute("open");
+      }
+    });
+  });
+
+  iniciarNotificacionesEnVivo();
 })();
+
+function iniciarNotificacionesEnVivo() {
+  const conexionUrl = document.documentElement.getAttribute("data-notif-conexion");
+  const toast = document.getElementById("notifToast");
+  if (!conexionUrl || !toast || typeof signalR === "undefined") {
+    return;
+  }
+
+  const texto = toast.querySelector("[data-toast-text]");
+  const enlace = toast.querySelector("[data-toast-link]");
+  const duracion = parseInt(toast.getAttribute("data-toast-ms") || "3000", 10);
+  let ocultarTimer = 0;
+
+  function urlVer(id) {
+    const plantilla = document.querySelector("[data-bell-menu]") && document.querySelector("[data-bell-menu]").getAttribute("data-ver-plantilla");
+    if (!plantilla) {
+      return "/Notificaciones/Ver/" + id;
+    }
+    return plantilla.replace(/00000000-0000-0000-0000-000000000000/i, id);
+  }
+
+  function actualizarCampana(aviso) {
+    const menu = document.querySelector("[data-bell-menu]");
+    if (!menu) {
+      return;
+    }
+    const pendientes = (parseInt(menu.getAttribute("data-pendientes") || "0", 10) || 0) + 1;
+    menu.setAttribute("data-pendientes", String(pendientes));
+    const badge = menu.querySelector("[data-bell-count]");
+    const resumen = menu.querySelector(".bell");
+    if (badge) {
+      badge.textContent = pendientes > 99 ? "99+" : String(pendientes);
+      badge.classList.remove("hidden");
+    }
+    if (resumen) {
+      const plantilla = menu.getAttribute("data-aria-plantilla") || "{0}";
+      resumen.setAttribute("aria-label", plantilla.replace("{0}", String(pendientes)));
+    }
+    const vacio = menu.querySelector("[data-bell-empty]");
+    const lista = menu.querySelector("[data-bell-list]");
+    if (vacio) {
+      vacio.classList.add("hidden");
+    }
+    if (lista) {
+      const item = document.createElement("li");
+      const ancla = document.createElement("a");
+      ancla.href = urlVer(aviso.notificacionId || aviso.NotificacionId);
+      const titulo = document.createElement("strong");
+      titulo.textContent = aviso.tipo || aviso.Tipo || "";
+      const mensaje = document.createElement("span");
+      mensaje.textContent = aviso.mensaje || aviso.Mensaje || "";
+      ancla.appendChild(titulo);
+      ancla.appendChild(mensaje);
+      item.appendChild(ancla);
+      lista.insertBefore(item, lista.firstChild);
+      while (lista.children.length > 8) {
+        lista.removeChild(lista.lastChild);
+      }
+    }
+  }
+
+  function mostrarToast(aviso) {
+    const mensaje = aviso.mensaje || aviso.Mensaje || "";
+    const id = aviso.notificacionId || aviso.NotificacionId;
+    if (texto) {
+      texto.textContent = mensaje;
+    }
+    if (enlace && id) {
+      enlace.setAttribute("href", urlVer(id));
+    }
+    toast.classList.remove("hidden");
+    window.clearTimeout(ocultarTimer);
+    ocultarTimer = window.setTimeout(function () {
+      toast.classList.add("hidden");
+    }, duracion);
+  }
+
+  fetch(conexionUrl, { credentials: "same-origin" })
+    .then(function (respuesta) {
+      if (!respuesta.ok) {
+        throw new Error("conexion");
+      }
+      return respuesta.json();
+    })
+    .then(function (datos) {
+      const conexion = new signalR.HubConnectionBuilder()
+        .withUrl(datos.hubUrl, { accessTokenFactory: function () { return datos.token; } })
+        .withAutomaticReconnect()
+        .build();
+      conexion.on("nuevaNotificacion", function (aviso) {
+        actualizarCampana(aviso);
+        mostrarToast(aviso);
+      });
+      return conexion.start();
+    })
+    .catch(function () {
+      return undefined;
+    });
+}

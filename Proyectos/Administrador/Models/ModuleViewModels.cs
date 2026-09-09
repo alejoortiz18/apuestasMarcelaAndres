@@ -217,6 +217,12 @@ public sealed class NotificacionesIndexViewModel
     public int Pendientes { get; init; }
 }
 
+public sealed class CampanaNotificacionesViewModel
+{
+    public int Pendientes { get; init; }
+    public IReadOnlyList<NotificacionItemResponse> Nuevas { get; init; } = [];
+}
+
 public sealed class SoporteIndexViewModel
 {
     public IReadOnlyList<ConversacionResponse> Conversaciones { get; init; } = [];

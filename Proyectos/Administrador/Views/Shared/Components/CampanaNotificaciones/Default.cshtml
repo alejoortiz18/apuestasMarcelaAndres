@@ -1,0 +1,33 @@
+@using NewRich.Admin.Constants
+@model NewRich.Admin.Models.CampanaNotificacionesViewModel
+@{
+    var badge = Model.Pendientes > 99 ? "99+" : Model.Pendientes.ToString();
+    var etiqueta = string.Format(UiTexts.CampanaAvisosAria, Model.Pendientes);
+    var verPlantilla = Url.Action("Ver", "Notificaciones", new { id = Guid.Empty }) ?? "/Notificaciones/Ver/";
+}
+<details class="bell-menu" data-bell-menu data-pendientes="@Model.Pendientes" data-ver-plantilla="@verPlantilla" data-aria-plantilla="@UiTexts.CampanaAvisosAria">
+    <summary class="bell" aria-label="@etiqueta">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+            <path d="M18 8A6 6 0 1 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+            <path d="M13.7 21a2 2 0 0 1-3.4 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+        </svg>
+        <span class="bell-count@(Model.Pendientes > 0 ? null : " hidden")" data-bell-count>@badge</span>
+    </summary>
+    <div class="bell-panel">
+        <p class="bell-head">@UiTexts.NotificacionesNuevas</p>
+        <p class="bell-empty@(Model.Nuevas.Any() ? " hidden" : null)" data-bell-empty>@UiTexts.SinNotificacionesNuevas</p>
+        <ul class="bell-list" data-bell-list>
+            @foreach (var n in Model.Nuevas)
+            {
+                <li>
+                    <a asp-controller="Notificaciones" asp-action="Ver" asp-route-id="@n.NotificacionId">
+                        <strong>@n.Tipo</strong>
+                        <span>@n.Mensaje</span>
+                        <time datetime="@n.FechaCreacion.ToString("o")">@n.FechaCreacion.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</time>
+                    </a>
+                </li>
+            }
+        </ul>
+        <a class="bell-all" asp-controller="Notificaciones" asp-action="Index">@UiTexts.VerTodasLasNotificaciones</a>
+    </div>
+</details>

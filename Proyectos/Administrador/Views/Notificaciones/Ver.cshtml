@@ -1,0 +1,22 @@
+@using NewRich.Admin.Constants
+@using NewRich.Admin.Services
+@model NewRich.Application.Contracts.Notificaciones.NotificacionItemResponse
+@{
+    var estado = Model.Leida ? UiTexts.Leida : UiTexts.Pendiente;
+}
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.NotifKicker</div>
+        <h1>@UiTexts.DetalleNotificacion</h1>
+        <p>@Model.Tipo</p>
+    </div>
+    <a class="secondary" asp-action="Index">@UiTexts.VolverAlListado</a>
+</div>
+<div class="panel">
+    <div class="receipt">
+        <div class="receipt-row"><span>@UiTexts.Tipo</span><strong>@Model.Tipo</strong></div>
+        <div class="receipt-row"><span>@UiTexts.Mensaje</span><strong>@Model.Mensaje</strong></div>
+        <div class="receipt-row"><span>@UiTexts.Fecha</span><strong>@Model.FechaCreacion.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</strong></div>
+        <div class="receipt-row"><span>@UiTexts.Estado</span><strong><span class="pill @EstadoUi.Pill(estado)">@estado</span></strong></div>
+    </div>
+</div>

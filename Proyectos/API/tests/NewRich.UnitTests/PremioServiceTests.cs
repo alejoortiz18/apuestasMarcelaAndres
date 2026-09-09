@@ -147,7 +147,7 @@ public sealed class PremioServiceTests
             .Options;
         var db = new NewRichDbContext(options);
         var clock = new FixedClock(new DateTime(2026, 8, 30, 19, 0, 0, DateTimeKind.Utc));
-        return (new PremioService(db, clock), db);
+        return (new PremioService(db, clock, new NotificacionService(db, clock, new NotificacionTiempoRealNulo())), db);
     }
 
     private static async Task<EscenarioPremio> CrearBoletoGanadorAsync(NewRichDbContext db)

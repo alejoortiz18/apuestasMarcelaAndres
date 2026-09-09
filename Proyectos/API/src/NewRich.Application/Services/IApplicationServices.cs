@@ -95,6 +95,8 @@ public interface IValidacionBoletoService
 public interface INotificacionService
 {
     Task<Result<NotificacionesResponse>> ListarAsync(Guid usuarioId, CancellationToken cancellationToken);
+    Task<Result<NotificacionItemResponse>> ObtenerAsync(Guid notificacionId, Guid usuarioId, CancellationToken cancellationToken);
+    Task CrearParaAsync(IReadOnlyCollection<Guid> usuarioIds, string tipo, string mensaje, CancellationToken cancellationToken);
     Task<Result> MarcarLeidasAsync(Guid usuarioId, CancellationToken cancellationToken);
 }
 

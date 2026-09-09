@@ -67,6 +67,7 @@ public interface IAdminApiClient
 
     Task<ApiCallResult<KpiResponse>> ConsultarKpiAsync(KpiRequest request, CancellationToken cancellationToken);
     Task<ApiCallResult<NotificacionesResponse>> ListarNotificacionesAsync(CancellationToken cancellationToken);
+    Task<ApiCallResult<NotificacionItemResponse>> ObtenerNotificacionAsync(Guid id, CancellationToken cancellationToken);
     Task<ApiCallResult<object>> MarcarNotificacionesLeidasAsync(CancellationToken cancellationToken);
 
     Task<ApiCallResult<List<ConversacionResponse>>> ListarConversacionesAsync(CancellationToken cancellationToken);
@@ -264,6 +265,9 @@ public sealed class AdminApiClient : IAdminApiClient
 
     public Task<ApiCallResult<NotificacionesResponse>> ListarNotificacionesAsync(CancellationToken cancellationToken) =>
         SendAsync<NotificacionesResponse>(HttpMethod.Get, "api/Notificaciones", null, true, cancellationToken);
+
+    public Task<ApiCallResult<NotificacionItemResponse>> ObtenerNotificacionAsync(Guid id, CancellationToken cancellationToken) =>
+        SendAsync<NotificacionItemResponse>(HttpMethod.Get, $"api/Notificaciones/{id}", null, true, cancellationToken);
 
     public Task<ApiCallResult<object>> MarcarNotificacionesLeidasAsync(CancellationToken cancellationToken) =>
         SendAsync<object>(HttpMethod.Post, "api/Notificaciones/marcar-leidas", null, true, cancellationToken);

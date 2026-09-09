@@ -10,7 +10,7 @@
     var enVentas = ViewData["VentasVista"] is string;
 }
 <!DOCTYPE html>
-<html lang="es-CO" data-no-results="@UiTexts.SinResultadosOpcion" data-search-option="@UiTexts.BuscarOpcion">
+<html lang="es-CO" data-no-results="@UiTexts.SinResultadosOpcion" data-search-option="@UiTexts.BuscarOpcion" data-notif-conexion="@Url.Action("Conexion", "Notificaciones")">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -62,11 +62,16 @@
                 }
             </nav>
             <div class="top-user">
-                <a class="avisos" asp-controller="Notificaciones" asp-action="Index">@UiTexts.Avisos</a>
-                <b>@User.NombreMostrado()</b>
+                @await Component.InvokeAsync("CampanaNotificaciones")
+                <span class="top-user-name">@User.NombreMostrado()</span>
                 <div class="avatar" aria-hidden="true">@User.Iniciales()</div>
             </div>
         </header>
+        <div id="notifToast" class="notif-toast hidden" role="status" aria-live="polite" data-toast-ms="3000">
+            <strong>@UiTexts.NuevaNotificacion</strong>
+            <p data-toast-text></p>
+            <a data-toast-link href="#">@UiTexts.Ver</a>
+        </div>
         <section class="content">
             @if (TempData["FlashOk"] is string ok)
             {
@@ -95,6 +100,7 @@
         </div>
     </div>
 </div>
+<script src="~/lib/signalr/signalr.min.js" asp-append-version="true"></script>
 <script src="~/js/site.js" asp-append-version="true"></script>
 @await RenderSectionAsync("Scripts", required: false)
 </body>

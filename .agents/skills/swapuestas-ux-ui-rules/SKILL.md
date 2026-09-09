@@ -63,6 +63,8 @@ Every data table created in the MVC application must include pagination. A table
 - The banner/header identifies the application and the current user context without taking excessive vertical space.
 - Include the page title or clear route context in the main content, not only in the header.
 - Keep account, notification, help, and sign-out actions discoverable and keyboard accessible.
+- En la barra superior, **Avisos** es una campana (icono SVG, sin emoji) con el número de notificaciones nuevas. Al abrirla se listan las nuevas y cada ítem navega al detalle. **Ver todas las notificaciones** abre el módulo. El contador se oculta cuando no hay nuevas.
+- Cuando se genera una notificación para el administrador, llega en tiempo real: se actualiza la campana y aparece un recuadro de aviso junto a la barra, visible unos 3 segundos, con el mensaje y el enlace **Ver**. El recuadro no cubre el menú lateral ni las acciones principales. Respetar `prefers-reduced-motion`.
 - On mobile, collapse secondary actions into an accessible menu without hiding the primary action.
 
 ### Side menu o menu lateral
@@ -139,6 +141,7 @@ Every data table created in the MVC application must include pagination. A table
 - Explain what happened and what the user can do next.
 - Do not use color as the only signal.
 - Toasts must not cover important actions, remain long enough to read, and have an accessible announcement strategy.
+- El aviso de notificación nueva dura 3 segundos, anuncia el mensaje con `aria-live` y ofrece **Ver** para abrir el detalle.
 
 ### Estados de carga y estados vacios
 

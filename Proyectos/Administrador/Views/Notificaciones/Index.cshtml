@@ -14,8 +14,8 @@
 <div class="panel">
     <form class="toolbar" method="get">
         <div class="field">
-            <label for="q">Buscar notificacion</label>
-            <input id="q" name="q" value="@Model.Busqueda" />
+            <label for="q">@UiTexts.BuscarNotificacion</label>
+            <input id="q" name="q" value="@Model.Busqueda" placeholder="@UiTexts.PlaceholderNotificacion" />
         </div>
         <div class="field">
             <label for="leida">@UiTexts.Estado</label>
@@ -41,8 +41,8 @@
 <div class="panel">
     <div class="panel-head">
         <div>
-            <h2>Bandeja de notificaciones</h2>
-            <div class="panel-sub">Pendientes: @Model.Pendientes</div>
+            <h2>@UiTexts.BandejaNotificaciones</h2>
+            <div class="panel-sub">@string.Format(UiTexts.PendientesFormato, Model.Pendientes). @UiTexts.BandejaNotificacionesSub</div>
         </div>
     </div>
     @if (!Model.Pagina.Items.Any())
@@ -60,6 +60,7 @@
                     <th>@UiTexts.Mensaje</th>
                     <th>@UiTexts.Fecha</th>
                     <th>@UiTexts.Estado</th>
+                    <th><span class="visually-hidden">@UiTexts.Ver</span></th>
                 </tr>
                 </thead>
                 <tbody>
@@ -74,6 +75,9 @@
                         <td>@n.Mensaje</td>
                         <td>@n.FechaCreacion.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
                         <td><span class="pill @EstadoUi.Pill(estado)">@estado</span></td>
+                        <td>
+                            <a class="secondary table-ver" asp-action="Ver" asp-route-id="@n.NotificacionId">@UiTexts.Ver</a>
+                        </td>
                     </tr>
                 }
                 </tbody>

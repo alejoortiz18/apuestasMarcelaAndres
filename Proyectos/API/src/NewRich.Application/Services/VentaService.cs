@@ -14,12 +14,14 @@ public sealed class VentaService : IVentaService
     private readonly INewRichDbContext _db;
     private readonly IQrCryptoService _qr;
     private readonly IClock _clock;
+    private readonly INotificacionService _notificaciones;
 
-    public VentaService(INewRichDbContext db, IQrCryptoService qr, IClock clock)
+    public VentaService(INewRichDbContext db, IQrCryptoService qr, IClock clock, INotificacionService notificaciones)
     {
         _db = db;
         _qr = qr;
         _clock = clock;
+        _notificaciones = notificaciones;
     }
 
     public async Task<Result<VentaResponse>> ConfirmarAsync(
@@ -97,6 +99,7 @@ public sealed class VentaService : IVentaService
             };
 
             decimal total = 0;
+            var avisos = new List<(IReadOnlyList<Guid> Destinatarios, string Tipo, string Mensaje)>();
             foreach (var linea in request.Juegos)
             {
                 if (string.IsNullOrWhiteSpace(linea.Numero) || linea.Numero.Length != 4 || !linea.Numero.All(char.IsDigit))
@@ -146,32 +149,12 @@ public sealed class VentaService : IVentaService
                 var repeticiones = await _db.Juegos.CountAsync(j => j.Numero == linea.Numero && j.Boleto!.FechaCreacion.Date == _clock.UtcNow.Date, ct);
                 if (repeticiones + 1 >= alertaRepeticion)
                 {
-                    foreach (var adminId in admins)
-                    {
-                        _db.Notificaciones.Add(new Notificacion
-                        {
-                            NotificacionId = Guid.NewGuid(),
-                            UsuarioId = adminId,
-                            Tipo = "RepeticionNumero",
-                            Mensaje = string.Format(VentaMessages.AlertaRepeticionNumero, linea.Numero),
-                            FechaCreacion = _clock.UtcNow
-                        });
-                    }
+                    avisos.Add((admins, "RepeticionNumero", string.Format(VentaMessages.AlertaRepeticionNumero, linea.Numero)));
                 }
 
                 if (linea.Valor >= alertaValor)
                 {
-                    foreach (var adminId in admins)
-                    {
-                        _db.Notificaciones.Add(new Notificacion
-                        {
-                            NotificacionId = Guid.NewGuid(),
-                            UsuarioId = adminId,
-                            Tipo = "ValorAlto",
-                            Mensaje = string.Format(VentaMessages.AlertaValorAlto, linea.Valor.ToString("N0")),
-                            FechaCreacion = _clock.UtcNow
-                        });
-                    }
+                    avisos.Add((admins, "ValorAlto", string.Format(VentaMessages.AlertaValorAlto, linea.Valor.ToString("N0"))));
                 }
             }
 
@@ -196,6 +179,10 @@ public sealed class VentaService : IVentaService
             _db.Ventas.Add(venta);
             _db.ClavesValidacionBoleto.Add(claveEntity);
             await _db.SaveChangesAsync(ct);
+            foreach (var aviso in avisos)
+            {
+                await _notificaciones.CrearParaAsync(aviso.Destinatarios, aviso.Tipo, aviso.Mensaje, ct);
+            }
 
             respuesta = new VentaResponse
             {

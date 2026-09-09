@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using NewRich.Application.Abstractions;
 using NewRich.Application.Services;
 
 namespace NewRich.Application;
@@ -16,6 +17,7 @@ public static class DependencyInjection
         services.AddScoped<IVentaService, VentaService>();
         services.AddScoped<IResultadoService, ResultadoService>();
         services.AddScoped<IValidacionBoletoService, ValidacionBoletoService>();
+        services.AddScoped<INotificacionTiempoReal, NotificacionTiempoRealNulo>();
         services.AddScoped<INotificacionService, NotificacionService>();
         services.AddScoped<IKpiService, KpiService>();
         services.AddScoped<IConsultaService, ConsultaService>();

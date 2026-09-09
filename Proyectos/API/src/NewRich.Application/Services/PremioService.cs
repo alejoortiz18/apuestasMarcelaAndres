@@ -12,11 +12,13 @@ public sealed class PremioService : IPremioService
 {
     private readonly INewRichDbContext _db;
     private readonly IClock _clock;
+    private readonly INotificacionService _notificaciones;
 
-    public PremioService(INewRichDbContext db, IClock clock)
+    public PremioService(INewRichDbContext db, IClock clock, INotificacionService notificaciones)
     {
         _db = db;
         _clock = clock;
+        _notificaciones = notificaciones;
     }
 
     public async Task<Result<IReadOnlyList<CasoGanadorResponse>>> ListarAsync(CancellationToken cancellationToken)
@@ -96,19 +98,9 @@ public sealed class PremioService : IPremioService
             .Where(u => u.Rol == RolUsuario.Administrador && u.Estado == EstadoUsuario.Activo && !u.EstadoBloqueado)
             .Select(u => u.UsuarioId)
             .ToListAsync(cancellationToken);
-        foreach (var adminId in admins)
-        {
-            _db.Notificaciones.Add(new Notificacion
-            {
-                NotificacionId = Guid.NewGuid(),
-                UsuarioId = adminId,
-                Tipo = "CasoGanador",
-                Mensaje = $"Se reportó el ticket {codigo} como ganador.",
-                FechaCreacion = _clock.UtcNow
-            });
-        }
 
         await _db.SaveChangesAsync(cancellationToken);
+        await _notificaciones.CrearParaAsync(admins, "CasoGanador", $"Se reportó el ticket {codigo} como ganador.", cancellationToken);
         var creado = await Query().FirstAsync(c => c.CasoId == caso.CasoId, cancellationToken);
         return Result<CasoGanadorResponse>.Created(Map(creado), SuccessMessages.CasoGanadorReportado);
     }
@@ -194,16 +186,12 @@ public sealed class PremioService : IPremioService
             caso.Estado = EstadoCasoGanador.Asignado;
         }
 
-        _db.Notificaciones.Add(new Notificacion
-        {
-            NotificacionId = Guid.NewGuid(),
-            UsuarioId = observador.UsuarioId,
-            Tipo = "CasoAsignado",
-            Mensaje = $"Se te asignó el caso del ticket {caso.TicketCode.Trim()}.",
-            FechaCreacion = _clock.UtcNow
-        });
-
         await _db.SaveChangesAsync(cancellationToken);
+        await _notificaciones.CrearParaAsync(
+            [observador.UsuarioId],
+            "CasoAsignado",
+            $"Se te asignó el caso del ticket {caso.TicketCode.Trim()}.",
+            cancellationToken);
         return Result<CasoGanadorResponse>.Ok(Map(caso), SuccessMessages.CasoGanadorAsignado);
     }
 
