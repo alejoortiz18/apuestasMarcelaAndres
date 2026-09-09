@@ -37,7 +37,12 @@
 
     function render(query) {
       const q = (query || "").toLowerCase().trim();
-      const matches = Array.from(select.options).filter((opt) => opt.text.toLowerCase().includes(q));
+      const matches = Array.from(select.options).filter((opt) => {
+        if (!q && opt.value === "") {
+          return false;
+        }
+        return opt.text.toLowerCase().includes(q);
+      });
       menu.innerHTML = "";
       if (!matches.length) {
         const empty = document.createElement("div");
@@ -66,7 +71,10 @@
     }
 
     input.value = selectedText();
-    input.addEventListener("focus", function () { render(input.value); });
+    input.addEventListener("focus", function () {
+      input.select();
+      render("");
+    });
     input.addEventListener("input", function () { render(input.value); });
     input.addEventListener("keydown", function (event) {
       if (event.key === "Escape") {

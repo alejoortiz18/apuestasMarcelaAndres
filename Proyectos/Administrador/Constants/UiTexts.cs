@@ -223,6 +223,7 @@ public static class UiTexts
     public const string EliminarGrupoIrreversible = "Esta acción no se puede deshacer. Solo se pueden eliminar grupos sin vendedores asociados.";
     public const string SiEliminarGrupo = "Sí, eliminar grupo";
     public const string SeleccioneVendedor = "Selecciona un vendedor";
+    public const string SinVendedoresDisponibles = "No hay vendedores disponibles para agregar.";
     public const string Grupo = "Grupo";
 
     public const string OfflineKicker = "Operación especial";

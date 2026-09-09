@@ -1,5 +1,4 @@
 @using NewRich.Admin.Constants
-@using NewRich.Admin.Services
 @model NewRich.Admin.Models.GrupoDetalleViewModel
 @{
     var grupo = Model.Grupo;
@@ -13,31 +12,26 @@
     <a class="secondary" asp-action="Index">@UiTexts.Cerrar</a>
 </div>
 <div class="panel">
-    <form class="toolbar" asp-action="Asignar" asp-route-id="@grupo.GrupoId" method="post">
-        <div class="field">
-            <label for="usuarioId">@UiTexts.AgregarVendedor</label>
-            <select id="usuarioId" name="usuarioId" class="searchable" required>
-                <option value="">@UiTexts.SeleccioneVendedor</option>
-                @foreach (var u in Model.VendedoresDisponibles)
-                {
-                    <option value="@u.UsuarioId">@u.NombreCompleto (@u.Usuario)</option>
-                }
-            </select>
-        </div>
-        <button class="primary" type="submit">@UiTexts.AgregarVendedor</button>
-    </form>
-    <form class="toolbar" method="get" asp-action="Detalle" asp-route-id="@grupo.GrupoId">
-        <div class="field">
-            <label for="pageSize">@UiTexts.FilasPorPagina</label>
-            <select id="pageSize" name="pageSize" class="searchable">
-                @foreach (var size in PagingHelper.PageSizes)
-                {
-                    <option value="@size" @(Model.Pagina.PageSize == size ? "selected" : null)>@size</option>
-                }
-            </select>
-        </div>
-        <button class="secondary" type="submit">@UiTexts.Buscar</button>
-    </form>
+    @if (!Model.VendedoresDisponibles.Any())
+    {
+        <p class="panel-sub">@UiTexts.SinVendedoresDisponibles</p>
+    }
+    else
+    {
+        <form class="toolbar" asp-action="Asignar" asp-route-id="@grupo.GrupoId" method="post">
+            <div class="field">
+                <label for="usuarioId">@UiTexts.AgregarVendedor</label>
+                <select id="usuarioId" name="usuarioId" class="searchable" required>
+                    <option value="">@UiTexts.SeleccioneVendedor</option>
+                    @foreach (var u in Model.VendedoresDisponibles)
+                    {
+                        <option value="@u.UsuarioId">@u.NombreCompleto (@u.Usuario)</option>
+                    }
+                </select>
+            </div>
+            <button class="primary" type="submit">@UiTexts.AgregarVendedor</button>
+        </form>
+    }
 </div>
 <div class="panel">
     <div class="panel-head">
@@ -46,7 +40,7 @@
             <div class="panel-sub">@grupo.CantidadVendedores registros</div>
         </div>
     </div>
-    @if (!Model.Pagina.Items.Any())
+    @if (!grupo.Vendedores.Any())
     {
         <div class="empty">@UiTexts.Vacio</div>
     }
@@ -63,7 +57,7 @@
                 </tr>
                 </thead>
                 <tbody>
-                @foreach (var v in Model.Pagina.Items)
+                @foreach (var v in grupo.Vendedores)
                 {
                     <tr tabindex="0" data-row-id="@v.UsuarioId">
                         <td class="col-check">
@@ -79,7 +73,6 @@
                 </tbody>
             </table>
         </div>
-        <partial name="_Pager" model="Model.Pagina" />
         <div class="table-actions" data-table-panel="grupo-vendedores">
             <h2>@UiTexts.AccionesDeGrupo</h2>
             <p class="panel-sub">@UiTexts.SeleccionaParaAcciones</p>

@@ -3,8 +3,8 @@ using NewRich.Admin.Constants;
 using NewRich.Admin.Models;
 using NewRich.Admin.Services;
 using NewRich.Application.Contracts.Grupos;
+using NewRich.Application.Services;
 using NewRich.Constants.Messages;
-using NewRich.Domain.Enums;
 
 namespace NewRich.Admin.Controllers;
 
@@ -139,7 +139,7 @@ public sealed class GruposController : AdminControllerBase
         return RedirectToAction(nameof(Index));
     }
 
-    public async Task<IActionResult> Detalle(Guid id, int page = 1, int pageSize = 10, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> Detalle(Guid id, CancellationToken cancellationToken)
     {
         SetNav("grupos", UiTexts.NavGrupos);
         var grupo = await _api.ObtenerGrupoAsync(id, cancellationToken);
@@ -163,15 +163,12 @@ public sealed class GruposController : AdminControllerBase
         }
 
         var miembros = grupo.Data.Vendedores.Select(v => v.UsuarioId).ToHashSet();
-        var disponibles = (usuarios.Data ?? [])
-            .Where(u => u.Rol == RolUsuario.Vendedor && !miembros.Contains(u.UsuarioId))
-            .ToList();
+        var disponibles = GrupoAsignacion.VendedoresDisponibles(usuarios.Data ?? [], miembros);
 
         return View(new GrupoDetalleViewModel
         {
             Grupo = grupo.Data,
-            VendedoresDisponibles = disponibles,
-            Pagina = PagingHelper.Paginate(grupo.Data.Vendedores, page, pageSize)
+            VendedoresDisponibles = disponibles
         });
     }
 

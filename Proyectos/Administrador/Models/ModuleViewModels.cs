@@ -138,7 +138,6 @@ public sealed class GrupoDetalleViewModel
 {
     public GrupoResponse Grupo { get; init; } = new();
     public IReadOnlyList<UsuarioResponse> VendedoresDisponibles { get; init; } = [];
-    public PagedViewModel<GrupoVendedorResponse> Pagina { get; init; } = new();
 }
 
 public sealed class ResultadosIndexViewModel
