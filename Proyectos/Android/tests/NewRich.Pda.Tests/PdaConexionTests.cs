@@ -32,10 +32,16 @@ public sealed class PdaConexionTests
     }
 
     [Fact]
-    public void Dispositivo_fisico_prueba_la_red_local_y_el_puente_usb()
+    public void Dispositivo_fisico_prueba_primero_el_puente_usb_y_luego_la_red_local()
     {
         PdaConexion.UrlsPara(emulador: false).Should().Equal(
-            "http://192.168.1.19:5295/",
-            "http://127.0.0.1:5295/");
+            PdaConexion.UrlPuenteUsb,
+            PdaConexion.UrlRedLocal);
+    }
+
+    [Fact]
+    public void Hub_de_chat_cuelga_de_la_misma_base_de_la_api()
+    {
+        PdaConexion.HubChat("http://127.0.0.1:5295/").Should().Be("http://127.0.0.1:5295/hubs/chat");
     }
 }

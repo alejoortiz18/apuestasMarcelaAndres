@@ -1,5 +1,17 @@
 namespace NewRich.Shared;
 
+public static class HubRutas
+{
+    public const string Notificaciones = "/hubs/notificaciones";
+    public const string Chat = "/hubs/chat";
+    public const string EventoNuevaNotificacion = "nuevaNotificacion";
+    public const string EventoMensajeChat = "mensajeChat";
+
+    public static bool AceptaTokenPorQuery(string path) =>
+        path.StartsWith(Notificaciones, StringComparison.OrdinalIgnoreCase)
+        || path.StartsWith(Chat, StringComparison.OrdinalIgnoreCase);
+}
+
 public static class HubNotificacionesUrl
 {
     public static string Resolver(string apiBase, string? hostNavegador, string rutaHub)

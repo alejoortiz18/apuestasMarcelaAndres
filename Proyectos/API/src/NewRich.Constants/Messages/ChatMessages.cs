@@ -10,4 +10,6 @@ public static class ChatMessages
     public const string AdministradorNoDisponible = "No hay un administrador activo para atender el soporte.";
     public const string NoParticipaEnConversacion = "No forma parte de esta conversación.";
     public const string AdjuntoNoEncontrado = "El adjunto no existe.";
+    public const string TipoAvisoSoporte = "ChatSoporte";
+    public const string AvisoMensajeSoporte = "{0} escribió en soporte.";
 }

@@ -2,10 +2,13 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using NewRich.Application.Abstractions;
 using NewRich.Application.Contracts.Chat;
+using NewRich.Application.Contracts.Notificaciones;
 using NewRich.Application.Services;
+using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
 using NewRich.Domain.Enums;
 using NewRich.Infrastructure.Persistence;
+using NewRich.Shared.Results;
 
 namespace NewRich.UnitTests;
 
@@ -123,13 +126,134 @@ public sealed class ChatServiceTests
         db.Mensajes.Should().ContainSingle(m => m.Texto == "Sigue abierta");
     }
 
-    private static (ChatService Sut, NewRichDbContext Db) CreateSut()
+    [Fact]
+    public async Task EnviarAsync_avisa_en_vivo_a_participantes_y_administradores()
+    {
+        var chatVivo = new ChatVivoFake();
+        var (sut, db) = CreateSut(chatVivo: chatVivo);
+        var ana = await AgregarUsuarioAsync(db, "Ana Admin", RolUsuario.Administrador);
+        var luis = await AgregarUsuarioAsync(db, "Luis Admin", RolUsuario.Administrador);
+        var camila = await AgregarUsuarioAsync(db, "Camila Rojas", RolUsuario.Vendedor);
+        var conv = await AgregarConversacionAsync(db, camila, luis, "Ayuda");
+
+        var result = await sut.EnviarAsync(conv.ConversacionId, camila.UsuarioId, new EnviarMensajeRequest
+        {
+            Texto = "Sigue sin imprimir"
+        }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        chatVivo.Avisos.Should().ContainSingle();
+        var aviso = chatVivo.Avisos[0];
+        aviso.Aviso.ConversacionId.Should().Be(conv.ConversacionId);
+        aviso.Aviso.Mensaje.Texto.Should().Be("Sigue sin imprimir");
+        aviso.Ids.Should().Contain(camila.UsuarioId);
+        aviso.Ids.Should().Contain(luis.UsuarioId);
+        aviso.Ids.Should().Contain(ana.UsuarioId);
+    }
+
+    [Fact]
+    public async Task EnviarAsync_vendedor_crea_aviso_de_campana_para_administradores()
+    {
+        var campana = new NotificacionesFake();
+        var (sut, db) = CreateSut(notificaciones: campana);
+        var ana = await AgregarUsuarioAsync(db, "Ana Admin", RolUsuario.Administrador);
+        var camila = await AgregarUsuarioAsync(db, "Camila Rojas", RolUsuario.Vendedor);
+        var conv = await AgregarConversacionAsync(db, camila, ana, "Hola");
+
+        await sut.EnviarAsync(conv.ConversacionId, camila.UsuarioId, new EnviarMensajeRequest
+        {
+            Texto = "Necesito ayuda"
+        }, CancellationToken.None);
+
+        campana.Creadas.Should().ContainSingle();
+        var aviso = campana.Creadas[0];
+        aviso.Tipo.Should().Be(ChatMessages.TipoAvisoSoporte);
+        aviso.Mensaje.Should().Be(string.Format(ChatMessages.AvisoMensajeSoporte, "Camila Rojas"));
+        aviso.Ids.Should().Contain(ana.UsuarioId);
+        aviso.Ids.Should().NotContain(camila.UsuarioId);
+    }
+
+    [Fact]
+    public async Task EnviarAsync_administrador_no_crea_aviso_de_campana()
+    {
+        var campana = new NotificacionesFake();
+        var (sut, db) = CreateSut(notificaciones: campana);
+        var ana = await AgregarUsuarioAsync(db, "Ana Admin", RolUsuario.Administrador);
+        var camila = await AgregarUsuarioAsync(db, "Camila Rojas", RolUsuario.Vendedor);
+        var conv = await AgregarConversacionAsync(db, camila, ana, "Hola");
+
+        await sut.EnviarAsync(conv.ConversacionId, ana.UsuarioId, new EnviarMensajeRequest
+        {
+            Texto = "Ya lo reviso"
+        }, CancellationToken.None);
+
+        campana.Creadas.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task IniciarAsync_vendedor_avisa_en_vivo_y_en_campana()
+    {
+        var chatVivo = new ChatVivoFake();
+        var campana = new NotificacionesFake();
+        var (sut, db) = CreateSut(chatVivo, campana);
+        await AgregarUsuarioAsync(db, "Ana Admin", RolUsuario.Administrador);
+        var camila = await AgregarUsuarioAsync(db, "Camila Rojas", RolUsuario.Vendedor);
+
+        var result = await sut.IniciarAsync(camila.UsuarioId, new IniciarChatRequest { Texto = "No imprime" }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        chatVivo.Avisos.Should().ContainSingle(a => a.Aviso.Mensaje.Texto == "No imprime");
+        campana.Creadas.Should().ContainSingle(a => a.Tipo == ChatMessages.TipoAvisoSoporte);
+    }
+
+    private static (ChatService Sut, NewRichDbContext Db) CreateSut(
+        ChatVivoFake? chatVivo = null,
+        NotificacionesFake? notificaciones = null)
     {
         var options = new DbContextOptionsBuilder<NewRichDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         var db = new NewRichDbContext(options);
-        return (new ChatService(db, new ChatFilesFake(), new RelojFijo(Ahora)), db);
+        return (new ChatService(
+            db,
+            new ChatFilesFake(),
+            new RelojFijo(Ahora),
+            chatVivo ?? new ChatVivoFake(),
+            notificaciones ?? new NotificacionesFake()), db);
+    }
+
+    private sealed class ChatVivoFake : IChatTiempoReal
+    {
+        public List<(IReadOnlyCollection<Guid> Ids, MensajeChatEnVivoResponse Aviso)> Avisos { get; } = [];
+
+        public Task AvisarMensajeAsync(
+            IReadOnlyCollection<Guid> usuarioIds,
+            MensajeChatEnVivoResponse aviso,
+            CancellationToken cancellationToken)
+        {
+            Avisos.Add((usuarioIds, aviso));
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class NotificacionesFake : INotificacionService
+    {
+        public List<(IReadOnlyCollection<Guid> Ids, string Tipo, string Mensaje)> Creadas { get; } = [];
+
+        public Task<Result<NotificacionesResponse>> ListarAsync(Guid usuarioId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public Task<Result<NotificacionItemResponse>> ObtenerAsync(Guid notificacionId, Guid usuarioId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public Task CrearParaAsync(IReadOnlyCollection<Guid> usuarioIds, string tipo, string mensaje, CancellationToken cancellationToken)
+        {
+            Creadas.Add((usuarioIds, tipo, mensaje));
+            return Task.CompletedTask;
+        }
+
+        public Task<Result> MarcarLeidasAsync(Guid usuarioId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
     }
 
     private static async Task<Usuario> AgregarUsuarioAsync(NewRichDbContext db, string nombre, RolUsuario rol)

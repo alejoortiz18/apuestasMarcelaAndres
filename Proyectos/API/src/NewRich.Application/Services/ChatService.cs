@@ -13,12 +13,16 @@ public sealed class ChatService : IChatService
     private readonly INewRichDbContext _db;
     private readonly IChatFileStorage _files;
     private readonly IClock _clock;
+    private readonly IChatTiempoReal _chatVivo;
+    private readonly INotificacionService _notificaciones;
 
-    public ChatService(INewRichDbContext db, IChatFileStorage files, IClock clock)
+    public ChatService(INewRichDbContext db, IChatFileStorage files, IClock clock, IChatTiempoReal chatVivo, INotificacionService notificaciones)
     {
         _db = db;
         _files = files;
         _clock = clock;
+        _chatVivo = chatVivo;
+        _notificaciones = notificaciones;
     }
 
     public async Task<Result<ConversacionResponse>> IniciarAsync(Guid iniciadorId, IniciarChatRequest request, CancellationToken cancellationToken)
@@ -102,6 +106,8 @@ public sealed class ChatService : IChatService
         });
         _db.Conversaciones.Add(conversacion);
         await _db.SaveChangesAsync(cancellationToken);
+        conversacion.Mensajes.First().UsuarioEmisor = iniciador;
+        await PublicarAsync(conversacion, conversacion.Mensajes.First(), cancellationToken);
         return Result<ConversacionResponse>.Created(Map(conversacion), SuccessMessages.ConversacionIniciada);
     }
 
@@ -206,6 +212,7 @@ public sealed class ChatService : IChatService
         await _db.SaveChangesAsync(cancellationToken);
         var emisor = await _db.Usuarios.FirstOrDefaultAsync(u => u.UsuarioId == emisorId, cancellationToken);
         mensaje.UsuarioEmisor = emisor;
+        await PublicarAsync(conversacion, mensaje, cancellationToken);
         return Result<MensajeResponse>.Ok(MapMensaje(mensaje), SuccessMessages.MensajeEnviado);
     }
 
@@ -259,6 +266,39 @@ public sealed class ChatService : IChatService
             NombreArchivo = adjunto.NombreOriginal,
             Contenido = stream
         }, SuccessMessages.OperacionExitosa);
+    }
+
+    private async Task PublicarAsync(Conversacion conversacion, Mensaje mensaje, CancellationToken cancellationToken)
+    {
+        var aviso = new MensajeChatEnVivoResponse
+        {
+            ConversacionId = conversacion.ConversacionId,
+            Mensaje = MapMensaje(mensaje)
+        };
+        var destinatarios = new HashSet<Guid> { conversacion.UsuarioIniciadorId, conversacion.UsuarioDestinoId };
+        var administradores = await _db.Usuarios
+            .Where(u => u.Rol == RolUsuario.Administrador && u.Estado == EstadoUsuario.Activo)
+            .Select(u => u.UsuarioId)
+            .ToListAsync(cancellationToken);
+        foreach (var adminId in administradores)
+        {
+            destinatarios.Add(adminId);
+        }
+
+        await _chatVivo.AvisarMensajeAsync(destinatarios, aviso, cancellationToken);
+
+        var emisor = mensaje.UsuarioEmisor
+            ?? await _db.Usuarios.FirstOrDefaultAsync(u => u.UsuarioId == mensaje.UsuarioEmisorId, cancellationToken);
+        if (emisor is null || emisor.Rol == RolUsuario.Administrador)
+        {
+            return;
+        }
+
+        await _notificaciones.CrearParaAsync(
+            administradores.Where(id => id != emisor.UsuarioId).ToList(),
+            ChatMessages.TipoAvisoSoporte,
+            string.Format(ChatMessages.AvisoMensajeSoporte, emisor.NombreCompleto),
+            cancellationToken);
     }
 
     private async Task<bool> PuedeOperarAsync(Conversacion conversacion, Guid usuarioId, CancellationToken cancellationToken)

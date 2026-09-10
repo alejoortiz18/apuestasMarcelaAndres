@@ -39,6 +39,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<IPdfService, PdfService>();
         builder.Services.AddSingleton<NavegadorApp>();
 
+        builder.Services.AddTransient<ChatEnVivoServicio>();
         builder.Services.AddTransient<ArranquePage>();
         builder.Services.AddTransient<LoginPage>();
         builder.Services.AddTransient<PasswordPage>();

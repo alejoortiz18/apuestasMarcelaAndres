@@ -46,6 +46,7 @@ public static class UiTexts
     public const string CampanaAvisosAria = "Avisos, {0} notificaciones nuevas";
     public const string NuevaNotificacion = "Nueva notificación";
     public const string HubNotificaciones = "/hubs/notificaciones";
+    public const string HubChat = "/hubs/chat";
     public const string NotificacionesNuevas = "Notificaciones nuevas";
     public const string SinNotificacionesNuevas = "No hay notificaciones nuevas.";
     public const string VerTodasLasNotificaciones = "Ver todas las notificaciones";
@@ -328,6 +329,8 @@ public static class UiTexts
     public const string SeleccionaConversacion = "Selecciona una conversación para ver el historial o inicia una nueva.";
     public const string ConversacionCerradaAviso = "Esta conversación está cerrada. El historial se conserva.";
     public const string SinMensajes = "Aún no hay mensajes en esta conversación.";
+    public const string ListaConversacionesAria = "Lista de conversaciones";
+    public const string MensajesConversacionAria = "Mensajes de la conversación";
 
     public const string ConfigKicker = "Parámetros";
     public const string ConfigTitulo = "Configuración operativa";

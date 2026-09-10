@@ -29,6 +29,12 @@ public sealed class ConversacionResponse
     public DateTime? FechaUltimoMensaje { get; set; }
 }
 
+public sealed class MensajeChatEnVivoResponse
+{
+    public Guid ConversacionId { get; set; }
+    public MensajeResponse Mensaje { get; set; } = new();
+}
+
 public sealed class MensajeResponse
 {
     public Guid MensajeId { get; set; }

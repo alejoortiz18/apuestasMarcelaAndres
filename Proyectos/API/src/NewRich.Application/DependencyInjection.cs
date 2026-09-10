@@ -21,6 +21,7 @@ public static class DependencyInjection
         services.AddScoped<INotificacionService, NotificacionService>();
         services.AddScoped<IKpiService, KpiService>();
         services.AddScoped<IConsultaService, ConsultaService>();
+        services.AddScoped<IChatTiempoReal, ChatTiempoRealNulo>();
         services.AddScoped<IChatService, ChatService>();
         services.AddScoped<IOfflineService, OfflineService>();
         services.AddScoped<IPremioService, PremioService>();

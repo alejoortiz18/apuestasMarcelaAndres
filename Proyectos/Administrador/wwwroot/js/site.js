@@ -649,6 +649,11 @@ function iniciarNotificacionesEnVivo() {
         .withAutomaticReconnect()
         .build();
       conexion.on("nuevaNotificacion", function (aviso) {
+        const tipo = aviso.tipo || aviso.Tipo || "";
+        const enSoporte = document.body.getAttribute("data-nav") === "soporte";
+        if (tipo === "ChatSoporte" && enSoporte) {
+          return;
+        }
         actualizarCampana(aviso);
         mostrarToast(aviso);
       });

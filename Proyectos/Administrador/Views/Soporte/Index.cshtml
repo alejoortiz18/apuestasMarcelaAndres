@@ -6,6 +6,7 @@
     _ = Guid.TryParse(yoTexto, out var yo);
     var abierta = string.Equals(Model.Detalle?.Conversacion.Estado, "Abierta", StringComparison.Ordinal);
 }
+<div class="page-soporte">
 <div class="heading">
     <div>
         <div class="eyebrow">@UiTexts.SoporteKicker</div>
@@ -31,7 +32,7 @@
         <button class="primary" type="submit">@UiTexts.IniciarConversacion</button>
     </form>
 </div>
-<div class="chat-shell">
+<div class="chat-shell" data-chat-vivo data-yo="@yo" data-conversacion="@(Model.ConversacionId?.ToString() ?? "")" data-evento="mensajeChat">
     <aside class="chat-list">
         <div class="chat-list-head">
             <h2>@UiTexts.Conversaciones</h2>
@@ -48,16 +49,21 @@
         </div>
         @if (!Model.Conversaciones.Any())
         {
-            <div class="empty">@UiTexts.Vacio</div>
+            <div class="chat-list-body" data-chat-lista role="list" aria-label="@UiTexts.ListaConversacionesAria">
+                <div class="empty">@UiTexts.Vacio</div>
+            </div>
         }
         else
         {
+            <div class="chat-list-body" data-chat-lista role="list" aria-label="@UiTexts.ListaConversacionesAria">
             @foreach (var c in Model.Conversaciones)
             {
                 var persona = ChatVista.Contraparte(c, yo);
                 var activa = Model.ConversacionId == c.ConversacionId;
                 var pendiente = string.Equals(c.Estado, "Abierta", StringComparison.Ordinal);
                 <a class="chat-item @(activa ? "active" : null) @(pendiente ? null : "is-closed")"
+                   data-chat-item="@c.ConversacionId"
+                   role="listitem"
                    asp-action="Index"
                    asp-route-id="@c.ConversacionId"
                    asp-route-q="@Model.Busqueda">
@@ -79,6 +85,7 @@
                     <small>@(string.IsNullOrWhiteSpace(c.UltimoTexto) ? UiTexts.SinMensajes : c.UltimoTexto)</small>
                 </a>
             }
+            </div>
         }
     </aside>
     <section class="chat-window">
@@ -116,7 +123,7 @@
                     }
                 </div>
             </header>
-            <div class="chat-messages" data-chat-scroll>
+            <div class="chat-messages" data-chat-scroll role="log" aria-live="polite" aria-label="@UiTexts.MensajesConversacionAria">
                 @if (!Model.Detalle.Mensajes.Any())
                 {
                     <div class="empty">@UiTexts.SinMensajes</div>
@@ -126,7 +133,7 @@
                     @foreach (var m in Model.Detalle.Mensajes)
                     {
                         var mine = m.UsuarioEmisorId == yo;
-                        <div class="chat-message @(mine ? "me" : "other")">
+                        <div class="chat-message @(mine ? "me" : "other")" data-mensaje-id="@m.MensajeId">
                             @m.Texto
                             <time>@m.FechaEnvio.ToLocalTime().ToString("dd/MM HH:mm") · @(string.IsNullOrWhiteSpace(m.NombreEmisor) ? persona.Nombre : m.NombreEmisor)</time>
                         </div>
@@ -148,3 +155,8 @@
         }
     </section>
 </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/soporte.js" asp-append-version="true"></script>
+}

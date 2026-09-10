@@ -106,7 +106,8 @@ public static class PdaTexts
     public const string CasosPremios = "Casos de premios";
     public const string ValidarBoleto = "Validar boleto";
     public const string Enviar = "Enviar";
-    public const string NuevoMensaje = "Nuevo mensaje";
+    public const string NuevoMensaje = "Escribe un mensaje";
+    public const string EnviarMensajeAria = "Enviar mensaje";
     public const string SinConversaciones = "No hay conversaciones.";
     public const string SinVentas = "No hay ventas en el periodo consultado.";
     public const string SinResultados = "No hay resultados para la fecha consultada.";

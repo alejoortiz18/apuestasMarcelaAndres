@@ -24,4 +24,14 @@ public sealed class ClaimsUsuarioTests
         HubNotificacionesUrl.Resolver("http://localhost:5295/", "127.0.0.1", "/hubs/notificaciones")
             .Should().Be("http://127.0.0.1:5295/hubs/notificaciones");
     }
+
+    [Fact]
+    public void HubRutas_acepta_token_de_notificaciones_y_de_chat_sin_mezclarlos()
+    {
+        HubRutas.AceptaTokenPorQuery("/hubs/notificaciones").Should().BeTrue();
+        HubRutas.AceptaTokenPorQuery("/hubs/chat").Should().BeTrue();
+        HubRutas.AceptaTokenPorQuery("/api/Ventas").Should().BeFalse();
+        HubRutas.EventoNuevaNotificacion.Should().Be("nuevaNotificacion");
+        HubRutas.EventoMensajeChat.Should().Be("mensajeChat");
+    }
 }

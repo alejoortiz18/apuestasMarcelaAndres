@@ -15,6 +15,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddScoped<INotificacionTiempoReal, SignalRNotificacionTiempoReal>();
+builder.Services.AddScoped<IChatTiempoReal, SignalRChatTiempoReal>();
 builder.Services.AddControllers(options => options.Filters.Add<SesionYPasswordActionFilter>());
 builder.Services.AddSignalR();
 builder.Services.AddEndpointsApiExplorer();
@@ -63,7 +64,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             OnMessageReceived = context =>
             {
                 var token = context.Request.Query["access_token"];
-                if (!string.IsNullOrEmpty(token) && context.HttpContext.Request.Path.StartsWithSegments(NotificacionesHub.Ruta))
+                var path = context.HttpContext.Request.Path.Value ?? string.Empty;
+                if (!string.IsNullOrEmpty(token) && HubRutas.AceptaTokenPorQuery(path))
                 {
                     context.Token = token;
                 }
@@ -109,5 +111,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.MapHub<NotificacionesHub>(NotificacionesHub.Ruta).RequireCors("Admin");
+app.MapHub<ChatHub>(ChatHub.Ruta).RequireCors("Admin");
 
 app.Run();

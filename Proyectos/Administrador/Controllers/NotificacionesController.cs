@@ -85,6 +85,11 @@ public sealed class NotificacionesController : AdminControllerBase
             return RedirectToAction(nameof(Index));
         }
 
+        if (string.Equals(result.Data.Tipo, ChatMessages.TipoAvisoSoporte, StringComparison.Ordinal))
+        {
+            return RedirectToAction("Index", "Soporte");
+        }
+
         return View(result.Data);
     }
 
@@ -99,6 +104,7 @@ public sealed class NotificacionesController : AdminControllerBase
 
         var baseUrl = _config["Api:BaseUrl"] ?? "http://localhost:5295/";
         var hubUrl = HubNotificacionesUrl.Resolver(baseUrl, Request.Host.Host, UiTexts.HubNotificaciones);
-        return Json(new { token, hubUrl });
+        var chatHubUrl = HubNotificacionesUrl.Resolver(baseUrl, Request.Host.Host, UiTexts.HubChat);
+        return Json(new { token, hubUrl, chatHubUrl });
     }
 }
