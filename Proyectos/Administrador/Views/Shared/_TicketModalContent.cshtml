@@ -4,7 +4,7 @@
     var t = Model.Tirilla;
     var combinada = TirillaCuerpo.EsCombinada(t.TipoApuesta);
     var fecha = t.Fecha.ToLocalTime();
-    var leyenda = TirillaCuerpo.Leyenda(t.VigenciaDias > 0 ? t.VigenciaDias : 30);
+    var leyenda = TirillaCuerpo.LeyendaDeRespuesta(t.VigenciaDias, t.Leyenda);
     var pdfUrl = Url.Action("TirillaPdf", "Ventas", new { id = Model.BoletoId });
 }
 <div class="dialog-head">

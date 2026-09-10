@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using NewRich.Application.Abstractions;
 using NewRich.Application.Contracts.Ventas;
@@ -70,6 +71,7 @@ public sealed class VentaService : IVentaService
         try
         {
             VentaResponse? respuesta = null;
+            var avisos = new List<(IReadOnlyList<Guid> Destinatarios, string Tipo, string Mensaje)>();
             await _db.ExecuteInTransactionAsync(async ct =>
         {
             var vendedor = await _db.Usuarios.FirstAsync(u => u.UsuarioId == vendedorId, ct);
@@ -99,7 +101,6 @@ public sealed class VentaService : IVentaService
             };
 
             decimal total = 0;
-            var avisos = new List<(IReadOnlyList<Guid> Destinatarios, string Tipo, string Mensaje)>();
             foreach (var linea in request.Juegos)
             {
                 if (string.IsNullOrWhiteSpace(linea.Numero) || linea.Numero.Length != 4 || !linea.Numero.All(char.IsDigit))
@@ -152,9 +153,10 @@ public sealed class VentaService : IVentaService
                     avisos.Add((admins, "RepeticionNumero", string.Format(VentaMessages.AlertaRepeticionNumero, linea.Numero)));
                 }
 
-                if (linea.Valor >= alertaValor)
+                var totalJugada = TotalesApuesta.TotalJuego(linea.Valor, loterias.Count);
+                if (totalJugada >= alertaValor)
                 {
-                    avisos.Add((admins, "ValorAlto", string.Format(VentaMessages.AlertaValorAlto, linea.Valor.ToString("N0"))));
+                    avisos.Add((admins, "ValorAlto", string.Format(VentaMessages.AlertaValorAlto, totalJugada.ToString("N0", CultureInfo.GetCultureInfo("es-CO")))));
                 }
             }
 
@@ -180,10 +182,6 @@ public sealed class VentaService : IVentaService
             _db.Ventas.Add(venta);
             _db.ClavesValidacionBoleto.Add(claveEntity);
             await _db.SaveChangesAsync(ct);
-            foreach (var aviso in avisos)
-            {
-                await _notificaciones.CrearParaAsync(aviso.Destinatarios, aviso.Tipo, aviso.Mensaje, ct);
-            }
 
             respuesta = new VentaResponse
             {
@@ -200,6 +198,11 @@ public sealed class VentaService : IVentaService
                 Juegos = boleto.Juegos.Select(MapJuego).ToList()
             };
         }, cancellationToken);
+
+            foreach (var aviso in avisos)
+            {
+                await _notificaciones.CrearParaAsync(aviso.Destinatarios, aviso.Tipo, aviso.Mensaje, cancellationToken);
+            }
 
             return Result<VentaResponse>.Created(respuesta!, SuccessMessages.VentaConfirmada);
         }

@@ -2,6 +2,7 @@ using NewRich.Application.Contracts.Android;
 using NewRich.Application.Contracts.Boletos;
 using NewRich.Application.Contracts.Configuracion;
 using NewRich.Application.Contracts.Ventas;
+using NewRich.Application.Services;
 using NewRich.Domain.Enums;
 using NewRich.Pda.Core.Ventas;
 
@@ -27,8 +28,16 @@ public sealed class TirillaVenta
     public int VigenciaDias { get; init; } = 30;
     public required string QrContenido { get; init; }
     public bool Offline { get; init; }
+    public string LeyendaCompleta { get; init; } = string.Empty;
 
-    public string Texto => NewRich.Pda.Core.TirillaTexto.De(CodigoImpreso, Tipo, Fecha, Total, Lineas, VigenciaDias);
+    public string Texto => NewRich.Pda.Core.TirillaTexto.De(
+        CodigoImpreso,
+        Tipo,
+        Fecha,
+        Total,
+        Lineas,
+        VigenciaDias,
+        leyendaCompleta: string.IsNullOrWhiteSpace(LeyendaCompleta) ? null : LeyendaCompleta);
 
     public TirillaResponse ARespuesta() => new()
     {
@@ -38,6 +47,9 @@ public sealed class TirillaVenta
         Qr = QrContenido,
         TipoApuesta = Tipo,
         VigenciaDias = VigenciaDias,
+        Leyenda = string.IsNullOrWhiteSpace(LeyendaCompleta)
+            ? TirillaCuerpo.Leyenda(VigenciaDias > 0 ? VigenciaDias : 30)
+            : LeyendaCompleta,
         Juegos = Lineas.Select(l => new JuegoResponse
         {
             Numero = l.Numero,
@@ -47,22 +59,32 @@ public sealed class TirillaVenta
         }).ToList()
     };
 
-    public static TirillaVenta DesdeVenta(VentaResponse venta, TipoApuesta tipo, int vigenciaDias, bool offline) => new()
+    public static TirillaVenta DesdeVenta(
+        VentaResponse venta,
+        TipoApuesta tipo,
+        int vigenciaDias,
+        bool offline,
+        string? cuerpoLeyenda = null)
     {
-        CodigoImpreso = venta.CodigoImpreso,
-        Tipo = tipo,
-        Fecha = venta.FechaVenta.Kind == DateTimeKind.Utc ? venta.FechaVenta.ToLocalTime() : venta.FechaVenta,
-        Total = venta.Total,
-        Lineas = venta.Juegos.Select(j => new LineaBorrador
+        var vigencia = vigenciaDias > 0 ? vigenciaDias : 30;
+        return new TirillaVenta
         {
-            Numero = j.Numero,
-            Valor = j.Valor,
-            LoteriaIds = Enumerable.Repeat(Guid.Empty, Math.Max(1, j.Loterias.Count)).ToArray(),
-            LoteriaNombres = j.Loterias,
-            TotalExplicit = j.Total
-        }).ToArray(),
-        VigenciaDias = vigenciaDias,
-        QrContenido = venta.Qr,
-        Offline = offline
-    };
+            CodigoImpreso = venta.CodigoImpreso,
+            Tipo = tipo,
+            Fecha = venta.FechaVenta.Kind == DateTimeKind.Utc ? venta.FechaVenta.ToLocalTime() : venta.FechaVenta,
+            Total = venta.Total,
+            Lineas = venta.Juegos.Select(j => new LineaBorrador
+            {
+                Numero = j.Numero,
+                Valor = j.Valor,
+                LoteriaIds = Enumerable.Repeat(Guid.Empty, Math.Max(1, j.Loterias.Count)).ToArray(),
+                LoteriaNombres = j.Loterias,
+                TotalExplicit = j.Total
+            }).ToArray(),
+            VigenciaDias = vigencia,
+            QrContenido = venta.Qr,
+            Offline = offline,
+            LeyendaCompleta = TirillaCuerpo.Leyenda(vigencia, cuerpoLeyenda)
+        };
+    }
 }

@@ -28,7 +28,7 @@ public sealed class TirillaVentaTests
             ]
         };
 
-        var tirilla = TirillaVenta.DesdeVenta(venta, TipoApuesta.COMBINADO, 31, false);
+        var tirilla = TirillaVenta.DesdeVenta(venta, TipoApuesta.COMBINADO, 31, false, "Cuerpo PDA.\nVigencia: {vigenciaDias} días.");
 
         tirilla.CodigoImpreso.Should().Be("AOL-1082792");
         tirilla.Fecha.Should().Be(venta.FechaVenta);
@@ -38,5 +38,9 @@ public sealed class TirillaVentaTests
         tirilla.Texto.Should().Contain("COMBINADO");
         tirilla.Texto.Should().Contain("Hora: 15:55");
         tirilla.Texto.Should().NotContain("15:55:18");
+        tirilla.ARespuesta().Leyenda.Should().Contain("GRACIAS POR SU COMPRA.");
+        tirilla.ARespuesta().Leyenda.Should().Contain("Cuerpo PDA.");
+        tirilla.ARespuesta().Leyenda.Should().Contain("31 días");
+        tirilla.Texto.Should().Contain("Cuerpo PDA.");
     }
 }

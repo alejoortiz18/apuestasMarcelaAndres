@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using NewRich.Application.Abstractions;
 using NewRich.Application.Contracts.Boletos;
 using NewRich.Application.Contracts.Ventas;
+using NewRich.Constants;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
 using NewRich.Domain.Enums;
@@ -90,8 +91,15 @@ public sealed class ValidacionBoletoService : IValidacionBoletoService
             TipoApuesta = boleto.Venta?.TipoApuesta ?? TipoApuesta.COMBINADO,
             VigenciaDias = boleto.VigenciaDias > 0 ? boleto.VigenciaDias : 30,
             Qr = await AsegurarQrCifradoAsync(boleto, cancellationToken),
-            Juegos = boleto.Juegos.Select(MapJuego).ToList()
+            Juegos = boleto.Juegos.Select(MapJuego).ToList(),
+            Leyenda = await ComponerLeyendaAsync(boleto.VigenciaDias > 0 ? boleto.VigenciaDias : 30, cancellationToken)
         }, SuccessMessages.OperacionExitosa);
+    }
+
+    private async Task<string> ComponerLeyendaAsync(int vigenciaDias, CancellationToken cancellationToken)
+    {
+        var item = await _db.Configuraciones.FirstOrDefaultAsync(c => c.Clave == ConfiguracionClaves.LeyendaTirilla, cancellationToken);
+        return TirillaCuerpo.Leyenda(vigenciaDias, item?.Valor);
     }
 
     public async Task<Result<IReadOnlyList<BoletoListaResponse>>> FiltrarAsync(FiltroBoletosRequest request, CancellationToken cancellationToken)

@@ -8,6 +8,7 @@ using NewRich.Api.Realtime;
 using NewRich.Application;
 using NewRich.Application.Abstractions;
 using NewRich.Infrastructure;
+using NewRich.Shared;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -53,6 +54,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
+            NameClaimType = System.Security.Claims.ClaimTypes.NameIdentifier,
+            RoleClaimType = System.Security.Claims.ClaimTypes.Role,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
         };
         options.Events = new JwtBearerEvents
@@ -70,7 +73,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 builder.Services.AddAuthorization();
-var origenes = builder.Configuration.GetSection("Cors:Origenes").Get<string[]>() ?? ["http://localhost:5274"];
+var origenes = CorsOrigenes.ConLoopback(builder.Configuration.GetSection("Cors:Origenes").Get<string[]>() ?? ["http://localhost:5274"]);
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("Admin", policy =>
@@ -105,6 +108,6 @@ app.UseCors("Admin");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-app.MapHub<NotificacionesHub>(NotificacionesHub.Ruta);
+app.MapHub<NotificacionesHub>(NotificacionesHub.Ruta).RequireCors("Admin");
 
 app.Run();

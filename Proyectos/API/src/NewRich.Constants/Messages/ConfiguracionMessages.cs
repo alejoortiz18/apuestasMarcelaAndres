@@ -9,4 +9,6 @@ public static class ConfiguracionMessages
     public const string LineasIndividualInvalidas = "El máximo de líneas individuales debe estar entre 1 y 6.";
     public const string ModoSincronizacionInvalido = "El modo de sincronización debe ser Manual o Automatica.";
     public const string AlertaValorInvalida = "La alerta por valor mínimo no puede ser negativa.";
+    public const string LeyendaTirillaRequerida = "El texto de la tirilla es obligatorio.";
+    public const string LeyendaTirillaDemasiadoLarga = "El texto de la tirilla no puede superar 4000 caracteres.";
 }

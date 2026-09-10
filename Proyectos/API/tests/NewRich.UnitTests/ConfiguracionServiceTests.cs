@@ -31,7 +31,10 @@ public sealed class ConfiguracionServiceTests
         result.Data.AlertaValorMinimo.Should().Be(10000);
         result.Data.CodigosOfflineCapacidad.Should().Be(3000);
         result.Data.SincronizacionModo.Should().Be("Manual");
-        db.Configuraciones.Should().HaveCount(6);
+        result.Data.LeyendaTirilla.Should().Be(TirillaCuerpo.CuerpoDefecto);
+        result.Data.LeyendaTirilla.Should().Contain("{vigenciaDias}");
+        result.Data.LeyendaTirilla.Should().NotContain("GRACIAS POR SU COMPRA");
+        db.Configuraciones.Should().HaveCount(7);
         db.ConfiguracionesTipoApuesta.Should().Contain(t => t.TipoApuesta == "COMBINADO" && t.Maximo == 1);
         db.ConfiguracionesTipoApuesta.Should().Contain(t => t.TipoApuesta == "INDIVIDUAL" && t.Maximo == 6);
     }
@@ -77,7 +80,8 @@ public sealed class ConfiguracionServiceTests
             AlertaRepeticionNumero = 8,
             AlertaValorMinimo = 20000,
             CodigosOfflineCapacidad = 4000,
-            SincronizacionModo = "Automatica"
+            SincronizacionModo = "Automatica",
+            LeyendaTirilla = TirillaCuerpo.CuerpoDefecto
         }, CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
@@ -91,6 +95,33 @@ public sealed class ConfiguracionServiceTests
         result.Data.SincronizacionModo.Should().Be("Automatica");
         db.ConfiguracionesTipoApuesta.Single(t => t.TipoApuesta == "COMBINADO").Maximo.Should().Be(2);
         db.ConfiguracionesTipoApuesta.Single(t => t.TipoApuesta == "INDIVIDUAL").Maximo.Should().Be(5);
+        result.Data.LeyendaTirilla.Should().Be(TirillaCuerpo.CuerpoDefecto);
+    }
+
+    [Fact]
+    public async Task GuardarOperativaAsync_persiste_el_cuerpo_de_la_tirilla()
+    {
+        var (sut, db) = CreateSut();
+        await sut.ObtenerOperativaAsync(CancellationToken.None);
+        var cuerpo = "Conserve el ticket.\nVigencia: {vigenciaDias} días.\nAprobación a las 24 horas.";
+
+        var result = await sut.GuardarOperativaAsync(RequestValida() with { LeyendaTirilla = "GRACIAS POR SU COMPRA.\n" + cuerpo }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.LeyendaTirilla.Should().Be(cuerpo);
+        db.Configuraciones.Single(c => c.Clave == ConfiguracionClaves.LeyendaTirilla).Valor.Should().Be(cuerpo);
+    }
+
+    [Fact]
+    public async Task GuardarOperativaAsync_rechaza_leyenda_vacia()
+    {
+        var (sut, _) = CreateSut();
+        await sut.ObtenerOperativaAsync(CancellationToken.None);
+
+        var result = await sut.GuardarOperativaAsync(RequestValida() with { LeyendaTirilla = "   " }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Message.Should().Be(ConfiguracionMessages.LeyendaTirillaRequerida);
     }
 
     [Fact]
@@ -147,7 +178,8 @@ public sealed class ConfiguracionServiceTests
         AlertaRepeticionNumero = 10,
         AlertaValorMinimo = 10000,
         CodigosOfflineCapacidad = 3000,
-        SincronizacionModo = "Manual"
+        SincronizacionModo = "Manual",
+        LeyendaTirilla = TirillaCuerpo.CuerpoDefecto
     };
 
     private static (ConfiguracionService Sut, NewRichDbContext Db) CreateSut()

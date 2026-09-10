@@ -331,9 +331,10 @@ public static class UiTexts
 
     public const string ConfigKicker = "Parámetros";
     public const string ConfigTitulo = "Configuración operativa";
-    public const string ConfigSub = "Define el cierre de los PDA, la vigencia de premios, los límites de apuesta, las alertas y los códigos offline.";
+    public const string ConfigSub = "Define el cierre de los PDA, la vigencia de premios, los límites de apuesta, las alertas, los códigos offline y el texto de la tirilla.";
     public const string GuardarConfiguracion = "Guardar configuración";
     public const string ConfigHorarioPremios = "Horario y premios";
+    public const string ConfigTirilla = "Texto de la tirilla";
     public const string ConfigApuestas = "Límites de apuesta";
     public const string ConfigAlertas = "Alertas de jugada";
     public const string ConfigOffline = "Códigos offline";
@@ -348,6 +349,8 @@ public static class UiTexts
     public const string ModoSincronizacionOffline = "Modo de sincronización para descargar códigos offline";
     public const string ModoManual = "Manual";
     public const string ModoAutomatica = "Automática";
+    public const string LeyendaTirilla = "Texto de la tirilla (excepto GRACIAS POR SU COMPRA)";
+    public const string LeyendaTirillaAyuda = "GRACIAS POR SU COMPRA permanece fijo al inicio. Use {vigenciaDias} para mostrar los días de vigencia. El resto del texto sí se puede cambiar.";
     public const string CatalogoLoteriasSub = "Loterías que el administrador habilita para que aparezcan en los PDA.";
     public const string AgregarLoteria = "Agregar lotería";
     public const string Deshabilitar = "Deshabilitar";

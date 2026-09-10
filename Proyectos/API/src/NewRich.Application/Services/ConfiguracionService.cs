@@ -17,7 +17,8 @@ public sealed class ConfiguracionService : IConfiguracionService
         (ConfiguracionClaves.AlertaRepeticionNumero, "10"),
         (ConfiguracionClaves.AlertaValorMinimo, "10000"),
         (ConfiguracionClaves.CodigosOfflineCapacidad, "3000"),
-        (ConfiguracionClaves.SincronizacionModo, ConfiguracionClaves.ModoManual)
+        (ConfiguracionClaves.SincronizacionModo, ConfiguracionClaves.ModoManual),
+        (ConfiguracionClaves.LeyendaTirilla, TirillaCuerpo.CuerpoDefecto)
     ];
 
     private readonly INewRichDbContext _db;
@@ -80,7 +81,8 @@ public sealed class ConfiguracionService : IConfiguracionService
             AlertaRepeticionNumero = Entero(mapa[ConfiguracionClaves.AlertaRepeticionNumero], 10),
             AlertaValorMinimo = Entero(mapa[ConfiguracionClaves.AlertaValorMinimo], 10000),
             CodigosOfflineCapacidad = Entero(mapa[ConfiguracionClaves.CodigosOfflineCapacidad], 3000),
-            SincronizacionModo = mapa[ConfiguracionClaves.SincronizacionModo]
+            SincronizacionModo = mapa[ConfiguracionClaves.SincronizacionModo],
+            LeyendaTirilla = TirillaCuerpo.NormalizarCuerpo(mapa[ConfiguracionClaves.LeyendaTirilla])
         }, SuccessMessages.OperacionExitosa);
     }
 
@@ -116,6 +118,17 @@ public sealed class ConfiguracionService : IConfiguracionService
             return Result<ConfiguracionOperativaResponse>.Fail(ValidationMessages.CapacidadCodigosOfflineRango);
         }
 
+        var cuerpo = TirillaCuerpo.NormalizarCuerpo(request.LeyendaTirilla);
+        if (string.IsNullOrWhiteSpace(request.LeyendaTirilla) || string.IsNullOrWhiteSpace(cuerpo))
+        {
+            return Result<ConfiguracionOperativaResponse>.Fail(ConfiguracionMessages.LeyendaTirillaRequerida);
+        }
+
+        if (cuerpo.Length > 4000)
+        {
+            return Result<ConfiguracionOperativaResponse>.Fail(ConfiguracionMessages.LeyendaTirillaDemasiadoLarga);
+        }
+
         var modo = (request.SincronizacionModo ?? string.Empty).Trim();
         if (!modo.Equals(ConfiguracionClaves.ModoManual, StringComparison.OrdinalIgnoreCase)
             && !modo.Equals(ConfiguracionClaves.ModoAutomatica, StringComparison.OrdinalIgnoreCase))
@@ -134,6 +147,7 @@ public sealed class ConfiguracionService : IConfiguracionService
         await GuardarClaveAsync(ConfiguracionClaves.AlertaValorMinimo, request.AlertaValorMinimo.ToString(), cancellationToken);
         await GuardarClaveAsync(ConfiguracionClaves.CodigosOfflineCapacidad, request.CodigosOfflineCapacidad.ToString(), cancellationToken);
         await GuardarClaveAsync(ConfiguracionClaves.SincronizacionModo, modo, cancellationToken);
+        await GuardarClaveAsync(ConfiguracionClaves.LeyendaTirilla, cuerpo, cancellationToken);
         await GuardarTipoAsync(ConfiguracionClaves.TipoCombinado, request.MaxJuegosCombinado, cancellationToken);
         await GuardarTipoAsync(ConfiguracionClaves.TipoIndividual, request.MaxLineasIndividual, cancellationToken);
 
@@ -210,7 +224,8 @@ public sealed class ConfiguracionService : IConfiguracionService
         AlertaRepeticionNumero = actual.AlertaRepeticionNumero,
         AlertaValorMinimo = actual.AlertaValorMinimo,
         CodigosOfflineCapacidad = actual.CodigosOfflineCapacidad,
-        SincronizacionModo = actual.SincronizacionModo
+        SincronizacionModo = actual.SincronizacionModo,
+        LeyendaTirilla = actual.LeyendaTirilla
     };
 
     private static GuardarConfiguracionOperativaRequest? AplicarClave(ConfiguracionOperativaResponse actual, string clave, string valor)
@@ -224,6 +239,7 @@ public sealed class ConfiguracionService : IConfiguracionService
             ConfiguracionClaves.AlertaValorMinimo when int.TryParse(valor, out var minimo) => request with { AlertaValorMinimo = minimo },
             ConfiguracionClaves.CodigosOfflineCapacidad when int.TryParse(valor, out var capacidad) => request with { CodigosOfflineCapacidad = capacidad },
             ConfiguracionClaves.SincronizacionModo => request with { SincronizacionModo = valor },
+            ConfiguracionClaves.LeyendaTirilla => request with { LeyendaTirilla = valor },
             _ => null
         };
     }

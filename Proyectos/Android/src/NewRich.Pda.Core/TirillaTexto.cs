@@ -20,9 +20,14 @@ public static class TirillaTexto
         DateTime fecha,
         decimal total,
         IReadOnlyList<LineaBorrador> lineas,
-        int vigenciaDias = 30)
+        int vigenciaDias = 30,
+        string? cuerpoLeyenda = null,
+        string? leyendaCompleta = null)
     {
         var combinada = TirillaCuerpo.EsCombinada(tipo);
+        var leyenda = string.IsNullOrWhiteSpace(leyendaCompleta)
+            ? TirillaCuerpo.Leyenda(vigenciaDias > 0 ? vigenciaDias : 30, cuerpoLeyenda)
+            : leyendaCompleta;
         var sb = new System.Text.StringBuilder();
         sb.AppendLine(new string('=', Ancho));
         sb.AppendLine(Fila("RECIBO DE VENTA", codigoImpreso));
@@ -54,7 +59,7 @@ public static class TirillaTexto
         sb.AppendLine(new string('=', Ancho));
         sb.AppendLine("QR");
         sb.AppendLine(new string('=', Ancho));
-        sb.AppendLine(TirillaCuerpo.Leyenda(vigenciaDias > 0 ? vigenciaDias : 30));
+        sb.AppendLine(leyenda);
         sb.AppendLine(new string('=', Ancho));
         return sb.ToString();
     }

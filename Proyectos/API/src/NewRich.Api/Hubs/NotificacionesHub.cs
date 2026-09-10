@@ -13,9 +13,8 @@ public sealed class NotificacionesHub : Hub
 
     public override async Task OnConnectedAsync()
     {
-        var claim = Context.User?.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value
-                    ?? Context.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (Guid.TryParse(claim, out var usuarioId))
+        var claim = Context.User;
+        if (NewRich.Shared.ClaimsUsuario.TryId(claim, out var usuarioId))
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, Grupo(usuarioId));
         }

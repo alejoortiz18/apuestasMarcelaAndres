@@ -398,12 +398,23 @@ BEGIN
     CREATE TABLE dbo.Configuraciones (
         ConfiguracionId      UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
         Clave                NVARCHAR(100)    NOT NULL,
-        Valor                NVARCHAR(500)    NOT NULL,
+        Valor                NVARCHAR(MAX)    NOT NULL,
         FechaActualizacion   DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
         CONSTRAINT PK_Configuraciones PRIMARY KEY (ConfiguracionId),
         CONSTRAINT UQ_Configuraciones_Clave UNIQUE (Clave)
     );
     PRINT 'Tabla Configuraciones creada.';
+END
+ELSE IF EXISTS (
+    SELECT 1
+    FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'dbo.Configuraciones')
+      AND name = N'Valor'
+      AND max_length <> -1
+)
+BEGIN
+    ALTER TABLE dbo.Configuraciones ALTER COLUMN Valor NVARCHAR(MAX) NOT NULL;
+    PRINT 'Columna Configuraciones.Valor ampliada a NVARCHAR(MAX).';
 END
 GO
 
@@ -1294,6 +1305,12 @@ IF NOT EXISTS (SELECT 1 FROM dbo.Configuraciones WHERE Clave = 'CodigosOfflineCa
     INSERT INTO dbo.Configuraciones (Clave, Valor) VALUES ('CodigosOfflineCapacidad', '3000');
 IF NOT EXISTS (SELECT 1 FROM dbo.Configuraciones WHERE Clave = 'SincronizacionModo')
     INSERT INTO dbo.Configuraciones (Clave, Valor) VALUES ('SincronizacionModo', 'Manual');
+IF NOT EXISTS (SELECT 1 FROM dbo.Configuraciones WHERE Clave = 'LeyendaTirilla')
+    INSERT INTO dbo.Configuraciones (Clave, Valor) VALUES (
+        'LeyendaTirilla',
+        N'CONSERVE SU TICKET EN PERFECTO ESTADO.' + CHAR(10)
+        + N'Vigencia: {vigenciaDias} días calendario desde su emisión. Vencido este plazo, el premio caducará y no será pagado.' + CHAR(10)
+        + N'La aprobación del premio se realizará después de transcurridas 24 horas desde el momento en que el cliente lo haya reportado como ganador.');
 GO
 PRINT 'Datos maestros de Configuraciones insertados.';
 

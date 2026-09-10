@@ -42,6 +42,12 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
 
     public async Task ExecuteInTransactionAsync(Func<CancellationToken, Task> action, CancellationToken cancellationToken = default)
     {
+        if (!Database.IsRelational())
+        {
+            await action(cancellationToken);
+            return;
+        }
+
         await using var tx = await Database.BeginTransactionAsync(cancellationToken);
         await action(cancellationToken);
         await tx.CommitAsync(cancellationToken);
@@ -203,6 +209,8 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
         {
             e.ToTable("Configuraciones");
             e.HasKey(x => x.ConfiguracionId);
+            e.Property(x => x.Clave).HasMaxLength(100);
+            e.Property(x => x.Valor).HasColumnType("nvarchar(max)");
         });
 
         modelBuilder.Entity<ConfiguracionTipoApuesta>(e =>

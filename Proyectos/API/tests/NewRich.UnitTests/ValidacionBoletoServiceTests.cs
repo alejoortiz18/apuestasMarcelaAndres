@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using NewRich.Application.Abstractions;
 using NewRich.Application.Services;
+using NewRich.Constants;
 using NewRich.Domain.Entities;
 using NewRich.Domain.Enums;
 using NewRich.Infrastructure.Persistence;
@@ -20,6 +21,26 @@ public sealed class ValidacionBoletoServiceTests
 
         result.IsSuccess.Should().BeTrue();
         result.Data!.Qr.Should().Be("1.key.nonce.cipher.tag");
+        result.Data.Leyenda.Should().Be(TirillaCuerpo.Leyenda(30));
+    }
+
+    [Fact]
+    public async Task ObtenerTirilla_usa_el_cuerpo_configurado()
+    {
+        var (sut, db) = CreateSut();
+        var boletoId = await CrearBoletoAsync(db, "1.key.nonce.cipher.tag");
+        db.Configuraciones.Add(new Configuracion
+        {
+            ConfiguracionId = Guid.NewGuid(),
+            Clave = ConfiguracionClaves.LeyendaTirilla,
+            Valor = "Texto propio.\nVigencia: {vigenciaDias} días.",
+            FechaActualizacion = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+
+        var result = await sut.ObtenerTirillaAsync(boletoId, CancellationToken.None);
+
+        result.Data!.Leyenda.Should().Be(TirillaCuerpo.Leyenda(30, "Texto propio.\nVigencia: {vigenciaDias} días."));
     }
 
     [Fact]

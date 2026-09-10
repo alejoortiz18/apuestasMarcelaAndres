@@ -14,6 +14,7 @@ using NewRich.Application.Contracts.Premios;
 using NewRich.Application.Contracts.Resultados;
 using NewRich.Application.Contracts.Usuarios;
 using NewRich.Application.Contracts.Ventas;
+using NewRich.Application.Services;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Enums;
 
@@ -272,6 +273,11 @@ public sealed class ConfiguracionOperativaFormViewModel
     [Display(Name = UiTexts.ModoSincronizacionOffline)]
     [Required(ErrorMessage = ValidationMessages.CampoRequerido)]
     public string SincronizacionModo { get; set; } = "Manual";
+
+    [Display(Name = UiTexts.LeyendaTirilla)]
+    [Required(ErrorMessage = ValidationMessages.CampoRequerido)]
+    [MaxLength(4000, ErrorMessage = ConfiguracionMessages.LeyendaTirillaDemasiadoLarga)]
+    public string LeyendaTirilla { get; set; } = TirillaCuerpo.CuerpoDefecto;
 }
 
 public sealed class TirillaViewModel

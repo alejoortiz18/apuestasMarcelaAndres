@@ -1,4 +1,5 @@
 using NewRich.Application.Contracts.Loterias;
+using NewRich.Application.Services;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Enums;
 using NewRich.Pda.Core;
@@ -270,7 +271,7 @@ public sealed class ConstruirApuestaPage : ContentPage
             }
 
             var vigencia = _sesion.Limites.VigenciaPremiosDias > 0 ? _sesion.Limites.VigenciaPremiosDias : 30;
-            _sesion.Tirilla = TirillaVenta.DesdeVenta(venta.Data, draft.Tipo, vigencia, false);
+            _sesion.Tirilla = TirillaVenta.DesdeVenta(venta.Data, draft.Tipo, vigencia, false, _sesion.Limites.LeyendaTirilla);
             _sesion.Borrador = null;
             await Navigation.PushAsync(_services.GetRequiredService<TirillaVendidaPage>());
         }
@@ -292,7 +293,8 @@ public sealed class ConstruirApuestaPage : ContentPage
             Lineas = draft.Lineas.ToArray(),
             VigenciaDias = vigencia,
             QrContenido = qr ?? string.Empty,
-            Offline = offline
+            Offline = offline,
+            LeyendaCompleta = TirillaCuerpo.Leyenda(vigencia, _sesion.Limites.LeyendaTirilla)
         };
         _sesion.Borrador = null;
         await Navigation.PushAsync(_services.GetRequiredService<TirillaVendidaPage>());

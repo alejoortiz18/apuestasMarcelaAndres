@@ -22,10 +22,11 @@ public static class TirillaReciboImagen
     {
         var combinada = TirillaCuerpo.EsCombinada(tirilla.TipoApuesta);
         var fecha = tirilla.Fecha.Kind == DateTimeKind.Utc ? tirilla.Fecha.ToLocalTime() : tirilla.Fecha;
-        var leyenda = TirillaCuerpo.Leyenda(tirilla.VigenciaDias > 0 ? tirilla.VigenciaDias : 30);
+        var leyenda = TirillaCuerpo.LeyendaDeRespuesta(tirilla.VigenciaDias, tirilla.Leyenda);
         var qr = QrImagen.Png(tirilla.Qr);
         var filasJuego = combinada ? 2 : Math.Max(1, tirilla.Juegos.Count);
-        alto = 260 + (filasJuego * 22) + (qr.Length > 0 ? 150 : 0) + 110;
+        var lineasLeyenda = Math.Max(3, leyenda.Split('\n').Length);
+        alto = 260 + (filasJuego * 22) + (qr.Length > 0 ? 150 : 0) + (lineasLeyenda * 22) + 40;
         ancho = Ancho;
         var tinta = Color.FromRgb(23, 33, 43);
         var regular = new Font(Familia(), 13);
@@ -39,7 +40,9 @@ public static class TirillaReciboImagen
             float y = Margen;
             void Regla()
             {
-                ctx.DrawText(new RichTextOptions(regular) { Origin = new PointF(Margen, y) }, "================================", tinta);
+                var igual = TextMeasurer.MeasureSize("=", new TextOptions(regular)).Width;
+                var texto = TirillaRegla.De(TirillaRegla.Cantidad(Ancho - Margen * 2, igual));
+                ctx.DrawText(new RichTextOptions(regular) { Origin = new PointF(Margen, y) }, texto, tinta);
                 y += 18;
             }
 

@@ -4,6 +4,7 @@ using NewRich.Admin.Models;
 using NewRich.Admin.Services;
 using NewRich.Application.Contracts.Configuracion;
 using NewRich.Application.Contracts.Loterias;
+using NewRich.Application.Services;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Enums;
 
@@ -75,7 +76,8 @@ public sealed class ConfiguracionController : AdminControllerBase
             AlertaRepeticionNumero = form.AlertaRepeticionNumero,
             AlertaValorMinimo = form.AlertaValorMinimo,
             CodigosOfflineCapacidad = form.CodigosOfflineCapacidad,
-            SincronizacionModo = form.SincronizacionModo
+            SincronizacionModo = form.SincronizacionModo,
+            LeyendaTirilla = form.LeyendaTirilla
         }, cancellationToken);
         var denied = RedirectIfUnauthorized(result);
         if (denied is not null)
@@ -234,7 +236,10 @@ public sealed class ConfiguracionController : AdminControllerBase
             AlertaRepeticionNumero = data.AlertaRepeticionNumero,
             AlertaValorMinimo = data.AlertaValorMinimo,
             CodigosOfflineCapacidad = data.CodigosOfflineCapacidad,
-            SincronizacionModo = data.SincronizacionModo
+            SincronizacionModo = data.SincronizacionModo,
+            LeyendaTirilla = string.IsNullOrWhiteSpace(data.LeyendaTirilla)
+                ? TirillaCuerpo.CuerpoDefecto
+                : data.LeyendaTirilla
         };
     }
 }

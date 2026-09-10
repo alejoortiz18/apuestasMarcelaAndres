@@ -15,7 +15,7 @@ public static class TirillaDocumentoPdf
         AsegurarFuente();
         var combinada = TirillaCuerpo.EsCombinada(tirilla.TipoApuesta);
         var fecha = tirilla.Fecha.Kind == DateTimeKind.Utc ? tirilla.Fecha.ToLocalTime() : tirilla.Fecha;
-        var leyenda = TirillaCuerpo.Leyenda(tirilla.VigenciaDias > 0 ? tirilla.VigenciaDias : 30);
+        var leyenda = TirillaCuerpo.LeyendaDeRespuesta(tirilla.VigenciaDias, tirilla.Leyenda);
         return Document.Create(container =>
         {
             container.Page(page =>

@@ -4,6 +4,7 @@ using NewRich.Admin.Models;
 using NewRich.Admin.Services;
 using NewRich.Application.Contracts.Notificaciones;
 using NewRich.Constants.Messages;
+using NewRich.Shared;
 
 namespace NewRich.Admin.Controllers;
 
@@ -96,7 +97,8 @@ public sealed class NotificacionesController : AdminControllerBase
             return Unauthorized();
         }
 
-        var baseUrl = (_config["Api:BaseUrl"] ?? "http://localhost:5295/").TrimEnd('/');
-        return Json(new { token, hubUrl = baseUrl + UiTexts.HubNotificaciones });
+        var baseUrl = _config["Api:BaseUrl"] ?? "http://localhost:5295/";
+        var hubUrl = HubNotificacionesUrl.Resolver(baseUrl, Request.Host.Host, UiTexts.HubNotificaciones);
+        return Json(new { token, hubUrl });
     }
 }

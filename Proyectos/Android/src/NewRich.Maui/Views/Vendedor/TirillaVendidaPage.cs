@@ -94,7 +94,11 @@ public sealed class TirillaVendidaPage : ContentPage
     {
         var combinada = TirillaCuerpo.EsCombinada(tirilla.Tipo);
         var fecha = tirilla.Fecha;
-        var recuadro = new VerticalStackLayout { Spacing = 6 };
+        var recuadro = new VerticalStackLayout
+        {
+            Spacing = 6,
+            HorizontalOptions = LayoutOptions.Fill
+        };
         recuadro.Add(Regla());
         recuadro.Add(Fila("RECIBO DE VENTA", tirilla.CodigoImpreso));
         recuadro.Add(Regla());
@@ -149,7 +153,9 @@ public sealed class TirillaVendidaPage : ContentPage
         recuadro.Add(Regla());
         recuadro.Add(new Label
         {
-            Text = TirillaCuerpo.Leyenda(tirilla.VigenciaDias > 0 ? tirilla.VigenciaDias : 30),
+            Text = string.IsNullOrWhiteSpace(tirilla.LeyendaCompleta)
+                ? TirillaCuerpo.LeyendaDeRespuesta(tirilla.VigenciaDias, null)
+                : tirilla.LeyendaCompleta,
             FontFamily = "OpenSansRegular",
             FontSize = 12,
             TextColor = Ui.Ink
@@ -175,13 +181,23 @@ public sealed class TirillaVendidaPage : ContentPage
         TextColor = Ui.Ink
     };
 
-    private static Label Regla() => new()
+    private static View Regla() => new Grid
     {
-        Text = "================================",
-        FontFamily = "OpenSansRegular",
-        FontSize = 12,
-        LineBreakMode = LineBreakMode.NoWrap,
-        TextColor = Ui.Ink
+        HeightRequest = 16,
+        HorizontalOptions = LayoutOptions.Fill,
+        IsClippedToBounds = true,
+        Children =
+        {
+            new Label
+            {
+                Text = TirillaRegla.De(TirillaRegla.CaracteresPantalla),
+                FontFamily = "OpenSansRegular",
+                FontSize = 12,
+                LineBreakMode = LineBreakMode.NoWrap,
+                MaxLines = 1,
+                TextColor = Ui.Ink
+            }
+        }
     };
 
     private static Grid Fila(string izquierda, string derecha, bool negrita = false)

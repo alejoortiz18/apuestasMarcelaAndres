@@ -553,9 +553,14 @@
 })();
 
 function iniciarNotificacionesEnVivo() {
+  if (iniciarNotificacionesEnVivo.ocupado) {
+    return;
+  }
+  iniciarNotificacionesEnVivo.ocupado = true;
   const conexionUrl = document.documentElement.getAttribute("data-notif-conexion");
   const toast = document.getElementById("notifToast");
   if (!conexionUrl || !toast || typeof signalR === "undefined") {
+    iniciarNotificacionesEnVivo.ocupado = false;
     return;
   }
 
@@ -636,6 +641,9 @@ function iniciarNotificacionesEnVivo() {
       return respuesta.json();
     })
     .then(function (datos) {
+      if (!datos || !datos.hubUrl || !datos.token) {
+        throw new Error("conexion");
+      }
       const conexion = new signalR.HubConnectionBuilder()
         .withUrl(datos.hubUrl, { accessTokenFactory: function () { return datos.token; } })
         .withAutomaticReconnect()
@@ -644,9 +652,15 @@ function iniciarNotificacionesEnVivo() {
         actualizarCampana(aviso);
         mostrarToast(aviso);
       });
-      return conexion.start();
+      function arrancar() {
+        return conexion.start().catch(function () {
+          window.setTimeout(arrancar, 4000);
+        });
+      }
+      return arrancar();
     })
     .catch(function () {
-      return undefined;
+      iniciarNotificacionesEnVivo.ocupado = false;
+      window.setTimeout(iniciarNotificacionesEnVivo, 8000);
     });
 }

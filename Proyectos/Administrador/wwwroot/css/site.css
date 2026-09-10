@@ -830,6 +830,7 @@ a[data-offline-associate][hidden] { display: none; }
 .config-grid .kpi-section { margin: 0; }
 .config-save { display: flex; justify-content: flex-start; }
 .field-help { display: block; color: var(--muted); font-size: 11px; margin-top: 6px; }
+.config-form textarea { min-height: 140px; resize: vertical; line-height: 1.45; }
 
 @media (max-width: 1050px) {
   .app { grid-template-columns: 74px 1fr; }

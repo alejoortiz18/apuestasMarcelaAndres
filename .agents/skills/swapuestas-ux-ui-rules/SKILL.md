@@ -76,7 +76,7 @@ Every data table created in the MVC application must include pagination. A table
 - Do not show links for actions the current role cannot use unless the product explicitly needs them disabled with an explanation.
 - En **KPI** los filtros de periodo, grupo, vendedor, comparación y fechas actualizan todos los indicadores, barras y tablas. Las tablas del informe no usan casilla; **Revisar** navega al módulo relacionado. **Descargar PDF** conserva los filtros aplicados.
 - En **Soporte** el listado de conversaciones muestra nombre, rol, último mensaje y estado reales. **Buscar chat** filtra por persona o texto. **Marcar atendida** cierra la conversación y conserva el historial. No hay tabla ni casilla en este módulo.
-- En **Configuración** un solo **Guardar configuración** persiste horario, vigencia, límites, alertas y códigos offline. El catálogo de loterías usa casilla, paginación y el panel **Editar** / **Deshabilitar** o **Habilitar**.
+- En **Configuración** un solo **Guardar configuración** persiste horario, vigencia, límites, alertas, códigos offline y el texto parametrizable de la tirilla. El catálogo de loterías usa casilla, paginación y el panel **Editar** / **Deshabilitar** o **Habilitar**.
 
 ### Main content
 

@@ -22,6 +22,7 @@ public sealed class ConfiguracionOperativaResponse
     public int AlertaValorMinimo { get; set; } = 10000;
     public int CodigosOfflineCapacidad { get; set; } = 3000;
     public string SincronizacionModo { get; set; } = "Manual";
+    public string LeyendaTirilla { get; set; } = string.Empty;
 }
 
 public sealed record GuardarConfiguracionOperativaRequest
@@ -34,4 +35,5 @@ public sealed record GuardarConfiguracionOperativaRequest
     public int AlertaValorMinimo { get; init; }
     public int CodigosOfflineCapacidad { get; init; }
     public string SincronizacionModo { get; init; } = string.Empty;
+    public string LeyendaTirilla { get; init; } = string.Empty;
 }

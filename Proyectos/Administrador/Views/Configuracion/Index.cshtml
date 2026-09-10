@@ -68,6 +68,15 @@
                 <span asp-validation-for="Form.SincronizacionModo"></span>
             </div>
         </section>
+        <section class="kpi-section kpi-section-wide">
+            <h2>@UiTexts.ConfigTirilla</h2>
+            <div class="field">
+                <label asp-for="Form.LeyendaTirilla"></label>
+                <textarea asp-for="Form.LeyendaTirilla" rows="6" maxlength="4000"></textarea>
+                <span class="field-help">@UiTexts.LeyendaTirillaAyuda</span>
+                <span asp-validation-for="Form.LeyendaTirilla"></span>
+            </div>
+        </section>
     </div>
     <div class="config-save">
         <button class="primary" type="submit">@UiTexts.GuardarConfiguracion</button>

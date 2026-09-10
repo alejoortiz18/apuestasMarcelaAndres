@@ -48,7 +48,7 @@ public sealed class TirillaResponse
     public string Vendedor { get; set; } = string.Empty;
     public decimal Total { get; set; }
     public string Qr { get; set; } = string.Empty;
-    public string Leyenda { get; set; } = "Recuerde cuidar este boleto, se paga al portador.";
+    public string Leyenda { get; set; } = string.Empty;
     public TipoApuesta TipoApuesta { get; set; }
     public int VigenciaDias { get; set; } = 30;
     public IReadOnlyList<Contracts.Ventas.JuegoResponse> Juegos { get; set; } = [];
