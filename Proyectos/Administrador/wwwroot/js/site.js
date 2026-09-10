@@ -529,7 +529,7 @@
       closeAviso();
       return;
     }
-    document.querySelectorAll("[data-bell-menu][open]").forEach(function (menu) {
+    document.querySelectorAll("[data-bell-menu][open], [data-cuenta-menu][open]").forEach(function (menu) {
       menu.removeAttribute("open");
     });
   });
@@ -542,7 +542,7 @@
   });
 
   document.addEventListener("click", function (event) {
-    document.querySelectorAll("[data-bell-menu][open]").forEach(function (menu) {
+    document.querySelectorAll("[data-bell-menu][open], [data-cuenta-menu][open]").forEach(function (menu) {
       if (!menu.contains(event.target)) {
         menu.removeAttribute("open");
       }

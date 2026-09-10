@@ -5,6 +5,16 @@ public static class UiTexts
 {
     public const string AppName = "New Rich";
     public const string AppSubtitle = "Administración";
+    public const string AppLema = "Mentes más grandes · Futuros más brillantes";
+    public const string MenuCuenta = "Cuenta";
+    public const string PieDerechos = "© 2026 New Rich. Todos los derechos reservados.";
+    public const string PieVision = "Visión";
+    public const string PieEstrategia = "Estrategia";
+    public const string PieResultados = "Resultados";
+    public const string ResumenVacioAyuda = "Cuando se registren ventas, aparecerán aquí.";
+    public const string LoginDisciplina = "Disciplina";
+    public const string LoginVision = "Visión";
+    public const string LoginExito = "Éxito";
     public const string ServidorCentral = "Servidor central";
     public const string Conectado = "Conectado";
     public const string CerrarSesion = "Cerrar sesión";

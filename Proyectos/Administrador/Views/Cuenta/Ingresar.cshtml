@@ -6,26 +6,69 @@
     ViewData["Title"] = UiTexts.IniciarSesion;
 }
 <section class="login">
-    <div class="login-box">
-        <div class="logo">@UiTexts.AppName.ToUpperInvariant()<small>@UiTexts.AppSubtitle.ToUpperInvariant()</small></div>
-        <h1>@UiTexts.IniciarSesion</h1>
-        <p>@UiTexts.LoginAyuda</p>
-        <form asp-action="Ingresar" method="post">
-            <div class="field">
-                <label asp-for="Usuario"></label>
-                <input asp-for="Usuario" autocomplete="username" />
-                <span asp-validation-for="Usuario"></span>
+    <div class="login-inner">
+        <header class="login-brand">
+            <div class="login-emblema">
+                <img src="~/img/login-emblema.png" alt="" width="200" height="200" />
             </div>
-            <div class="field">
-                <label asp-for="Password"></label>
-                <input asp-for="Password" autocomplete="current-password" />
-                <span asp-validation-for="Password"></span>
-            </div>
-            @if (!string.IsNullOrWhiteSpace(Model.Error))
-            {
-                <div class="notice error" role="alert">@Model.Error</div>
-            }
-            <button class="primary" type="submit">@UiTexts.Ingresar</button>
-        </form>
+            <p class="login-name">@UiTexts.AppName</p>
+            <p class="login-lema">@UiTexts.AppLema</p>
+        </header>
+        <div class="login-box">
+            <h1>@UiTexts.IniciarSesion</h1>
+            <p>@UiTexts.LoginAyuda</p>
+            <form asp-action="Ingresar" method="post">
+                <div class="field">
+                    <label asp-for="Usuario"></label>
+                    <div class="login-input">
+                        <svg class="login-input-icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+                            <circle cx="12" cy="8" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8" />
+                            <path d="M5.5 19.2c1.2-3.2 3.4-4.8 6.5-4.8s5.3 1.6 6.5 4.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                        </svg>
+                        <input asp-for="Usuario" autocomplete="username" />
+                    </div>
+                    <span asp-validation-for="Usuario"></span>
+                </div>
+                <div class="field">
+                    <label asp-for="Password"></label>
+                    <div class="login-input">
+                        <svg class="login-input-icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+                            <rect x="5" y="11" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.8" />
+                            <path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                        </svg>
+                        <input asp-for="Password" autocomplete="current-password" />
+                    </div>
+                    <span asp-validation-for="Password"></span>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(Model.Error))
+                {
+                    <div class="notice error" role="alert">@Model.Error</div>
+                }
+                <button class="primary" type="submit">@UiTexts.Ingresar</button>
+            </form>
+        </div>
+        <ul class="login-valores">
+            <li>
+                <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+                    <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.6" />
+                    <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.6" />
+                    <path d="M12 2v3M12 19v3M2 12h3M19 12h3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+                </svg>
+                <span>@UiTexts.LoginDisciplina</span>
+            </li>
+            <li>
+                <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+                    <path d="M4 18V8M10 18V5M16 18v-7M20 18H3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                </svg>
+                <span>@UiTexts.LoginVision</span>
+            </li>
+            <li>
+                <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+                    <path d="M12 3.2 20.5 12 12 20.8 3.5 12z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+                    <path d="M12 7.2 16.8 12 12 16.8 7.2 12z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+                </svg>
+                <span>@UiTexts.LoginExito</span>
+            </li>
+        </ul>
     </div>
 </section>

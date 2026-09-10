@@ -62,6 +62,12 @@ public static class ClaimsPrincipalExtensions
     public static string NombreMostrado(this ClaimsPrincipal user) =>
         user.FindFirstValue(ClaimTypes.GivenName) ?? user.Identity?.Name ?? string.Empty;
 
+    public static string NombreUsuario(this ClaimsPrincipal user) =>
+        user.Identity?.Name ?? string.Empty;
+
+    public static string RolMostrado(this ClaimsPrincipal user) =>
+        user.FindFirstValue(ClaimTypes.Role) ?? string.Empty;
+
     public static string Iniciales(this ClaimsPrincipal user)
     {
         var name = user.NombreMostrado();

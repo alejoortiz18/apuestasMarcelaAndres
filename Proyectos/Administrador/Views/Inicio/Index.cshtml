@@ -13,10 +13,22 @@
     <a class="primary" asp-controller="Resultados" asp-action="Crear">@UiTexts.RegistrarResultado</a>
 </div>
 <div class="stats">
-    <div class="stat"><small>@UiTexts.VentasDelDia</small><strong>@Model.VentasDelDia.ToString("C0", cultura)</strong></div>
-    <div class="stat"><small>@UiTexts.BoletosEmitidos</small><strong>@Model.BoletosEmitidos</strong></div>
-    <div class="stat"><small>@UiTexts.VendedoresActivos</small><strong>@Model.VendedoresActivos / @Model.VendedoresTotales</strong></div>
-    <div class="stat"><small>@UiTexts.AlertasPendientes</small><strong>@Model.AlertasPendientes.ToString("00")</strong></div>
+    <div class="stat">
+        <span class="stat-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 8v8M9 10.5c.8-1 2-1.5 3-1.5s2.2.6 3 1.6M9 14.2c.8 1 2 1.5 3 1.5s2.2-.6 3-1.6" fill="none" stroke="currentColor" stroke-width="1.7"/></svg></span>
+        <div><small>@UiTexts.VentasDelDia</small><strong>@Model.VentasDelDia.ToString("C0", cultura)</strong></div>
+    </div>
+    <div class="stat">
+        <span class="stat-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 7h12v12H6zM8 7V5.6A1.6 1.6 0 0 1 9.6 4h4.8A1.6 1.6 0 0 1 16 5.6V7" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M9 12h6M9 15h4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+        <div><small>@UiTexts.BoletosEmitidos</small><strong>@Model.BoletosEmitidos</strong></div>
+    </div>
+    <div class="stat">
+        <span class="stat-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18"><circle cx="9" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M4 19c.8-3 2.6-4.5 5-4.5S13.2 16 14 19M17 8a2.5 2.5 0 1 1 0 5" fill="none" stroke="currentColor" stroke-width="1.7"/></svg></span>
+        <div><small>@UiTexts.VendedoresActivos</small><strong>@Model.VendedoresActivos / @Model.VendedoresTotales</strong></div>
+    </div>
+    <div class="stat">
+        <span class="stat-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 4 4 19h16L12 4z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M12 10v5M12 17.2v.6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+        <div><small>@UiTexts.AlertasPendientes</small><strong>@Model.AlertasPendientes.ToString("00")</strong></div>
+    </div>
 </div>
 <div class="panel">
     <div class="panel-head">
@@ -27,7 +39,10 @@
     </div>
     @if (!Model.UltimasVentas.Any())
     {
-        <div class="empty">@UiTexts.Vacio</div>
+        <div class="empty empty-rich">
+            <p>@UiTexts.Vacio</p>
+            <p>@UiTexts.ResumenVacioAyuda</p>
+        </div>
     }
     else
     {

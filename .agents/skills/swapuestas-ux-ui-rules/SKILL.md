@@ -24,7 +24,7 @@ This is the living UX/UI rulebook for the SWApuestas MVC application. Apply thes
 ## General principles
 
 - Design MVC views mobile-first and verify mobile, tablet, and desktop layouts.
-- Reuse the existing design system, Bootstrap utilities, colors, spacing, typography, and icon conventions.
+- Reuse the existing design system, Bootstrap utilities, colors, spacing, typography, and icon conventions. Todo cambio o creación de interfaz del administrador debe seguir este libro UX/UI.
 - Keep visual hierarchy clear: page title, context, primary action, content, feedback, and secondary actions.
 - Use sentence case and labels that describe the user's action or the data they will see.
 - Every interactive control must have a visible focus state, an accessible name, a usable keyboard path, and a touch-friendly target.
@@ -58,6 +58,14 @@ Every data table created in the MVC application must include pagination. A table
 
 ## Page shell
 
+### Lienzo interno
+
+- El administrador interno usa fondo marfil (`#f4efe4`), tarjetas crema con borde dorado, menu lateral verde oscuro (`#102820`) con borde e iconos dorados, y acentos `#c9a44a` / `#f0d078`.
+- Titulos de pagina en Cinzel; texto de interfaz en Manrope. El lema del login y de la marca va en espanol de Colombia, no en ingles.
+- La barra superior flota como pastilla crema. El pie muestra derechos y `Visión · Estrategia · Resultados`.
+- El resaltado de filas y el foco usan tinte dorado, no verde menta.
+- No colocar recuadros ni marcas de agua del globo sobre el contenido; el globo del menu va detras de las ultimas opciones del lateral.
+
 ### Banner, encabezado y cabecera
 
 - The banner/header identifies the application and the current user context without taking excessive vertical space.
@@ -72,11 +80,17 @@ Every data table created in the MVC application must include pagination. A table
 - The side menu groups navigation by task and uses clear labels and familiar icons.
 - Highlight the current section with text and a visual state; do not rely on color alone.
 - Support collapsed and mobile states without trapping keyboard focus.
+- En el pie del menu el globo dorado queda detras de las ultimas opciones y la tarjeta de cuenta con icono de salida. **Cerrar sesion** se confirma al abrir la cuenta. No mostrar la frase de disciplina en el menu.
+- Las barras de desplazamiento son delgadas, doradas y redondeadas, sin flechas grises del sistema. En el menu el riel es transparente para no tapar el globo.
 - The content area must resize or reflow when the menu changes; it must not be covered by the menu.
 - Do not show links for actions the current role cannot use unless the product explicitly needs them disabled with an explanation.
 - En **KPI** los filtros de periodo, grupo, vendedor, comparación y fechas actualizan todos los indicadores, barras y tablas. Las tablas del informe no usan casilla; **Revisar** navega al módulo relacionado. **Descargar PDF** conserva los filtros aplicados.
 - En **Soporte** el listado de conversaciones muestra nombre, rol, último mensaje y estado reales. **Buscar chat** filtra por persona o texto. **Marcar atendida** cierra la conversación y conserva el historial. No hay tabla ni casilla en este módulo. El buscador permanece fijo; el listado y el hilo tienen barra de desplazamiento vertical propia. La conversación con actividad reciente sube al inicio del listado. El adjunto de imagen o PDF usa un botón circular con icono de clip (nombre accesible y `title`), no el selector nativo del navegador; al elegir archivo aparece un chip con el nombre y **Quitar archivo**.
 - En **Configuración** un solo **Guardar configuración** persiste horario, vigencia, límites, alertas, códigos offline y el texto parametrizable de la tirilla. El catálogo de loterías usa casilla, paginación y el panel **Editar** / **Deshabilitar** o **Habilitar**.
+
+### Login
+
+- En **login** y **cambiar contraseña** el fondo es verde oscuro con globos dorados. Arriba va el emblema circular NR, el nombre **New Rich** y el lema. El formulario es una tarjeta oscura con borde dorado, campos con icono y botón dorado **Ingresar**. Debajo aparecen **Disciplina**, **Visión** y **Éxito**. No usar recuadros negros sueltos ni el texto NEW RICH como imagen aparte del nombre.
 
 ### Main content
 
