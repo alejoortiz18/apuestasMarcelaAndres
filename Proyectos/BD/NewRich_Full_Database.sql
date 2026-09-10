@@ -254,6 +254,7 @@ BEGIN
         VentaId             UNIQUEIDENTIFIER NOT NULL,
         CodigoPublico       CHAR(7)          NOT NULL,
         ClaveValidacionHash NVARCHAR(200)    NOT NULL,
+        QrCifrado           NVARCHAR(MAX)    NOT NULL DEFAULT '',
         EstadoBoleto        NVARCHAR(30)     NOT NULL DEFAULT 'Jugado', -- Por jugar, Jugado, Ganador, No ganador, Vencido, Pagado/cobrado, Premio entregado
         EstadoDelPremio     NVARCHAR(30)     NULL,     -- Vigente, PremioEntregado, Rechazado
         FechaEntregaPremio  DATETIME2        NULL,
@@ -602,6 +603,14 @@ BEGIN
         ADD CONSTRAINT FK_Boletos_CasosGanadores
         FOREIGN KEY (CasoGanadorId) REFERENCES dbo.CasosGanadores(CasoId);
     PRINT 'FK_Boletos_CasosGanadores creada.';
+END
+GO
+
+IF COL_LENGTH(N'dbo.Boletos', N'QrCifrado') IS NULL
+BEGIN
+    ALTER TABLE dbo.Boletos
+        ADD QrCifrado NVARCHAR(MAX) NOT NULL CONSTRAINT DF_Boletos_QrCifrado DEFAULT ('');
+    PRINT 'Columna Boletos.QrCifrado creada.';
 END
 GO
 

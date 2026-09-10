@@ -57,7 +57,12 @@
                         <td>@venta.Total.ToString("C0", cultura)</td>
                         <td><span class="pill info">@venta.EstadoBoleto</span></td>
                         <td>
-                            <a class="secondary" asp-controller="Ventas" asp-action="Tirilla" asp-route-id="@venta.BoletoId">@UiTexts.Ver</a>
+                            <a class="secondary"
+                               asp-controller="Ventas"
+                               asp-action="Tirilla"
+                               asp-route-id="@venta.BoletoId"
+                               data-ticket-modal
+                               data-ticket-url="@Url.Action("Ticket", "Ventas", new { id = venta.BoletoId })">@UiTexts.Ver</a>
                         </td>
                     </tr>
                 }

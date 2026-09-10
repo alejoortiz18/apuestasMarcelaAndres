@@ -75,10 +75,53 @@ public sealed class VentasController : AdminControllerBase
 
         return View(new TirillaViewModel
         {
+            BoletoId = id,
             Tirilla = result.Data,
             VolverALoterias = desdeLoterias,
             VolverLoteriaId = volver == "ver" ? loteriaId : null
         });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Ticket(Guid id, CancellationToken cancellationToken = default)
+    {
+        var result = await _api.ObtenerTirillaAsync(id, cancellationToken);
+        var unauthorized = RedirectIfUnauthorized(result);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
+        if (!result.Success || result.Data is null)
+        {
+            return BadRequest(result.Message);
+        }
+
+        return PartialView("_TicketModalContent", new TirillaViewModel
+        {
+            BoletoId = id,
+            Tirilla = result.Data
+        });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> TirillaPdf(Guid id, CancellationToken cancellationToken = default)
+    {
+        var result = await _api.ObtenerTirillaAsync(id, cancellationToken);
+        var unauthorized = RedirectIfUnauthorized(result);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
+        if (!result.Success || result.Data is null)
+        {
+            SetFlash(result.Message, false);
+            return RedirectToAction(nameof(Index));
+        }
+
+        var nombre = $"ticket-{result.Data.CodigoImpreso}.pdf";
+        return File(TicketPdf.Crear(result.Data), "application/pdf", nombre);
     }
 
     [HttpPost]

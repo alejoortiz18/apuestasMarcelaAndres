@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
+    <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.7" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\API\src\NewRich.Application\NewRich.Application.csproj" />
+    <ProjectReference Include="..\..\..\API\src\NewRich.Constants\NewRich.Constants.csproj" />
+    <ProjectReference Include="..\..\..\API\src\NewRich.Domain\NewRich.Domain.csproj" />
+    <ProjectReference Include="..\..\..\API\src\NewRich.Shared\NewRich.Shared.csproj" />
+  </ItemGroup>
+
+</Project>

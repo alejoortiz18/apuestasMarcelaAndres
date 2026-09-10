@@ -84,7 +84,7 @@
                         <td>@row.Total.ToString("C0", cultura)</td>
                         <td><span class="pill @EstadoUi.Pill(row.Estado)">@row.Estado</span></td>
                         <td>
-                            <a class="secondary" asp-action="Tirilla" asp-route-id="@row.BoletoId">@UiTexts.Ver</a>
+                            <a class="secondary" asp-action="Tirilla" asp-route-id="@row.BoletoId" data-ticket-modal data-ticket-url="@Url.Action("Ticket", new { id = row.BoletoId })">@UiTexts.Ver</a>
                         </td>
                     </tr>
                 }

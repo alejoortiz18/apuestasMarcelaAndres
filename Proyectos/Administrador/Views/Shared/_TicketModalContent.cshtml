@@ -1,0 +1,65 @@
+@using NewRich.Application.Services
+@model NewRich.Admin.Models.TirillaViewModel
+@{
+    var t = Model.Tirilla;
+    var combinada = TirillaCuerpo.EsCombinada(t.TipoApuesta);
+    var fecha = t.Fecha.ToLocalTime();
+    var leyenda = TirillaCuerpo.Leyenda(t.VigenciaDias > 0 ? t.VigenciaDias : 30);
+    var pdfUrl = Url.Action("TirillaPdf", "Ventas", new { id = Model.BoletoId });
+}
+<div class="dialog-head">
+    <h2 id="ticketDialogTitle">@UiTexts.TicketVendido</h2>
+    <button type="button" class="secondary" data-close-ticket>@UiTexts.Cerrar</button>
+</div>
+<div class="receipt receipt-layout" id="ticketPrint">
+    <div class="receipt-rule" aria-hidden="true"></div>
+    <div class="receipt-row"><span>@UiTexts.ReciboDeVenta</span><strong>@t.CodigoImpreso</strong></div>
+    <div class="receipt-rule" aria-hidden="true"></div>
+    <div class="receipt-row"><span>Fecha: @fecha.ToString("yyyy-MM-dd")</span><strong>Hora: @fecha.ToString("HH:mm")</strong></div>
+    <div class="receipt-row"><span>@UiTexts.TipoDeApuesta:</span><strong>@TirillaCuerpo.EtiquetaTipo(t.TipoApuesta)</strong></div>
+    <div class="receipt-rule" aria-hidden="true"></div>
+    <div class="receipt-center">@UiTexts.Jugado</div>
+    <div class="receipt-rule" aria-hidden="true"></div>
+    @if (combinada && t.Juegos.Count > 0)
+    {
+        var juego = t.Juegos[0];
+        <div class="receipt-grid">
+            <strong>@UiTexts.NumeroTirilla</strong>
+            <strong class="receipt-col-center">@UiTexts.ValorTirilla</strong>
+            <strong class="receipt-col-right">@UiTexts.TotalTirilla</strong>
+            <span>@juego.Numero</span>
+            <span class="receipt-col-center">@TirillaCuerpo.Pesos(juego.Valor)</span>
+            <span class="receipt-col-right">@TirillaCuerpo.Pesos(juego.Total)</span>
+        </div>
+        <div class="receipt-text">@UiTexts.LoteriasTirilla: @string.Join(", ", juego.Loterias).ToUpperInvariant()</div>
+    }
+    else
+    {
+        <div class="receipt-grid">
+            <strong>@UiTexts.NumeroTirilla</strong>
+            <strong class="receipt-col-center">@UiTexts.ValorTirilla</strong>
+            <strong class="receipt-col-right">@UiTexts.ColumnaLoteriaTirilla</strong>
+            @foreach (var juego in t.Juegos)
+            {
+                <span>@juego.Numero</span>
+                <span class="receipt-col-center">@TirillaCuerpo.Pesos(juego.Valor)</span>
+                <span class="receipt-col-right">@((juego.Loterias.FirstOrDefault() ?? string.Empty).ToUpperInvariant())</span>
+            }
+        </div>
+    }
+    <div class="receipt-rule" aria-hidden="true"></div>
+    <div class="receipt-row"><strong>@UiTexts.TotalApostado</strong><strong>@TirillaCuerpo.Pesos(t.Total)</strong></div>
+    <div class="receipt-rule" aria-hidden="true"></div>
+    @if (!string.IsNullOrWhiteSpace(t.Qr))
+    {
+        <img class="receipt-qr" src="@QrImagen.DataUri(t.Qr)" alt="@UiTexts.QrDelTicket" width="128" height="128" />
+    }
+    <div class="receipt-rule" aria-hidden="true"></div>
+    <pre class="receipt-text receipt-footer">@leyenda</pre>
+    <div class="receipt-rule" aria-hidden="true"></div>
+</div>
+<div class="dialog-actions ticket-actions">
+    <button type="button" class="secondary" data-close-ticket>@UiTexts.Cerrar</button>
+    <button type="button" class="primary" data-print-ticket>@UiTexts.ImprimirTirilla</button>
+    <a class="secondary" href="@pdfUrl">@UiTexts.GenerarPdf</a>
+</div>

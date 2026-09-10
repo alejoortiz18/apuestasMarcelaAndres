@@ -158,6 +158,7 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
             e.ToTable("Boletos");
             e.HasKey(x => x.BoletoId);
             e.Property(x => x.CodigoPublico).HasColumnType("char(7)");
+            e.Property(x => x.QrCifrado).HasColumnType("nvarchar(max)");
             e.Property(x => x.EstadoBoleto).HasConversion(estadoBoleto).HasMaxLength(30);
             e.Property(x => x.EstadoDelPremio).HasConversion(estadoPremio).HasMaxLength(30);
             e.Ignore(x => x.CasoGanador);

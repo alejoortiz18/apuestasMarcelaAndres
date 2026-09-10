@@ -276,6 +276,7 @@ public sealed class ConfiguracionOperativaFormViewModel
 
 public sealed class TirillaViewModel
 {
+    public Guid BoletoId { get; init; }
     public TirillaResponse Tirilla { get; init; } = new();
     public bool VolverALoterias { get; init; }
     public Guid? VolverLoteriaId { get; init; }

@@ -37,9 +37,9 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Cuenta/Ingresar");
     app.UseHsts();
+    app.UseHttpsRedirection();
 }
 
-app.UseHttpsRedirection();
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();

@@ -1,3 +1,5 @@
+using NewRich.Domain.Enums;
+
 namespace NewRich.Application.Contracts.Boletos;
 
 public sealed class ValidarQrRequest
@@ -47,5 +49,7 @@ public sealed class TirillaResponse
     public decimal Total { get; set; }
     public string Qr { get; set; } = string.Empty;
     public string Leyenda { get; set; } = "Recuerde cuidar este boleto, se paga al portador.";
+    public TipoApuesta TipoApuesta { get; set; }
+    public int VigenciaDias { get; set; } = 30;
     public IReadOnlyList<Contracts.Ventas.JuegoResponse> Juegos { get; set; } = [];
 }

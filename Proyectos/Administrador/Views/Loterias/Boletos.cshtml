@@ -106,7 +106,7 @@
                         <td>@row.Fecha.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
                         <td>@row.Total.ToString("C0", cultura)</td>
                         <td><span class="pill @EstadoUi.Pill(row.Estado)">@row.Estado</span></td>
-                        <td><a class="secondary" asp-controller="Ventas" asp-action="Tirilla" asp-route-id="@row.BoletoId">@UiTexts.Ver</a></td>
+                        <td><a class="secondary" asp-controller="Ventas" asp-action="Tirilla" asp-route-id="@row.BoletoId" data-ticket-modal data-ticket-url="@Url.Action("Ticket", "Ventas", new { id = row.BoletoId })">@UiTexts.Ver</a></td>
                     </tr>
                 }
                 </tbody>

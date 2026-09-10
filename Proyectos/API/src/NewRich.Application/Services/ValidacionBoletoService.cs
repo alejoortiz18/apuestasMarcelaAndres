@@ -87,6 +87,9 @@ public sealed class ValidacionBoletoService : IValidacionBoletoService
             Fecha = boleto.Venta?.FechaVenta ?? boleto.FechaCreacion,
             Vendedor = boleto.Venta?.Usuario?.Alias ?? boleto.Venta?.Usuario?.NombreCompleto ?? string.Empty,
             Total = boleto.Venta?.Total ?? 0,
+            TipoApuesta = boleto.Venta?.TipoApuesta ?? TipoApuesta.COMBINADO,
+            VigenciaDias = boleto.VigenciaDias > 0 ? boleto.VigenciaDias : 30,
+            Qr = await AsegurarQrCifradoAsync(boleto, cancellationToken),
             Juegos = boleto.Juegos.Select(MapJuego).ToList()
         }, SuccessMessages.OperacionExitosa);
     }
@@ -149,6 +152,39 @@ public sealed class ValidacionBoletoService : IValidacionBoletoService
         }
 
         return Result<IReadOnlyList<BoletoListaResponse>>.Ok(lista, SuccessMessages.OperacionExitosa);
+    }
+
+    private async Task<string> AsegurarQrCifradoAsync(Boleto boleto, CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrWhiteSpace(boleto.QrCifrado))
+        {
+            return boleto.QrCifrado;
+        }
+
+        var clave = _qr.GenerarClaveValidacion();
+        boleto.ClaveValidacionHash = _qr.HashClaveValidacion(clave);
+        var existente = await _db.ClavesValidacionBoleto.FirstOrDefaultAsync(c => c.BoletoId == boleto.BoletoId, cancellationToken);
+        var identificador = existente?.IdentificadorClave ?? Guid.NewGuid();
+        if (existente is null)
+        {
+            _db.ClavesValidacionBoleto.Add(new ClaveValidacionBoleto
+            {
+                ClaveId = Guid.NewGuid(),
+                BoletoId = boleto.BoletoId,
+                ClaveHash = boleto.ClaveValidacionHash,
+                Version = 1,
+                IdentificadorClave = identificador,
+                FechaCreacion = _clock.UtcNow
+            });
+        }
+        else
+        {
+            existente.ClaveHash = boleto.ClaveValidacionHash;
+        }
+
+        boleto.QrCifrado = _qr.Encrypt(new QrPayload(boleto.BoletoId, boleto.CodigoPublico, clave, 1, identificador));
+        await _db.SaveChangesAsync(cancellationToken);
+        return boleto.QrCifrado;
     }
 
     private IQueryable<Boleto> QueryBoletos() =>

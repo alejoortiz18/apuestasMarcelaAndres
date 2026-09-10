@@ -174,6 +174,7 @@ public sealed class VentaService : IVentaService
             };
 
             var qr = _qr.Encrypt(new QrPayload(boleto.BoletoId, boleto.CodigoPublico, clave, 1, claveEntity.IdentificadorClave));
+            boleto.QrCifrado = qr;
 
             venta.Boletos.Add(boleto);
             _db.Ventas.Add(venta);

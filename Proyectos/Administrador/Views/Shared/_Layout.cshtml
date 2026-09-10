@@ -91,6 +91,9 @@
         <a class="@NavClass("soporte")" asp-controller="Soporte" asp-action="Index">@UiTexts.NavSoporte</a>
     </nav>
 </div>
+<div id="ticketDialog" class="dialog-back hidden" role="dialog" aria-modal="true" aria-labelledby="ticketDialogTitle" hidden>
+    <div class="dialog dialog-ticket" data-ticket-panel></div>
+</div>
 <div id="avisoDialog" class="dialog-back@(string.IsNullOrEmpty(avisoModal) ? " hidden" : "")" role="dialog" aria-modal="true" aria-labelledby="avisoDialogTitle" @(string.IsNullOrEmpty(avisoModal) ? "hidden" : null)>
     <div class="dialog">
         <h2 id="avisoDialogTitle">@UiTexts.Aviso</h2>

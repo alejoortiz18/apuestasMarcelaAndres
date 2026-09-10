@@ -43,7 +43,9 @@ public sealed class SesionYPasswordActionFilter : IAsyncActionFilter
 
         if (usuario.EstadoValidado &&
             !path.Contains("/api/auth/cambiar-password", StringComparison.OrdinalIgnoreCase) &&
-            !path.Contains("/api/auth/logout", StringComparison.OrdinalIgnoreCase))
+            !path.Contains("/api/auth/logout", StringComparison.OrdinalIgnoreCase) &&
+            !path.Contains("/api/authandroid/cambiarpasswordmob", StringComparison.OrdinalIgnoreCase) &&
+            !path.Contains("/api/authandroid/logoutmob", StringComparison.OrdinalIgnoreCase))
         {
             context.Result = new ObjectResult(ApiResponse.From(Result.Fail(AuthMessages.DebeCambiarPassword, 403))) { StatusCode = 403 };
             return;

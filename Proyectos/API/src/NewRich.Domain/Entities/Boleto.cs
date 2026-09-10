@@ -8,6 +8,7 @@ public class Boleto
     public Guid VentaId { get; set; }
     public string CodigoPublico { get; set; } = string.Empty;
     public string ClaveValidacionHash { get; set; } = string.Empty;
+    public string QrCifrado { get; set; } = string.Empty;
     public EstadoBoleto EstadoBoleto { get; set; }
     public EstadoDelPremio? EstadoDelPremio { get; set; }
     public DateTime? FechaEntregaPremio { get; set; }

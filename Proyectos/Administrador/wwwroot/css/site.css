@@ -513,11 +513,124 @@ a[data-offline-associate][hidden] { display: none; }
   padding: 18px;
   border: 1px dashed var(--line);
   background: #fbfdfc;
+  font: 12px/1.45 ui-monospace, "Cascadia Mono", "Segoe UI Mono", Consolas, monospace;
+  overflow-x: hidden;
+}
+.receipt-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+.receipt-row span,
+.receipt-row strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.receipt-row strong { text-align: right; }
+.receipt-rule {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  margin: 8px 0;
+  line-height: 1;
+  letter-spacing: 0;
+}
+.receipt-center { text-align: center; width: 100%; font-weight: 800; letter-spacing: 0.4px; }
+.receipt-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  width: 100%;
+  gap: 8px;
   font: 12px/1.45 monospace;
 }
-.receipt-row { display: flex; justify-content: space-between; gap: 12px; }
-.receipt-row strong { text-align: right; overflow-wrap: anywhere; }
-.receipt-rule { overflow: hidden; white-space: nowrap; margin: 8px 0; }
+.receipt-col-center { text-align: center; }
+.receipt-col-right { text-align: right; }
+.receipt-text {
+  width: 100%;
+  margin: 7px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: 12px/1.45 monospace;
+}
+.receipt-footer { margin: 0; }
+.receipt-qr {
+  display: block;
+  width: min(128px, 100%);
+  height: auto;
+  aspect-ratio: 1;
+  margin: 14px auto;
+  background: #fff;
+}
+.qr-test {
+  width: min(128px, 100%);
+  aspect-ratio: 1;
+  margin: 14px auto;
+  background-color: #173e55;
+  background-image:
+    linear-gradient(90deg, #fff 20%, transparent 20%, transparent 40%, #fff 40%, #fff 60%, transparent 60%, transparent 80%, #fff 80%),
+    linear-gradient(#fff 20%, transparent 20%, transparent 40%, #fff 40%, #fff 60%, transparent 60%, transparent 80%, #fff 80%);
+  background-size: 25% 25%;
+  border: 8px solid #173e55;
+}
+
+.dialog-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.dialog-head h2 { font-size: 20px; margin: 0; }
+.dialog.dialog-ticket {
+  display: flex;
+  flex-direction: column;
+  width: min(560px, 100%);
+  max-height: 90vh;
+  overflow: hidden;
+}
+.dialog.dialog-ticket .dialog-head {
+  flex: 0 0 auto;
+}
+.dialog.dialog-ticket .receipt {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  margin: 12px 0 0;
+}
+.ticket-actions {
+  flex: 0 0 auto;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+.ticket-actions .primary,
+.ticket-actions .secondary {
+  flex: 1 1 auto;
+  text-align: center;
+}
+.ticket-page .dialog-head [data-close-ticket]:first-of-type { display: none; }
+
+@media print {
+  body * { visibility: hidden; }
+  #ticketPrint,
+  #ticketPrint * { visibility: visible; }
+  #ticketPrint {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    max-width: none;
+    border: 0;
+    background: #fff;
+  }
+}
 
 .sr-only {
   position: absolute;

@@ -1,0 +1,20 @@
+---
+description: Tras cambios en la app móvil, reinstalar el APK en el celular conectado
+alwaysApply: true
+---
+
+# Reinstalar la app móvil
+
+Cuando se implemente, corrija o compile código de la aplicación móvil (`Proyectos/Android`, NewRich.Maui, NewRich.Pda.Core), **siempre reinstalar** el APK en el celular conectado por USB antes de dar el trabajo por listo. El usuario necesita ver el cambio en el dispositivo.
+
+Comando habitual (ajustar solo si cambian SDK, JDK o serie del equipo):
+
+```
+JAVA_HOME = C:\Program Files\Microsoft\jdk-17.0.20.101-hotspot
+ANDROID_HOME = D:\Android\Sdk
+dispositivo = TCDUAAVWV4KVGI8L (RMX3710)
+
+dotnet build Proyectos/Android/src/NewRich.Maui/NewRich.Maui.csproj -f net10.0-android -t:Install -p:Configuration=Debug -p:AndroidSdkDirectory=D:\Android\Sdk -p:JavaSdkDirectory=<JAVA_HOME> -p:EmbedAssembliesIntoApk=true -p:AdbTarget="-s TCDUAAVWV4KVGI8L"
+```
+
+Confirmar con `adb devices` y `dumpsys package com.newrich.pda` (`lastUpdateTime`). Si el teléfono no está conectado, indicarlo y no afirmar que el cambio ya se ve en el celular.

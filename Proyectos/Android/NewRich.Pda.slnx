@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/NewRich.Maui/NewRich.Maui.csproj" />
+    <Project Path="src/NewRich.Pda.Core/NewRich.Pda.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/NewRich.Pda.Tests/NewRich.Pda.Tests.csproj" />
+  </Folder>
+  <Project Path="../API/src/NewRich.Application/NewRich.Application.csproj" />
+  <Project Path="../API/src/NewRich.Constants/NewRich.Constants.csproj" />
+  <Project Path="../API/src/NewRich.Domain/NewRich.Domain.csproj" />
+  <Project Path="../API/src/NewRich.Shared/NewRich.Shared.csproj" />
+</Solution>

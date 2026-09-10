@@ -300,6 +300,111 @@
     });
   });
 
+  const ticketDialog = document.getElementById("ticketDialog");
+  const ticketPanel = ticketDialog && ticketDialog.querySelector("[data-ticket-panel]");
+  let ticketTrigger = null;
+
+  function closeTicket() {
+    if (!ticketDialog) {
+      return;
+    }
+    if (ticketDialog.classList.contains("hidden")) {
+      if (window.history.length > 1) {
+        window.history.back();
+      }
+      return;
+    }
+    ticketDialog.classList.add("hidden");
+    ticketDialog.setAttribute("hidden", "hidden");
+    if (ticketPanel) {
+      ticketPanel.innerHTML = "";
+    }
+    if (ticketTrigger && typeof ticketTrigger.focus === "function") {
+      ticketTrigger.focus();
+    }
+    ticketTrigger = null;
+  }
+
+  function fillReceiptRules(root) {
+    if (!root) {
+      return;
+    }
+    root.querySelectorAll(".receipt-rule").forEach(function (el) {
+      el.textContent = "";
+      const probe = document.createElement("span");
+      probe.textContent = "=";
+      el.appendChild(probe);
+      const charWidth = probe.getBoundingClientRect().width;
+      const width = el.clientWidth;
+      probe.remove();
+      const count = charWidth > 0 ? Math.max(1, Math.floor(width / charWidth)) : 1;
+      el.textContent = "=".repeat(count);
+    });
+  }
+
+  function bindTicketActions(root) {
+    if (!root) {
+      return;
+    }
+    fillReceiptRules(root);
+    requestAnimationFrame(function () {
+      fillReceiptRules(root);
+    });
+    root.querySelectorAll("[data-close-ticket]").forEach(function (el) {
+      el.addEventListener("click", closeTicket);
+    });
+    root.querySelectorAll("[data-print-ticket]").forEach(function (el) {
+      el.addEventListener("click", function () {
+        fillReceiptRules(root);
+        window.print();
+      });
+    });
+  }
+
+  async function openTicket(anchor) {
+    if (!ticketDialog || !ticketPanel) {
+      return;
+    }
+    const url = anchor.getAttribute("data-ticket-url");
+    if (!url) {
+      return;
+    }
+    ticketTrigger = anchor;
+    const response = await fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" } });
+    if (!response.ok) {
+      window.location.href = anchor.getAttribute("href") || url;
+      return;
+    }
+    ticketPanel.innerHTML = await response.text();
+    ticketDialog.classList.remove("hidden");
+    ticketDialog.removeAttribute("hidden");
+    bindTicketActions(ticketPanel);
+    const closeBtn = ticketPanel.querySelector("[data-close-ticket]");
+    if (closeBtn) {
+      closeBtn.focus();
+    }
+  }
+
+  document.addEventListener("click", function (event) {
+    const el = event.target.closest("[data-ticket-modal]");
+    if (!el) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    openTicket(el).catch(function () {
+      window.location.href = el.getAttribute("href") || el.getAttribute("data-ticket-url") || "/";
+    });
+  }, true);
+  if (ticketDialog) {
+    ticketDialog.addEventListener("click", function (event) {
+      if (event.target === ticketDialog) {
+        closeTicket();
+      }
+    });
+  }
+  bindTicketActions(document.querySelector(".ticket-page"));
+
   const codigoDialog = document.getElementById("codigoDialog");
   const codigoClose = codigoDialog && codigoDialog.querySelector("[data-close-codigo]");
   let codigoTrigger = null;
@@ -410,6 +515,10 @@
   }
   document.addEventListener("keydown", function (event) {
     if (event.key !== "Escape") {
+      return;
+    }
+    if (ticketDialog && !ticketDialog.classList.contains("hidden")) {
+      closeTicket();
       return;
     }
     if (codigoDialog && !codigoDialog.classList.contains("hidden")) {

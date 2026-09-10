@@ -65,7 +65,9 @@
                            asp-action="Tirilla"
                            asp-route-id="@row.BoletoId"
                            asp-route-volver="ver"
-                           asp-route-loteriaId="@Model.LoteriaId">@UiTexts.VerTicket</a>
+                           asp-route-loteriaId="@Model.LoteriaId"
+                           data-ticket-modal
+                           data-ticket-url="@Url.Action("Ticket", "Ventas", new { id = row.BoletoId })">@UiTexts.VerTicket</a>
                     </td>
                 </tr>
             }
