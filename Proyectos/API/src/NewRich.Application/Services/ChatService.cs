@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using NewRich.Application.Abstractions;
+using NewRich.Application.Chat;
 using NewRich.Application.Contracts.Chat;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
@@ -27,9 +28,10 @@ public sealed class ChatService : IChatService
 
     public async Task<Result<ConversacionResponse>> IniciarAsync(Guid iniciadorId, IniciarChatRequest request, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(request.Texto))
+        var cuerpo = ResolverCuerpo(request.Texto, request.NombreArchivo, request.ContenidoBase64);
+        if (!cuerpo.IsSuccess)
         {
-            return Result<ConversacionResponse>.Fail(ValidationMessages.TextoMensajeRequerido);
+            return Result<ConversacionResponse>.Fail(cuerpo.Message);
         }
 
         var iniciador = await _db.Usuarios.FirstOrDefaultAsync(u => u.UsuarioId == iniciadorId, cancellationToken);
@@ -96,18 +98,21 @@ public sealed class ChatService : IChatService
             FechaInicio = _clock.UtcNow,
             Estado = EstadoConversacion.Abierta
         };
-        conversacion.Mensajes.Add(new Mensaje
+        var contenido = cuerpo.Data!;
+        var mensaje = new Mensaje
         {
             MensajeId = Guid.NewGuid(),
             ConversacionId = conversacion.ConversacionId,
             UsuarioEmisorId = iniciadorId,
-            Texto = request.Texto.Trim(),
+            Texto = contenido.Texto,
             FechaEnvio = _clock.UtcNow
-        });
+        };
+        await AdjuntarSiHayAsync(mensaje, contenido, cancellationToken);
+        conversacion.Mensajes.Add(mensaje);
         _db.Conversaciones.Add(conversacion);
         await _db.SaveChangesAsync(cancellationToken);
-        conversacion.Mensajes.First().UsuarioEmisor = iniciador;
-        await PublicarAsync(conversacion, conversacion.Mensajes.First(), cancellationToken);
+        mensaje.UsuarioEmisor = iniciador;
+        await PublicarAsync(conversacion, mensaje, cancellationToken);
         return Result<ConversacionResponse>.Created(Map(conversacion), SuccessMessages.ConversacionIniciada);
     }
 
@@ -117,6 +122,8 @@ public sealed class ChatService : IChatService
         var consulta = _db.Conversaciones
             .Include(c => c.UsuarioIniciador)
             .Include(c => c.UsuarioDestino)
+            .Include(c => c.Mensajes)
+            .ThenInclude(m => m.Adjuntos)
             .Include(c => c.Mensajes)
             .ThenInclude(m => m.UsuarioEmisor)
             .AsQueryable();
@@ -179,34 +186,22 @@ public sealed class ChatService : IChatService
             return Result<MensajeResponse>.Fail(ChatMessages.NoParticipaEnConversacion, 403);
         }
 
-        if (string.IsNullOrWhiteSpace(request.Texto))
+        var cuerpo = ResolverCuerpo(request.Texto, request.NombreArchivo, request.ContenidoBase64);
+        if (!cuerpo.IsSuccess)
         {
-            return Result<MensajeResponse>.Fail(ValidationMessages.TextoMensajeRequerido);
+            return Result<MensajeResponse>.Fail(cuerpo.Message);
         }
 
+        var contenido = cuerpo.Data!;
         var mensaje = new Mensaje
         {
             MensajeId = Guid.NewGuid(),
             ConversacionId = conversacionId,
             UsuarioEmisorId = emisorId,
-            Texto = request.Texto.Trim(),
+            Texto = contenido.Texto,
             FechaEnvio = _clock.UtcNow
         };
-
-        if (!string.IsNullOrWhiteSpace(request.ContenidoBase64) && !string.IsNullOrWhiteSpace(request.NombreArchivo))
-        {
-            var bytes = Convert.FromBase64String(request.ContenidoBase64);
-            await using var stream = new MemoryStream(bytes);
-            var ruta = await _files.SaveAsync(stream, request.NombreArchivo, cancellationToken);
-            mensaje.Adjuntos.Add(new AdjuntoChat
-            {
-                AdjuntoId = Guid.NewGuid(),
-                MensajeId = mensaje.MensajeId,
-                RutaArchivo = ruta,
-                NombreOriginal = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss") + Path.GetExtension(request.NombreArchivo),
-                FechaCarga = _clock.UtcNow
-            });
-        }
+        await AdjuntarSiHayAsync(mensaje, contenido, cancellationToken);
 
         _db.Mensajes.Add(mensaje);
         await _db.SaveChangesAsync(cancellationToken);
@@ -268,6 +263,60 @@ public sealed class ChatService : IChatService
         }, SuccessMessages.OperacionExitosa);
     }
 
+    private sealed record CuerpoMensaje(string Texto, byte[]? Bytes, string? NombreArchivo);
+
+    private static Result<CuerpoMensaje> ResolverCuerpo(string? texto, string? nombreArchivo, string? contenidoBase64)
+    {
+        var limpio = texto?.Trim() ?? string.Empty;
+        var conAdjunto = !string.IsNullOrWhiteSpace(contenidoBase64) && !string.IsNullOrWhiteSpace(nombreArchivo);
+        byte[]? bytes = null;
+        if (conAdjunto)
+        {
+            try
+            {
+                bytes = Convert.FromBase64String(contenidoBase64!);
+            }
+            catch (FormatException)
+            {
+                return Result<CuerpoMensaje>.Fail(ChatMessages.AdjuntoInvalido);
+            }
+
+            var validacion = ChatAdjunto.Validar(nombreArchivo, bytes);
+            if (!validacion.IsSuccess)
+            {
+                return Result<CuerpoMensaje>.Fail(validacion.Message);
+            }
+        }
+
+        if (limpio.Length == 0 && !conAdjunto)
+        {
+            return Result<CuerpoMensaje>.Fail(ChatMessages.TextoOAdjuntoRequerido);
+        }
+
+        return Result<CuerpoMensaje>.Ok(
+            new CuerpoMensaje(limpio, bytes, conAdjunto ? ChatAdjunto.NombreSeguro(nombreArchivo) : null),
+            SuccessMessages.OperacionExitosa);
+    }
+
+    private async Task AdjuntarSiHayAsync(Mensaje mensaje, CuerpoMensaje cuerpo, CancellationToken cancellationToken)
+    {
+        if (cuerpo.Bytes is null || string.IsNullOrWhiteSpace(cuerpo.NombreArchivo))
+        {
+            return;
+        }
+
+        await using var stream = new MemoryStream(cuerpo.Bytes);
+        var ruta = await _files.SaveAsync(stream, cuerpo.NombreArchivo, cancellationToken);
+        mensaje.Adjuntos.Add(new AdjuntoChat
+        {
+            AdjuntoId = Guid.NewGuid(),
+            MensajeId = mensaje.MensajeId,
+            RutaArchivo = ruta,
+            NombreOriginal = cuerpo.NombreArchivo,
+            FechaCarga = _clock.UtcNow
+        });
+    }
+
     private async Task PublicarAsync(Conversacion conversacion, Mensaje mensaje, CancellationToken cancellationToken)
     {
         var aviso = new MensajeChatEnVivoResponse
@@ -327,7 +376,9 @@ public sealed class ChatService : IChatService
             Estado = c.Estado.ToString(),
             FechaInicio = c.FechaInicio,
             FechaCierre = c.FechaCierre,
-            UltimoTexto = ultimo?.Texto ?? string.Empty,
+            UltimoTexto = string.IsNullOrWhiteSpace(ultimo?.Texto)
+                ? (ultimo?.Adjuntos.FirstOrDefault()?.NombreOriginal ?? ChatMessages.ResumenAdjunto)
+                : ultimo!.Texto,
             FechaUltimoMensaje = ultimo?.FechaEnvio
         };
     }

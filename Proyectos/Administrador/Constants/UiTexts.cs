@@ -331,6 +331,9 @@ public static class UiTexts
     public const string SinMensajes = "Aún no hay mensajes en esta conversación.";
     public const string ListaConversacionesAria = "Lista de conversaciones";
     public const string MensajesConversacionAria = "Mensajes de la conversación";
+    public const string AdjuntarArchivo = "Adjuntar imagen o PDF";
+    public const string QuitarArchivo = "Quitar archivo";
+    public const string VerArchivo = "Ver archivo";
 
     public const string ConfigKicker = "Parámetros";
     public const string ConfigTitulo = "Configuración operativa";

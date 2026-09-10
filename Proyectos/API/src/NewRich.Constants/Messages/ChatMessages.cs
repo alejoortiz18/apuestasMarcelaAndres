@@ -12,4 +12,9 @@ public static class ChatMessages
     public const string AdjuntoNoEncontrado = "El adjunto no existe.";
     public const string TipoAvisoSoporte = "ChatSoporte";
     public const string AvisoMensajeSoporte = "{0} escribió en soporte.";
+    public const string AdjuntoTipoNoPermitido = "Solo se permiten imágenes (JPG, PNG, WEBP) o PDF.";
+    public const string AdjuntoDemasiadoGrande = "El archivo no puede superar 5 MB.";
+    public const string AdjuntoInvalido = "No se pudo leer el archivo adjunto.";
+    public const string TextoOAdjuntoRequerido = "Escribe un mensaje o adjunta una imagen o un PDF.";
+    public const string ResumenAdjunto = "Archivo adjunto";
 }

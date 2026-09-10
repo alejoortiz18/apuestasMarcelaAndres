@@ -21,3 +21,10 @@ public sealed class ApiCallResult<T>
     public static ApiCallResult<T> Fail(string message, int statusCode, bool unauthorized = false) =>
         new() { Success = false, Message = message, StatusCode = statusCode, Unauthorized = unauthorized };
 }
+
+public sealed class ArchivoChat
+{
+    public byte[] Contenido { get; init; } = [];
+    public string Nombre { get; init; } = string.Empty;
+    public string Tipo { get; init; } = "application/octet-stream";
+}

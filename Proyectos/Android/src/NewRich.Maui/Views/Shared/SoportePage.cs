@@ -1,11 +1,12 @@
 using System.Collections.ObjectModel;
 using Microsoft.Maui.Controls.Shapes;
+using NewRich.Application.Chat;
 using NewRich.Application.Contracts.Chat;
+using NewRich.Maui.Services;
+using NewRich.Maui.Views;
 using NewRich.Pda.Core;
 using NewRich.Pda.Core.Api;
 using NewRich.Pda.Core.Auth;
-using NewRich.Maui.Services;
-using NewRich.Maui.Views;
 
 namespace NewRich.Maui.Views.Shared;
 
@@ -18,9 +19,12 @@ public sealed class SoportePage : ContentPage
     private readonly ChatEnVivoServicio _vivo;
     private readonly ObservableCollection<BurbujaChat> _burbujas = [];
     private readonly Entry _texto;
+    private readonly Label _pendiente;
     private readonly CollectionView _lista;
     private Guid? _conversacionId;
     private readonly HashSet<Guid> _vistos = [];
+    private string? _archivoNombre;
+    private byte[]? _archivoBytes;
 
     public SoportePage(
         NewRichApiClient api,
@@ -48,6 +52,29 @@ public sealed class SoportePage : ContentPage
             ReturnType = ReturnType.Send
         };
         _texto.Completed += async (_, _) => await EnviarAsync();
+
+        _pendiente = new Label
+        {
+            FontSize = 12,
+            TextColor = Ui.Muted,
+            IsVisible = false,
+            LineBreakMode = LineBreakMode.TailTruncation
+        };
+
+        var adjuntar = new Button
+        {
+            Text = "+",
+            BackgroundColor = Ui.Dark,
+            TextColor = Colors.White,
+            FontSize = 22,
+            FontAttributes = FontAttributes.Bold,
+            CornerRadius = 22,
+            WidthRequest = 44,
+            HeightRequest = 44,
+            Padding = 0
+        };
+        SemanticProperties.SetDescription(adjuntar, PdaTexts.AdjuntarAyuda);
+        adjuntar.Clicked += async (_, _) => await ElegirArchivoAsync();
 
         var enviar = new Button
         {
@@ -77,6 +104,42 @@ public sealed class SoportePage : ContentPage
                 };
                 texto.SetBinding(Label.TextProperty, nameof(BurbujaChat.Texto));
                 texto.SetBinding(Label.TextColorProperty, nameof(BurbujaChat.ColorTexto));
+                texto.SetBinding(VisualElement.IsVisibleProperty, nameof(BurbujaChat.TieneTexto));
+
+                var imagen = new Image
+                {
+                    HeightRequest = 160,
+                    Aspect = Aspect.AspectFit
+                };
+                imagen.SetBinding(Image.SourceProperty, nameof(BurbujaChat.Imagen));
+                imagen.SetBinding(VisualElement.IsVisibleProperty, nameof(BurbujaChat.EsImagen));
+                var abrirImagen = new TapGestureRecognizer();
+                abrirImagen.Tapped += async (_, _) =>
+                {
+                    if (imagen.BindingContext is BurbujaChat burbuja && burbuja.AdjuntoId is Guid id)
+                    {
+                        await AbrirAdjuntoAsync(id, burbuja.NombreArchivo);
+                    }
+                };
+                imagen.GestureRecognizers.Add(abrirImagen);
+
+                var abrir = new Button
+                {
+                    Text = PdaTexts.AbrirAdjunto,
+                    FontSize = 12,
+                    HeightRequest = 32,
+                    Padding = new Thickness(10, 0)
+                };
+                abrir.SetBinding(VisualElement.IsVisibleProperty, nameof(BurbujaChat.TieneAdjunto));
+                abrir.SetBinding(Button.BackgroundColorProperty, nameof(BurbujaChat.FondoBoton));
+                abrir.SetBinding(Button.TextColorProperty, nameof(BurbujaChat.ColorBoton));
+                abrir.Clicked += async (_, _) =>
+                {
+                    if (abrir.BindingContext is BurbujaChat burbuja && burbuja.AdjuntoId is Guid id)
+                    {
+                        await AbrirAdjuntoAsync(id, burbuja.NombreArchivo);
+                    }
+                };
 
                 var hora = new Label
                 {
@@ -89,7 +152,7 @@ public sealed class SoportePage : ContentPage
                 var pila = new VerticalStackLayout
                 {
                     Spacing = 4,
-                    Children = { texto, hora }
+                    Children = { texto, imagen, abrir, hora }
                 };
 
                 var burbuja = new Border
@@ -103,12 +166,11 @@ public sealed class SoportePage : ContentPage
                 burbuja.SetBinding(Border.BackgroundColorProperty, nameof(BurbujaChat.Fondo));
                 burbuja.SetBinding(Border.HorizontalOptionsProperty, nameof(BurbujaChat.Alineacion));
                 burbuja.SetBinding(Border.StrokeShapeProperty, nameof(BurbujaChat.Forma));
-                var fila = new Grid
+                return new Grid
                 {
                     Padding = new Thickness(12, 4),
                     Children = { burbuja }
                 };
-                return fila;
             })
         };
 
@@ -116,12 +178,19 @@ public sealed class SoportePage : ContentPage
         {
             BackgroundColor = Color.FromArgb("#F4F8F6"),
             Padding = new Thickness(12, 10, 12, 12),
+            RowDefinitions =
+            {
+                new RowDefinition(GridLength.Auto),
+                new RowDefinition(GridLength.Auto)
+            },
             ColumnDefinitions =
             {
+                new ColumnDefinition(GridLength.Auto),
                 new ColumnDefinition(GridLength.Star),
                 new ColumnDefinition(GridLength.Auto)
             },
-            ColumnSpacing = 8
+            ColumnSpacing = 8,
+            RowSpacing = 6
         };
         var campo = new Border
         {
@@ -132,9 +201,16 @@ public sealed class SoportePage : ContentPage
             Padding = new Thickness(14, 0),
             Content = _texto
         };
+        compositor.Add(_pendiente);
+        Grid.SetColumnSpan(_pendiente, 3);
+        compositor.Add(adjuntar);
+        Grid.SetRow(adjuntar, 1);
         compositor.Add(campo);
+        Grid.SetRow(campo, 1);
+        Grid.SetColumn(campo, 1);
         compositor.Add(enviar);
-        Grid.SetColumn(enviar, 1);
+        Grid.SetRow(enviar, 1);
+        Grid.SetColumn(enviar, 2);
 
         var raiz = new Grid
         {
@@ -190,11 +266,14 @@ public sealed class SoportePage : ContentPage
             return;
         }
 
-        Agregar(aviso.Mensaje, aviso.Mensaje.UsuarioEmisorId == _sesion.Usuario?.UsuarioId);
-        if (_conversacionId is null)
+        MainThread.BeginInvokeOnMainThread(async () =>
         {
-            _conversacionId = aviso.ConversacionId;
-        }
+            await AgregarAsync(aviso.Mensaje, aviso.Mensaje.UsuarioEmisorId == _sesion.Usuario?.UsuarioId);
+            if (_conversacionId is null)
+            {
+                _conversacionId = aviso.ConversacionId;
+            }
+        });
     }
 
     private async Task CargarAsync()
@@ -216,28 +295,79 @@ public sealed class SoportePage : ContentPage
 
         foreach (var mensaje in detalle.Data.Mensajes)
         {
-            Agregar(mensaje, mensaje.UsuarioEmisorId == _sesion.Usuario?.UsuarioId);
+            await AgregarAsync(mensaje, mensaje.UsuarioEmisorId == _sesion.Usuario?.UsuarioId);
         }
 
         DesplazarAlFinal();
     }
 
+    private async Task ElegirArchivoAsync()
+    {
+        try
+        {
+            var elegido = await FilePicker.Default.PickAsync(new PickOptions
+            {
+                PickerTitle = PdaTexts.AdjuntarAyuda,
+                FileTypes = new FilePickerFileType(new Dictionary<DevicePlatform, IEnumerable<string>>
+                {
+                    { DevicePlatform.Android, ["image/jpeg", "image/png", "image/webp", "application/pdf"] },
+                    { DevicePlatform.WinUI, [".jpg", ".jpeg", ".png", ".webp", ".pdf"] },
+                    { DevicePlatform.iOS, ["public.image", "com.adobe.pdf"] }
+                })
+            });
+            if (elegido is null)
+            {
+                return;
+            }
+
+            await using var stream = await elegido.OpenReadAsync();
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+            var bytes = buffer.ToArray();
+            var validacion = ChatAdjunto.Validar(elegido.FileName, bytes);
+            if (!validacion.IsSuccess)
+            {
+                await DisplayAlertAsync(PdaTexts.Soporte, validacion.Message, PdaTexts.Cerrar);
+                return;
+            }
+
+            _archivoNombre = ChatAdjunto.NombreSeguro(elegido.FileName);
+            _archivoBytes = bytes;
+            _pendiente.Text = string.Format(PdaTexts.AdjuntoPendiente, _archivoNombre);
+            _pendiente.IsVisible = true;
+        }
+        catch (Exception excepcion)
+        {
+            await DisplayAlertAsync(PdaTexts.Soporte, excepcion.Message, PdaTexts.Cerrar);
+        }
+    }
+
     private async Task EnviarAsync()
     {
         var texto = _texto.Text?.Trim() ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(texto))
+        if (string.IsNullOrWhiteSpace(texto) && _archivoBytes is null)
         {
             return;
         }
 
+        var nombre = _archivoNombre;
+        var bytes = _archivoBytes;
+        var base64 = bytes is null ? null : Convert.ToBase64String(bytes);
         _texto.Text = string.Empty;
+        LimpiarPendiente();
+
         if (_conversacionId is null)
         {
-            var inicio = await _api.IniciarChatAsync(new IniciarChatRequest { Texto = texto }, CancellationToken.None);
+            var inicio = await _api.IniciarChatAsync(new IniciarChatRequest
+            {
+                Texto = texto,
+                NombreArchivo = nombre,
+                ContenidoBase64 = base64
+            }, CancellationToken.None);
             if (!inicio.IsSuccess)
             {
                 await DisplayAlertAsync(PdaTexts.Soporte, inicio.Message, PdaTexts.Cerrar);
-                _texto.Text = texto;
+                RestaurarBorrador(texto, nombre, bytes);
                 return;
             }
 
@@ -246,27 +376,78 @@ public sealed class SoportePage : ContentPage
             return;
         }
 
-        var enviado = await _api.EnviarMensajeAsync(_conversacionId.Value, new EnviarMensajeRequest { Texto = texto }, CancellationToken.None);
+        var enviado = await _api.EnviarMensajeAsync(_conversacionId.Value, new EnviarMensajeRequest
+        {
+            Texto = texto,
+            NombreArchivo = nombre,
+            ContenidoBase64 = base64
+        }, CancellationToken.None);
         if (!enviado.IsSuccess || enviado.Data is null)
         {
             await DisplayAlertAsync(PdaTexts.Soporte, enviado.Message, PdaTexts.Cerrar);
-            _texto.Text = texto;
+            RestaurarBorrador(texto, nombre, bytes);
             return;
         }
 
-        Agregar(enviado.Data, true);
+        await AgregarAsync(enviado.Data, true);
         DesplazarAlFinal();
     }
 
-    private void Agregar(MensajeResponse mensaje, bool mio)
+    private void RestaurarBorrador(string texto, string? nombre, byte[]? bytes)
+    {
+        _texto.Text = texto;
+        _archivoNombre = nombre;
+        _archivoBytes = bytes;
+        if (!string.IsNullOrWhiteSpace(nombre))
+        {
+            _pendiente.Text = string.Format(PdaTexts.AdjuntoPendiente, nombre);
+            _pendiente.IsVisible = true;
+        }
+    }
+
+    private void LimpiarPendiente()
+    {
+        _archivoNombre = null;
+        _archivoBytes = null;
+        _pendiente.IsVisible = false;
+        _pendiente.Text = string.Empty;
+    }
+
+    private async Task AgregarAsync(MensajeResponse mensaje, bool mio)
     {
         if (!_vistos.Add(mensaje.MensajeId) && mensaje.MensajeId != Guid.Empty)
         {
             return;
         }
 
-        _burbujas.Add(BurbujaChat.De(mensaje, mio));
+        var burbuja = BurbujaChat.De(mensaje, mio);
+        if (mensaje.AdjuntoId is Guid adjuntoId && ChatAdjunto.EsImagen(mensaje.NombreArchivo))
+        {
+            var descarga = await _api.DescargarAdjuntoAsync(adjuntoId, CancellationToken.None);
+            if (descarga.IsSuccess && descarga.Data is not null)
+            {
+                var copia = descarga.Data.Bytes;
+                burbuja.Imagen = ImageSource.FromStream(() => new MemoryStream(copia));
+                burbuja.EsImagen = true;
+            }
+        }
+
+        _burbujas.Add(burbuja);
         DesplazarAlFinal();
+    }
+
+    private async Task AbrirAdjuntoAsync(Guid adjuntoId, string nombre)
+    {
+        var descarga = await _api.DescargarAdjuntoAsync(adjuntoId, CancellationToken.None);
+        if (!descarga.IsSuccess || descarga.Data is null)
+        {
+            await DisplayAlertAsync(PdaTexts.Soporte, descarga.Message, PdaTexts.Cerrar);
+            return;
+        }
+
+        var ruta = System.IO.Path.Combine(FileSystem.CacheDirectory, ChatAdjunto.NombreSeguro(nombre));
+        await File.WriteAllBytesAsync(ruta, descarga.Data.Bytes);
+        await Launcher.Default.OpenAsync(new OpenFileRequest { File = new ReadOnlyFile(ruta) });
     }
 
     private void DesplazarAlFinal()
@@ -285,25 +466,47 @@ public sealed class SoportePage : ContentPage
     public sealed class BurbujaChat
     {
         public string Texto { get; init; } = string.Empty;
+        public bool TieneTexto { get; init; }
+        public bool EsImagen { get; set; }
+        public bool TieneAdjunto { get; init; }
+        public Guid? AdjuntoId { get; init; }
+        public string NombreArchivo { get; init; } = string.Empty;
+        public ImageSource? Imagen { get; set; }
         public string Hora { get; init; } = string.Empty;
         public Color Fondo { get; init; } = Colors.White;
         public Color ColorTexto { get; init; } = Ui.Ink;
         public Color ColorHora { get; init; } = Ui.Muted;
+        public Color FondoBoton { get; init; } = Color.FromArgb("#14000000");
+        public Color ColorBoton { get; init; } = Ui.Ink;
         public LayoutOptions Alineacion { get; init; } = LayoutOptions.Start;
         public RoundRectangle Forma { get; init; } = new();
 
-        public static BurbujaChat De(MensajeResponse mensaje, bool mio) => new()
+        public static BurbujaChat De(MensajeResponse mensaje, bool mio)
         {
-            Texto = mensaje.Texto,
-            Hora = mensaje.FechaEnvio.ToLocalTime().ToString("HH:mm"),
-            Fondo = mio ? Ui.Dark : Colors.White,
-            ColorTexto = mio ? Colors.White : Ui.Ink,
-            ColorHora = mio ? Color.FromArgb("#C5D4CC") : Ui.Muted,
-            Alineacion = mio ? LayoutOptions.End : LayoutOptions.Start,
-            Forma = new RoundRectangle
+            var nombre = mensaje.NombreArchivo ?? string.Empty;
+            var texto = string.IsNullOrWhiteSpace(mensaje.Texto)
+                ? (ChatAdjunto.EsPdf(nombre) ? nombre : string.Empty)
+                : mensaje.Texto;
+            return new BurbujaChat
             {
-                CornerRadius = mio ? new CornerRadius(18, 18, 18, 6) : new CornerRadius(18, 18, 6, 18)
-            }
-        };
+                Texto = texto,
+                TieneTexto = !string.IsNullOrWhiteSpace(texto),
+                EsImagen = false,
+                TieneAdjunto = mensaje.AdjuntoId.HasValue,
+                AdjuntoId = mensaje.AdjuntoId,
+                NombreArchivo = nombre,
+                Hora = mensaje.FechaEnvio.ToLocalTime().ToString("HH:mm"),
+                Fondo = mio ? Ui.Dark : Colors.White,
+                ColorTexto = mio ? Colors.White : Ui.Ink,
+                ColorHora = mio ? Color.FromArgb("#C5D4CC") : Ui.Muted,
+                FondoBoton = mio ? Color.FromArgb("#33FFFFFF") : Color.FromArgb("#14000000"),
+                ColorBoton = mio ? Colors.White : Ui.Ink,
+                Alineacion = mio ? LayoutOptions.End : LayoutOptions.Start,
+                Forma = new RoundRectangle
+                {
+                    CornerRadius = mio ? new CornerRadius(18, 18, 18, 6) : new CornerRadius(18, 18, 6, 18)
+                }
+            };
+        }
     }
 }

@@ -1,5 +1,6 @@
 @using NewRich.Admin.Constants
 @using NewRich.Admin.Services
+@using NewRich.Application.Chat
 @model NewRich.Admin.Models.SoporteIndexViewModel
 @{
     var yoTexto = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
@@ -15,7 +16,7 @@
     </div>
 </div>
 <div class="panel chat-start">
-    <form asp-action="Iniciar" method="post" class="toolbar">
+    <form asp-action="Iniciar" method="post" class="toolbar" enctype="multipart/form-data">
         <div class="field">
             <label for="destinoId">@UiTexts.Destinatario</label>
             <select id="destinoId" name="destinoId" class="searchable">
@@ -29,10 +30,27 @@
             <label for="textoInicio">@UiTexts.Mensaje</label>
             <input id="textoInicio" name="texto" placeholder="@UiTexts.EscribeMensaje" autocomplete="off" />
         </div>
+        <div class="chat-attach" data-chat-adjunto>
+            <input id="archivoInicio" class="sr-only" name="archivo" type="file" accept=".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf" data-chat-archivo />
+            <label class="chat-attach-btn" for="archivoInicio" title="@UiTexts.AdjuntarArchivo">
+                <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+                    <path d="M21.44 11.05 12.25 20.24a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+                <span class="sr-only">@UiTexts.AdjuntarArchivo</span>
+            </label>
+            <p class="chat-attach-chip hidden" data-chat-archivo-nombre>
+                <span data-chat-archivo-texto></span>
+                <button type="button" class="chat-attach-clear" data-chat-archivo-quitar aria-label="@UiTexts.QuitarArchivo" title="@UiTexts.QuitarArchivo">
+                    <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" focusable="false">
+                        <path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                    </svg>
+                </button>
+            </p>
+        </div>
         <button class="primary" type="submit">@UiTexts.IniciarConversacion</button>
     </form>
 </div>
-<div class="chat-shell" data-chat-vivo data-yo="@yo" data-conversacion="@(Model.ConversacionId?.ToString() ?? "")" data-evento="mensajeChat">
+<div class="chat-shell" data-chat-vivo data-yo="@yo" data-conversacion="@(Model.ConversacionId?.ToString() ?? "")" data-evento="mensajeChat" data-adjunto-plantilla="@Url.Action("Adjunto", new { id = Guid.Empty })">
     <aside class="chat-list">
         <div class="chat-list-head">
             <h2>@UiTexts.Conversaciones</h2>
@@ -134,7 +152,26 @@
                     {
                         var mine = m.UsuarioEmisorId == yo;
                         <div class="chat-message @(mine ? "me" : "other")" data-mensaje-id="@m.MensajeId">
-                            @m.Texto
+                            @if (!string.IsNullOrWhiteSpace(m.Texto))
+                            {
+                                @m.Texto
+                            }
+                            @if (m.AdjuntoId is Guid adjuntoId)
+                            {
+                                var nombre = m.NombreArchivo ?? UiTexts.VerArchivo;
+                                var href = Url.Action("Adjunto", new { id = adjuntoId });
+                                if (ChatAdjunto.EsImagen(m.NombreArchivo))
+                                {
+                                    <a class="chat-file" href="@href" target="_blank" rel="noopener">
+                                        <img src="@href" alt="@nombre" />
+                                        <span>@nombre</span>
+                                    </a>
+                                }
+                                else
+                                {
+                                    <a class="chat-file chat-file-pdf" href="@href">@nombre</a>
+                                }
+                            }
                             <time>@m.FechaEnvio.ToLocalTime().ToString("dd/MM HH:mm") · @(string.IsNullOrWhiteSpace(m.NombreEmisor) ? persona.Nombre : m.NombreEmisor)</time>
                         </div>
                     }
@@ -142,9 +179,26 @@
             </div>
             @if (abierta)
             {
-                <form class="chat-compose" asp-action="Enviar" asp-route-id="@conv.ConversacionId" method="post">
+                <form class="chat-compose" asp-action="Enviar" asp-route-id="@conv.ConversacionId" method="post" enctype="multipart/form-data">
+                    <div class="chat-attach" data-chat-adjunto>
+                        <input id="archivoMensaje" class="sr-only" name="archivo" type="file" accept=".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf" data-chat-archivo />
+                        <label class="chat-attach-btn" for="archivoMensaje" title="@UiTexts.AdjuntarArchivo">
+                            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+                                <path d="M21.44 11.05 12.25 20.24a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            <span class="sr-only">@UiTexts.AdjuntarArchivo</span>
+                        </label>
+                        <p class="chat-attach-chip hidden" data-chat-archivo-nombre>
+                            <span data-chat-archivo-texto></span>
+                            <button type="button" class="chat-attach-clear" data-chat-archivo-quitar aria-label="@UiTexts.QuitarArchivo" title="@UiTexts.QuitarArchivo">
+                                <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" focusable="false">
+                                    <path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                                </svg>
+                            </button>
+                        </p>
+                    </div>
                     <label class="sr-only" for="textoMensaje">@UiTexts.EscribeMensaje</label>
-                    <input id="textoMensaje" name="texto" placeholder="@UiTexts.EscribeMensaje" autocomplete="off" />
+                    <input id="textoMensaje" class="chat-compose-text" name="texto" placeholder="@UiTexts.EscribeMensaje" autocomplete="off" />
                     <button class="primary" type="submit">@UiTexts.Enviar</button>
                 </form>
             }

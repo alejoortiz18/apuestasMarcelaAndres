@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using NewRich.Application.Chat;
 using NewRich.Application.Contracts.Chat;
 using NewRich.Application.Services;
 
@@ -55,6 +56,6 @@ public sealed class ChatController : ApiControllerBase
             return From(result);
         }
 
-        return File(result.Data.Contenido, "application/octet-stream", result.Data.NombreArchivo);
+        return File(result.Data.Contenido, ChatAdjunto.TipoMime(result.Data.NombreArchivo), result.Data.NombreArchivo);
     }
 }

@@ -1,4 +1,38 @@
 (function () {
+  document.querySelectorAll("[data-chat-adjunto]").forEach(function (caja) {
+    const input = caja.querySelector("[data-chat-archivo]");
+    const chip = caja.querySelector("[data-chat-archivo-nombre]");
+    const texto = caja.querySelector("[data-chat-archivo-texto]");
+    const quitar = caja.querySelector("[data-chat-archivo-quitar]");
+    const boton = caja.querySelector(".chat-attach-btn");
+    if (!input || !chip || !texto || !quitar || !boton) {
+      return;
+    }
+
+    function pintar() {
+      const archivo = input.files && input.files[0];
+      if (!archivo) {
+        chip.classList.add("hidden");
+        boton.classList.remove("is-on");
+        texto.textContent = "";
+        return;
+      }
+
+      texto.textContent = archivo.name;
+      chip.classList.remove("hidden");
+      boton.classList.add("is-on");
+    }
+
+    input.addEventListener("change", pintar);
+    quitar.addEventListener("click", function () {
+      input.value = "";
+      pintar();
+      boton.focus();
+    });
+  });
+})();
+
+(function () {
   const raiz = document.querySelector("[data-chat-vivo]");
   if (!raiz || typeof signalR === "undefined") {
     return;
@@ -57,6 +91,31 @@
       burbuja.setAttribute("data-mensaje-id", id);
     }
     burbuja.appendChild(document.createTextNode(mensaje.texto || mensaje.Texto || ""));
+    const adjuntoId = mensaje.adjuntoId || mensaje.AdjuntoId;
+    const nombreArchivo = mensaje.nombreArchivo || mensaje.NombreArchivo || "";
+    if (adjuntoId) {
+      const plantilla = raiz.getAttribute("data-adjunto-plantilla") || "/Soporte/Adjunto/00000000-0000-0000-0000-000000000000";
+      const href = plantilla.replace(/00000000-0000-0000-0000-000000000000/i, adjuntoId);
+      const enlace = document.createElement("a");
+      enlace.className = "chat-file";
+      enlace.href = href;
+      const ext = (nombreArchivo.split(".").pop() || "").toLowerCase();
+      if (["jpg", "jpeg", "png", "webp"].indexOf(ext) >= 0) {
+        const img = document.createElement("img");
+        img.src = href;
+        img.alt = nombreArchivo;
+        enlace.appendChild(img);
+        const nombre = document.createElement("span");
+        nombre.textContent = nombreArchivo;
+        enlace.appendChild(nombre);
+        enlace.target = "_blank";
+        enlace.rel = "noopener";
+      } else {
+        enlace.className = "chat-file chat-file-pdf";
+        enlace.textContent = nombreArchivo || "Archivo adjunto";
+      }
+      burbuja.appendChild(enlace);
+    }
     const tiempo = document.createElement("time");
     const nombre = mensaje.nombreEmisor || mensaje.NombreEmisor || "";
     tiempo.textContent = hora(mensaje.fechaEnvio || mensaje.FechaEnvio) + (nombre ? " · " + nombre : "");
@@ -107,7 +166,7 @@
         if (!conversacionId || !mensaje) {
           return;
         }
-        const texto = mensaje.texto || mensaje.Texto || "";
+        const texto = mensaje.texto || mensaje.Texto || mensaje.nombreArchivo || mensaje.NombreArchivo || "Adjunto";
         actualizarLista(conversacionId, texto);
         if (conversacionId.toLowerCase() === conversacionActual()) {
           agregarBurbuja(mensaje);

@@ -4,6 +4,8 @@ public sealed class IniciarChatRequest
 {
     public Guid? DestinoId { get; set; }
     public string Texto { get; set; } = string.Empty;
+    public string? NombreArchivo { get; set; }
+    public string? ContenidoBase64 { get; set; }
 }
 
 public sealed class EnviarMensajeRequest

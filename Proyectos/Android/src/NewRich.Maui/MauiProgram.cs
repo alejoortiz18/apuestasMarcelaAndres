@@ -32,7 +32,7 @@ public static class MauiProgram
             BaseUrl = PdaConexion.BaseUrl(DeviceInfo.Current.DeviceType == DeviceType.Virtual)
         });
         builder.Services.AddSingleton<ITokenStore, SecureTokenStore>();
-        builder.Services.AddSingleton(_ => new HttpClient { Timeout = TimeSpan.FromSeconds(8) });
+        builder.Services.AddSingleton(_ => new HttpClient { Timeout = TimeSpan.FromSeconds(30) });
         builder.Services.AddSingleton<NewRichApiClient>();
         builder.Services.AddSingleton<LocalDatabase>();
         builder.Services.AddSingleton<IPrinterService, PrinterService>();

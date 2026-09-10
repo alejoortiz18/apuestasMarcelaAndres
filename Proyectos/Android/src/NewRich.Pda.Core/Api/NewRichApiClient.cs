@@ -15,6 +15,18 @@ using NewRich.Shared.Results;
 
 namespace NewRich.Pda.Core.Api;
 
+public sealed class AdjuntoDescargado
+{
+    public AdjuntoDescargado(byte[] bytes, string nombre)
+    {
+        Bytes = bytes;
+        Nombre = nombre;
+    }
+
+    public byte[] Bytes { get; }
+    public string Nombre { get; }
+}
+
 public interface ITokenStore
 {
     Task GuardarAsync(string token);
@@ -183,6 +195,23 @@ public sealed class NewRichApiClient
 
     public Task<Result<MensajeResponse>> EnviarMensajeAsync(Guid id, EnviarMensajeRequest request, CancellationToken ct) =>
         Enviar<MensajeResponse>(HttpMethod.Post, $"api/ChatAndroid/EnviarMob/{id}", request, ct);
+
+    public async Task<Result<AdjuntoDescargado>> DescargarAdjuntoAsync(Guid id, CancellationToken ct)
+    {
+        var token = await _tokens.ObtenerAsync();
+        using var request = Crear(HttpMethod.Get, $"api/ChatAndroid/DescargarAdjuntoMob/{id}", null, token);
+        using var response = await _http.SendAsync(request, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            return Result<AdjuntoDescargado>.Fail(ChatMessages.AdjuntoNoEncontrado, (int)response.StatusCode);
+        }
+
+        var nombre = response.Content.Headers.ContentDisposition?.FileNameStar
+            ?? response.Content.Headers.ContentDisposition?.FileName?.Trim('"')
+            ?? "adjunto";
+        var bytes = await response.Content.ReadAsByteArrayAsync(ct);
+        return Result<AdjuntoDescargado>.Ok(new AdjuntoDescargado(bytes, nombre), SuccessMessages.OperacionExitosa);
+    }
 
     private async Task<Result<T>> EnviarAnonimo<T>(HttpMethod method, string relative, object? body, CancellationToken ct)
     {

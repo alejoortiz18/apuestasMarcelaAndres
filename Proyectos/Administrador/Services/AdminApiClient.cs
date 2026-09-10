@@ -19,6 +19,7 @@ using NewRich.Application.Contracts.Premios;
 using NewRich.Application.Contracts.Resultados;
 using NewRich.Application.Contracts.Usuarios;
 using NewRich.Application.Contracts.Ventas;
+using NewRich.Constants.Messages;
 
 namespace NewRich.Admin.Services;
 
@@ -74,6 +75,7 @@ public interface IAdminApiClient
     Task<ApiCallResult<ConversacionDetalleResponse>> ObtenerConversacionAsync(Guid id, CancellationToken cancellationToken);
     Task<ApiCallResult<ConversacionResponse>> IniciarConversacionAsync(IniciarChatRequest request, CancellationToken cancellationToken);
     Task<ApiCallResult<MensajeResponse>> EnviarMensajeAsync(Guid conversacionId, EnviarMensajeRequest request, CancellationToken cancellationToken);
+    Task<ApiCallResult<ArchivoChat>> DescargarAdjuntoAsync(Guid adjuntoId, CancellationToken cancellationToken);
     Task<ApiCallResult<object>> CerrarConversacionAsync(Guid id, CancellationToken cancellationToken);
 
     Task<ApiCallResult<List<ConfiguracionResponse>>> ListarConfiguracionesAsync(CancellationToken cancellationToken);
@@ -283,6 +285,45 @@ public sealed class AdminApiClient : IAdminApiClient
 
     public Task<ApiCallResult<MensajeResponse>> EnviarMensajeAsync(Guid conversacionId, EnviarMensajeRequest request, CancellationToken cancellationToken) =>
         SendAsync<MensajeResponse>(HttpMethod.Post, $"api/Chat/{conversacionId}/mensajes", request, true, cancellationToken);
+
+    public async Task<ApiCallResult<ArchivoChat>> DescargarAdjuntoAsync(Guid adjuntoId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, $"api/Chat/adjuntos/{adjuntoId}");
+            var token = _httpContextAccessor.HttpContext?.Request.Cookies[AuthCookieNames.AccessToken];
+            if (!string.IsNullOrWhiteSpace(token))
+            {
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+
+            using var response = await _http.SendAsync(request, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                return ApiCallResult<ArchivoChat>.Fail(UiTexts.ApiNoDisponible, (int)response.StatusCode, response.StatusCode == HttpStatusCode.Unauthorized);
+            }
+
+            var nombre = response.Content.Headers.ContentDisposition?.FileNameStar
+                ?? response.Content.Headers.ContentDisposition?.FileName?.Trim('"')
+                ?? "adjunto";
+            var tipo = response.Content.Headers.ContentType?.MediaType ?? "application/octet-stream";
+            var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+            return ApiCallResult<ArchivoChat>.Ok(new ArchivoChat
+            {
+                Contenido = bytes,
+                Nombre = nombre,
+                Tipo = tipo
+            }, SuccessMessages.OperacionExitosa, (int)response.StatusCode);
+        }
+        catch (HttpRequestException)
+        {
+            return ApiCallResult<ArchivoChat>.Fail(UiTexts.ApiNoDisponible, 0);
+        }
+        catch (TaskCanceledException)
+        {
+            return ApiCallResult<ArchivoChat>.Fail(UiTexts.ApiNoDisponible, 0);
+        }
+    }
 
     public Task<ApiCallResult<object>> CerrarConversacionAsync(Guid id, CancellationToken cancellationToken) =>
         SendAsync<object>(HttpMethod.Post, $"api/Chat/{id}/cerrar", null, true, cancellationToken);

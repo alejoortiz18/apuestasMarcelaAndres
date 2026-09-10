@@ -108,6 +108,10 @@ public static class PdaTexts
     public const string Enviar = "Enviar";
     public const string NuevoMensaje = "Escribe un mensaje";
     public const string EnviarMensajeAria = "Enviar mensaje";
+    public const string Adjuntar = "Adjuntar";
+    public const string AdjuntarAyuda = "Adjuntar imagen o PDF";
+    public const string AbrirAdjunto = "Abrir";
+    public const string AdjuntoPendiente = "Listo para enviar: {0}";
     public const string SinConversaciones = "No hay conversaciones.";
     public const string SinVentas = "No hay ventas en el periodo consultado.";
     public const string SinResultados = "No hay resultados para la fecha consultada.";

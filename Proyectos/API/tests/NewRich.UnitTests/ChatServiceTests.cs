@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using NewRich.Application.Abstractions;
+using NewRich.Application.Chat;
 using NewRich.Application.Contracts.Chat;
 using NewRich.Application.Contracts.Notificaciones;
 using NewRich.Application.Services;
@@ -204,6 +205,88 @@ public sealed class ChatServiceTests
         result.IsSuccess.Should().BeTrue();
         chatVivo.Avisos.Should().ContainSingle(a => a.Aviso.Mensaje.Texto == "No imprime");
         campana.Creadas.Should().ContainSingle(a => a.Tipo == ChatMessages.TipoAvisoSoporte);
+    }
+
+    [Fact]
+    public async Task IniciarAsync_guarda_png_aunque_no_haya_texto()
+    {
+        var (sut, db) = CreateSut();
+        await AgregarUsuarioAsync(db, "Ana Admin", RolUsuario.Administrador);
+        var camila = await AgregarUsuarioAsync(db, "Camila Rojas", RolUsuario.Vendedor);
+
+        var result = await sut.IniciarAsync(camila.UsuarioId, new IniciarChatRequest
+        {
+            Texto = "  ",
+            NombreArchivo = "tirilla.png",
+            ContenidoBase64 = Convert.ToBase64String("png"u8.ToArray())
+        }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        db.AdjuntosChat.Should().ContainSingle(a => a.NombreOriginal == "tirilla.png");
+        var detalle = await sut.ObtenerAsync(result.Data!.ConversacionId, camila.UsuarioId, CancellationToken.None);
+        detalle.Data!.Mensajes[0].AdjuntoId.Should().NotBeNull();
+        detalle.Data.Mensajes[0].NombreArchivo.Should().Be("tirilla.png");
+    }
+
+    [Fact]
+    public async Task EnviarAsync_guarda_png_aunque_no_haya_texto()
+    {
+        var (sut, db) = CreateSut();
+        var ana = await AgregarUsuarioAsync(db, "Ana Admin", RolUsuario.Administrador);
+        var camila = await AgregarUsuarioAsync(db, "Camila Rojas", RolUsuario.Vendedor);
+        var conv = await AgregarConversacionAsync(db, camila, ana, "Hola");
+
+        var result = await sut.EnviarAsync(conv.ConversacionId, camila.UsuarioId, new EnviarMensajeRequest
+        {
+            Texto = "  ",
+            NombreArchivo = "tirilla.png",
+            ContenidoBase64 = Convert.ToBase64String("png"u8.ToArray())
+        }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.AdjuntoId.Should().NotBeNull();
+        result.Data.NombreArchivo.Should().Be("tirilla.png");
+        db.AdjuntosChat.Should().ContainSingle(a => a.NombreOriginal == "tirilla.png");
+    }
+
+    [Fact]
+    public async Task EnviarAsync_rechaza_adjunto_que_no_es_imagen_ni_pdf()
+    {
+        var (sut, db) = CreateSut();
+        var ana = await AgregarUsuarioAsync(db, "Ana Admin", RolUsuario.Administrador);
+        var camila = await AgregarUsuarioAsync(db, "Camila Rojas", RolUsuario.Vendedor);
+        var conv = await AgregarConversacionAsync(db, camila, ana, "Hola");
+
+        var result = await sut.EnviarAsync(conv.ConversacionId, camila.UsuarioId, new EnviarMensajeRequest
+        {
+            Texto = "mira esto",
+            NombreArchivo = "nota.txt",
+            ContenidoBase64 = Convert.ToBase64String("hola"u8.ToArray())
+        }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Message.Should().Be(ChatMessages.AdjuntoTipoNoPermitido);
+        db.AdjuntosChat.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task EnviarAsync_administrador_tambien_puede_adjuntar_pdf()
+    {
+        var (sut, db) = CreateSut();
+        var ana = await AgregarUsuarioAsync(db, "Ana Admin", RolUsuario.Administrador);
+        var camila = await AgregarUsuarioAsync(db, "Camila Rojas", RolUsuario.Vendedor);
+        var conv = await AgregarConversacionAsync(db, camila, ana, "Hola");
+
+        var result = await sut.EnviarAsync(conv.ConversacionId, ana.UsuarioId, new EnviarMensajeRequest
+        {
+            Texto = "Instructivo",
+            NombreArchivo = "guia.pdf",
+            ContenidoBase64 = Convert.ToBase64String("%PDF"u8.ToArray())
+        }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.NombreArchivo.Should().Be("guia.pdf");
+        ChatAdjunto.EsPdf(result.Data.NombreArchivo).Should().BeTrue();
     }
 
     private static (ChatService Sut, NewRichDbContext Db) CreateSut(
