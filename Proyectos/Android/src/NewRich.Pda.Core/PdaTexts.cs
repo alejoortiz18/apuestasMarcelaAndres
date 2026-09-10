@@ -131,4 +131,10 @@ public static class PdaTexts
     public const string OfflineNoDisponibleVendedor = "La API actual no permite al vendedor descargar códigos offline. El administrador genera los códigos; hace falta un endpoint de descarga para el PDA.";
     public const string EntregaNoDisponible = "La API actual no expone el registro de entrega con evidencias fotográficas.";
     public const string CancelarBoletoConfirma = "Se perderán los juegos agregados en este boleto. ¿Deseas continuar?";
+    public const string ArranqueEslogan = "Cargando un futuro más brillante...";
+    public const string ArranqueAlmacen = "Preparando el almacenamiento";
+    public const string ArranqueBase = "Abriendo la base local";
+    public const string ArranqueSesion = "Leyendo la sesión guardada";
+    public const string ArranqueConexion = "Comprobando la conexión";
+    public const string ArranqueListo = "Listo";
 }

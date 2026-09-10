@@ -12,6 +12,6 @@ public partial class App : Microsoft.Maui.Controls.Application
 
     protected override Window CreateWindow(IActivationState? activationState)
     {
-        return new Window(_services.GetRequiredService<Views.Shared.LoginPage>());
+        return new Window(_services.GetRequiredService<Views.Shared.ArranquePage>());
     }
 }
