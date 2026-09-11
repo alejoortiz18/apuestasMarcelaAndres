@@ -90,6 +90,7 @@ public interface IValidacionBoletoService
     Task<Result<ValidacionBoletoResponse>> AutorizarPagoAsync(Guid boletoId, CancellationToken cancellationToken);
     Task<Result<TirillaResponse>> ObtenerTirillaAsync(Guid boletoId, CancellationToken cancellationToken);
     Task<Result<IReadOnlyList<BoletoListaResponse>>> FiltrarAsync(FiltroBoletosRequest request, CancellationToken cancellationToken);
+    Task<Result<ConsultaTicketResponse>> ConsultarPorCodigoAsync(string? ticketCode, CancellationToken cancellationToken);
 }
 
 public interface INotificacionService
@@ -132,6 +133,7 @@ public interface IPremioService
     Task<Result<IReadOnlyList<CasoGanadorResponse>>> ListarAsync(CancellationToken cancellationToken);
     Task<Result<CasoGanadorResponse>> ObtenerAsync(Guid casoId, CancellationToken cancellationToken);
     Task<Result<CasoGanadorResponse>> ReportarAsync(Guid solicitanteId, ReportarCasoGanadorRequest request, CancellationToken cancellationToken);
+    Task<Result<DescargaAdjuntoResponse>> ObtenerFotoAsync(Guid casoId, CancellationToken cancellationToken);
     Task<Result<CasoGanadorResponse>> ValidarAsync(Guid casoId, Guid adminId, CancellationToken cancellationToken);
     Task<Result<CasoGanadorResponse>> RechazarAsync(Guid casoId, Guid adminId, CancellationToken cancellationToken);
     Task<Result<CasoGanadorResponse>> AsignarAsync(Guid casoId, Guid adminId, AsignarObservadorRequest request, CancellationToken cancellationToken);

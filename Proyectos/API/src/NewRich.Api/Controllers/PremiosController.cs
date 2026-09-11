@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using NewRich.Application.Chat;
 using NewRich.Application.Contracts.Premios;
 using NewRich.Application.Services;
 
@@ -54,5 +55,18 @@ public sealed class PremiosController : ApiControllerBase
     public async Task<IActionResult> Asignar(Guid id, [FromBody] AsignarObservadorRequest request, CancellationToken cancellationToken)
     {
         return From(await _premioService.AsignarAsync(id, UsuarioId, request, cancellationToken));
+    }
+
+    [Authorize(Roles = "Administrador,Observador")]
+    [HttpGet("{id:guid}/foto")]
+    public async Task<IActionResult> Foto(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _premioService.ObtenerFotoAsync(id, cancellationToken);
+        if (!result.IsSuccess || result.Data is null)
+        {
+            return From(result);
+        }
+
+        return File(result.Data.Contenido, ChatAdjunto.TipoMime(result.Data.NombreArchivo), result.Data.NombreArchivo);
     }
 }

@@ -44,4 +44,7 @@ public abstract class AdminControllerBase : Controller
         ViewData["Crumb"] = leaf ?? UiTexts.NavVentas;
         ViewData["Title"] = leaf ?? UiTexts.LoteriasTitulo;
     }
+
+    protected bool EsPeticionAjax() =>
+        string.Equals(Request.Headers["X-Requested-With"], "XMLHttpRequest", StringComparison.OrdinalIgnoreCase);
 }

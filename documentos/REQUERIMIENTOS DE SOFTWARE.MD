@@ -891,9 +891,9 @@ Todo el sistema utilizará una base de datos centralizada SQL Server.
 | RN-061 | El PDA debe descargar y almacenar localmente la hora de cierre configurada en el servidor durante cada inicio de sesión con conexión disponible. Esta información sincronizada se utiliza como referencia definitiva para todas las validaciones de horario, incluso en modo offline. |
 | RN-062 | El PDA debe validar y utilizar únicamente la hora de cierre sincronizada (proveniente del servidor), nunca la hora local del dispositivo. Si la hora local ha sido manipulada (diferencia mayor a 1 minuto respecto a la sincronizada), el PDA detecta la anomalía y ejecuta el cierre forzado de sesión definido en RS-101. |
 | RN-063 | Cuando el PDA está en modo offline sin conexión, debe cumplir automáticamente el cierre de sesión en la hora de cierre sincronizada. Si el vendedor intenta modificar la hora del dispositivo para eludir este cierre, el sistema detecta la manipulación y cierra la sesión de todas formas, impidiendo cualquier intento de burlar el horario de operación. |
-| RN-064 | Cuando el vendedor escanea un ticket para validación de ganador, el sistema ejecuta prevalidación automática verificando: QR válido, boleto existe, estado "Jugado", vigente, no "Premio entregado", y número + lotería + fecha coinciden con ganador registrado. Si todo es válido, registra automáticamente un `CasoGanador` con estado "Reportado" y notifica al administrador. |
+| RN-064 | Cuando el vendedor valida un ticket ganador, el sistema muestra tirilla y estado. Si está listo para cobrar, exige fotografía del QR y al reportar registra un `CasoGanador` con estado "Reportado", guarda la imagen y notifica al administrador. |
 | RN-065 | Si la prevalidación de ticket ganador falla, el sistema muestra motivo específico (boleto vencido, no es ganador, ya registrado, etc.) sin registrar caso alguno. El vendedor puede intentar de nuevo. |
-| RN-066 | El administrador debe solicitar **fotografía del ticket con código QR claramente visible** antes de validar un caso reportado. La validación es manual: el administrador verifica que la foto corresponda al ticket y que el QR sea legible. Solo si es válido, cambia estado a "Validado". Si rechaza, marca permanentemente como "Rechazado". |
+| RN-066 | El administrador valida el caso reportado con la fotografía del ticket enviada desde el PDA. La validación es manual: verifica que la foto corresponda al ticket y que el QR sea legible. Solo si es válido, cambia estado a "Validado". Si rechaza, marca permanentemente como "Rechazado". |
 | RN-067 | El administrador asigna un observador activo a un caso validado. El observador recibe notificación inmediata en su PDA. El caso pasa a estado "Asignado". El administrador puede cambiar de observador mientras el caso no esté en estado "Registrado" o "Premio entregado". |
 | RN-068 | Cuando el observador comienza a registrar un ganador, el estado del caso cambia automáticamente a "En proceso". El observador no puede cambiar este estado manualmente. |
 | RN-069 | El observador debe ingresar obligatoriamente: nombre y apellido del ganador, número de contacto, lugar donde ganó, nombre del vendedor (relacionado al ticket), y valor total ganado (ingreso manual). El campo "Persona que entrega el premio" se autocompleta con el observador autenticado y no es editable. El sistema NO calcula premios según RN-042. |
@@ -2744,33 +2744,28 @@ RF-088
 
 El vendedor accede a una opción **"Validar ticket ganador"** desde el menú principal del PDA.
 
-Permite seleccionar la cámara para escanear el código QR del ticket que un cliente reporta como ganador.
+Permite ingresar el código del recibo (`AOL-` + 7 dígitos) o usar la cámara para escanear el QR.
+
+El botón de esta pantalla es **"Validar ticket ganador"**. Muestra la tirilla vendida y el estado del ticket. Si el ticket está listo para cobrar porque ganó, habilita tomar foto del QR y reportar el caso al administrador.
 
 ---
 
-## RS-103 — 103. PREVALIDACIÓN AUTOMÁTICA DE TICKET GANADOR
+## RS-103 — 103. CONSULTA Y REPORTE DE TICKET GANADOR DESDE EL PDA
 
 RF-089
 
-Cuando el vendedor escanea el QR:
+Cuando el vendedor valida el ticket:
 
-- El PDA desencripta el payload y valida automáticamente:
-  - QR es válido y pertenece al sistema.
-  - Boleto existe en BD.
-  - Boleto tiene estado "Jugado" (no otro estado).
-  - Boleto está dentro de vigencia.
-  - Boleto no tiene estado "Premio entregado".
-  - Número + lotería + fecha del boleto coinciden con un número ganador registrado.
+- El sistema busca el boleto por código impreso, 7 dígitos o payload QR y muestra tirilla y estado.
+- Para reportar como ganador verifica: boleto existe, no está en "Premio entregado", está vigente y número + lotería + fecha coinciden con un ganador registrado (o el boleto ya está marcado ganador).
 
-**Si prevalidación es exitosa:**
-- Sistema registra automáticamente un `CasoGanador` con estado = **"Reportado"**.
-- Notifica al administrador que se ha presentado un posible ganador.
-- Muestra al vendedor: **"Ticket validado. Se ha informado al administrador. Queda pendiente su aprobación."**
+**Si está listo para cobrar:**
+- El PDA pide fotografía del ticket con QR visible y el botón **"Reportar caso"**.
+- Al reportar, registra un `CasoGanador` con estado **"Reportado"**, guarda la imagen y notifica al administrador.
 
-**Si prevalidación falla:**
-- Muestra motivo específico (ejemplo: "Boleto vencido", "No es ganador", "Ticket ya registrado", "Boleto no vigente").
-- No registra caso alguno.
-- Vendedor puede intentar de nuevo.
+**Si no está listo para cobrar:**
+- Muestra motivo específico (ejemplo: "Boleto vencido", "No es ganador", "Ticket ya registrado").
+- No registra caso alguno ni pide foto de reporte.
 
 ---
 
@@ -2796,7 +2791,7 @@ Al seleccionar un caso con estado **"Reportado"**, el sistema muestra:
 - Números jugados, loterías, valor total apostado, fecha de venta.
 - Vendedor que reportó el caso.
 - Estado actual del caso.
-- Opción para solicitar foto: **"Solicitar fotografía del ticket con QR visible"**.
+- La fotografía del ticket con QR visible, si fue enviada al reportar el caso.
 
 ---
 
@@ -2804,11 +2799,9 @@ Al seleccionar un caso con estado **"Reportado"**, el sistema muestra:
 
 RF-092
 
-El administrador requiere que se envíe la **fotografía del ticket con código QR claramente visible**.
+El administrador requiere la **fotografía del ticket con código QR claramente visible**, enviada desde el PDA al reportar el caso.
 
-Esta fotografía se envía a través del chat de soporte (RS-053 a RS-058).
-
-Cuando recibe la fotografía:
+Cuando revisa la fotografía en el detalle del caso:
 - Valida manualmente que el QR corresponda al ticket reportado.
 - Verifica que la foto sea legible y muestre claramente el código QR y datos del ticket.
 

@@ -20,13 +20,13 @@ public sealed class SecureTokenStore : ITokenStore
 
 public interface IPrinterService
 {
-    Task<ResultadoImpresion> ImprimirAsync(string tirilla);
+    Task<ResultadoImpresion> ImprimirAsync(string tirilla, string? contenidoQr = null);
 }
 
 public sealed class PrinterService : IPrinterService
 {
-    public Task<ResultadoImpresion> ImprimirAsync(string tirilla) =>
-        Task.FromResult(ResultadoImpresion.Fallo(PdaTexts.ErrorImpresion));
+    public Task<ResultadoImpresion> ImprimirAsync(string tirilla, string? contenidoQr = null) =>
+        ImpresoraInternaSenraise.ImprimirAsync(tirilla, contenidoQr);
 }
 
 public interface IPdfService

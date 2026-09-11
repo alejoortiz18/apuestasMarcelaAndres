@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using NewRich.Admin.Constants;
 using NewRich.Admin.Models;
 using NewRich.Admin.Services;
+using NewRich.Application.Contracts.Boletos;
 using NewRich.Application.Contracts.Premios;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Enums;
@@ -68,6 +69,47 @@ public sealed class PremiosController : AdminControllerBase
             return View(model);
         }
 
+        var result = await _api.ConsultarTicketPremioAsync(new ConsultaTicketRequest { TicketCode = model.TicketCode }, cancellationToken);
+        var unauthorized = RedirectIfUnauthorized(result);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
+        if (!result.Success || result.Data is null)
+        {
+            ModelState.AddModelError(string.Empty, result.Message);
+            return View(model);
+        }
+
+        var consulta = result.Data;
+        model.ResultadoVisual = consulta.ResultadoVisual;
+        model.MensajeEstado = consulta.Mensaje;
+        model.Tono = consulta.Tono;
+        model.PuedeIniciarCaso = consulta.PuedeIniciarCaso;
+        model.BoletoId = consulta.BoletoId;
+        if (consulta.Tirilla is not null && consulta.BoletoId.HasValue)
+        {
+            model.Tirilla = new TirillaViewModel
+            {
+                BoletoId = consulta.BoletoId.Value,
+                Tirilla = consulta.Tirilla
+            };
+        }
+
+        return View(model);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> IniciarCaso(PremioReportarViewModel model, CancellationToken cancellationToken)
+    {
+        SetNav("premios", UiTexts.ReportarTicket);
+        if (!ModelState.IsValid)
+        {
+            return View(nameof(Reportar), model);
+        }
+
         var result = await _api.ReportarCasoPremioAsync(new ReportarCasoGanadorRequest { TicketCode = model.TicketCode }, cancellationToken);
         var unauthorized = RedirectIfUnauthorized(result);
         if (unauthorized is not null)
@@ -78,7 +120,7 @@ public sealed class PremiosController : AdminControllerBase
         if (!result.Success)
         {
             ModelState.AddModelError(string.Empty, result.Message);
-            return View(model);
+            return await Reportar(model, cancellationToken);
         }
 
         SetFlash(SuccessMessages.CasoGanadorReportado);
@@ -154,5 +196,23 @@ public sealed class PremiosController : AdminControllerBase
         }
 
         return RedirectToAction(nameof(Ver), new { id });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Foto(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _api.DescargarFotoCasoPremioAsync(id, cancellationToken);
+        var unauthorized = RedirectIfUnauthorized(result);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
+        if (!result.Success || result.Data is null)
+        {
+            return NotFound();
+        }
+
+        return File(result.Data.Contenido, result.Data.Tipo, result.Data.Nombre);
     }
 }

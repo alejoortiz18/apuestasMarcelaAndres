@@ -15,6 +15,13 @@ public sealed class BoletosAndroidController : ApiControllerBase
         _pda = pda;
     }
 
+    [Authorize(Roles = "Administrador,Observador,Vendedor")]
+    [HttpPost("ConsultarMob")]
+    public async Task<IActionResult> ConsultarMob([FromBody] ConsultaTicketRequest request, CancellationToken cancellationToken)
+    {
+        return From(await _pda.ConsultarTicketMobAsync(request.TicketCode, cancellationToken));
+    }
+
     [Authorize(Roles = "Administrador,Observador")]
     [HttpPost("ValidarQrMob")]
     public async Task<IActionResult> ValidarQrMob([FromBody] ValidarQrRequest request, CancellationToken cancellationToken)

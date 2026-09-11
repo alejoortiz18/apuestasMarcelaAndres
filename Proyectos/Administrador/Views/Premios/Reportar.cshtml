@@ -1,23 +1,47 @@
 @using NewRich.Admin.Constants
+@using NewRich.Constants
 @model NewRich.Admin.Models.PremioReportarViewModel
 <div class="heading">
     <div>
         <div class="eyebrow">@UiTexts.PremiosKicker</div>
         <h1>@UiTexts.ReportarTicket</h1>
-        <p>@UiTexts.PremiosSub</p>
+        <p>@UiTexts.PremioConsultaSub</p>
     </div>
 </div>
 <div class="panel">
     <div asp-validation-summary="ModelOnly" class="notice error"></div>
-    <form method="post">
+    <form method="post" asp-action="Reportar">
         <div class="field">
             <label asp-for="TicketCode"></label>
-            <input asp-for="TicketCode" maxlength="7" placeholder="4839190" />
+            <textarea asp-for="TicketCode" class="premio-ticket-code" rows="5" maxlength="@TicketCodeLimits.MaxInputLength" spellcheck="false" autocomplete="off" placeholder="4839190"></textarea>
+            <p class="field-help">@UiTexts.PremioAyudaCodigoTicket</p>
             <span asp-validation-for="TicketCode"></span>
         </div>
         <div class="text-center-actions">
-            <button class="primary" type="submit">@UiTexts.ReportarTicket</button>
+            <button class="primary" type="submit">@UiTexts.ValidarTicket</button>
             <a class="secondary" asp-action="Index">@UiTexts.Cancelar</a>
         </div>
     </form>
 </div>
+@if (!string.IsNullOrWhiteSpace(Model.MensajeEstado) && !string.IsNullOrWhiteSpace(Model.Tono))
+{
+    <div class="ticket-estado ticket-estado-@Model.Tono" role="status">
+        <strong>@Model.ResultadoVisual</strong>
+        <p>@Model.MensajeEstado</p>
+    </div>
+}
+@if (Model.Tirilla is not null)
+{
+    <div class="panel ticket-page premio-consulta">
+        <h2 class="premio-consulta-titulo">@UiTexts.TirillaDeCompra</h2>
+        <partial name="_TicketModalContent" model="Model.Tirilla" />
+        @if (Model.PuedeIniciarCaso)
+        {
+            <form method="post" asp-action="IniciarCaso" class="premio-iniciar-caso">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="TicketCode" />
+                <button class="primary" type="submit">@UiTexts.IniciarCasoPremio</button>
+            </form>
+        }
+    </div>
+}

@@ -63,6 +63,7 @@
                     <th>@UiTexts.FechaReporte</th>
                     <th>@UiTexts.Pda</th>
                     <th>@UiTexts.Estado</th>
+                    <th>@UiTexts.FotoDelTicket</th>
                     <th>@UiTexts.Observador</th>
                     <th>@UiTexts.Accion</th>
                 </tr>
@@ -82,6 +83,7 @@
                         <td>@item.FechaReporte.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
                         <td>@item.Pda</td>
                         <td><span class="pill @EstadoUi.Pill(item.Estado)">@item.Estado</span></td>
+                        <td>@(item.TieneFoto ? UiTexts.ConFoto : UiTexts.SinFoto)</td>
                         <td>@item.Observador</td>
                         <td>
                             <a class="secondary table-ver" asp-action="Ver" asp-route-id="@item.CasoId">@UiTexts.Ver</a>

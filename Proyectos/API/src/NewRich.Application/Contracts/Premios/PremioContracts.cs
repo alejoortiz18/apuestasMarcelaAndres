@@ -3,6 +3,8 @@ namespace NewRich.Application.Contracts.Premios;
 public sealed class ReportarCasoGanadorRequest
 {
     public string TicketCode { get; set; } = string.Empty;
+    public string? NombreArchivo { get; set; }
+    public string? ContenidoBase64 { get; set; }
 }
 
 public sealed class AsignarObservadorRequest
@@ -28,4 +30,6 @@ public sealed class CasoGanadorResponse
     public string? NumeroContacto { get; set; }
     public string? LugarGano { get; set; }
     public decimal? ValorTotalGanado { get; set; }
+    public bool TieneFoto { get; set; }
+    public string? NombreFoto { get; set; }
 }

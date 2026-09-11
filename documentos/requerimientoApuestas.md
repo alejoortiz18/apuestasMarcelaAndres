@@ -426,19 +426,11 @@ Seis semanas. El mínimo es: vendedor escanea ticket ganador (prevalidación), a
 
 ### Flujo de validación de ticket ganador
 
-El vendedor accede a **"Validar ticket ganador"** en el menú del PDA. Escanea el QR del ticket. El sistema prevalida:
-
-- QR válido y cifrado correctamente.
-- Boleto existe en BD.
-- Boleto tiene estado "Jugado" y está vigente.
-- Número + lotería + fecha coinciden con un número ganador registrado.
-- Boleto no tiene estado "Premio entregado".
-
-Si prevalidación es exitosa, el sistema registra un caso de ganador con estado **"Reportado"** y notifica al administrador. Si falla, muestra motivo específico (boleto vencido, no es ganador, ya registrado, etc.) y no registra caso alguno.
+El vendedor accede a **"Validar ticket ganador"** en el menú del PDA. Ingresa el código del recibo (`AOL-` + 7 dígitos) o escanea el QR. El sistema muestra la tirilla y el estado del ticket. Si está listo para cobrar porque ganó, habilita foto del QR y **"Reportar caso"**. Al reportar, registra un caso con estado **"Reportado"**, guarda la imagen y notifica al administrador. Si no está listo para cobrar, muestra el motivo y no registra caso.
 
 ### Etapa administrativa de validación
 
-El administrador accede a **"Casos de premios ganadores"** en la web. Visualiza casos con estado **"Reportado"** con opción de filtrar por fecha, vendedor, PDA. Requiere que se envíe **fotografía del ticket con código QR claramente visible** (a través del chat de soporte). Valida manualmente que la foto corresponda al ticket reportado. Si es válido, cambia estado a **"Validado"** y habilita asignación de observador. Si rechaza, marca como **"Rechazado"** permanentemente.
+El administrador accede a **"Casos de premios ganadores"** en la web. Visualiza casos con estado **"Reportado"** y la fotografía enviada desde el PDA. Valida manualmente que la foto corresponda al ticket reportado. Si es válido, cambia estado a **"Validado"** y habilita asignación de observador. Si rechaza, marca como **"Rechazado"** permanentemente.
 
 Desde un caso **"Validado"**, el administrador selecciona observador de la lista de activos y confirma la asignación. Estado cambia a **"Asignado"**. El observador recibe notificación y puede ver el caso en su PDA.
 

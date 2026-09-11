@@ -13,6 +13,7 @@ public sealed class TirillaVendidaPage : ContentPage
     private readonly IPrinterService _printer;
     private readonly IPdfService _pdf;
     private bool _evidenciaEnviada;
+    private bool _impresionAutomaticaHecha;
     private Label? _avisoImpresion;
 
     public TirillaVendidaPage(NewRichApiClient api, SesionPda sesion, IPrinterService printer, IPdfService pdf)
@@ -88,6 +89,12 @@ public sealed class TirillaVendidaPage : ContentPage
                 Children = { cuerpo }
             }
         };
+
+        if (!_impresionAutomaticaHecha)
+        {
+            _impresionAutomaticaHecha = true;
+            _ = ImprimirAsync(tirilla);
+        }
     }
 
     private static View Recibo(TirillaVenta tirilla)
@@ -255,7 +262,7 @@ public sealed class TirillaVendidaPage : ContentPage
 
     private async Task ImprimirAsync(TirillaVenta tirilla)
     {
-        var resultado = await _printer.ImprimirAsync(tirilla.Texto);
+        var resultado = await _printer.ImprimirAsync(tirilla.Texto, tirilla.QrContenido);
         if (resultado.Ok)
         {
             return;

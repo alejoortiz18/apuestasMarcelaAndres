@@ -235,50 +235,58 @@ public sealed class ConstruirApuestaPage : ContentPage
             return;
         }
 
-        if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+        if (PoliticaVentaPda.IntentarServidorAunqueAndroidReporteSinRed)
         {
-            var disponibles = await _offline.ContarDisponiblesAsync();
-            if (disponibles == 0)
+            var conexion = await _api.ConectarAsync(
+                PdaConexion.UrlsPara(DeviceInfo.Current.DeviceType == DeviceType.Virtual),
+                CancellationToken.None);
+            if (conexion.IsSuccess)
             {
-                await DisplayAlert(PdaTexts.SinCodigosOffline, PdaTexts.BorradorConservado, PdaTexts.Entendido);
-                return;
-            }
+                try
+                {
+                    var venta = await _api.ConfirmarVentaAsync(draft.ARequest(), Guid.NewGuid().ToString("N"), CancellationToken.None);
+                    if (!venta.IsSuccess || venta.Data is null)
+                    {
+                        if (venta.Message == VentaMessages.VentaFueraDeHorario)
+                        {
+                            _sesion.HorarioCerrado = true;
+                        }
 
-            var continuar = await DisplayAlert(PdaTexts.ConexionNoDisponible, "No hay conexión con el servidor. ¿Desea continuar en modo offline usando un código preasignado?", PdaTexts.ContinuarOffline, PdaTexts.EsperarConexion);
-            if (!continuar)
-            {
-                return;
-            }
+                        await DisplayAlert(PdaTexts.JuegoNuevo, venta.Message, PdaTexts.Cerrar);
+                        return;
+                    }
 
-            var codigo = await _offline.ConsumirAsync();
-            var payload = EvidenciaOffline.ContenidoQr(codigo?.Payload ?? string.Empty);
-            await MostrarTirillaAsync(codigo?.Consecutivo ?? string.Empty, draft, true, payload);
+                    var vigencia = _sesion.Limites.VigenciaPremiosDias > 0 ? _sesion.Limites.VigenciaPremiosDias : 30;
+                    _sesion.Tirilla = TirillaVenta.DesdeVenta(venta.Data, draft.Tipo, vigencia, false, _sesion.Limites.LeyendaTirilla);
+                    _sesion.Borrador = null;
+                    await Navigation.PushAsync(_services.GetRequiredService<TirillaVendidaPage>());
+                    return;
+                }
+                catch (HttpRequestException)
+                {
+                }
+                catch (TaskCanceledException)
+                {
+                }
+            }
+        }
+
+        var disponibles = await _offline.ContarDisponiblesAsync();
+        if (PoliticaVentaPda.TrasFalloDeRed(disponibles) == CanalVenta.Bloqueado)
+        {
+            await DisplayAlert(PdaTexts.SinCodigosOffline, PdaTexts.BorradorConservado, PdaTexts.Entendido);
             return;
         }
 
-        try
+        var continuar = await DisplayAlert(PdaTexts.ConexionNoDisponible, PdaTexts.SinConexionServidor, PdaTexts.ContinuarOffline, PdaTexts.EsperarConexion);
+        if (!continuar)
         {
-            var venta = await _api.ConfirmarVentaAsync(draft.ARequest(), Guid.NewGuid().ToString("N"), CancellationToken.None);
-            if (!venta.IsSuccess || venta.Data is null)
-            {
-                if (venta.Message == VentaMessages.VentaFueraDeHorario)
-                {
-                    _sesion.HorarioCerrado = true;
-                }
-
-                await DisplayAlert(PdaTexts.JuegoNuevo, venta.Message, PdaTexts.Cerrar);
-                return;
-            }
-
-            var vigencia = _sesion.Limites.VigenciaPremiosDias > 0 ? _sesion.Limites.VigenciaPremiosDias : 30;
-            _sesion.Tirilla = TirillaVenta.DesdeVenta(venta.Data, draft.Tipo, vigencia, false, _sesion.Limites.LeyendaTirilla);
-            _sesion.Borrador = null;
-            await Navigation.PushAsync(_services.GetRequiredService<TirillaVendidaPage>());
+            return;
         }
-        catch (Exception ex)
-        {
-            await DisplayAlert(PdaTexts.JuegoNuevo, ex.Message, PdaTexts.Cerrar);
-        }
+
+        var codigo = await _offline.ConsumirAsync();
+        var payload = EvidenciaOffline.ContenidoQr(codigo?.Payload ?? string.Empty);
+        await MostrarTirillaAsync(codigo?.Consecutivo ?? string.Empty, draft, true, payload);
     }
 
     private async Task MostrarTirillaAsync(string codigo, TicketDraft draft, bool offline, string? qr = null)

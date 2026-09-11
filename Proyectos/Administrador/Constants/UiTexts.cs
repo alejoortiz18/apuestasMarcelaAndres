@@ -436,9 +436,14 @@ public static class UiTexts
     public const string PremiosTitulo = "Casos de premios ganadores";
     public const string PremiosSub = "Avanza cada caso con validación, asignación y registro de evidencias.";
     public const string ReportarTicket = "Reportar ticket";
+    public const string ValidarTicket = "Validar ticket";
+    public const string IniciarCasoPremio = "Iniciar caso de premio";
+    public const string PremioConsultaSub = "Pegue el código o el QR para ver la tirilla de compra y el estado del ticket.";
+    public const string TirillaDeCompra = "Tirilla de compra";
     public const string BuscarTicket = "Buscar ticket";
     public const string PlaceholderPremio = "Código, vendedor o PDA";
     public const string CodigoTicket = "Código del ticket";
+    public const string PremioAyudaCodigoTicket = "Puede ingresar el código de 7 dígitos o pegar el contenido completo del QR, hasta 400 caracteres.";
     public const string SeguimientoDeCasos = "Seguimiento de casos";
     public const string SeguimientoDeCasosSub = "Cada ticket puede avanzar de reportado a premio entregado.";
     public const string AccionesDePremio = "Acciones del caso de premio";
@@ -451,6 +456,10 @@ public static class UiTexts
     public const string RechazarCaso = "Rechazar caso";
     public const string AsignarObservador = "Asignar observador";
     public const string Ticket = "Ticket";
+    public const string FotoDelTicket = "Fotografía del ticket";
+    public const string ConFoto = "Con foto";
+    public const string SinFoto = "Sin foto";
+    public const string FotoTicketAyuda = "Fotografía del ticket con el código QR visible, enviada desde el PDA al reportar el caso.";
 
     public const string MostrandoFormato = "Mostrando {0}-{1} de {2}";
     public const string CrumbPrefijo = "New Rich / ";

@@ -575,31 +575,25 @@ El administrador genera y asigna códigos QR preasignados a usuarios y PDA espec
 
 # A6. Proceso de validación y entrega de premios ganadores
 
-## HU-26 — Vendedor escanea y prevalida ticket ganador
+## HU-26 — Vendedor valida ticket ganador y reporta el caso
 
-**Como** vendedor,  
-**quiero** escanear el código QR de un ticket que un cliente reporta como ganador,  
-**para** que el sistema realice una prevalidación automática y reporte el caso al administrador.
+**Como** vendedor,
+**quiero** consultar el ticket por código impreso o QR y, si está listo para cobrar, enviar una fotografía del QR al administrador,
+**para** que el caso quede reportado con evidencia visual.
 
 ### Criterios de aceptación
 
 - El vendedor accede a una opción **"Validar ticket ganador"** desde el menú principal del PDA.
-- Selecciona la cámara del dispositivo para escanear el QR del ticket.
-- El PDA desencripta el payload del QR y valida:
-  - QR válido y perteneciente al sistema.
-  - Boleto existe en BD.
-  - Boleto tiene estado "Jugado" (no otro estado).
-  - Boleto está dentro de vigencia.
-  - Boleto no tiene estado "Premio entregado".
-  - Número + lotería + fecha coinciden con un resultado ganador registrado.
-- **Si prevalidación es exitosa:**
-  - Sistema registra automáticamente un caso de ganador con estado = **"Reportado"**.
-  - Sistema notifica al administrador que se ha presentado un posible ganador.
-  - Muestra al vendedor: **"Ticket validado. Se ha informado al administrador. Queda pendiente su aprobación."**
-- **Si prevalidación falla:**
-  - Sistema muestra motivo específico (ejemplo: "Boleto vencido", "No es ganador", "Ticket ya registrado", etc.).
-  - No registra caso alguno.
-  - Vendedor puede intentar de nuevo o cerrar.
+- El PDA solicita el código del ticket (formato impreso `AOL-` + 7 dígitos, 7 dígitos o payload del QR) y ofrece **Escanear con cámara**.
+- El botón de acción es **"Validar ticket ganador"** (no reporta el caso en este paso).
+- Al validar, el sistema muestra el ticket vendido (tirilla) y el estado del boleto (ganador, jugado pendiente de resultados, no ganador, vencido, pagado o premio entregado).
+- **Si el ticket está listo para cobrar porque ganó y aún no tiene caso:**
+  - El PDA habilita **Tomar foto del QR** y **"Reportar caso"**.
+  - El vendedor debe enviar la fotografía del ticket con el QR visible.
+  - El sistema registra un caso de ganador con estado **"Reportado"**, guarda la imagen y notifica al administrador.
+- **Si la validación no corresponde a un ganador listo para cobrar:**
+  - El sistema muestra el motivo específico y no registra caso alguno.
+  - No habilita foto ni reportar.
 
 ### Fuera de alcance
 
@@ -610,25 +604,21 @@ El administrador genera y asigna códigos QR preasignados a usuarios y PDA espec
 
 ## HU-27 — Administrador valida ticket ganador fotografiado
 
-**Como** administrador,  
-**quiero** recibir la notificación de un posible ganador y solicitar la fotografía física del ticket,  
-**para** realizar una validación manual antes de proceder con la asignación a un observador.
+**Como** administrador,
+**quiero** ver el caso reportado junto con la fotografía del ticket,
+**para** dar visto bueno y asignar un observador que vaya al sitio a pagar el premio.
 
 ### Criterios de aceptación
 
 - El administrador accede a un módulo **"Casos de premios ganadores"** desde la aplicación web.
-- Visualiza listado de casos con estado **"Reportado"**.
-- Puede filtrar por: fecha, vendedor, estado, PDA donde se reportó.
+- Visualiza listado de casos con estado **"Reportado"** e indicación de si el caso tiene fotografía.
 - Al seleccionar un caso "Reportado", el sistema muestra:
   - Código del ticket (7 dígitos).
-  - Números jugados, loterías, valor total apostado, fecha de venta.
+  - Números jugados, loterías, valor total apostado, fecha de venta (según datos del ticket).
   - Vendedor que reportó el caso.
   - Estado actual del caso.
-  - Opción para solicitar foto: **"Solicitar fotografía del ticket con QR visible"**.
-- El administrador requiere que se envíe la **fotografía del ticket con el código QR claramente visible** antes de proceder.
-- Cuando recibe la fotografía (enviada por el vendedor a través del chat de soporte):
-  - Valida manualmente que el QR corresponda al ticket reportado.
-  - Verifica que la foto sea legible y muestre claramente el código QR y datos del ticket.
+  - La **fotografía del ticket con QR visible** enviada desde el PDA al reportar.
+- El administrador valida manualmente que la foto corresponda al ticket y que el QR sea legible.
 - **Si validación es exitosa:**
   - Cambia estado del caso a **"Validado"**.
   - Habilita opción para asignar observador.

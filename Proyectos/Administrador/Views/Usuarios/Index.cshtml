@@ -81,7 +81,11 @@
                         <td>@(u.CodigoDispositivo ?? UiTexts.SinAsociar)</td>
                         <td><span class="pill @EstadoUi.Pill(estado)">@estado</span></td>
                         <td>
-                            <a class="secondary" asp-action="Detalle" asp-route-id="@u.UsuarioId">@UiTexts.Ver</a>
+                            <a class="secondary"
+                               asp-action="Detalle"
+                               asp-route-id="@u.UsuarioId"
+                               data-usuario-modal
+                               data-usuario-url="@Url.Action("Detalle", new { id = u.UsuarioId })">@UiTexts.Ver</a>
                         </td>
                     </tr>
                 }
@@ -120,4 +124,7 @@
             </div>
         </div>
     }
+</div>
+<div id="usuarioDialog" class="dialog-back hidden" role="dialog" aria-modal="true" aria-labelledby="usuarioDialogTitle" hidden>
+    <div class="dialog dialog-usuario" data-usuario-panel></div>
 </div>

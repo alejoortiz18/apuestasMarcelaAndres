@@ -566,6 +566,20 @@ BEGIN
 END
 GO
 
+IF COL_LENGTH(N'dbo.CasosGanadores', N'FotoTicketRuta') IS NULL
+BEGIN
+    ALTER TABLE dbo.CasosGanadores ADD FotoTicketRuta NVARCHAR(260) NULL;
+    PRINT 'Columna CasosGanadores.FotoTicketRuta creada.';
+END
+GO
+
+IF COL_LENGTH(N'dbo.CasosGanadores', N'FotoTicketNombre') IS NULL
+BEGIN
+    ALTER TABLE dbo.CasosGanadores ADD FotoTicketNombre NVARCHAR(260) NULL;
+    PRINT 'Columna CasosGanadores.FotoTicketNombre creada.';
+END
+GO
+
 /* 8.2. EntregasGanadores */
 IF OBJECT_ID(N'dbo.EntregasGanadores', N'U') IS NULL
 BEGIN

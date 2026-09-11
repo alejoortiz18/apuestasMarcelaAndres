@@ -175,6 +175,8 @@ a { color: inherit; }
 
 .field { display: grid; gap: 6px; margin: 16px 0; }
 .field label { font-size: 12px; font-weight: 800; }
+.field-help { margin: 0; font-size: 12px; color: var(--muted); line-height: 1.4; }
+.premio-ticket-code { min-height: 120px; resize: vertical; overflow-wrap: anywhere; word-break: break-word; }
 .field input, .field select, .field textarea {
   width: 100%;
   padding: 11px 12px;
@@ -805,6 +807,36 @@ button.table-ver { font: inherit; }
 .notice { padding: 12px; border-radius: 8px; background: var(--blue2); color: #245d83; font-size: 12px; line-height: 1.5; margin-bottom: 14px; }
 .notice.error { background: var(--red2); color: var(--red); }
 .notice.ok { background: var(--green2); color: var(--green); }
+.ticket-estado {
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+}
+.ticket-estado strong {
+  display: block;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+}
+.ticket-estado p { margin: 6px 0 0; font-size: 13px; line-height: 1.45; }
+.ticket-estado-ganador { background: var(--green2); color: var(--green); border-color: #b7d0b3; }
+.ticket-estado-no-ganador { background: var(--red2); color: var(--red); border-color: #efc4bf; }
+.ticket-estado-vencido { background: #f8ebe4; color: #8a3b22; border-color: #e8c4b4; }
+.ticket-estado-pendiente { background: #fff2ce; color: #916a06; border-color: #e6d08a; }
+.ticket-estado-pagado { background: var(--blue2); color: var(--blue); border-color: #b9d6ea; }
+.ticket-estado-entregado { background: var(--green2); color: var(--green); border-color: #b7d0b3; }
+.premio-foto-ticket {
+  display: block;
+  max-width: min(100%, 420px);
+  height: auto;
+  margin-top: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+}
+.premio-consulta-titulo { margin: 0 0 12px; font-size: 16px; }
+.premio-consulta .dialog-head,
+.premio-consulta .ticket-actions [data-close-ticket] { display: none; }
+.premio-iniciar-caso { margin-top: 16px; }
 
 .status-legend {
   display: flex;
@@ -854,6 +886,7 @@ a.danger[aria-disabled="true"] {
 }
 
 .search-select { position: relative; }
+.toolbar .search-select:focus-within { z-index: 30; }
 .search-select-input {
   width: 100%;
   padding: 11px 12px;
@@ -864,7 +897,7 @@ a.danger[aria-disabled="true"] {
 .search-select-menu {
   display: none;
   position: absolute;
-  z-index: 6;
+  z-index: 40;
   left: 0;
   right: 0;
   top: 100%;
@@ -1491,7 +1524,9 @@ a[data-offline-associate][hidden] { display: none; }
   padding: 20px 22px;
   box-shadow: var(--shadow);
 }
-.dialog.dialog-codigo { width: min(520px, 100%); }
+.dialog.dialog-codigo,
+.dialog.dialog-usuario { width: min(520px, 100%); }
+.usuario-detalle-nombre { font-weight: 800; margin: 0 0 4px; }
 .dialog .receipt { margin: 12px 0 18px; }
 .dialog h2 { font-size: 17px; margin: 0 0 8px; }
 .dialog p { margin: 0 0 18px; color: var(--ink); font-size: 13px; line-height: 1.45; }

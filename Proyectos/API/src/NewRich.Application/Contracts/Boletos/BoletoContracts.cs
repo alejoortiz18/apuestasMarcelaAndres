@@ -53,3 +53,18 @@ public sealed class TirillaResponse
     public int VigenciaDias { get; set; } = 30;
     public IReadOnlyList<Contracts.Ventas.JuegoResponse> Juegos { get; set; } = [];
 }
+
+public sealed class ConsultaTicketRequest
+{
+    public string TicketCode { get; set; } = string.Empty;
+}
+
+public sealed class ConsultaTicketResponse
+{
+    public string ResultadoVisual { get; set; } = string.Empty;
+    public string Mensaje { get; set; } = string.Empty;
+    public string Tono { get; set; } = string.Empty;
+    public Guid? BoletoId { get; set; }
+    public bool PuedeIniciarCaso { get; set; }
+    public TirillaResponse? Tirilla { get; set; }
+}

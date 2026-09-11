@@ -42,4 +42,11 @@ public sealed class BoletosController : ApiControllerBase
     {
         return From(await _validacionBoletoService.ObtenerTirillaAsync(id, cancellationToken));
     }
+
+    [Authorize(Roles = "Administrador,Observador,Vendedor")]
+    [HttpPost("consultar")]
+    public async Task<IActionResult> Consultar([FromBody] ConsultaTicketRequest request, CancellationToken cancellationToken)
+    {
+        return From(await _validacionBoletoService.ConsultarPorCodigoAsync(request.TicketCode, cancellationToken));
+    }
 }

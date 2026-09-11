@@ -273,6 +273,8 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
             e.ToTable("CasosGanadores");
             e.HasKey(x => x.CasoId);
             e.Property(x => x.TicketCode).HasColumnType("char(7)");
+            e.Property(x => x.FotoTicketRuta).HasMaxLength(260);
+            e.Property(x => x.FotoTicketNombre).HasMaxLength(260);
             e.Property(x => x.Estado).HasConversion(estadoCasoGanador).HasMaxLength(20);
             e.HasOne(x => x.Boleto).WithMany().HasForeignKey(x => x.BoletoId);
             e.HasOne(x => x.VendedorQueReportoNavigation).WithMany().HasForeignKey(x => x.VendedorQueReporto).OnDelete(DeleteBehavior.Restrict);

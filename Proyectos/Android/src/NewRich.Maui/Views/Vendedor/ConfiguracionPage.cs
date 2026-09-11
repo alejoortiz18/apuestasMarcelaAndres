@@ -34,15 +34,19 @@ public sealed class ConfiguracionPage : ContentPage
         descargar.Clicked += async (_, _) =>
         {
             var resultado = await _api.DescargarOfflineAsync(CancellationToken.None);
-            if (!resultado.IsSuccess || resultado.Data is null)
+            if (!resultado.IsSuccess)
             {
                 await DisplayAlert(PdaTexts.CodigosOffline, resultado.Message, PdaTexts.Cerrar);
                 return;
             }
 
-            await _offline.GuardarDescargaAsync(resultado.Data.Select(c => (c.Consecutivo, c.PayloadBase64)));
+            if (DescargaCodigosOffline.HayCodigos(resultado.Data))
+            {
+                await _offline.GuardarDescargaAsync(resultado.Data!.Select(c => (c.Consecutivo, c.PayloadBase64)));
+            }
+
             _conteo.Text = (await _offline.ContarDisponiblesAsync()).ToString();
-            await DisplayAlert(PdaTexts.CodigosOffline, resultado.Message, PdaTexts.Cerrar);
+            await DisplayAlert(PdaTexts.CodigosOffline, DescargaCodigosOffline.Mensaje(resultado.Data), PdaTexts.Cerrar);
         };
 
         Content = new ScrollView

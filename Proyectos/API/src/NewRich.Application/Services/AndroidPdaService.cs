@@ -27,8 +27,10 @@ public interface IAndroidPdaService
     Task<Result<IReadOnlyList<VentaResponse>>> ConsultarVentasMobAsync(ConsultaVentasRequest request, Guid solicitanteId, bool soloPropias, CancellationToken cancellationToken);
     Task<Result<IReadOnlyList<ResultadoResponse>>> ResultadosMobAsync(DateOnly? fecha, Guid? loteriaId, CancellationToken cancellationToken);
     Task<Result<CasoGanadorResponse>> ReportarPremioMobAsync(Guid solicitanteId, ReportarCasoGanadorRequest request, CancellationToken cancellationToken);
+    Task<Result<DescargaAdjuntoResponse>> ObtenerFotoPremioMobAsync(Guid casoId, CancellationToken cancellationToken);
     Task<Result<IReadOnlyList<CasoGanadorResponse>>> PremiosMobAsync(CancellationToken cancellationToken);
     Task<Result<ValidacionBoletoResponse>> ValidarQrMobAsync(ValidarQrRequest request, CancellationToken cancellationToken);
+    Task<Result<ConsultaTicketResponse>> ConsultarTicketMobAsync(string? ticketCode, CancellationToken cancellationToken);
     Task<Result<IReadOnlyList<BoletoListaResponse>>> FiltrarBoletosMobAsync(FiltroBoletosRequest request, CancellationToken cancellationToken);
     Task<Result<TirillaResponse>> TirillaMobAsync(Guid boletoId, CancellationToken cancellationToken);
     Task<Result<ConversacionResponse>> IniciarChatMobAsync(Guid iniciadorId, IniciarChatRequest request, CancellationToken cancellationToken);
@@ -139,11 +141,17 @@ public sealed class AndroidPdaService : IAndroidPdaService
     public Task<Result<CasoGanadorResponse>> ReportarPremioMobAsync(Guid solicitanteId, ReportarCasoGanadorRequest request, CancellationToken cancellationToken) =>
         _premios.ReportarAsync(solicitanteId, request, cancellationToken);
 
+    public Task<Result<DescargaAdjuntoResponse>> ObtenerFotoPremioMobAsync(Guid casoId, CancellationToken cancellationToken) =>
+        _premios.ObtenerFotoAsync(casoId, cancellationToken);
+
     public Task<Result<IReadOnlyList<CasoGanadorResponse>>> PremiosMobAsync(CancellationToken cancellationToken) =>
         _premios.ListarAsync(cancellationToken);
 
     public Task<Result<ValidacionBoletoResponse>> ValidarQrMobAsync(ValidarQrRequest request, CancellationToken cancellationToken) =>
         _boletos.ValidarQrAsync(request, cancellationToken);
+
+    public Task<Result<ConsultaTicketResponse>> ConsultarTicketMobAsync(string? ticketCode, CancellationToken cancellationToken) =>
+        _boletos.ConsultarPorCodigoAsync(ticketCode, cancellationToken);
 
     public Task<Result<IReadOnlyList<BoletoListaResponse>>> FiltrarBoletosMobAsync(FiltroBoletosRequest request, CancellationToken cancellationToken) =>
         _boletos.FiltrarAsync(request, cancellationToken);
@@ -183,6 +191,13 @@ public sealed class AndroidPdaService : IAndroidPdaService
         {
             codigo.EstadoDelCodigo = EstadoCodigoOffline.Descargado;
             codigo.FechaDescarga = _clock.UtcNow;
+        }
+
+        if (pendientes.Count == 0)
+        {
+            return Result<IReadOnlyList<CodigoOfflineAndroidResponse>>.Ok(
+                Array.Empty<CodigoOfflineAndroidResponse>(),
+                UsuarioMessages.SinCodigosOfflineDisponibles);
         }
 
         await _db.SaveChangesAsync(cancellationToken);

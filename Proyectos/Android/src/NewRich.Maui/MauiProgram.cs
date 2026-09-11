@@ -27,6 +27,7 @@ public static class MauiProgram
 #endif
 
         builder.Services.AddSingleton<SesionPda>();
+        PdaConexion.CodigoDispositivo = PdaConexion.CodigoDe(DeviceInfo.Current.Model);
         builder.Services.AddSingleton<ApiOpciones>(_ => new ApiOpciones
         {
             BaseUrl = PdaConexion.BaseUrl(DeviceInfo.Current.DeviceType == DeviceType.Virtual)
@@ -37,6 +38,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<LocalDatabase>();
         builder.Services.AddSingleton<IPrinterService, PrinterService>();
         builder.Services.AddSingleton<IPdfService, PdfService>();
+        builder.Services.AddSingleton<ILectorCodigoBarrasServicio, LectorCodigoBarrasServicio>();
         builder.Services.AddSingleton<NavegadorApp>();
 
         builder.Services.AddTransient<ChatEnVivoServicio>();

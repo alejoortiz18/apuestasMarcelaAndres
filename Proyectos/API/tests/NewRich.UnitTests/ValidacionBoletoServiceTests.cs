@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using NewRich.Application.Abstractions;
 using NewRich.Application.Services;
 using NewRich.Constants;
+using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
 using NewRich.Domain.Enums;
 using NewRich.Infrastructure.Persistence;
@@ -56,6 +57,100 @@ public sealed class ValidacionBoletoServiceTests
         (await db.Boletos.FindAsync(boletoId))!.QrCifrado.Should().Be("payload-original");
     }
 
+    [Fact]
+    public async Task ConsultarPorCodigo_con_ticket_jugado_devuelve_tirilla_y_mensaje_pendiente()
+    {
+        var (sut, db) = CreateSut();
+        var boleto = await CrearBoletoConJuegoAsync(db, EstadoBoleto.Jugado, "1234");
+
+        var result = await sut.ConsultarPorCodigoAsync(boleto.CodigoPublico, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.ResultadoVisual.Should().Be(BoletoMessages.BoletoJugado);
+        result.Data.Tono.Should().Be(TicketConsultaTono.Pendiente);
+        result.Data.Mensaje.Should().Be(PremioMessages.ConsultaJugado);
+        result.Data.Tirilla.Should().NotBeNull();
+        result.Data.Tirilla!.CodigoImpreso.Should().Contain("7986875");
+        result.Data.PuedeIniciarCaso.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ConsultarPorCodigo_acepta_el_codigo_impreso_con_prefijo_aol()
+    {
+        var (sut, db) = CreateSut();
+        var boleto = await CrearBoletoConJuegoAsync(db, EstadoBoleto.Jugado, "1234");
+
+        var result = await sut.ConsultarPorCodigoAsync("AOL-" + boleto.CodigoPublico, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Tirilla!.CodigoImpreso.Should().Be("AOL-" + boleto.CodigoPublico);
+        result.Data.BoletoId.Should().Be(boleto.BoletoId);
+    }
+
+    [Fact]
+    public async Task ConsultarPorCodigo_con_ticket_que_no_gano_devuelve_tirilla_y_mensaje_rojo()
+    {
+        var (sut, db) = CreateSut();
+        var boleto = await CrearBoletoConJuegoAsync(db, EstadoBoleto.Jugado, "1234");
+        var loteriaId = boleto.Juegos.Single().JuegoLoterias.Single().LoteriaId;
+        db.NumerosGanadores.Add(new NumeroGanador
+        {
+            NumeroGanadorId = Guid.NewGuid(),
+            LoteriaId = loteriaId,
+            FechaJuego = boleto.FechaCreacion.Date,
+            Numero = "9999",
+            FechaRegistro = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+
+        var result = await sut.ConsultarPorCodigoAsync(boleto.CodigoPublico, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.ResultadoVisual.Should().Be(BoletoMessages.BoletoNoGanador);
+        result.Data.Tono.Should().Be(TicketConsultaTono.NoGanador);
+        result.Data.Mensaje.Should().Be(PremioMessages.ConsultaNoGanador);
+        result.Data.Tirilla.Should().NotBeNull();
+        result.Data.PuedeIniciarCaso.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ConsultarPorCodigo_con_ticket_ganador_permite_iniciar_caso()
+    {
+        var (sut, db) = CreateSut();
+        var boleto = await CrearBoletoConJuegoAsync(db, EstadoBoleto.Ganador, "1234");
+        var loteriaId = boleto.Juegos.Single().JuegoLoterias.Single().LoteriaId;
+        db.NumerosGanadores.Add(new NumeroGanador
+        {
+            NumeroGanadorId = Guid.NewGuid(),
+            LoteriaId = loteriaId,
+            FechaJuego = boleto.FechaCreacion.Date,
+            Numero = "1234",
+            FechaRegistro = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+
+        var result = await sut.ConsultarPorCodigoAsync(boleto.CodigoPublico, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.ResultadoVisual.Should().Be(BoletoMessages.BoletoGanador);
+        result.Data.Tono.Should().Be(TicketConsultaTono.Ganador);
+        result.Data.Mensaje.Should().Be(PremioMessages.ConsultaGanador);
+        result.Data.Tirilla.Should().NotBeNull();
+        result.Data.PuedeIniciarCaso.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ConsultarPorCodigo_codigo_inexistente_no_incluye_tirilla()
+    {
+        var (sut, _) = CreateSut();
+
+        var result = await sut.ConsultarPorCodigoAsync("0000001", CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Message.Should().Be(PremioMessages.TicketNoEncontrado);
+        result.Data.Should().BeNull();
+    }
+
     private static async Task<Guid> CrearBoletoAsync(NewRichDbContext db, string qrCifrado)
     {
         var usuario = new Usuario
@@ -92,6 +187,62 @@ public sealed class ValidacionBoletoServiceTests
         db.Boletos.Add(boleto);
         await db.SaveChangesAsync();
         return boleto.BoletoId;
+    }
+
+    private static async Task<Boleto> CrearBoletoConJuegoAsync(NewRichDbContext db, EstadoBoleto estado, string numero)
+    {
+        var usuario = new Usuario
+        {
+            UsuarioId = Guid.NewGuid(),
+            NombreCompleto = "el cejas",
+            NombreUsuario = "cejas",
+            PasswordHash = "h",
+            PasswordSalt = "s",
+            Rol = RolUsuario.Vendedor,
+            FechaCreacion = DateTime.UtcNow
+        };
+        var loteria = new Loteria
+        {
+            LoteriaId = Guid.NewGuid(),
+            Nombre = "Cundinamarca",
+            Estado = EstadoGeneral.Activo,
+            FechaCreacion = DateTime.UtcNow
+        };
+        var venta = new Venta
+        {
+            VentaId = Guid.NewGuid(),
+            UsuarioId = usuario.UsuarioId,
+            FechaVenta = new DateTime(2026, 9, 10, 14, 0, 0, DateTimeKind.Utc),
+            Total = 4000,
+            TipoApuesta = TipoApuesta.COMBINADO
+        };
+        var boleto = new Boleto
+        {
+            BoletoId = Guid.NewGuid(),
+            VentaId = venta.VentaId,
+            CodigoPublico = "7986875",
+            ClaveValidacionHash = "hash",
+            EstadoBoleto = estado,
+            FechaCreacion = venta.FechaVenta,
+            VigenciaDias = 30,
+            QrCifrado = "qr-guardado"
+        };
+        var juego = new Juego
+        {
+            JuegoId = Guid.NewGuid(),
+            BoletoId = boleto.BoletoId,
+            Numero = numero,
+            Valor = 2000,
+            TipoJuego = TipoJuego.COMBINADA
+        };
+        juego.JuegoLoterias.Add(new JuegoLoteria { JuegoId = juego.JuegoId, LoteriaId = loteria.LoteriaId, Loteria = loteria });
+        boleto.Juegos.Add(juego);
+        db.Usuarios.Add(usuario);
+        db.Loterias.Add(loteria);
+        db.Ventas.Add(venta);
+        db.Boletos.Add(boleto);
+        await db.SaveChangesAsync();
+        return boleto;
     }
 
     [Fact]

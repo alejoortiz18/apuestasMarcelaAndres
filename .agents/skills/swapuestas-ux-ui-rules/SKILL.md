@@ -32,6 +32,8 @@ This is the living UX/UI rulebook for the SWApuestas MVC application. Apply thes
 - Do not allow content to overlap, become clipped, or require unintended horizontal scrolling.
 - Keep responsive styles close to the component or view they support; avoid global rules that break other MVC pages.
 
+- En **Casos de premios**, el detalle de un caso reportado muestra la fotografía del ticket enviada desde el PDA, con un tamaño máximo contenido y texto alternativo descriptivo. El listado indica si el caso tiene foto.
+
 ## Tables: mandatory behavior
 
 Every data table created in the MVC application must include pagination. A table is not complete without the following:
@@ -51,7 +53,7 @@ Every data table created in the MVC application must include pagination. A table
 - Ensure row highlighting works with keyboard navigation and does not depend only on `:hover`.
 - On narrow screens, use a deliberate strategy: responsive columns, wrapped content, controlled table overflow, or a compact row/card representation. Important values and row actions must remain available.
 - Keep action buttons in a stable column and provide accessible names that include the affected record when needed.
-- En cada fila de tabla de datos: una casilla de selección (checkbox) a la izquierda y, si existe consulta de detalle, el botón **Ver** a la derecha de la fila. Excepción: en Ventas > Por lotería y en Ventas offline (resumen por usuario y PDA) la tabla de resumen no usa casilla; **Ver** abre la lista detallada. En Ventas offline, **Ver** sobre cada código abre un popup con el detalle del código.
+- En cada fila de tabla de datos: una casilla de selección (checkbox) a la izquierda y, si existe consulta de detalle, el botón **Ver** a la derecha de la fila. Excepción: en Ventas > Por lotería y en Ventas offline (resumen por usuario y PDA) la tabla de resumen no usa casilla; **Ver** abre la lista detallada. En Ventas offline, **Ver** sobre cada código abre un popup con el detalle del código. En **Usuarios**, **Ver** abre un popup con el detalle y no navega a otra pagina.
 - Las acciones administrativas (Editar, Restablecer contraseña, Desbloquear, Eliminar, Asociar, Desasociar, Inactivar, Activar, Autorizar pago y equivalentes) van en un panel debajo de la tabla y la paginación, no dentro de la fila.
 - El panel permanece visible; sus botones se habilitan al seleccionar una fila. Una sola fila seleccionada a la vez, excepto en PDA, donde se permite seleccionar uno o varios dispositivos. La fila seleccionada tiene un estilo persistente distinto del hover.
 - El título del panel describe el tipo de registro (por ejemplo *Seguridad y acciones de usuario*). El texto de ayuda indica que hay que seleccionar un registro para habilitar las acciones. En PDA el texto indica que se puede seleccionar uno o varios dispositivos.
@@ -123,6 +125,8 @@ Every data table created in the MVC application must include pagination. A table
 - Place errors next to the affected field and summarize them at the form level when useful.
 - Use input constraints and server-side validation; client-side validation is supplementary.
 - On mobile, fields and actions must fit the viewport without horizontal scrolling.
+- En **Casos de premios > Reportar ticket**, el campo **Código del ticket** admite hasta 400 caracteres para pegar el código de 7 dígitos o el contenido completo del QR. El control es un área de texto con ajuste de línea; no recortar la entrada a 7 caracteres.
+- **Validar ticket** consulta el boleto aunque no sea ganador. Si existe, muestra la tirilla de compra y un recuadro de estado con texto y color: verde para ganador, rojo para no ganó, dorado para por jugar o jugado sin resultado, terracota para vencido, azul para pagado y verde para premio entregado. El color no es la única señal: el recuadro incluye el estado y una frase. Si el ticket es ganador y aún no tiene caso, **Iniciar caso de premio** queda disponible.
 
 ### Filtros y busqueda
 

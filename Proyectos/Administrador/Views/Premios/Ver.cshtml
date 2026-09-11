@@ -50,6 +50,18 @@
             <div class="receipt-row"><span>@UiTexts.Valor</span><strong>@caso.ValorTotalGanado.Value.ToString("N0")</strong></div>
         }
     </div>
+    <div class="field" style="margin-top:18px">
+        <label>@UiTexts.FotoDelTicket</label>
+        @if (caso.TieneFoto)
+        {
+            <p class="field-help">@UiTexts.FotoTicketAyuda</p>
+            <img class="premio-foto-ticket" src="@Url.Action("Foto", new { id = caso.CasoId })" alt="@UiTexts.FotoDelTicket" />
+        }
+        else
+        {
+            <p class="field-help">@UiTexts.SinFoto</p>
+        }
+    </div>
     @if (puedeValidar)
     {
         <div class="table-actions-buttons" style="margin-top:18px">

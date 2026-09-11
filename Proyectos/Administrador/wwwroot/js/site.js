@@ -37,12 +37,9 @@
 
     function render(query) {
       const q = (query || "").toLowerCase().trim();
-      const matches = Array.from(select.options).filter((opt) => {
-        if (!q && opt.value === "") {
-          return false;
-        }
-        return opt.text.toLowerCase().includes(q);
-      });
+      const matches = Array.from(select.options).filter((opt) =>
+        opt.text.toLowerCase().includes(q)
+      );
       menu.innerHTML = "";
       if (!matches.length) {
         const empty = document.createElement("div");
@@ -405,6 +402,68 @@
   }
   bindTicketActions(document.querySelector(".ticket-page"));
 
+  const usuarioDialog = document.getElementById("usuarioDialog");
+  const usuarioPanel = usuarioDialog && usuarioDialog.querySelector("[data-usuario-panel]");
+  let usuarioTrigger = null;
+
+  function closeUsuario() {
+    if (!usuarioDialog) {
+      return;
+    }
+    usuarioDialog.classList.add("hidden");
+    usuarioDialog.setAttribute("hidden", "hidden");
+    if (usuarioPanel) {
+      usuarioPanel.innerHTML = "";
+    }
+    if (usuarioTrigger && typeof usuarioTrigger.focus === "function") {
+      usuarioTrigger.focus();
+    }
+    usuarioTrigger = null;
+  }
+
+  async function openUsuario(anchor) {
+    if (!usuarioDialog || !usuarioPanel) {
+      return;
+    }
+    const url = anchor.getAttribute("data-usuario-url");
+    if (!url) {
+      return;
+    }
+    usuarioTrigger = anchor;
+    const response = await fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" } });
+    if (!response.ok) {
+      window.location.href = anchor.getAttribute("href") || url;
+      return;
+    }
+    usuarioPanel.innerHTML = await response.text();
+    usuarioDialog.classList.remove("hidden");
+    usuarioDialog.removeAttribute("hidden");
+    const closeBtn = usuarioPanel.querySelector("[data-close-usuario]");
+    if (closeBtn) {
+      closeBtn.addEventListener("click", closeUsuario);
+      closeBtn.focus();
+    }
+  }
+
+  document.addEventListener("click", function (event) {
+    const el = event.target.closest("[data-usuario-modal]");
+    if (!el) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    openUsuario(el).catch(function () {
+      window.location.href = el.getAttribute("href") || el.getAttribute("data-usuario-url") || "/";
+    });
+  }, true);
+  if (usuarioDialog) {
+    usuarioDialog.addEventListener("click", function (event) {
+      if (event.target === usuarioDialog) {
+        closeUsuario();
+      }
+    });
+  }
+
   const codigoDialog = document.getElementById("codigoDialog");
   const codigoClose = codigoDialog && codigoDialog.querySelector("[data-close-codigo]");
   let codigoTrigger = null;
@@ -519,6 +578,10 @@
     }
     if (ticketDialog && !ticketDialog.classList.contains("hidden")) {
       closeTicket();
+      return;
+    }
+    if (usuarioDialog && !usuarioDialog.classList.contains("hidden")) {
+      closeUsuario();
       return;
     }
     if (codigoDialog && !codigoDialog.classList.contains("hidden")) {

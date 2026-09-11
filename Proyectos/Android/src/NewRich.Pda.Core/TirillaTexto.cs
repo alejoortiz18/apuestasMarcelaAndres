@@ -12,7 +12,10 @@ public static class FormatoDinero
 
 public static class TirillaTexto
 {
-    private const int Ancho = 49;
+    public const int AnchoImpresora = 27;
+    public const string MarcaQr = "<<QR>>";
+
+    private const int Ancho = AnchoImpresora;
 
     public static string De(
         string codigoImpreso,
@@ -32,17 +35,21 @@ public static class TirillaTexto
         sb.AppendLine(new string('=', Ancho));
         sb.AppendLine(Fila("RECIBO DE VENTA", codigoImpreso));
         sb.AppendLine(new string('=', Ancho));
-        sb.AppendLine(Fila($"Fecha: {fecha:yyyy-MM-dd}", $"Hora: {fecha:HH:mm}"));
+        sb.AppendLine($"Fecha: {fecha:yyyy-MM-dd}");
+        sb.AppendLine($"Hora: {fecha:HH:mm}");
         sb.AppendLine(Fila("Tipo de apuesta:", TirillaCuerpo.EtiquetaTipo(tipo)));
         sb.AppendLine(new string('=', Ancho));
-        sb.AppendLine("JUGADO".PadLeft((Ancho + 6) / 2).PadRight(Ancho));
+        sb.AppendLine("JUGADO".PadLeft((Ancho + 6) / 2));
         sb.AppendLine(new string('=', Ancho));
         if (combinada && lineas.Count > 0)
         {
             var linea = lineas[0];
             sb.AppendLine(Columnas("NUMERO", "VALOR", "TOTAL"));
             sb.AppendLine(Columnas(linea.Numero, FormatoDinero.Pesos(linea.Valor), FormatoDinero.Pesos(linea.TotalLinea)));
-            sb.AppendLine("LOTERIAS: " + string.Join(", ", linea.LoteriaNombres).ToUpperInvariant());
+            foreach (var parte in Envolver("LOTERIAS: " + string.Join(", ", linea.LoteriaNombres).ToUpperInvariant(), Ancho))
+            {
+                sb.AppendLine(parte);
+            }
         }
         else
         {
@@ -57,27 +64,55 @@ public static class TirillaTexto
         sb.AppendLine(new string('=', Ancho));
         sb.AppendLine(Fila("TOTAL APOSTADO", FormatoDinero.Pesos(total)));
         sb.AppendLine(new string('=', Ancho));
-        sb.AppendLine("QR");
+        sb.AppendLine(MarcaQr);
         sb.AppendLine(new string('=', Ancho));
-        sb.AppendLine(leyenda);
+        foreach (var linea in Envolver(leyenda, Ancho))
+        {
+            sb.AppendLine(linea);
+        }
         sb.AppendLine(new string('=', Ancho));
         return sb.ToString();
     }
 
-    private static string Fila(string izquierda, string derecha)
-    {
-        var hueco = Ancho - izquierda.Length - derecha.Length;
-        if (hueco < 1)
-        {
-            return izquierda + " " + derecha;
-        }
-
-        return izquierda + new string(' ', hueco) + derecha;
-    }
+    private static string Fila(string izquierda, string derecha) =>
+        izquierda + " " + derecha;
 
     private static string Columnas(string a, string b, string c)
     {
-        const int col = 16;
-        return a.PadRight(col) + b.PadRight(col) + c;
+        var col = Ancho / 3;
+        return Recortar(a, col).PadRight(col) + Recortar(b, col).PadRight(col) + Recortar(c, Ancho - col * 2);
+    }
+
+    private static string Recortar(string valor, int maximo) =>
+        valor.Length <= maximo ? valor : valor[..maximo];
+
+    private static IEnumerable<string> Envolver(string texto, int ancho)
+    {
+        foreach (var parrafo in texto.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n'))
+        {
+            if (parrafo.Length <= ancho)
+            {
+                yield return parrafo;
+                continue;
+            }
+
+            var resto = parrafo;
+            while (resto.Length > ancho)
+            {
+                var corte = resto.LastIndexOf(' ', ancho);
+                if (corte < 1)
+                {
+                    corte = ancho;
+                }
+
+                yield return resto[..corte].TrimEnd();
+                resto = resto[corte..].TrimStart();
+            }
+
+            if (resto.Length > 0)
+            {
+                yield return resto;
+            }
+        }
     }
 }

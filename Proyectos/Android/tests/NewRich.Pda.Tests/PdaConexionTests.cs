@@ -7,6 +7,13 @@ namespace NewRich.Pda.Tests;
 public sealed class PdaConexionTests
 {
     [Fact]
+    public void El_codigo_del_dispositivo_sale_del_modelo_del_equipo()
+    {
+        PdaConexion.CodigoDe("RMX3710").Should().Be("CEL-RMX3710");
+        PdaConexion.CodigoDe("H10").Should().Be("CEL-H10");
+    }
+
+    [Fact]
     public void Login_incluye_el_codigo_del_dispositivo_sin_pedirlo_en_pantalla()
     {
         var request = PdaConexion.Login("alejitoo", "x");

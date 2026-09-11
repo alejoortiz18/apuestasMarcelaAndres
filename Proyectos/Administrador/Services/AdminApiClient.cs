@@ -63,6 +63,7 @@ public interface IAdminApiClient
     Task<ApiCallResult<List<VentaResponse>>> ConsultarVentasAsync(ConsultaVentasRequest request, CancellationToken cancellationToken);
     Task<ApiCallResult<List<BoletoListaResponse>>> FiltrarBoletosAsync(FiltroBoletosRequest request, CancellationToken cancellationToken);
     Task<ApiCallResult<TirillaResponse>> ObtenerTirillaAsync(Guid boletoId, CancellationToken cancellationToken);
+    Task<ApiCallResult<ConsultaTicketResponse>> ConsultarTicketPremioAsync(ConsultaTicketRequest request, CancellationToken cancellationToken);
     Task<ApiCallResult<object>> AutorizarPagoAsync(Guid boletoId, CancellationToken cancellationToken);
     Task<ApiCallResult<List<BusquedaAdministrativaResponse>>> BuscarConsultasAsync(BusquedaAdministrativaRequest request, CancellationToken cancellationToken);
 
@@ -93,6 +94,7 @@ public interface IAdminApiClient
     Task<ApiCallResult<CasoGanadorResponse>> ValidarCasoPremioAsync(Guid id, CancellationToken cancellationToken);
     Task<ApiCallResult<CasoGanadorResponse>> RechazarCasoPremioAsync(Guid id, CancellationToken cancellationToken);
     Task<ApiCallResult<CasoGanadorResponse>> AsignarObservadorPremioAsync(Guid id, AsignarObservadorRequest request, CancellationToken cancellationToken);
+    Task<ApiCallResult<ArchivoChat>> DescargarFotoCasoPremioAsync(Guid id, CancellationToken cancellationToken);
 }
 
 public sealed class AdminApiClient : IAdminApiClient
@@ -239,6 +241,9 @@ public sealed class AdminApiClient : IAdminApiClient
     public Task<ApiCallResult<TirillaResponse>> ObtenerTirillaAsync(Guid boletoId, CancellationToken cancellationToken) =>
         SendAsync<TirillaResponse>(HttpMethod.Get, $"api/Boletos/{boletoId}/tirilla", null, true, cancellationToken);
 
+    public Task<ApiCallResult<ConsultaTicketResponse>> ConsultarTicketPremioAsync(ConsultaTicketRequest request, CancellationToken cancellationToken) =>
+        SendAsync<ConsultaTicketResponse>(HttpMethod.Post, "api/Boletos/consultar", request, true, cancellationToken);
+
     public Task<ApiCallResult<object>> AutorizarPagoAsync(Guid boletoId, CancellationToken cancellationToken) =>
         SendAsync<object>(HttpMethod.Post, $"api/Boletos/{boletoId}/pagar", null, true, cancellationToken);
 
@@ -366,6 +371,45 @@ public sealed class AdminApiClient : IAdminApiClient
 
     public Task<ApiCallResult<CasoGanadorResponse>> AsignarObservadorPremioAsync(Guid id, AsignarObservadorRequest request, CancellationToken cancellationToken) =>
         SendAsync<CasoGanadorResponse>(HttpMethod.Post, $"api/Premios/{id}/asignar", request, true, cancellationToken);
+
+    public async Task<ApiCallResult<ArchivoChat>> DescargarFotoCasoPremioAsync(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, $"api/Premios/{id}/foto");
+            var token = _httpContextAccessor.HttpContext?.Request.Cookies[AuthCookieNames.AccessToken];
+            if (!string.IsNullOrWhiteSpace(token))
+            {
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+
+            using var response = await _http.SendAsync(request, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                return ApiCallResult<ArchivoChat>.Fail(UiTexts.ApiNoDisponible, (int)response.StatusCode, response.StatusCode == HttpStatusCode.Unauthorized);
+            }
+
+            var nombre = response.Content.Headers.ContentDisposition?.FileNameStar
+                ?? response.Content.Headers.ContentDisposition?.FileName?.Trim('"')
+                ?? "ticket.jpg";
+            var tipo = response.Content.Headers.ContentType?.MediaType ?? "image/jpeg";
+            var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+            return ApiCallResult<ArchivoChat>.Ok(new ArchivoChat
+            {
+                Contenido = bytes,
+                Nombre = nombre,
+                Tipo = tipo
+            }, SuccessMessages.OperacionExitosa, (int)response.StatusCode);
+        }
+        catch (HttpRequestException)
+        {
+            return ApiCallResult<ArchivoChat>.Fail(UiTexts.ApiNoDisponible, 0);
+        }
+        catch (TaskCanceledException)
+        {
+            return ApiCallResult<ArchivoChat>.Fail(UiTexts.ApiNoDisponible, 0);
+        }
+    }
 
     private async Task<ApiCallResult<T>> SendAsync<T>(HttpMethod method, string path, object? body, bool includeToken, CancellationToken cancellationToken)
     {

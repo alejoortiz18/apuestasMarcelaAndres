@@ -1,0 +1,22 @@
+@using NewRich.Admin.Constants
+@using NewRich.Admin.Services
+@model NewRich.Application.Contracts.Usuarios.UsuarioResponse
+@{
+    var estado = EstadoUi.UsuarioEstado(Model.EstadoBloqueado, Model.Estado);
+}
+<h2 id="usuarioDialogTitle">@UiTexts.Detalle</h2>
+<p class="usuario-detalle-nombre">@Model.NombreCompleto</p>
+<div class="receipt">
+    <div class="receipt-row"><span>@UiTexts.Identificador</span><strong>@Model.Usuario</strong></div>
+    <div class="receipt-row"><span>@UiTexts.Alias</span><strong>@(Model.Alias ?? UiTexts.NoAplica)</strong></div>
+    <div class="receipt-row"><span>@UiTexts.Rol</span><strong>@Model.Rol</strong></div>
+    <div class="receipt-row"><span>@UiTexts.Grupo</span><strong>@(Model.GrupoNombre ?? UiTexts.SinGrupo)</strong></div>
+    <div class="receipt-row"><span>@UiTexts.Estado</span><strong><span class="pill @EstadoUi.Pill(estado)">@estado</span></strong></div>
+    <div class="receipt-row"><span>@UiTexts.PdaAsociado</span><strong>@(Model.CodigoDispositivo ?? UiTexts.SinAsociar)</strong></div>
+    <div class="receipt-row"><span>@UiTexts.Documento</span><strong>@(Model.Documento ?? UiTexts.NoAplica)</strong></div>
+    <div class="receipt-row"><span>@UiTexts.Celular</span><strong>@(Model.Celular ?? UiTexts.NoAplica)</strong></div>
+    <div class="receipt-row"><span>@UiTexts.Email</span><strong>@(Model.Email ?? UiTexts.NoAplica)</strong></div>
+</div>
+<div class="dialog-actions">
+    <button type="button" class="primary" data-close-usuario>@UiTexts.Cerrar</button>
+</div>

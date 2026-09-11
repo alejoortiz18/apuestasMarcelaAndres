@@ -178,7 +178,6 @@ public sealed class UsuariosController : AdminControllerBase
     [HttpGet]
     public async Task<IActionResult> Detalle(Guid id, CancellationToken cancellationToken)
     {
-        SetNav("usuarios", UiTexts.Detalle);
         var result = await _api.ObtenerUsuarioAsync(id, cancellationToken);
         var unauthorized = RedirectIfUnauthorized(result);
         if (unauthorized is not null)
@@ -188,10 +187,21 @@ public sealed class UsuariosController : AdminControllerBase
 
         if (!result.Success || result.Data is null)
         {
+            if (EsPeticionAjax())
+            {
+                return StatusCode(400, result.Message);
+            }
+
             SetFlash(result.Message, false);
             return RedirectToAction(nameof(Index));
         }
 
+        if (EsPeticionAjax())
+        {
+            return PartialView("_DetalleModal", result.Data);
+        }
+
+        SetNav("usuarios", UiTexts.Detalle);
         return View(result.Data);
     }
 

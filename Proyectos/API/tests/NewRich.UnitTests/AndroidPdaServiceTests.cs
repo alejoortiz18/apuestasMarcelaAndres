@@ -82,6 +82,7 @@ public sealed class AndroidPdaServiceTests
         var resultado = await sut.DescargarOfflineMobAsync(usuarioId, dispositivoId, CancellationToken.None);
 
         resultado.IsSuccess.Should().BeTrue();
+        resultado.Message.Should().Be(SuccessMessages.CodigosOfflineDescargados);
         resultado.Data.Should().ContainSingle(c => c.Consecutivo == "OFF-000001");
         resultado.Data.Should().NotContain(c => c.Consecutivo == "OFF-000002");
         (await db.CodigosPreventaOffline.SingleAsync(c => c.ConsecutivoUnico == "OFF-000001"))
@@ -97,6 +98,35 @@ public sealed class AndroidPdaServiceTests
 
         resultado.IsSuccess.Should().BeFalse();
         resultado.Message.Should().Be(AuthMessages.DispositivoNoAsociado);
+    }
+
+    [Fact]
+    public async Task DescargarOfflineMob_sin_codigos_del_usuario_no_marca_ajenos()
+    {
+        var (sut, db, _) = CreateSut();
+        var usuarioConCodigos = Guid.NewGuid();
+        var usuarioSinCodigos = Guid.NewGuid();
+        var dispositivoA = Guid.NewGuid();
+        var dispositivoB = Guid.NewGuid();
+        db.CodigosPreventaOffline.Add(new CodigoPreventaOffline
+        {
+            CodigoId = Guid.NewGuid(),
+            ConsecutivoUnico = "OFF-000010",
+            UsuarioId = usuarioConCodigos,
+            DispositivoId = dispositivoA,
+            PayloadCifrado = [1],
+            EstadoDelCodigo = EstadoCodigoOffline.Generado,
+            FechaCreacion = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+
+        var resultado = await sut.DescargarOfflineMobAsync(usuarioSinCodigos, dispositivoB, CancellationToken.None);
+
+        resultado.IsSuccess.Should().BeTrue();
+        resultado.Data.Should().BeEmpty();
+        resultado.Message.Should().Be(UsuarioMessages.SinCodigosOfflineDisponibles);
+        (await db.CodigosPreventaOffline.SingleAsync(c => c.ConsecutivoUnico == "OFF-000010"))
+            .EstadoDelCodigo.Should().Be(EstadoCodigoOffline.Generado);
     }
 
     private static (AndroidPdaService Sut, NewRichDbContext Db, Mock<IAuthService> Auth) CreateSut()

@@ -32,7 +32,8 @@ public sealed class AesGcmQrCryptoService : IQrCryptoService
     {
         try
         {
-            var parts = qrContent.Split('.');
+            var normalizado = NormalizarAlfabetoImpreso(qrContent);
+            var parts = normalizado.Split('.');
             if (parts.Length != 5)
             {
                 return null;
@@ -51,6 +52,13 @@ public sealed class AesGcmQrCryptoService : IQrCryptoService
             return null;
         }
     }
+
+    private static string NormalizarAlfabetoImpreso(string qrContent) =>
+        (qrContent ?? string.Empty)
+            .Trim()
+            .Replace('¡', '+')
+            .Replace('¿', '=')
+            .Replace('-', '/');
 
     public string HashClaveValidacion(string claveValidacion)
     {

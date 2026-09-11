@@ -145,6 +145,9 @@ public sealed class NewRichApiClient
     public Task<Result<CasoGanadorResponse>> ReportarPremioAsync(ReportarCasoGanadorRequest request, CancellationToken ct) =>
         Enviar<CasoGanadorResponse>(HttpMethod.Post, "api/PremiosAndroid/ReportarMob", request, ct);
 
+    public Task<Result<ConsultaTicketResponse>> ConsultarTicketAsync(ConsultaTicketRequest request, CancellationToken ct) =>
+        Enviar<ConsultaTicketResponse>(HttpMethod.Post, "api/BoletosAndroid/ConsultarMob", request, ct);
+
     public Task<Result<IReadOnlyList<CasoGanadorResponse>>> PremiosAsync(CancellationToken ct) =>
         Enviar<IReadOnlyList<CasoGanadorResponse>>(HttpMethod.Get, "api/PremiosAndroid/ListarMob", null, ct);
 

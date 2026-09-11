@@ -13,7 +13,7 @@ public sealed class VendedorHomePage : ContentPage
     private readonly LocalDatabase _offline;
     private readonly Label _total = new() { FontSize = 30, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink };
     private readonly Label _boletos = new() { FontSize = 19, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink };
-    private readonly Label _codigos = new() { FontSize = 19, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink };
+    private readonly Label _codigos = new() { Text = "0", FontSize = 19, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink };
     private readonly Label _estado = new() { FontSize = 11, TextColor = Color.FromArgb("#bce9cc") };
     private readonly VerticalStackLayout _banners = new() { Spacing = 8 };
     private readonly IServiceProvider _services;
@@ -106,7 +106,10 @@ public sealed class VendedorHomePage : ContentPage
     {
         base.OnAppearing();
         var offline = await _offline.ContarDisponiblesAsync();
-        var conectado = Connectivity.Current.NetworkAccess == NetworkAccess.Internet;
+        var ping = await _api.ConectarAsync(
+            PdaConexion.UrlsPara(DeviceInfo.Current.DeviceType == DeviceType.Virtual),
+            CancellationToken.None);
+        var conectado = ping.IsSuccess;
         _estado.Text = Ui.EstadoLinea(_sesion.CodigoDispositivo, conectado, _sesion.HorarioCerrado, offline);
         _codigos.Text = offline.ToString();
         _juegoNuevo.IsEnabled = !_sesion.HorarioCerrado;

@@ -16,6 +16,8 @@ public class CasoGanador
     public Guid? AdminQueValido { get; set; }
     public Guid? AdminQueAsigno { get; set; }
     public Guid? ObservadorAsignado { get; set; }
+    public string? FotoTicketRuta { get; set; }
+    public string? FotoTicketNombre { get; set; }
     public Boleto? Boleto { get; set; }
     public Usuario? VendedorQueReportoNavigation { get; set; }
     public Usuario? AdminQueValidoNavigation { get; set; }

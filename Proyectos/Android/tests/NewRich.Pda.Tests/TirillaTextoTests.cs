@@ -32,8 +32,40 @@ public sealed class TirillaTextoTests
         texto.Should().Contain("$4.000");
         texto.Should().Contain("LOTERIAS: CALI, ARMENIA");
         texto.Should().Contain("TOTAL APOSTADO");
-        texto.Should().Contain(TirillaCuerpo.Leyenda(30));
+        texto.Should().Contain("GRACIAS POR SU COMPRA");
+        texto.Should().Contain("CONSERVE SU TICKET");
+        texto.Should().Contain("Vigencia: 30 días");
         texto.Should().NotContain("1.key");
+        texto.Split('\n')[0].TrimEnd('\r').Should().Be(new string('=', TirillaTexto.AnchoImpresora));
+        TirillaTexto.AnchoImpresora.Should().Be(27);
+        var lineas = texto.Replace("\r", string.Empty).Split('\n');
+        var fechaLinea = lineas.First(l => l.StartsWith("Fecha:"));
+        fechaLinea.Should().Contain("2026-09-09");
+        fechaLinea.Should().NotContain("Hora:");
+        lineas.Should().Contain(l => l.StartsWith("Hora:") && l.Contains("14:22"));
+        lineas.Should().Contain("Tipo de apuesta: COMBINADO");
+        var totalLinea = lineas.First(l => l.StartsWith("TOTAL APOSTADO"));
+        totalLinea.Should().Contain("$4.000");
+        totalLinea.Should().NotMatchRegex(@"TOTAL APOSTADO {3,}");
+        var recibo = lineas.First(l => l.Contains("RECIBO DE VENTA"));
+        recibo.Should().Contain("AOL-7986875");
+        recibo.Should().NotMatchRegex(@"RECIBO DE VENTA {3,}");
+        texto.Should().NotMatchRegex(@"(?m)^QR\s*$");
+        var marca = texto.IndexOf(TirillaTexto.MarcaQr, StringComparison.Ordinal);
+        var total = texto.IndexOf("TOTAL APOSTADO", StringComparison.Ordinal);
+        var gracias = texto.IndexOf("GRACIAS POR SU COMPRA", StringComparison.Ordinal);
+        marca.Should().BeGreaterThan(total);
+        gracias.Should().BeGreaterThan(marca);
+        foreach (var linea in texto.Split('\n'))
+        {
+            var limpia = linea.TrimEnd('\r');
+            if (limpia == TirillaTexto.MarcaQr || limpia.Length == 0)
+            {
+                continue;
+            }
+
+            limpia.Length.Should().BeLessThanOrEqualTo(TirillaTexto.AnchoImpresora);
+        }
     }
 
     [Fact]

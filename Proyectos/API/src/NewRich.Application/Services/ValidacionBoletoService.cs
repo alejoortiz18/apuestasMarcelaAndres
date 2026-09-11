@@ -162,6 +162,41 @@ public sealed class ValidacionBoletoService : IValidacionBoletoService
         return Result<IReadOnlyList<BoletoListaResponse>>.Ok(lista, SuccessMessages.OperacionExitosa);
     }
 
+    public async Task<Result<ConsultaTicketResponse>> ConsultarPorCodigoAsync(string? ticketCode, CancellationToken cancellationToken)
+    {
+        var bruto = (ticketCode ?? string.Empty).Trim();
+        if (bruto.Length == 0)
+        {
+            return Result<ConsultaTicketResponse>.Fail(PremioMessages.TicketRequerido);
+        }
+
+        if (bruto.Length > TicketCodeLimits.MaxInputLength)
+        {
+            return Result<ConsultaTicketResponse>.Fail(PremioMessages.TicketDemasiadoLargo);
+        }
+
+        var boleto = await BoletoPorCodigo.BuscarAsync(QueryBoletos(), _qr, bruto, cancellationToken);
+        if (boleto is null)
+        {
+            return Result<ConsultaTicketResponse>.Fail(PremioMessages.TicketNoEncontrado, 404);
+        }
+
+        var evaluacion = await Evaluar(boleto, cancellationToken);
+        var vista = TicketConsultaPresentacion.De(evaluacion.ResultadoVisual);
+        var tirilla = await ObtenerTirillaAsync(boleto.BoletoId, cancellationToken);
+        var tieneCaso = await _db.CasosGanadores.AnyAsync(c => c.BoletoId == boleto.BoletoId, cancellationToken);
+
+        return Result<ConsultaTicketResponse>.Ok(new ConsultaTicketResponse
+        {
+            ResultadoVisual = evaluacion.ResultadoVisual,
+            Mensaje = vista.Mensaje,
+            Tono = vista.Tono,
+            BoletoId = boleto.BoletoId,
+            Tirilla = tirilla.Data,
+            PuedeIniciarCaso = evaluacion.ResultadoVisual == BoletoMessages.BoletoGanador && !tieneCaso
+        }, vista.Mensaje);
+    }
+
     private async Task<string> AsegurarQrCifradoAsync(Boleto boleto, CancellationToken cancellationToken)
     {
         if (!string.IsNullOrWhiteSpace(boleto.QrCifrado))
@@ -223,6 +258,27 @@ public sealed class ValidacionBoletoService : IValidacionBoletoService
         {
             baseResponse.ResultadoVisual = BoletoMessages.BoletoPagado;
             baseResponse.Estado = BoletoMessages.BoletoPagado;
+            return baseResponse;
+        }
+
+        if (boleto.EstadoBoleto == EstadoBoleto.PremioEntregado)
+        {
+            baseResponse.ResultadoVisual = BoletoMessages.BoletoPremioEntregado;
+            baseResponse.Estado = BoletoMessages.BoletoPremioEntregado;
+            return baseResponse;
+        }
+
+        if (boleto.EstadoBoleto == EstadoBoleto.PorJugar)
+        {
+            baseResponse.ResultadoVisual = BoletoMessages.BoletoPorJugar;
+            baseResponse.Estado = BoletoMessages.BoletoPorJugar;
+            return baseResponse;
+        }
+
+        if (boleto.EstadoBoleto == EstadoBoleto.Vencido)
+        {
+            baseResponse.ResultadoVisual = BoletoMessages.BoletoVencido;
+            baseResponse.Estado = BoletoMessages.BoletoVencido;
             return baseResponse;
         }
 

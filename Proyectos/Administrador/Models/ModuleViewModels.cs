@@ -15,6 +15,7 @@ using NewRich.Application.Contracts.Resultados;
 using NewRich.Application.Contracts.Usuarios;
 using NewRich.Application.Contracts.Ventas;
 using NewRich.Application.Services;
+using NewRich.Constants;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Enums;
 
@@ -338,6 +339,13 @@ public sealed class PremioReportarViewModel
 {
     [Display(Name = UiTexts.CodigoTicket)]
     [Required(ErrorMessage = PremioMessages.TicketRequerido)]
-    [StringLength(7, ErrorMessage = PremioMessages.TicketRequerido)]
+    [StringLength(TicketCodeLimits.MaxInputLength, ErrorMessage = PremioMessages.TicketDemasiadoLargo)]
     public string TicketCode { get; set; } = string.Empty;
+
+    public string? ResultadoVisual { get; set; }
+    public string? MensajeEstado { get; set; }
+    public string? Tono { get; set; }
+    public bool PuedeIniciarCaso { get; set; }
+    public Guid? BoletoId { get; set; }
+    public TirillaViewModel? Tirilla { get; set; }
 }
