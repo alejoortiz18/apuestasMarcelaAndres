@@ -12,6 +12,8 @@ public static class PdaTexts
     public const string Contrasena = "Contraseña";
     public const string CodigoPda = "Código del PDA";
     public const string Ingresar = "Ingresar";
+    public const string IniciandoSesion = "Iniciando sesión...";
+    public const string Cargando = "Cargando...";
     public const string MostrarContrasena = "Mostrar contraseña";
     public const string OcultarContrasena = "Ocultar contraseña";
     public const string EstablecerNuevaContrasena = "Establecer nueva contraseña";
@@ -38,6 +40,10 @@ public static class PdaTexts
     public const string ResumenTurno = "Resumen de turno";
     public const string BoletosHoy = "Boletos hoy";
     public const string CodigosOffline = "Códigos offline";
+    public const string CodigosEnElDispositivo = "Códigos en este dispositivo";
+    public const string CodigoDisponible = "Disponible";
+    public const string CodigoUsado = "Usado";
+    public const string SinCodigosEnElDispositivo = "Aún no hay códigos descargados en este dispositivo.";
     public const string PdaAsociado = "PDA asociado";
     public const string Grupo = "Grupo";
     public const string AccesosRapidos = "Accesos rápidos";

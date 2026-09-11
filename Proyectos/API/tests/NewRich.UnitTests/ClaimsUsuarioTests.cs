@@ -33,5 +33,6 @@ public sealed class ClaimsUsuarioTests
         HubRutas.AceptaTokenPorQuery("/api/Ventas").Should().BeFalse();
         HubRutas.EventoNuevaNotificacion.Should().Be("nuevaNotificacion");
         HubRutas.EventoMensajeChat.Should().Be("mensajeChat");
+        HubRutas.EventoCodigosOfflineAsignados.Should().Be("codigosOfflineAsignados");
     }
 }

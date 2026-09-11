@@ -2,6 +2,7 @@ using NewRich.Domain.Enums;
 using NewRich.Pda.Core;
 using NewRich.Pda.Core.Auth;
 using NewRich.Pda.Core.Ventas;
+using NewRich.Maui.Views;
 
 namespace NewRich.Maui.Views.Vendedor;
 
@@ -28,6 +29,7 @@ public sealed class TipoApuestaPage : ContentPage
                 Padding = 16,
                 Children = { Ui.Banner($"{PdaTexts.JuegosCerrados} {PdaTexts.JuegosCerradosVenta}", Ui.DangerBg, Ui.Danger) }
             };
+            BarraMenuVendedor.Asegurar(this, "vender");
             return;
         }
 
@@ -44,6 +46,7 @@ public sealed class TipoApuestaPage : ContentPage
                 individual
             }
         };
+        BarraMenuVendedor.Asegurar(this, "vender");
     }
 
     private Button Tipo(string titulo, string ayuda, TipoApuesta tipo)

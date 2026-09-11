@@ -49,6 +49,14 @@ public sealed class LocalDatabase
         return await db.Table<CodigoOfflineLocal>().Where(c => !c.Usado).CountAsync();
     }
 
+    public async Task<IReadOnlyList<CodigoOfflineLocal>> ListarAsync()
+    {
+        var db = await ConexionAsync();
+        return await db.Table<CodigoOfflineLocal>()
+            .OrderBy(c => c.Consecutivo)
+            .ToListAsync();
+    }
+
     public async Task GuardarDescargaAsync(IEnumerable<(string Consecutivo, string Payload)> codigos)
     {
         var db = await ConexionAsync();

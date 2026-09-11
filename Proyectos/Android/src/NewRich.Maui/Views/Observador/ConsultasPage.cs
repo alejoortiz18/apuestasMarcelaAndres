@@ -1,6 +1,7 @@
 using NewRich.Application.Contracts.Boletos;
 using NewRich.Pda.Core;
 using NewRich.Pda.Core.Api;
+using NewRich.Maui.Views;
 
 namespace NewRich.Maui.Views.Observador;
 
@@ -70,7 +71,7 @@ public sealed class ConsultasPage : ContentPage
         _datos = resultado.IsSuccess && resultado.Data is not null ? resultado.Data : [];
         if (!resultado.IsSuccess)
         {
-            await DisplayAlert(PdaTexts.Consultas, resultado.Message, PdaTexts.Cerrar);
+            await this.AvisoAsync(PdaTexts.Consultas, resultado.Message, PdaTexts.Cerrar);
         }
 
         Pintar();

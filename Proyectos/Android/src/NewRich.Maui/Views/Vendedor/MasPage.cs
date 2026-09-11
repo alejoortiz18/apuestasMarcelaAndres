@@ -7,7 +7,13 @@ namespace NewRich.Maui.Views.Vendedor;
 
 public sealed class MasPage : ContentPage
 {
-    public MasPage(NavegadorApp nav, NewRichApiClient api, ITokenStore tokens, SesionPda sesion, IServiceProvider services)
+    public MasPage(
+        NavegadorApp nav,
+        NewRichApiClient api,
+        ITokenStore tokens,
+        SesionPda sesion,
+        CodigosOfflineEnVivoServicio enVivo,
+        IServiceProvider services)
     {
         Title = PdaTexts.MasOpciones;
         BackgroundColor = Ui.Paper;
@@ -39,6 +45,7 @@ public sealed class MasPage : ContentPage
                 Item(PdaTexts.ConfiguracionSync, PdaTexts.ConfiguracionSyncAyuda, () => Navigation.PushAsync(services.GetRequiredService<ConfiguracionPage>())),
                 Item(PdaTexts.CerrarSesion, PdaTexts.CerrarSesionAyuda, async () =>
                 {
+                    await enVivo.DesconectarAsync();
                     await api.LogoutAsync(CancellationToken.None);
                     await tokens.BorrarAsync();
                     sesion.Usuario = null;

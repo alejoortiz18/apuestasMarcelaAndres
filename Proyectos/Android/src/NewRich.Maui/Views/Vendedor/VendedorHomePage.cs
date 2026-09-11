@@ -3,6 +3,7 @@ using NewRich.Pda.Core;
 using NewRich.Pda.Core.Api;
 using NewRich.Pda.Core.Auth;
 using NewRich.Maui.Data;
+using NewRich.Maui.Services;
 
 namespace NewRich.Maui.Views.Vendedor;
 
@@ -11,6 +12,8 @@ public sealed class VendedorHomePage : ContentPage
     private readonly NewRichApiClient _api;
     private readonly SesionPda _sesion;
     private readonly LocalDatabase _offline;
+    private readonly SincronizacionOfflineServicio _sincronizacion;
+    private readonly CodigosOfflineEnVivoServicio _enVivo;
     private readonly Label _total = new() { FontSize = 30, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink };
     private readonly Label _boletos = new() { FontSize = 19, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink };
     private readonly Label _codigos = new() { Text = "0", FontSize = 19, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink };
@@ -19,11 +22,19 @@ public sealed class VendedorHomePage : ContentPage
     private readonly IServiceProvider _services;
     private readonly Button _juegoNuevo;
 
-    public VendedorHomePage(NewRichApiClient api, SesionPda sesion, LocalDatabase offline, IServiceProvider services)
+    public VendedorHomePage(
+        NewRichApiClient api,
+        SesionPda sesion,
+        LocalDatabase offline,
+        SincronizacionOfflineServicio sincronizacion,
+        CodigosOfflineEnVivoServicio enVivo,
+        IServiceProvider services)
     {
         _api = api;
         _sesion = sesion;
         _offline = offline;
+        _sincronizacion = sincronizacion;
+        _enVivo = enVivo;
         _services = services;
         Title = PdaTexts.Inicio;
         _juegoNuevo = Ui.Primario("+ " + PdaTexts.BotonJuegoNuevo);
@@ -93,10 +104,8 @@ public sealed class VendedorHomePage : ContentPage
                         }
                     },
                     new Label { Text = PdaTexts.AccesosRapidos, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink },
-                    Menu(PdaTexts.HistoricoVentas, PdaTexts.HistoricoAyuda, async () => await Shell.Current.GoToAsync("//historico")),
                     Menu(PdaTexts.ResultadosTitulo, PdaTexts.ResultadosAyuda, async () => await Navigation.PushAsync(_services.GetRequiredService<ResultadosPage>())),
-                    Menu(PdaTexts.ValidarTicket, PdaTexts.ValidarTicketAyuda, async () => await Navigation.PushAsync(_services.GetRequiredService<ValidarTicketPage>())),
-                    Menu(PdaTexts.Soporte, PdaTexts.SoporteAyuda, async () => await Shell.Current.GoToAsync("//soporte"))
+                    Menu(PdaTexts.ValidarTicket, PdaTexts.ValidarTicketAyuda, async () => await Navigation.PushAsync(_services.GetRequiredService<ValidarTicketPage>()))
                 }
             }
         };
@@ -105,11 +114,17 @@ public sealed class VendedorHomePage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        var offline = await _offline.ContarDisponiblesAsync();
         var ping = await _api.ConectarAsync(
             PdaConexion.UrlsPara(DeviceInfo.Current.DeviceType == DeviceType.Virtual),
             CancellationToken.None);
         var conectado = ping.IsSuccess;
+        var rol = _sesion.Usuario?.Rol ?? default;
+        await _sincronizacion.SincronizarEnSilencioAsync(conectado, rol, false, CancellationToken.None);
+        if (conectado)
+        {
+            await _enVivo.AsegurarSesionAsync(CancellationToken.None);
+        }
+        var offline = await _offline.ContarDisponiblesAsync();
         _estado.Text = Ui.EstadoLinea(_sesion.CodigoDispositivo, conectado, _sesion.HorarioCerrado, offline);
         _codigos.Text = offline.ToString();
         _juegoNuevo.IsEnabled = !_sesion.HorarioCerrado;

@@ -72,6 +72,31 @@ public sealed class DispositivoServiceTests
     }
 
     [Fact]
+    public async Task AsociarAsync_pasa_codigos_generados_al_nuevo_pda()
+    {
+        var (sut, db) = CreateSut();
+        var pdaAnterior = await AgregarPdaAsync(db);
+        var pdaNuevo = await AgregarPdaAsync(db);
+        var usuario = await AgregarUsuarioAsync(db, "Alejandro Vendedor");
+        db.CodigosPreventaOffline.AddRange(
+            Codigo(pdaAnterior.DispositivoId, usuario.UsuarioId, EstadoCodigoOffline.Generado),
+            Codigo(pdaAnterior.DispositivoId, usuario.UsuarioId, EstadoCodigoOffline.Descargado));
+        await db.SaveChangesAsync();
+        await sut.AsociarAsync(pdaAnterior.DispositivoId, usuario.UsuarioId, CancellationToken.None);
+
+        var result = await sut.AsociarAsync(pdaNuevo.DispositivoId, usuario.UsuarioId, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        db.CodigosPreventaOffline.Should().ContainSingle(c =>
+            c.EstadoDelCodigo == EstadoCodigoOffline.Generado
+            && c.DispositivoId == pdaNuevo.DispositivoId
+            && c.UsuarioId == usuario.UsuarioId);
+        db.CodigosPreventaOffline.Should().ContainSingle(c =>
+            c.EstadoDelCodigo == EstadoCodigoOffline.Descargado
+            && c.DispositivoId == pdaAnterior.DispositivoId);
+    }
+
+    [Fact]
     public async Task DesasociarAsync_usa_la_asociacion_activa()
     {
         var (sut, db) = CreateSut();

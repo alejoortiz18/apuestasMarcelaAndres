@@ -3,6 +3,7 @@ using NewRich.Pda.Core;
 using NewRich.Pda.Core.Api;
 using NewRich.Pda.Core.Auth;
 using NewRich.Maui.Data;
+using NewRich.Maui.Views;
 
 namespace NewRich.Maui.Views.Vendedor;
 
@@ -13,6 +14,7 @@ public sealed class ConfiguracionPage : ContentPage
     private readonly NewRichApiClient _api;
     private readonly Switch _automatica = new();
     private readonly Label _conteo = new() { FontSize = 19, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink };
+    private readonly VerticalStackLayout _lista = new() { Spacing = 6 };
 
     public ConfiguracionPage(SesionPda sesion, LocalDatabase offline, NewRichApiClient api)
     {
@@ -22,7 +24,7 @@ public sealed class ConfiguracionPage : ContentPage
         Title = PdaTexts.ConfiguracionSync;
         BackgroundColor = Ui.Paper;
         _automatica.IsToggled = string.Equals(_sesion.Limites.SincronizacionModo, ConfiguracionClaves.ModoAutomatica, StringComparison.OrdinalIgnoreCase)
-            || string.Equals(Preferences.Default.Get("SyncModo", ConfiguracionClaves.ModoManual), ConfiguracionClaves.ModoAutomatica, StringComparison.OrdinalIgnoreCase);
+            || string.Equals(Preferences.Default.Get("SyncModo", ConfiguracionClaves.ModoAutomatica), ConfiguracionClaves.ModoAutomatica, StringComparison.OrdinalIgnoreCase);
         _automatica.Toggled += (_, e) =>
         {
             var modo = e.Value ? ConfiguracionClaves.ModoAutomatica : ConfiguracionClaves.ModoManual;
@@ -36,17 +38,14 @@ public sealed class ConfiguracionPage : ContentPage
             var resultado = await _api.DescargarOfflineAsync(CancellationToken.None);
             if (!resultado.IsSuccess)
             {
-                await DisplayAlert(PdaTexts.CodigosOffline, resultado.Message, PdaTexts.Cerrar);
+                await this.AvisoAsync(PdaTexts.CodigosOffline, resultado.Message, PdaTexts.Cerrar);
                 return;
             }
 
-            if (DescargaCodigosOffline.HayCodigos(resultado.Data))
-            {
-                await _offline.GuardarDescargaAsync(resultado.Data!.Select(c => (c.Consecutivo, c.PayloadBase64)));
-            }
+            await _offline.GuardarDescargaAsync(DescargaCodigosOffline.ParaGuardar(resultado.Data));
 
-            _conteo.Text = (await _offline.ContarDisponiblesAsync()).ToString();
-            await DisplayAlert(PdaTexts.CodigosOffline, DescargaCodigosOffline.Mensaje(resultado.Data), PdaTexts.Cerrar);
+            await PintarCodigosAsync();
+            await this.AvisoAsync(PdaTexts.CodigosOffline, DescargaCodigosOffline.Mensaje(resultado.Data), PdaTexts.Cerrar);
         };
 
         Content = new ScrollView
@@ -75,10 +74,13 @@ public sealed class ConfiguracionPage : ContentPage
                     }),
                     Ui.Tarjeta(new VerticalStackLayout
                     {
+                        Spacing = 8,
                         Children =
                         {
                             new Label { Text = PdaTexts.CodigosOffline, FontSize = 11, TextColor = Ui.Muted },
-                            _conteo
+                            _conteo,
+                            new Label { Text = PdaTexts.CodigosEnElDispositivo, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink },
+                            _lista
                         }
                     }),
                     descargar
@@ -90,6 +92,33 @@ public sealed class ConfiguracionPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        await PintarCodigosAsync();
+    }
+
+    private async Task PintarCodigosAsync()
+    {
         _conteo.Text = (await _offline.ContarDisponiblesAsync()).ToString();
+        _lista.Children.Clear();
+        var codigos = await _offline.ListarAsync();
+        if (codigos.Count == 0)
+        {
+            _lista.Children.Add(new Label
+            {
+                Text = PdaTexts.SinCodigosEnElDispositivo,
+                FontSize = 13,
+                TextColor = Ui.Muted
+            });
+            return;
+        }
+
+        foreach (var codigo in codigos)
+        {
+            _lista.Children.Add(new Label
+            {
+                Text = CodigosOfflineEnDispositivo.Linea(codigo.Consecutivo, codigo.Usado),
+                FontSize = 13,
+                TextColor = codigo.Usado ? Ui.Muted : Ui.Ink
+            });
+        }
     }
 }

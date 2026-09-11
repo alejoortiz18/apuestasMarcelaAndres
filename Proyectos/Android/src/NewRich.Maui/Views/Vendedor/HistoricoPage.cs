@@ -2,6 +2,7 @@ using NewRich.Application.Contracts.Ventas;
 using NewRich.Pda.Core;
 using NewRich.Pda.Core.Api;
 using NewRich.Pda.Core.Ventas;
+using NewRich.Maui.Views;
 
 namespace NewRich.Maui.Views.Vendedor;
 
@@ -96,7 +97,7 @@ public sealed class HistoricoPage : ContentPage
         var hasta = _hasta.Date ?? DateTime.Today;
         if (!HistoricoVentasReglas.FechaPermitida(desde, DateTime.Today) || !HistoricoVentasReglas.FechaPermitida(hasta, DateTime.Today))
         {
-            await DisplayAlert(PdaTexts.Historico, PdaTexts.HistoricoAyuda, PdaTexts.Cerrar);
+            await this.AvisoAsync(PdaTexts.Historico, PdaTexts.HistoricoAyuda, PdaTexts.Cerrar);
             return;
         }
 
@@ -109,7 +110,7 @@ public sealed class HistoricoPage : ContentPage
         _datos = resultado.IsSuccess && resultado.Data is not null ? resultado.Data : [];
         if (!resultado.IsSuccess)
         {
-            await DisplayAlert(PdaTexts.Historico, resultado.Message, PdaTexts.Cerrar);
+            await this.AvisoAsync(PdaTexts.Historico, resultado.Message, PdaTexts.Cerrar);
         }
 
         Pintar();

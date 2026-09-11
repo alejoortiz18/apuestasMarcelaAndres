@@ -16,6 +16,7 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddScoped<INotificacionTiempoReal, SignalRNotificacionTiempoReal>();
 builder.Services.AddScoped<IChatTiempoReal, SignalRChatTiempoReal>();
+builder.Services.AddScoped<ICodigosOfflineTiempoReal, SignalRCodigosOfflineTiempoReal>();
 builder.Services.AddControllers(options => options.Filters.Add<SesionYPasswordActionFilter>());
 builder.Services.AddSignalR();
 builder.Services.AddEndpointsApiExplorer();

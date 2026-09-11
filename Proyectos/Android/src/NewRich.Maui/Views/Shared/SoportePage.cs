@@ -235,10 +235,9 @@ public sealed class SoportePage : ContentPage
         await ConectarVivoAsync();
     }
 
-    protected override async void OnDisappearing()
+    protected override void OnDisappearing()
     {
         _vivo.Recibido -= EnVivo;
-        await _vivo.DesconectarAsync();
         base.OnDisappearing();
     }
 
@@ -252,7 +251,7 @@ public sealed class SoportePage : ContentPage
 
         try
         {
-            await _vivo.ConectarAsync(_opciones.BaseUrl, token, CancellationToken.None);
+            await _vivo.AsegurarConectadoAsync(_opciones.BaseUrl, token, CancellationToken.None);
         }
         catch (Exception)
         {
@@ -327,7 +326,7 @@ public sealed class SoportePage : ContentPage
             var validacion = ChatAdjunto.Validar(elegido.FileName, bytes);
             if (!validacion.IsSuccess)
             {
-                await DisplayAlertAsync(PdaTexts.Soporte, validacion.Message, PdaTexts.Cerrar);
+                await this.AvisoAsync(PdaTexts.Soporte, validacion.Message, PdaTexts.Cerrar);
                 return;
             }
 
@@ -338,7 +337,7 @@ public sealed class SoportePage : ContentPage
         }
         catch (Exception excepcion)
         {
-            await DisplayAlertAsync(PdaTexts.Soporte, excepcion.Message, PdaTexts.Cerrar);
+            await this.AvisoAsync(PdaTexts.Soporte, excepcion.Message, PdaTexts.Cerrar);
         }
     }
 
@@ -366,7 +365,7 @@ public sealed class SoportePage : ContentPage
             }, CancellationToken.None);
             if (!inicio.IsSuccess)
             {
-                await DisplayAlertAsync(PdaTexts.Soporte, inicio.Message, PdaTexts.Cerrar);
+                await this.AvisoAsync(PdaTexts.Soporte, inicio.Message, PdaTexts.Cerrar);
                 RestaurarBorrador(texto, nombre, bytes);
                 return;
             }
@@ -384,7 +383,7 @@ public sealed class SoportePage : ContentPage
         }, CancellationToken.None);
         if (!enviado.IsSuccess || enviado.Data is null)
         {
-            await DisplayAlertAsync(PdaTexts.Soporte, enviado.Message, PdaTexts.Cerrar);
+            await this.AvisoAsync(PdaTexts.Soporte, enviado.Message, PdaTexts.Cerrar);
             RestaurarBorrador(texto, nombre, bytes);
             return;
         }
@@ -441,7 +440,7 @@ public sealed class SoportePage : ContentPage
         var descarga = await _api.DescargarAdjuntoAsync(adjuntoId, CancellationToken.None);
         if (!descarga.IsSuccess || descarga.Data is null)
         {
-            await DisplayAlertAsync(PdaTexts.Soporte, descarga.Message, PdaTexts.Cerrar);
+            await this.AvisoAsync(PdaTexts.Soporte, descarga.Message, PdaTexts.Cerrar);
             return;
         }
 

@@ -1,3 +1,5 @@
+using NewRich.Domain.Enums;
+using NewRich.Maui.Data;
 using NewRich.Pda.Core;
 using NewRich.Pda.Core.Api;
 
@@ -15,6 +17,59 @@ public sealed class SecureTokenStore : ITokenStore
     {
         SecureStorage.Default.Remove(Clave);
         return Task.CompletedTask;
+    }
+}
+
+public sealed class SincronizacionOfflineServicio
+{
+    private readonly NewRichApiClient _api;
+    private readonly LocalDatabase _offline;
+    private readonly SemaphoreSlim _candado = new(1, 1);
+
+    public SincronizacionOfflineServicio(NewRichApiClient api, LocalDatabase offline)
+    {
+        _api = api;
+        _offline = offline;
+    }
+
+    public async Task SincronizarEnSilencioAsync(
+        bool conectado,
+        RolUsuario rol,
+        bool debeCambiarPassword,
+        CancellationToken cancellationToken)
+    {
+        if (!DescargaCodigosOffline.SincronizarEnSilencio(conectado, rol, debeCambiarPassword))
+        {
+            return;
+        }
+
+        await _candado.WaitAsync(cancellationToken);
+        try
+        {
+            var resultado = await _api.DescargarOfflineAsync(cancellationToken);
+            if (!resultado.IsSuccess)
+            {
+                return;
+            }
+
+            var guardar = DescargaCodigosOffline.ParaGuardar(resultado.Data);
+            if (guardar.Count == 0)
+            {
+                return;
+            }
+
+            await _offline.GuardarDescargaAsync(guardar);
+        }
+        catch (HttpRequestException)
+        {
+        }
+        catch (TaskCanceledException)
+        {
+        }
+        finally
+        {
+            _candado.Release();
+        }
     }
 }
 

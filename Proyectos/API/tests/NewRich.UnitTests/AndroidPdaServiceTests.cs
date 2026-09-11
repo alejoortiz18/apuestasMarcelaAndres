@@ -129,6 +129,63 @@ public sealed class AndroidPdaServiceTests
             .EstadoDelCodigo.Should().Be(EstadoCodigoOffline.Generado);
     }
 
+    [Fact]
+    public async Task DescargarOfflineMob_entrega_generados_aunque_esten_en_un_pda_anterior()
+    {
+        var (sut, db, _) = CreateSut();
+        var usuarioId = Guid.NewGuid();
+        var pdaAnterior = Guid.NewGuid();
+        var pdaActual = Guid.NewGuid();
+        db.CodigosPreventaOffline.Add(new CodigoPreventaOffline
+        {
+            CodigoId = Guid.NewGuid(),
+            ConsecutivoUnico = "OFF-000011",
+            UsuarioId = usuarioId,
+            DispositivoId = pdaAnterior,
+            PayloadCifrado = [4, 5],
+            EstadoDelCodigo = EstadoCodigoOffline.Generado,
+            FechaCreacion = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+
+        var resultado = await sut.DescargarOfflineMobAsync(usuarioId, pdaActual, CancellationToken.None);
+
+        resultado.IsSuccess.Should().BeTrue();
+        resultado.Message.Should().Be(SuccessMessages.CodigosOfflineDescargados);
+        resultado.Data.Should().ContainSingle(c => c.Consecutivo == "OFF-000011");
+        var codigo = await db.CodigosPreventaOffline.SingleAsync(c => c.ConsecutivoUnico == "OFF-000011");
+        codigo.EstadoDelCodigo.Should().Be(EstadoCodigoOffline.Descargado);
+        codigo.DispositivoId.Should().Be(pdaActual);
+        codigo.FechaDescarga.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DescargarOfflineMob_no_entrega_descargados_de_otro_pda()
+    {
+        var (sut, db, _) = CreateSut();
+        var usuarioId = Guid.NewGuid();
+        db.CodigosPreventaOffline.Add(new CodigoPreventaOffline
+        {
+            CodigoId = Guid.NewGuid(),
+            ConsecutivoUnico = "OFF-000012",
+            UsuarioId = usuarioId,
+            DispositivoId = Guid.NewGuid(),
+            PayloadCifrado = [7],
+            EstadoDelCodigo = EstadoCodigoOffline.Descargado,
+            FechaCreacion = DateTime.UtcNow,
+            FechaDescarga = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+
+        var resultado = await sut.DescargarOfflineMobAsync(usuarioId, Guid.NewGuid(), CancellationToken.None);
+
+        resultado.IsSuccess.Should().BeTrue();
+        resultado.Data.Should().BeEmpty();
+        resultado.Message.Should().Be(UsuarioMessages.SinCodigosOfflineDisponibles);
+        (await db.CodigosPreventaOffline.SingleAsync(c => c.ConsecutivoUnico == "OFF-000012"))
+            .EstadoDelCodigo.Should().Be(EstadoCodigoOffline.Descargado);
+    }
+
     private static (AndroidPdaService Sut, NewRichDbContext Db, Mock<IAuthService> Auth) CreateSut()
     {
         var options = new DbContextOptionsBuilder<NewRichDbContext>()

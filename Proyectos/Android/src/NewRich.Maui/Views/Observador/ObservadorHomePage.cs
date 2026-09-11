@@ -2,6 +2,7 @@ using NewRich.Application.Contracts.Boletos;
 using NewRich.Pda.Core;
 using NewRich.Pda.Core.Api;
 using NewRich.Pda.Core.Auth;
+using NewRich.Maui.Views;
 
 namespace NewRich.Maui.Views.Observador;
 
@@ -19,7 +20,7 @@ public sealed class ObservadorHomePage : ContentPage
         Title = PdaTexts.Inicio;
         BackgroundColor = Ui.Paper;
         var escanear = Ui.Primario(PdaTexts.EscanearCamara);
-        escanear.Clicked += async (_, _) => await DisplayAlert(PdaTexts.ValidarBoleto, "El lector de cámara QR se habilitará cuando se defina el paquete de lectura. Use el código cifrado o el payload del QR en el campo manual.", PdaTexts.Cerrar);
+        escanear.Clicked += async (_, _) => await this.AvisoAsync(PdaTexts.ValidarBoleto, "El lector de cámara QR se habilitará cuando se defina el paquete de lectura. Use el código cifrado o el payload del QR en el campo manual.", PdaTexts.Cerrar);
         var validar = Ui.Secundario(PdaTexts.IngresarCodigoManual);
         validar.Clicked += async (_, _) => await ValidarAsync();
 

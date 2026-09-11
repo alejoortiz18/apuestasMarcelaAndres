@@ -3,6 +3,7 @@ using NewRich.Pda.Core;
 using NewRich.Pda.Core.Api;
 using NewRich.Pda.Core.Auth;
 using NewRich.Maui.Services;
+using NewRich.Maui.Views;
 
 namespace NewRich.Maui.Views.Vendedor;
 
@@ -312,7 +313,7 @@ public sealed class TirillaVendidaPage : ContentPage
             var png = QrImagen.Png(tirilla.QrContenido);
             if (png.Length == 0)
             {
-                await DisplayAlertAsync(PdaTexts.TicketVendido, PdaTexts.FotoOffline, PdaTexts.Cerrar);
+                await this.AvisoAsync(PdaTexts.TicketVendido, PdaTexts.FotoOffline, PdaTexts.Cerrar);
                 return;
             }
 
@@ -322,7 +323,7 @@ public sealed class TirillaVendidaPage : ContentPage
             }, CancellationToken.None);
             if (!inicio.IsSuccess || inicio.Data is null)
             {
-                await DisplayAlertAsync(PdaTexts.Soporte, inicio.Message, PdaTexts.Cerrar);
+                await this.AvisoAsync(PdaTexts.Soporte, inicio.Message, PdaTexts.Cerrar);
                 return;
             }
 
@@ -332,7 +333,7 @@ public sealed class TirillaVendidaPage : ContentPage
                 CancellationToken.None);
             if (!envio.IsSuccess)
             {
-                await DisplayAlertAsync(PdaTexts.Soporte, envio.Message, PdaTexts.Cerrar);
+                await this.AvisoAsync(PdaTexts.Soporte, envio.Message, PdaTexts.Cerrar);
                 return;
             }
 

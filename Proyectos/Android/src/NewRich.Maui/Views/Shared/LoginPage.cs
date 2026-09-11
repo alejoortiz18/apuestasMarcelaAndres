@@ -4,6 +4,7 @@ using NewRich.Pda.Core;
 using NewRich.Pda.Core.Api;
 using NewRich.Pda.Core.Auth;
 using NewRich.Maui.Services;
+using NewRich.Maui.Views;
 
 namespace NewRich.Maui.Views.Shared;
 
@@ -22,9 +23,13 @@ public sealed class LoginPage : ContentPage
     private readonly ITokenStore _tokens;
     private readonly SesionPda _sesion;
     private readonly NavegadorApp _nav;
+    private readonly SincronizacionOfflineServicio _offline;
+    private readonly CodigosOfflineEnVivoServicio _enVivo;
     private readonly Entry _usuario;
     private readonly Entry _password;
     private readonly ImageButton _verClave;
+    private readonly Button _ingresar;
+    private readonly CargandoOverlay _cargando = new();
     private readonly Label _error = new()
     {
         TextColor = Color.FromArgb("#e8a0a0"),
@@ -32,12 +37,20 @@ public sealed class LoginPage : ContentPage
         Style = null
     };
 
-    public LoginPage(NewRichApiClient api, ITokenStore tokens, SesionPda sesion, NavegadorApp nav)
+    public LoginPage(
+        NewRichApiClient api,
+        ITokenStore tokens,
+        SesionPda sesion,
+        NavegadorApp nav,
+        SincronizacionOfflineServicio offline,
+        CodigosOfflineEnVivoServicio enVivo)
     {
         _api = api;
         _tokens = tokens;
         _sesion = sesion;
         _nav = nav;
+        _offline = offline;
+        _enVivo = enVivo;
         Title = string.Empty;
         NavigationPage.SetHasNavigationBar(this, false);
         Shell.SetNavBarIsVisible(this, false);
@@ -58,7 +71,7 @@ public sealed class LoginPage : ContentPage
         SemanticProperties.SetDescription(_verClave, PdaTexts.MostrarContrasena);
         _verClave.Clicked += (_, _) => AlternarClave();
 
-        var ingresar = BotonIngresar();
+        _ingresar = BotonIngresar();
 
         var tarjeta = new Border
         {
@@ -91,7 +104,7 @@ public sealed class LoginPage : ContentPage
                     },
                     CampoConIcono("login_icon_user.png", _usuario),
                     CampoConIcono("login_icon_lock.png", _password, _verClave),
-                    ingresar,
+                    _ingresar,
                     _error
                 }
             }
@@ -127,7 +140,8 @@ public sealed class LoginPage : ContentPage
                             new ContentView { HeightRequest = 168 }
                         }
                     }
-                }
+                },
+                _cargando
             }
         };
     }
@@ -140,7 +154,7 @@ public sealed class LoginPage : ContentPage
             _password.IsPassword ? PdaTexts.MostrarContrasena : PdaTexts.OcultarContrasena);
     }
 
-    private View BotonIngresar()
+    private Button BotonIngresar()
     {
         var boton = new Button
         {
@@ -151,29 +165,10 @@ public sealed class LoginPage : ContentPage
             FontAttributes = FontAttributes.Bold,
             FontSize = 16,
             CornerRadius = 22,
-            HeightRequest = 48,
-            Padding = new Thickness(12, 0, 48, 0)
+            HeightRequest = 48
         };
         boton.Clicked += async (_, _) => await IngresarAsync();
-
-        return new Grid
-        {
-            HeightRequest = 48,
-            Children =
-            {
-                boton,
-                new Image
-                {
-                    Source = "login_icon_arrow.png",
-                    WidthRequest = 26,
-                    HeightRequest = 26,
-                    HorizontalOptions = LayoutOptions.End,
-                    VerticalOptions = LayoutOptions.Center,
-                    Margin = new Thickness(0, 0, 12, 0),
-                    InputTransparent = true
-                }
-            }
-        };
+        return boton;
     }
 
     private static Entry CampoTexto(string placeholder, bool password = false) => new()
@@ -232,6 +227,8 @@ public sealed class LoginPage : ContentPage
     private async Task IngresarAsync()
     {
         _error.Text = string.Empty;
+        _ingresar.IsEnabled = false;
+        _cargando.Mostrar(PdaTexts.IniciandoSesion);
 
         try
         {
@@ -284,6 +281,8 @@ public sealed class LoginPage : ContentPage
 
             if (shell.Data == ShellPda.Vendedor)
             {
+                await _offline.SincronizarEnSilencioAsync(true, resultado.Data.Rol, false, CancellationToken.None);
+                await _enVivo.AsegurarSesionAsync(CancellationToken.None);
                 _nav.IrAVendedor();
             }
             else
@@ -298,6 +297,11 @@ public sealed class LoginPage : ContentPage
         catch (Exception ex)
         {
             _error.Text = ex.Message;
+        }
+        finally
+        {
+            _cargando.Ocultar();
+            _ingresar.IsEnabled = true;
         }
     }
 }

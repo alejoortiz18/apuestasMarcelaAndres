@@ -6,6 +6,7 @@ public static class HubRutas
     public const string Chat = "/hubs/chat";
     public const string EventoNuevaNotificacion = "nuevaNotificacion";
     public const string EventoMensajeChat = "mensajeChat";
+    public const string EventoCodigosOfflineAsignados = "codigosOfflineAsignados";
 
     public static bool AceptaTokenPorQuery(string path) =>
         path.StartsWith(Notificaciones, StringComparison.OrdinalIgnoreCase)

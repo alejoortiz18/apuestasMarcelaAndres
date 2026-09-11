@@ -183,14 +183,23 @@ public sealed class AndroidPdaService : IAndroidPdaService
 
         var pendientes = await _db.CodigosPreventaOffline
             .Where(c => c.UsuarioId == usuarioId
-                && c.DispositivoId == dispositivoId.Value
-                && (c.EstadoDelCodigo == EstadoCodigoOffline.Generado || c.EstadoDelCodigo == EstadoCodigoOffline.Descargado))
+                && (c.EstadoDelCodigo == EstadoCodigoOffline.Generado
+                    || (c.EstadoDelCodigo == EstadoCodigoOffline.Descargado
+                        && c.DispositivoId == dispositivoId.Value)))
             .ToListAsync(cancellationToken);
 
-        foreach (var codigo in pendientes.Where(c => c.EstadoDelCodigo == EstadoCodigoOffline.Generado))
+        foreach (var codigo in pendientes)
         {
-            codigo.EstadoDelCodigo = EstadoCodigoOffline.Descargado;
-            codigo.FechaDescarga = _clock.UtcNow;
+            if (codigo.DispositivoId != dispositivoId.Value)
+            {
+                codigo.DispositivoId = dispositivoId.Value;
+            }
+
+            if (codigo.EstadoDelCodigo == EstadoCodigoOffline.Generado)
+            {
+                codigo.EstadoDelCodigo = EstadoCodigoOffline.Descargado;
+                codigo.FechaDescarga = _clock.UtcNow;
+            }
         }
 
         if (pendientes.Count == 0)

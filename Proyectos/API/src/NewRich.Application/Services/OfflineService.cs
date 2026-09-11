@@ -15,12 +15,14 @@ public sealed class OfflineService : IOfflineService
     private readonly INewRichDbContext _db;
     private readonly IQrCryptoService _qr;
     private readonly IClock _clock;
+    private readonly ICodigosOfflineTiempoReal _vivo;
 
-    public OfflineService(INewRichDbContext db, IQrCryptoService qr, IClock clock)
+    public OfflineService(INewRichDbContext db, IQrCryptoService qr, IClock clock, ICodigosOfflineTiempoReal vivo)
     {
         _db = db;
         _qr = qr;
         _clock = clock;
+        _vivo = vivo;
     }
 
     public async Task<Result<OfflineListadoResponse>> ListarAsync(CancellationToken cancellationToken)
@@ -136,6 +138,14 @@ public sealed class OfflineService : IOfflineService
         }
 
         await _db.SaveChangesAsync(cancellationToken);
+        await _vivo.AvisarAsignadosAsync(
+            usuario.UsuarioId,
+            new CodigosOfflineAsignadosAviso
+            {
+                DispositivoId = pda.DispositivoId,
+                Cantidad = creados.Count
+            },
+            cancellationToken);
         return Result<IReadOnlyList<CodigoOfflineResponse>>.Created(
             creados.Select(c => Map(c, usuario.NombreCompleto, pda.CodigoDispositivo)).ToList(),
             SuccessMessages.CodigosOfflineGenerados);

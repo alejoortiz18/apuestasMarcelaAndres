@@ -7,6 +7,7 @@ using NewRich.Pda.Core.Api;
 using NewRich.Pda.Core.Auth;
 using NewRich.Pda.Core.Ventas;
 using NewRich.Maui.Data;
+using NewRich.Maui.Views;
 
 namespace NewRich.Maui.Views.Vendedor;
 
@@ -87,7 +88,7 @@ public sealed class ConstruirApuestaPage : ContentPage
         {
             if (!decimal.TryParse(EntradaEntera.SoloDigitos(valor.Text), out var monto) || monto != decimal.Truncate(monto))
             {
-                await DisplayAlert(PdaTexts.JuegoNuevo, ValidationMessages.ValorApuestaMayorCero, PdaTexts.Cerrar);
+                await this.AvisoAsync(PdaTexts.JuegoNuevo, ValidationMessages.ValorApuestaMayorCero, PdaTexts.Cerrar);
                 return;
             }
 
@@ -103,7 +104,7 @@ public sealed class ConstruirApuestaPage : ContentPage
                 var sel = picker!.SelectedIndex;
                 if (sel < 0 || sel >= _loterias.Count)
                 {
-                    await DisplayAlert(PdaTexts.JuegoNuevo, ValidationMessages.LoteriasRequeridas, PdaTexts.Cerrar);
+                    await this.AvisoAsync(PdaTexts.JuegoNuevo, ValidationMessages.LoteriasRequeridas, PdaTexts.Cerrar);
                     return;
                 }
 
@@ -114,7 +115,7 @@ public sealed class ConstruirApuestaPage : ContentPage
             var resultado = draft.AgregarLinea(EntradaEntera.SoloDigitos(numero.Text), monto, ids, nombres);
             if (!resultado.IsSuccess)
             {
-                await DisplayAlert(PdaTexts.JuegoNuevo, resultado.Message, PdaTexts.Cerrar);
+                await this.AvisoAsync(PdaTexts.JuegoNuevo, resultado.Message, PdaTexts.Cerrar);
                 return;
             }
 
@@ -135,7 +136,7 @@ public sealed class ConstruirApuestaPage : ContentPage
                 var quitar = new Button { Text = PdaTexts.Quitar, BackgroundColor = Ui.Danger, TextColor = Colors.White, FontSize = 12 };
                 quitar.Clicked += async (_, _) =>
                 {
-                    var ok = await DisplayAlert(PdaTexts.EliminarJuego, $"¿Está seguro de eliminar este juego? Se descontará {FormatoDinero.Pesos(linea.TotalLinea)} del total.", PdaTexts.SiEliminar, PdaTexts.No);
+                    var ok = await this.ConfirmarAsync(PdaTexts.EliminarJuego, $"¿Está seguro de eliminar este juego? Se descontará {FormatoDinero.Pesos(linea.TotalLinea)} del total.", PdaTexts.SiEliminar, PdaTexts.No);
                     if (!ok)
                     {
                         return;
@@ -168,7 +169,7 @@ public sealed class ConstruirApuestaPage : ContentPage
         var cancelar = Ui.Secundario(PdaTexts.CancelarBoleto);
         cancelar.Clicked += async (_, _) =>
         {
-            if (await DisplayAlert(PdaTexts.CancelarBoleto, PdaTexts.CancelarBoletoConfirma, PdaTexts.SiCancelar, PdaTexts.No))
+            if (await this.ConfirmarAsync(PdaTexts.CancelarBoleto, PdaTexts.CancelarBoletoConfirma, PdaTexts.SiCancelar, PdaTexts.No))
             {
                 _sesion.Borrador = null;
                 await Shell.Current.GoToAsync("//inicio");
@@ -229,7 +230,7 @@ public sealed class ConstruirApuestaPage : ContentPage
 
     private async Task JugarAsync(TicketDraft draft)
     {
-        var ok = await DisplayAlert(PdaTexts.ConfirmarVenta, $"{PdaTexts.ValorTotalPagar}\n{FormatoDinero.Pesos(draft.Total)}\n\n{PdaTexts.SinDatosComprador}", PdaTexts.AceptarYPagar, PdaTexts.Cancelar);
+        var ok = await this.ConfirmarAsync(PdaTexts.ConfirmarVenta, $"{PdaTexts.ValorTotalPagar}\n{FormatoDinero.Pesos(draft.Total)}\n\n{PdaTexts.SinDatosComprador}", PdaTexts.AceptarYPagar, PdaTexts.Cancelar);
         if (!ok)
         {
             return;
@@ -252,7 +253,7 @@ public sealed class ConstruirApuestaPage : ContentPage
                             _sesion.HorarioCerrado = true;
                         }
 
-                        await DisplayAlert(PdaTexts.JuegoNuevo, venta.Message, PdaTexts.Cerrar);
+                        await this.AvisoAsync(PdaTexts.JuegoNuevo, venta.Message, PdaTexts.Cerrar);
                         return;
                     }
 
@@ -274,11 +275,11 @@ public sealed class ConstruirApuestaPage : ContentPage
         var disponibles = await _offline.ContarDisponiblesAsync();
         if (PoliticaVentaPda.TrasFalloDeRed(disponibles) == CanalVenta.Bloqueado)
         {
-            await DisplayAlert(PdaTexts.SinCodigosOffline, PdaTexts.BorradorConservado, PdaTexts.Entendido);
+            await this.AvisoAsync(PdaTexts.SinCodigosOffline, PdaTexts.BorradorConservado, PdaTexts.Entendido);
             return;
         }
 
-        var continuar = await DisplayAlert(PdaTexts.ConexionNoDisponible, PdaTexts.SinConexionServidor, PdaTexts.ContinuarOffline, PdaTexts.EsperarConexion);
+        var continuar = await this.ConfirmarAsync(PdaTexts.ConexionNoDisponible, PdaTexts.SinConexionServidor, PdaTexts.ContinuarOffline, PdaTexts.EsperarConexion);
         if (!continuar)
         {
             return;

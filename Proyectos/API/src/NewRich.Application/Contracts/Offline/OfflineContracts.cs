@@ -1,5 +1,11 @@
 namespace NewRich.Application.Contracts.Offline;
 
+public sealed class CodigosOfflineAsignadosAviso
+{
+    public Guid DispositivoId { get; set; }
+    public int Cantidad { get; set; }
+}
+
 public sealed class GenerarCodigosOfflineRequest
 {
     public Guid UsuarioId { get; set; }

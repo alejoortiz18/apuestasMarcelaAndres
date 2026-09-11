@@ -11,6 +11,8 @@ public class LoginPantallaTextsTests
         PdaTexts.IniciarSesion.Should().Be("Iniciar sesión");
         PdaTexts.LoginAyuda.Should().Be("Ingresa con tu usuario y contraseña asignados por el administrador.");
         PdaTexts.Ingresar.Should().Be("Ingresar");
+        PdaTexts.IniciandoSesion.Should().Be("Iniciando sesión...");
+        PdaTexts.Cargando.Should().Be("Cargando...");
         PdaTexts.MostrarContrasena.Should().Be("Mostrar contraseña");
         PdaTexts.OcultarContrasena.Should().Be("Ocultar contraseña");
     }

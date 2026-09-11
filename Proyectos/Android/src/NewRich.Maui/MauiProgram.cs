@@ -36,12 +36,14 @@ public static class MauiProgram
         builder.Services.AddSingleton(_ => new HttpClient { Timeout = TimeSpan.FromSeconds(30) });
         builder.Services.AddSingleton<NewRichApiClient>();
         builder.Services.AddSingleton<LocalDatabase>();
+        builder.Services.AddSingleton<SincronizacionOfflineServicio>();
         builder.Services.AddSingleton<IPrinterService, PrinterService>();
         builder.Services.AddSingleton<IPdfService, PdfService>();
         builder.Services.AddSingleton<ILectorCodigoBarrasServicio, LectorCodigoBarrasServicio>();
         builder.Services.AddSingleton<NavegadorApp>();
 
-        builder.Services.AddTransient<ChatEnVivoServicio>();
+        builder.Services.AddSingleton<ChatEnVivoServicio>();
+        builder.Services.AddSingleton<CodigosOfflineEnVivoServicio>();
         builder.Services.AddTransient<ArranquePage>();
         builder.Services.AddTransient<LoginPage>();
         builder.Services.AddTransient<PasswordPage>();

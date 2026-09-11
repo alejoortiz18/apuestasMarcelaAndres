@@ -143,6 +143,16 @@ public sealed class DispositivoService : IDispositivoService
             existente.FechaAsociacion = _clock.UtcNow;
         }
 
+        var generadosPendientes = await _db.CodigosPreventaOffline
+            .Where(c => c.UsuarioId == usuarioId
+                && c.EstadoDelCodigo == EstadoCodigoOffline.Generado
+                && c.DispositivoId != dispositivoId)
+            .ToListAsync(cancellationToken);
+        foreach (var codigo in generadosPendientes)
+        {
+            codigo.DispositivoId = dispositivoId;
+        }
+
         await _db.SaveChangesAsync(cancellationToken);
         return Result.Ok(SuccessMessages.RegistroActualizado);
     }

@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Moq;
 using NewRich.Application.Abstractions;
 using NewRich.Application.Contracts.Offline;
 using NewRich.Application.Services;
@@ -15,7 +16,7 @@ public sealed class OfflineServiceTests
     [Fact]
     public async Task ListarAsync_sin_codigos_deja_el_resumen_en_cero()
     {
-        var (sut, _) = CreateSut();
+        var (sut, _, _) = CreateSut();
 
         var result = await sut.ListarAsync(CancellationToken.None);
 
@@ -31,7 +32,7 @@ public sealed class OfflineServiceTests
     [Fact]
     public async Task ListarAsync_muestra_usuario_pda_y_conteos_reales()
     {
-        var (sut, db) = CreateSut();
+        var (sut, db, _) = CreateSut();
         var pda = await AgregarPdaAsync(db, "PDA-042");
         var usuario = await AgregarUsuarioAsync(db, "Camila Rojas");
         db.CodigosPreventaOffline.AddRange(
@@ -61,7 +62,7 @@ public sealed class OfflineServiceTests
     [Fact]
     public async Task GenerarAsync_crea_codigos_en_estado_generado()
     {
-        var (sut, db) = CreateSut();
+        var (sut, db, _) = CreateSut();
         var pda = await AgregarPdaAsync(db, "PDA-017");
         var usuario = await AgregarUsuarioAsync(db, "Jorge Mena");
         await AsociarAsync(db, pda.DispositivoId, usuario.UsuarioId);
@@ -90,9 +91,54 @@ public sealed class OfflineServiceTests
     }
 
     [Fact]
+    public async Task GenerarAsync_avisa_en_vivo_al_vendedor_asignado()
+    {
+        var (sut, db, vivo) = CreateSut();
+        var pda = await AgregarPdaAsync(db, "PDA-018");
+        var usuario = await AgregarUsuarioAsync(db, "Ana Pérez");
+        await AsociarAsync(db, pda.DispositivoId, usuario.UsuarioId);
+
+        var result = await sut.GenerarAsync(
+            new GenerarCodigosOfflineRequest
+            {
+                UsuarioId = usuario.UsuarioId,
+                DispositivoId = pda.DispositivoId,
+                Cantidad = 3
+            },
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        vivo.Verify(v => v.AvisarAsignadosAsync(
+            usuario.UsuarioId,
+            It.Is<CodigosOfflineAsignadosAviso>(a => a.DispositivoId == pda.DispositivoId && a.Cantidad == 3),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GenerarAsync_si_falla_no_avisa()
+    {
+        var (sut, _, vivo) = CreateSut();
+
+        var result = await sut.GenerarAsync(
+            new GenerarCodigosOfflineRequest
+            {
+                UsuarioId = Guid.NewGuid(),
+                DispositivoId = Guid.NewGuid(),
+                Cantidad = 1
+            },
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        vivo.Verify(v => v.AvisarAsignadosAsync(
+            It.IsAny<Guid>(),
+            It.IsAny<CodigosOfflineAsignadosAviso>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task GenerarAsync_exige_asociacion_activa()
     {
-        var (sut, db) = CreateSut();
+        var (sut, db, _) = CreateSut();
         var pda = await AgregarPdaAsync(db, "PDA-031");
         var usuario = await AgregarUsuarioAsync(db, "Laura Gil");
 
@@ -113,7 +159,7 @@ public sealed class OfflineServiceTests
     [Fact]
     public async Task GenerarAsync_rechaza_cantidad_fuera_de_rango()
     {
-        var (sut, db) = CreateSut();
+        var (sut, db, _) = CreateSut();
         var pda = await AgregarPdaAsync(db, "PDA-009");
         var usuario = await AgregarUsuarioAsync(db, "Mateo Diaz");
         await AsociarAsync(db, pda.DispositivoId, usuario.UsuarioId);
@@ -134,7 +180,7 @@ public sealed class OfflineServiceTests
     [Fact]
     public async Task GenerarAsync_no_supera_la_capacidad_del_pda()
     {
-        var (sut, db) = CreateSut();
+        var (sut, db, _) = CreateSut();
         var pda = await AgregarPdaAsync(db, "PDA-028", capacidad: 3000);
         var usuario = await AgregarUsuarioAsync(db, "Nora Castro");
         await AsociarAsync(db, pda.DispositivoId, usuario.UsuarioId);
@@ -157,7 +203,7 @@ public sealed class OfflineServiceTests
     [Fact]
     public async Task ObtenerAsync_devuelve_trazabilidad()
     {
-        var (sut, db) = CreateSut();
+        var (sut, db, _) = CreateSut();
         var pda = await AgregarPdaAsync(db, "PDA-042");
         var usuario = await AgregarUsuarioAsync(db, "Camila Rojas");
         var codigo = Codigo(pda, usuario, EstadoCodigoOffline.Utilizado, "OFF-000342", venta: DateTime.UtcNow);
@@ -171,14 +217,15 @@ public sealed class OfflineServiceTests
         result.Data.Estado.Should().Be("Utilizado");
     }
 
-    private static (OfflineService Sut, NewRichDbContext Db) CreateSut()
+    private static (OfflineService Sut, NewRichDbContext Db, Mock<ICodigosOfflineTiempoReal> Vivo) CreateSut()
     {
         var options = new DbContextOptionsBuilder<NewRichDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         var db = new NewRichDbContext(options);
         var clock = new FixedClock(new DateTime(2026, 8, 30, 19, 0, 0, DateTimeKind.Utc));
-        return (new OfflineService(db, new FakeQr(), clock), db);
+        var vivo = new Mock<ICodigosOfflineTiempoReal>();
+        return (new OfflineService(db, new FakeQr(), clock, vivo.Object), db, vivo);
     }
 
     private static async Task<Dispositivo> AgregarPdaAsync(NewRichDbContext db, string codigo, int capacidad = 3000)

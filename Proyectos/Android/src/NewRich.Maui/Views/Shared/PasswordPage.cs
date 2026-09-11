@@ -23,6 +23,8 @@ public sealed class PasswordPage : ContentPage
     private readonly ITokenStore _tokens;
     private readonly SesionPda _sesion;
     private readonly NavegadorApp _nav;
+    private readonly SincronizacionOfflineServicio _offline;
+    private readonly CodigosOfflineEnVivoServicio _enVivo;
     private readonly Entry _actual;
     private readonly Entry _nueva;
     private readonly Entry _confirma;
@@ -33,12 +35,20 @@ public sealed class PasswordPage : ContentPage
         Style = null
     };
 
-    public PasswordPage(NewRichApiClient api, ITokenStore tokens, SesionPda sesion, NavegadorApp nav)
+    public PasswordPage(
+        NewRichApiClient api,
+        ITokenStore tokens,
+        SesionPda sesion,
+        NavegadorApp nav,
+        SincronizacionOfflineServicio offline,
+        CodigosOfflineEnVivoServicio enVivo)
     {
         _api = api;
         _tokens = tokens;
         _sesion = sesion;
         _nav = nav;
+        _offline = offline;
+        _enVivo = enVivo;
         Title = string.Empty;
         NavigationPage.SetHasNavigationBar(this, false);
         Shell.SetNavBarIsVisible(this, false);
@@ -310,6 +320,8 @@ public sealed class PasswordPage : ContentPage
 
         if (shell.Data == ShellPda.Vendedor)
         {
+            await _offline.SincronizarEnSilencioAsync(true, resultado.Data.Rol, false, CancellationToken.None);
+            await _enVivo.AsegurarSesionAsync(CancellationToken.None);
             _nav.IrAVendedor();
         }
         else
