@@ -149,7 +149,7 @@ public sealed class KpiServiceTests
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         var db = new NewRichDbContext(options);
-        return (new KpiService(db, new FixedClock(Corte)), db);
+        return (new KpiService(db, new FixedClock(Corte), new PresenciaDispositivosMemoria()), db);
     }
 
     private static async Task<Usuario> AgregarUsuarioAsync(NewRichDbContext db, string nombre, RolUsuario rol)

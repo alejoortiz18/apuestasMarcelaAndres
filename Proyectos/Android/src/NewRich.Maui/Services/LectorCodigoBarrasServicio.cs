@@ -53,16 +53,24 @@ public sealed class LectorCodigoBarrasServicio : ILectorCodigoBarrasServicio
             filtro.AddAction(accion);
         }
 
-        if (Build.VERSION.SdkInt >= BuildVersionCodes.Tiramisu)
+        try
         {
-            contexto.RegisterReceiver(_receptor, filtro, ReceiverFlags.Exported);
-        }
-        else
-        {
-            contexto.RegisterReceiver(_receptor, filtro);
-        }
+            if (Build.VERSION.SdkInt >= BuildVersionCodes.Tiramisu)
+            {
+                contexto.RegisterReceiver(_receptor, filtro, ReceiverFlags.Exported);
+            }
+            else
+            {
+                contexto.RegisterReceiver(_receptor, filtro);
+            }
 
-        _activo = true;
+            _activo = true;
+        }
+        catch (Exception)
+        {
+            _receptor.Dispose();
+            _receptor = null;
+        }
     }
 
     public void Desactivar()
@@ -76,7 +84,7 @@ public sealed class LectorCodigoBarrasServicio : ILectorCodigoBarrasServicio
         {
             Contexto()?.UnregisterReceiver(_receptor);
         }
-        catch (ArgumentException)
+        catch (Exception)
         {
         }
 
@@ -95,13 +103,19 @@ public sealed class LectorCodigoBarrasServicio : ILectorCodigoBarrasServicio
 
         foreach (var accion in Disparos)
         {
-            var intent = new Intent(accion);
-            if (accion.Contains("datawedge", StringComparison.OrdinalIgnoreCase))
+            try
             {
-                intent.PutExtra("com.symbol.datawedge.api.SOFT_SCAN_TRIGGER", "START_SCANNING");
-            }
+                var intent = new Intent(accion);
+                if (accion.Contains("datawedge", StringComparison.OrdinalIgnoreCase))
+                {
+                    intent.PutExtra("com.symbol.datawedge.api.SOFT_SCAN_TRIGGER", "START_SCANNING");
+                }
 
-            contexto.SendBroadcast(intent);
+                contexto.SendBroadcast(intent);
+            }
+            catch (Exception)
+            {
+            }
         }
     }
 

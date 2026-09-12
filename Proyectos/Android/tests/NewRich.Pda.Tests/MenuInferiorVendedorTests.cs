@@ -30,4 +30,14 @@ public sealed class MenuInferiorVendedorTests
         MenuInferiorVendedor.RutaActiva("//inicio").Should().Be("inicio");
         MenuInferiorVendedor.RutaActiva(null).Should().Be("inicio");
     }
+
+    [Fact]
+    public void El_menu_queda_en_fila_propia_debajo_del_contenido()
+    {
+        MenuInferiorVendedor.EsCapa(MenuInferiorVendedor.CapaId).Should().BeTrue();
+        MenuInferiorVendedor.EsCapa("otra").Should().BeFalse();
+        MenuInferiorVendedor.FilaContenido.Should().Be(0);
+        MenuInferiorVendedor.FilaMenu.Should().Be(1);
+        MenuInferiorVendedor.FilaMenu.Should().BeGreaterThan(MenuInferiorVendedor.FilaContenido);
+    }
 }

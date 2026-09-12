@@ -15,7 +15,7 @@ public sealed class DispositivoServiceTests
     [Fact]
     public async Task ListarAsync_incluye_sistema_y_codigos_offline()
     {
-        var (sut, db) = CreateSut();
+        var (sut, db, _) = CreateSut();
         db.Dispositivos.Add(new Dispositivo
         {
             DispositivoId = Guid.NewGuid(),
@@ -40,7 +40,7 @@ public sealed class DispositivoServiceTests
     [Fact]
     public async Task ListarAsync_cuenta_codigos_offline_disponibles()
     {
-        var (sut, db) = CreateSut();
+        var (sut, db, _) = CreateSut();
         var pda = await AgregarPdaAsync(db);
         var usuario = await AgregarUsuarioAsync(db, "Camila Rojas");
         db.CodigosPreventaOffline.AddRange(
@@ -56,9 +56,44 @@ public sealed class DispositivoServiceTests
     }
 
     [Fact]
+    public async Task ListarAsync_sesion_activa_sin_presencia_aparece_desconectado()
+    {
+        var (sut, db, _) = CreateSut();
+        var pda = await AgregarPdaAsync(db);
+        var usuario = await AgregarUsuarioAsync(db, "Nora Castro");
+        db.Sesiones.Add(new Sesion
+        {
+            SesionId = Guid.NewGuid(),
+            UsuarioId = usuario.UsuarioId,
+            DispositivoId = pda.DispositivoId,
+            Token = "jwt",
+            FechaInicio = DateTime.UtcNow,
+            FechaExpiracion = DateTime.UtcNow.AddHours(8),
+            Activa = true
+        });
+        await db.SaveChangesAsync();
+
+        var result = await sut.ListarAsync(CancellationToken.None);
+
+        result.Data.Should().ContainSingle(d => d.DispositivoId == pda.DispositivoId && !d.Conectado);
+    }
+
+    [Fact]
+    public async Task ListarAsync_con_presencia_viva_aparece_conectado()
+    {
+        var (sut, db, presencia) = CreateSut();
+        var pda = await AgregarPdaAsync(db);
+        presencia.MarcarVivo(pda.DispositivoId, DateTime.UtcNow);
+
+        var result = await sut.ListarAsync(CancellationToken.None);
+
+        result.Data.Should().ContainSingle(d => d.DispositivoId == pda.DispositivoId && d.Conectado);
+    }
+
+    [Fact]
     public async Task AsociarAsync_reemplaza_al_usuario_anterior()
     {
-        var (sut, db) = CreateSut();
+        var (sut, db, _) = CreateSut();
         var pda = await AgregarPdaAsync(db);
         var primero = await AgregarUsuarioAsync(db, "Camila Rojas");
         var segundo = await AgregarUsuarioAsync(db, "Nora Castro");
@@ -74,7 +109,7 @@ public sealed class DispositivoServiceTests
     [Fact]
     public async Task AsociarAsync_pasa_codigos_generados_al_nuevo_pda()
     {
-        var (sut, db) = CreateSut();
+        var (sut, db, _) = CreateSut();
         var pdaAnterior = await AgregarPdaAsync(db);
         var pdaNuevo = await AgregarPdaAsync(db);
         var usuario = await AgregarUsuarioAsync(db, "Alejandro Vendedor");
@@ -99,7 +134,7 @@ public sealed class DispositivoServiceTests
     [Fact]
     public async Task DesasociarAsync_usa_la_asociacion_activa()
     {
-        var (sut, db) = CreateSut();
+        var (sut, db, _) = CreateSut();
         var pda = await AgregarPdaAsync(db);
         var usuario = await AgregarUsuarioAsync(db, "Camila Rojas");
         await sut.AsociarAsync(pda.DispositivoId, usuario.UsuarioId, CancellationToken.None);
@@ -113,7 +148,7 @@ public sealed class DispositivoServiceTests
     [Fact]
     public async Task ActualizarAsync_no_borra_el_modelo_si_no_se_envia()
     {
-        var (sut, db) = CreateSut();
+        var (sut, db, _) = CreateSut();
         var pda = await AgregarPdaAsync(db, "Android 13");
 
         var result = await sut.ActualizarAsync(pda.DispositivoId, new ActualizarDispositivoRequest
@@ -129,7 +164,7 @@ public sealed class DispositivoServiceTests
     [Fact]
     public async Task EliminarAsync_quita_el_pda()
     {
-        var (sut, db) = CreateSut();
+        var (sut, db, _) = CreateSut();
         var pda = await AgregarPdaAsync(db);
 
         var result = await sut.EliminarAsync(pda.DispositivoId, CancellationToken.None);
@@ -139,13 +174,14 @@ public sealed class DispositivoServiceTests
         db.Dispositivos.Should().BeEmpty();
     }
 
-    private static (DispositivoService Sut, NewRichDbContext Db) CreateSut()
+    private static (DispositivoService Sut, NewRichDbContext Db, IPresenciaDispositivos Presencia) CreateSut()
     {
         var options = new DbContextOptionsBuilder<NewRichDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         var db = new NewRichDbContext(options);
-        return (new DispositivoService(db, new FixedClock(DateTime.UtcNow)), db);
+        var presencia = new PresenciaDispositivosMemoria();
+        return (new DispositivoService(db, new FixedClock(DateTime.UtcNow), presencia), db, presencia);
     }
 
     private static async Task<Dispositivo> AgregarPdaAsync(NewRichDbContext db, string? modelo = "Android 13")

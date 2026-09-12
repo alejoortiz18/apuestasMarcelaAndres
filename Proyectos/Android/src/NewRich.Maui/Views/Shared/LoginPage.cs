@@ -3,6 +3,7 @@ using NewRich.Constants.Messages;
 using NewRich.Pda.Core;
 using NewRich.Pda.Core.Api;
 using NewRich.Pda.Core.Auth;
+using NewRich.Maui.Data;
 using NewRich.Maui.Services;
 using NewRich.Maui.Views;
 
@@ -24,6 +25,7 @@ public sealed class LoginPage : ContentPage
     private readonly SesionPda _sesion;
     private readonly NavegadorApp _nav;
     private readonly SincronizacionOfflineServicio _offline;
+    private readonly LocalDatabase _local;
     private readonly CodigosOfflineEnVivoServicio _enVivo;
     private readonly Entry _usuario;
     private readonly Entry _password;
@@ -43,6 +45,7 @@ public sealed class LoginPage : ContentPage
         SesionPda sesion,
         NavegadorApp nav,
         SincronizacionOfflineServicio offline,
+        LocalDatabase local,
         CodigosOfflineEnVivoServicio enVivo)
     {
         _api = api;
@@ -50,6 +53,7 @@ public sealed class LoginPage : ContentPage
         _sesion = sesion;
         _nav = nav;
         _offline = offline;
+        _local = local;
         _enVivo = enVivo;
         Title = string.Empty;
         NavigationPage.SetHasNavigationBar(this, false);
@@ -237,7 +241,12 @@ public sealed class LoginPage : ContentPage
                 CancellationToken.None);
             if (!conexion.IsSuccess)
             {
-                _error.Text = conexion.Message;
+                if (await EntrarConSesionLocalAsync())
+                {
+                    return;
+                }
+
+                _error.Text = PdaTexts.IngresoRequiereConexion;
                 return;
             }
 
@@ -265,6 +274,19 @@ public sealed class LoginPage : ContentPage
                 _sesion.Limites = operativa.Data;
             }
 
+            var loterias = await _api.LoteriasAsync(CancellationToken.None);
+            if (loterias.IsSuccess && loterias.Data is not null)
+            {
+                await _local.GuardarLoteriasAsync(loterias.Data);
+            }
+
+            await _local.GuardarSesionAsync(new SesionLocal
+            {
+                Usuario = resultado.Data,
+                Limites = _sesion.Limites,
+                CodigoDispositivo = _sesion.CodigoDispositivo
+            });
+
             var shell = NavegacionPorRol.Para(resultado.Data.Rol);
             if (!shell.IsSuccess)
             {
@@ -290,18 +312,61 @@ public sealed class LoginPage : ContentPage
                 _nav.IrAObservador();
             }
         }
-        catch (HttpRequestException)
+        catch (Exception)
         {
-            _error.Text = PdaTexts.SinConexionServidor;
-        }
-        catch (Exception ex)
-        {
-            _error.Text = ex.Message;
+            if (!await EntrarConSesionLocalAsync())
+            {
+                _error.Text = PdaTexts.IngresoRequiereConexion;
+            }
         }
         finally
         {
             _cargando.Ocultar();
             _ingresar.IsEnabled = true;
         }
+    }
+
+    private async Task<bool> EntrarConSesionLocalAsync()
+    {
+        var token = await _tokens.ObtenerAsync();
+        var cache = await _local.SesionAsync();
+        if (string.IsNullOrWhiteSpace(token) || cache?.Usuario is null)
+        {
+            return false;
+        }
+
+        var escrito = _usuario.Text?.Trim() ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(escrito)
+            && !string.Equals(escrito, cache.Usuario.NombreUsuario, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        if (cache.Usuario.DebeCambiarPassword)
+        {
+            return false;
+        }
+
+        var shell = NavegacionPorRol.Para(cache.Usuario.Rol);
+        if (!shell.IsSuccess)
+        {
+            return false;
+        }
+
+        _sesion.Usuario = cache.Usuario;
+        _sesion.Limites = cache.Limites;
+        _sesion.CodigoDispositivo = string.IsNullOrWhiteSpace(cache.CodigoDispositivo)
+            ? PdaConexion.CodigoDispositivo
+            : cache.CodigoDispositivo;
+        if (shell.Data == ShellPda.Vendedor)
+        {
+            _nav.IrAVendedor();
+        }
+        else
+        {
+            _nav.IrAObservador();
+        }
+
+        return true;
     }
 }

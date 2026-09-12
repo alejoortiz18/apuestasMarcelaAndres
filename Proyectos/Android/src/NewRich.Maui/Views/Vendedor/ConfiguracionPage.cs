@@ -35,17 +35,24 @@ public sealed class ConfiguracionPage : ContentPage
         var descargar = Ui.Primario(PdaTexts.DescargarCodigos);
         descargar.Clicked += async (_, _) =>
         {
-            var resultado = await _api.DescargarOfflineAsync(CancellationToken.None);
-            if (!resultado.IsSuccess)
+            try
             {
-                await this.AvisoAsync(PdaTexts.CodigosOffline, resultado.Message, PdaTexts.Cerrar);
-                return;
+                var resultado = await _api.DescargarOfflineAsync(CancellationToken.None);
+                if (!resultado.IsSuccess)
+                {
+                    await this.AvisoAsync(PdaTexts.CodigosOffline, resultado.Message, PdaTexts.Cerrar);
+                    return;
+                }
+
+                await _offline.GuardarDescargaAsync(DescargaCodigosOffline.ParaGuardar(resultado.Data));
+
+                await PintarCodigosAsync();
+                await this.AvisoAsync(PdaTexts.CodigosOffline, DescargaCodigosOffline.Mensaje(resultado.Data), PdaTexts.Cerrar);
             }
-
-            await _offline.GuardarDescargaAsync(DescargaCodigosOffline.ParaGuardar(resultado.Data));
-
-            await PintarCodigosAsync();
-            await this.AvisoAsync(PdaTexts.CodigosOffline, DescargaCodigosOffline.Mensaje(resultado.Data), PdaTexts.Cerrar);
+            catch (Exception)
+            {
+                await this.AvisoAsync(PdaTexts.CodigosOffline, PdaTexts.SinConexionServidor, PdaTexts.Cerrar);
+            }
         };
 
         Content = new ScrollView
@@ -92,7 +99,13 @@ public sealed class ConfiguracionPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        await PintarCodigosAsync();
+        try
+        {
+            await PintarCodigosAsync();
+        }
+        catch (Exception)
+        {
+        }
     }
 
     private async Task PintarCodigosAsync()

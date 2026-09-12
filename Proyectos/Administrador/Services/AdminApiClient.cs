@@ -87,6 +87,7 @@ public interface IAdminApiClient
     Task<ApiCallResult<OfflineListadoResponse>> ListarCodigosOfflineAsync(CancellationToken cancellationToken);
     Task<ApiCallResult<CodigoOfflineResponse>> ObtenerCodigoOfflineAsync(Guid id, CancellationToken cancellationToken);
     Task<ApiCallResult<List<CodigoOfflineResponse>>> GenerarCodigosOfflineAsync(GenerarCodigosOfflineRequest request, CancellationToken cancellationToken);
+    Task<ApiCallResult<CodigoOfflineResponse>> RegistrarQrOfflineAsync(RegistrarQrOfflineRequest request, CancellationToken cancellationToken);
 
     Task<ApiCallResult<List<CasoGanadorResponse>>> ListarCasosPremioAsync(CancellationToken cancellationToken);
     Task<ApiCallResult<CasoGanadorResponse>> ObtenerCasoPremioAsync(Guid id, CancellationToken cancellationToken);
@@ -353,6 +354,9 @@ public sealed class AdminApiClient : IAdminApiClient
 
     public Task<ApiCallResult<List<CodigoOfflineResponse>>> GenerarCodigosOfflineAsync(GenerarCodigosOfflineRequest request, CancellationToken cancellationToken) =>
         SendAsync<List<CodigoOfflineResponse>>(HttpMethod.Post, "api/Offline", request, true, cancellationToken);
+
+    public Task<ApiCallResult<CodigoOfflineResponse>> RegistrarQrOfflineAsync(RegistrarQrOfflineRequest request, CancellationToken cancellationToken) =>
+        SendAsync<CodigoOfflineResponse>(HttpMethod.Post, "api/Offline/RegistrarQr", request, true, cancellationToken);
 
     public Task<ApiCallResult<List<CasoGanadorResponse>>> ListarCasosPremioAsync(CancellationToken cancellationToken) =>
         SendAsync<List<CasoGanadorResponse>>(HttpMethod.Get, "api/Premios", null, true, cancellationToken);

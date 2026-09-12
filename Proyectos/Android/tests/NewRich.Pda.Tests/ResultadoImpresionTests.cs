@@ -22,5 +22,6 @@ public sealed class ResultadoImpresionTests
 
         resultado.Ok.Should().BeFalse();
         resultado.Mensaje.Should().Be(PdaTexts.ErrorPdf);
+        PdaTexts.GenerandoPdf.Should().Be("Generando PDF, un momento");
     }
 }

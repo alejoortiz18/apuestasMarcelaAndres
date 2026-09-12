@@ -400,6 +400,9 @@ public static class UiTexts
     public const string OfflineKicker = "Operación especial";
     public const string OfflineTitulo = "Ventas offline";
     public const string OfflineSub = "Genera, asigna y registra códigos preasignados.";
+    public const string RegistrarQrOffline = "Registrar QR vendido";
+    public const string RegistrarQrAyuda = "Pegue o escanee el JSON del QR de la tirilla. El sistema valida el código cifrado y no registra el mismo código dos veces.";
+    public const string QrTirilla = "QR de la tirilla";
     public const string GenerarCodigos = "Generar códigos";
     public const string AsociarPdaAntesDeGenerar = "Debes asociar un PDA antes de generar los códigos";
     public const string BuscarCodigoOffline = "Buscar código";
@@ -431,6 +434,14 @@ public static class UiTexts
     public const string FechaDescarga = "Fecha de descarga";
     public const string FechaRegistro = "Fecha de registro";
     public const string VolverAlListado = "Volver al listado";
+    public const string EstadosDelCodigo = "Estados del código";
+    public const string EstadosDelCodigoAyuda = "Cada código recorre estos estados. El color del recuadro es el mismo de la columna Estado del código.";
+    public const string EstadoGeneradoAyuda = "El código se creó y se asignó al vendedor y al PDA. Todavía no se ha descargado al dispositivo.";
+    public const string EstadoDescargadoAyuda = "El PDA ya descargó el código. Está disponible para una venta sin conexión.";
+    public const string EstadoUtilizadoAyuda = "El vendedor ya usó el código en una venta offline. Falta el registro en el administrador.";
+    public const string EstadoRegistradoAyuda = "El administrador ya registró el QR vendido. La venta quedó ingresada en el sistema.";
+    public const string CargandoTirilla = "Cargando tirilla";
+    public const string TirillaNoDisponible = "No hay tirilla de venta para este código.";
 
     public const string PremiosKicker = "Proceso de entrega";
     public const string PremiosTitulo = "Casos de premios ganadores";

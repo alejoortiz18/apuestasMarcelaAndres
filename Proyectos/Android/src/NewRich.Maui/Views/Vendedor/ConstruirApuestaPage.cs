@@ -32,11 +32,28 @@ public sealed class ConstruirApuestaPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        var loterias = await _api.LoteriasAsync(CancellationToken.None);
-        _loterias = loterias.IsSuccess && loterias.Data is not null
-            ? loterias.Data.Where(l => l.Estado == EstadoGeneral.Activo).ToArray()
-            : [];
-        Render();
+        try
+        {
+            IReadOnlyList<LoteriaResponse> lote = [];
+            var loterias = await _api.LoteriasAsync(CancellationToken.None);
+            if (loterias.IsSuccess && loterias.Data is not null)
+            {
+                lote = loterias.Data.Where(l => l.Estado == EstadoGeneral.Activo).ToArray();
+                await _offline.GuardarLoteriasAsync(lote);
+            }
+            else
+            {
+                lote = (await _offline.LoteriasAsync()).Where(l => l.Estado == EstadoGeneral.Activo).ToArray();
+            }
+
+            _loterias = lote;
+            Render();
+        }
+        catch (Exception)
+        {
+            _loterias = (await _offline.LoteriasAsync()).Where(l => l.Estado == EstadoGeneral.Activo).ToArray();
+            Render();
+        }
     }
 
     private void Render()
@@ -49,7 +66,7 @@ public sealed class ConstruirApuestaPage : ContentPage
         }
 
         var combinada = draft.Tipo == TipoApuesta.COMBINADO;
-        var numero = Ui.Entero("1234", 4);
+        var numero = Ui.Entero("123", 4);
         var valor = Ui.Entero("1000");
         var checks = new Dictionary<Guid, CheckBox>();
         var loteriasBox = new VerticalStackLayout { Spacing = 6 };
@@ -230,6 +247,31 @@ public sealed class ConstruirApuestaPage : ContentPage
 
     private async Task JugarAsync(TicketDraft draft)
     {
+        try
+        {
+            await JugarInternoAsync(draft);
+        }
+        catch (Exception)
+        {
+            if (_sesion.Tirilla is not null)
+            {
+                try
+                {
+                    await Navigation.PushAsync(_services.GetRequiredService<TirillaVendidaPage>());
+                    return;
+                }
+                catch (Exception)
+                {
+                }
+            }
+
+            var disponibles = await _offline.ContarDisponiblesAsync();
+            await this.AvisoAsync(PdaTexts.JuegoNuevo, PdaTexts.AvisoOperacionSinServidor(disponibles), PdaTexts.Entendido);
+        }
+    }
+
+    private async Task JugarInternoAsync(TicketDraft draft)
+    {
         var ok = await this.ConfirmarAsync(PdaTexts.ConfirmarVenta, $"{PdaTexts.ValorTotalPagar}\n{FormatoDinero.Pesos(draft.Total)}\n\n{PdaTexts.SinDatosComprador}", PdaTexts.AceptarYPagar, PdaTexts.Cancelar);
         if (!ok)
         {
@@ -238,12 +280,12 @@ public sealed class ConstruirApuestaPage : ContentPage
 
         if (PoliticaVentaPda.IntentarServidorAunqueAndroidReporteSinRed)
         {
-            var conexion = await _api.ConectarAsync(
-                PdaConexion.UrlsPara(DeviceInfo.Current.DeviceType == DeviceType.Virtual),
-                CancellationToken.None);
-            if (conexion.IsSuccess)
+            try
             {
-                try
+                var conexion = await _api.ConectarAsync(
+                    PdaConexion.UrlsPara(DeviceInfo.Current.DeviceType == DeviceType.Virtual),
+                    CancellationToken.None);
+                if (conexion.IsSuccess)
                 {
                     var venta = await _api.ConfirmarVentaAsync(draft.ARequest(), Guid.NewGuid().ToString("N"), CancellationToken.None);
                     if (!venta.IsSuccess || venta.Data is null)
@@ -263,12 +305,9 @@ public sealed class ConstruirApuestaPage : ContentPage
                     await Navigation.PushAsync(_services.GetRequiredService<TirillaVendidaPage>());
                     return;
                 }
-                catch (HttpRequestException)
-                {
-                }
-                catch (TaskCanceledException)
-                {
-                }
+            }
+            catch (Exception)
+            {
             }
         }
 
@@ -279,15 +318,22 @@ public sealed class ConstruirApuestaPage : ContentPage
             return;
         }
 
-        var continuar = await this.ConfirmarAsync(PdaTexts.ConexionNoDisponible, PdaTexts.SinConexionServidor, PdaTexts.ContinuarOffline, PdaTexts.EsperarConexion);
+        var continuar = await this.ConfirmarAsync(PdaTexts.ConexionNoDisponible, PdaTexts.ContinuarOfflinePregunta, PdaTexts.ContinuarOffline, PdaTexts.EsperarConexion);
         if (!continuar)
         {
             return;
         }
 
         var codigo = await _offline.ConsumirAsync();
-        var payload = EvidenciaOffline.ContenidoQr(codigo?.Payload ?? string.Empty);
-        await MostrarTirillaAsync(codigo?.Consecutivo ?? string.Empty, draft, true, payload);
+        if (codigo is null)
+        {
+            await this.AvisoAsync(PdaTexts.SinCodigosOffline, PdaTexts.BorradorConservado, PdaTexts.Entendido);
+            return;
+        }
+
+        var qr = EvidenciaOffline.QrTirilla(codigo.Payload, codigo.Consecutivo, draft);
+        await _offline.GuardarVentaAsync(codigo.Consecutivo, qr);
+        await MostrarTirillaAsync(codigo.Consecutivo, draft, true, qr);
     }
 
     private async Task MostrarTirillaAsync(string codigo, TicketDraft draft, bool offline, string? qr = null)

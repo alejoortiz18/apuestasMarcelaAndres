@@ -1,9 +1,11 @@
+using NewRich.Application.Contracts.Chat;
 using NewRich.Application.Services;
+using NewRich.Domain.Enums;
+using NewRich.Maui.Services;
+using NewRich.Maui.Views;
 using NewRich.Pda.Core;
 using NewRich.Pda.Core.Api;
 using NewRich.Pda.Core.Auth;
-using NewRich.Maui.Services;
-using NewRich.Maui.Views;
 
 namespace NewRich.Maui.Views.Vendedor;
 
@@ -13,16 +15,29 @@ public sealed class TirillaVendidaPage : ContentPage
     private readonly SesionPda _sesion;
     private readonly IPrinterService _printer;
     private readonly IPdfService _pdf;
+    private readonly SincronizacionOfflineServicio _sincronizacion;
+    private readonly ILectorCodigoBarrasServicio _lector;
     private bool _evidenciaEnviada;
+    private bool _capturaOk;
     private bool _impresionAutomaticaHecha;
+    private bool _escuchandoLector;
     private Label? _avisoImpresion;
+    private readonly CargandoOverlay _cargando = new();
 
-    public TirillaVendidaPage(NewRichApiClient api, SesionPda sesion, IPrinterService printer, IPdfService pdf)
+    public TirillaVendidaPage(
+        NewRichApiClient api,
+        SesionPda sesion,
+        IPrinterService printer,
+        IPdfService pdf,
+        SincronizacionOfflineServicio sincronizacion,
+        ILectorCodigoBarrasServicio lector)
     {
         _api = api;
         _sesion = sesion;
         _printer = printer;
         _pdf = pdf;
+        _sincronizacion = sincronizacion;
+        _lector = lector;
         Title = PdaTexts.TicketVendido;
         BackgroundColor = Ui.Paper;
     }
@@ -30,6 +45,18 @@ public sealed class TirillaVendidaPage : ContentPage
     protected override void OnAppearing()
     {
         base.OnAppearing();
+        try
+        {
+            PintarTirilla();
+        }
+        catch (Exception)
+        {
+            Content = new Label { Text = PdaTexts.ErrorImpresion, Padding = 16, TextColor = Ui.Danger };
+        }
+    }
+
+    private void PintarTirilla()
+    {
         var tirilla = _sesion.Tirilla;
         if (tirilla is null)
         {
@@ -76,18 +103,33 @@ public sealed class TirillaVendidaPage : ContentPage
         if (tirilla.Offline)
         {
             cuerpo.Add(Ui.Banner(PdaTexts.FotoOffline, Ui.WarnBg, Ui.Warn));
+            var leer = Ui.Secundario(PdaTexts.LeerCodigoBarras);
+            leer.Clicked += (_, _) =>
+            {
+                EscucharLector();
+                _lector.Disparar();
+            };
             var listo = Ui.Primario(PdaTexts.FotoLista);
             listo.Clicked += async (_, _) => await EnviarEvidenciaAsync(tirilla, listo);
+            cuerpo.Add(leer);
             cuerpo.Add(listo);
+            EscucharLector();
         }
 
-        Content = new ScrollView
+        Content = new Grid
         {
-            Content = new VerticalStackLayout
+            Children =
             {
-                Padding = 16,
-                Spacing = 12,
-                Children = { cuerpo }
+                new ScrollView
+                {
+                    Content = new VerticalStackLayout
+                    {
+                        Padding = 16,
+                        Spacing = 12,
+                        Children = { cuerpo }
+                    }
+                },
+                _cargando
             }
         };
 
@@ -144,7 +186,15 @@ public sealed class TirillaVendidaPage : ContentPage
         recuadro.Add(Regla());
         if (!string.IsNullOrWhiteSpace(tirilla.QrContenido))
         {
-            var png = QrImagen.Png(tirilla.QrContenido);
+            byte[] png = [];
+            try
+            {
+                png = QrImagen.Png(tirilla.QrContenido);
+            }
+            catch (Exception)
+            {
+            }
+
             if (png.Length > 0)
             {
                 var copia = png;
@@ -263,17 +313,25 @@ public sealed class TirillaVendidaPage : ContentPage
 
     private async Task ImprimirAsync(TirillaVenta tirilla)
     {
-        var resultado = await _printer.ImprimirAsync(tirilla.Texto, tirilla.QrContenido);
-        if (resultado.Ok)
+        try
         {
-            return;
-        }
+            var resultado = await _printer.ImprimirAsync(tirilla.Texto, tirilla.QrContenido);
+            if (resultado.Ok)
+            {
+                return;
+            }
 
-        MostrarAviso(resultado.Mensaje);
+            MostrarAviso(resultado.Mensaje);
+        }
+        catch (Exception)
+        {
+            MostrarAviso(PdaTexts.ErrorImpresion);
+        }
     }
 
     private async Task GenerarPdfAsync(TirillaVenta tirilla)
     {
+        _cargando.Mostrar(PdaTexts.GenerandoPdf);
         try
         {
             var bytes = TirillaPdf.Generar(tirilla.ARespuesta());
@@ -282,6 +340,10 @@ public sealed class TirillaVendidaPage : ContentPage
         catch (Exception)
         {
             MostrarAviso(PdaTexts.ErrorPdf);
+        }
+        finally
+        {
+            _cargando.Ocultar();
         }
     }
 
@@ -293,7 +355,56 @@ public sealed class TirillaVendidaPage : ContentPage
         }
 
         _avisoImpresion.Text = mensaje;
-        _avisoImpresion.IsVisible = true;
+        _avisoImpresion.IsVisible = !string.IsNullOrWhiteSpace(mensaje);
+    }
+
+    protected override void OnDisappearing()
+    {
+        SoltarLector();
+        base.OnDisappearing();
+    }
+
+    private void EscucharLector()
+    {
+        if (_escuchandoLector)
+        {
+            return;
+        }
+
+        try
+        {
+            _lector.CodigoLeido += AlLeerCodigo;
+            _lector.Activar();
+            _escuchandoLector = true;
+        }
+        catch (Exception)
+        {
+        }
+    }
+
+    private void SoltarLector()
+    {
+        if (!_escuchandoLector)
+        {
+            return;
+        }
+
+        _lector.CodigoLeido -= AlLeerCodigo;
+        _lector.Desactivar();
+        _escuchandoLector = false;
+    }
+
+    private void AlLeerCodigo(object? sender, string codigo)
+    {
+        var esperado = _sesion.Tirilla?.QrContenido ?? string.Empty;
+        if (!EvidenciaOffline.EsElMismoQr(codigo, esperado))
+        {
+            MostrarAviso(PdaTexts.QrNoCoincide);
+            return;
+        }
+
+        _capturaOk = true;
+        MostrarAviso(string.Empty);
     }
 
     private async Task EnviarEvidenciaAsync(TirillaVenta tirilla, Button boton)
@@ -301,40 +412,56 @@ public sealed class TirillaVendidaPage : ContentPage
         boton.IsEnabled = false;
         try
         {
-            if (MediaPicker.Default.IsCaptureSupported)
+            if (!_capturaOk)
             {
+                if (!MediaPicker.Default.IsCaptureSupported)
+                {
+                    await this.AvisoAsync(PdaTexts.TicketVendido, PdaTexts.FotoObligatoria, PdaTexts.Cerrar);
+                    return;
+                }
+
                 var foto = await MediaPicker.Default.CapturePhotoAsync();
                 if (foto is null)
                 {
+                    await this.AvisoAsync(PdaTexts.TicketVendido, PdaTexts.FotoObligatoria, PdaTexts.Cerrar);
                     return;
                 }
+
+                _capturaOk = true;
             }
 
-            var png = QrImagen.Png(tirilla.QrContenido);
-            if (png.Length == 0)
+            byte[] png = [];
+            try
             {
-                await this.AvisoAsync(PdaTexts.TicketVendido, PdaTexts.FotoOffline, PdaTexts.Cerrar);
-                return;
+                png = QrImagen.Png(tirilla.QrContenido);
+            }
+            catch (Exception)
+            {
             }
 
-            var inicio = await _api.IniciarChatAsync(new NewRich.Application.Contracts.Chat.IniciarChatRequest
+            var enviado = DateTime.Now;
+            try
             {
-                Texto = EvidenciaOffline.MensajeChat
-            }, CancellationToken.None);
-            if (!inicio.IsSuccess || inicio.Data is null)
-            {
-                await this.AvisoAsync(PdaTexts.Soporte, inicio.Message, PdaTexts.Cerrar);
-                return;
+                var inicio = await _api.IniciarChatAsync(new IniciarChatRequest
+                {
+                    Texto = EvidenciaOffline.TextoChat(tirilla.CodigoImpreso, enviado)
+                }, CancellationToken.None);
+                if (inicio.IsSuccess && inicio.Data is not null && png.Length > 0)
+                {
+                    await _api.EnviarMensajeAsync(
+                        inicio.Data.ConversacionId,
+                        EvidenciaOffline.MensajeConQr(tirilla.CodigoImpreso, png, enviado),
+                        CancellationToken.None);
+                }
             }
-
-            var envio = await _api.EnviarMensajeAsync(
-                inicio.Data.ConversacionId,
-                EvidenciaOffline.MensajeConQr(tirilla.CodigoImpreso, png),
-                CancellationToken.None);
-            if (!envio.IsSuccess)
+            catch (HttpRequestException)
             {
-                await this.AvisoAsync(PdaTexts.Soporte, envio.Message, PdaTexts.Cerrar);
-                return;
+            }
+            catch (TaskCanceledException)
+            {
+            }
+            catch (Exception)
+            {
             }
 
             _evidenciaEnviada = true;
@@ -348,8 +475,23 @@ public sealed class TirillaVendidaPage : ContentPage
 
     private async Task CerrarAsync()
     {
+        try
+        {
+            var rol = _sesion.Usuario?.Rol ?? RolUsuario.Vendedor;
+            await _sincronizacion.SincronizarEnSilencioAsync(false, rol, false, CancellationToken.None);
+        }
+        catch (Exception)
+        {
+        }
+
         _sesion.Tirilla = null;
         _sesion.Borrador = null;
-        await Shell.Current.GoToAsync("//inicio");
+        try
+        {
+            await Shell.Current.GoToAsync("//inicio");
+        }
+        catch (Exception)
+        {
+        }
     }
 }

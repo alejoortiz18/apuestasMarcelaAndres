@@ -296,37 +296,44 @@ public sealed class PasswordPage : ContentPage
     private async Task GuardarAsync()
     {
         _error.Text = string.Empty;
-        var resultado = await _api.CambiarPasswordAsync(new CambiarPasswordRequest
+        try
         {
-            PasswordActual = _actual.Text ?? string.Empty,
-            PasswordNuevo = _nueva.Text ?? string.Empty,
-            PasswordConfirmacion = _confirma.Text ?? string.Empty
-        }, CancellationToken.None);
+            var resultado = await _api.CambiarPasswordAsync(new CambiarPasswordRequest
+            {
+                PasswordActual = _actual.Text ?? string.Empty,
+                PasswordNuevo = _nueva.Text ?? string.Empty,
+                PasswordConfirmacion = _confirma.Text ?? string.Empty
+            }, CancellationToken.None);
 
-        if (!resultado.IsSuccess || resultado.Data is null)
-        {
-            _error.Text = resultado.Message;
-            return;
-        }
+            if (!resultado.IsSuccess || resultado.Data is null)
+            {
+                _error.Text = resultado.Message;
+                return;
+            }
 
-        await _tokens.GuardarAsync(resultado.Data.Token);
-        _sesion.Usuario = resultado.Data;
-        var shell = NavegacionPorRol.Para(resultado.Data.Rol);
-        if (!shell.IsSuccess)
-        {
-            _error.Text = shell.Message;
-            return;
-        }
+            await _tokens.GuardarAsync(resultado.Data.Token);
+            _sesion.Usuario = resultado.Data;
+            var shell = NavegacionPorRol.Para(resultado.Data.Rol);
+            if (!shell.IsSuccess)
+            {
+                _error.Text = shell.Message;
+                return;
+            }
 
-        if (shell.Data == ShellPda.Vendedor)
-        {
-            await _offline.SincronizarEnSilencioAsync(true, resultado.Data.Rol, false, CancellationToken.None);
-            await _enVivo.AsegurarSesionAsync(CancellationToken.None);
-            _nav.IrAVendedor();
+            if (shell.Data == ShellPda.Vendedor)
+            {
+                await _offline.SincronizarEnSilencioAsync(true, resultado.Data.Rol, false, CancellationToken.None);
+                await _enVivo.AsegurarSesionAsync(CancellationToken.None);
+                _nav.IrAVendedor();
+            }
+            else
+            {
+                _nav.IrAObservador();
+            }
         }
-        else
+        catch (Exception)
         {
-            _nav.IrAObservador();
+            _error.Text = PdaTexts.SinConexionServidor;
         }
     }
 }

@@ -1,6 +1,7 @@
 using System.Text;
 using Android.Content;
 using Android.OS;
+using NewRich.Application.Services;
 using NewRich.Pda.Core;
 
 namespace NewRich.Maui.Services;
@@ -70,12 +71,19 @@ internal static class ImpresoraInternaSenraise
                 ImprimirTexto(impresora, cuerpo.Antes + "\n");
             }
 
-            if (!string.IsNullOrWhiteSpace(contenidoQr))
+            if (QrSePuedeImprimir(contenidoQr))
             {
                 impresora.Intentar(() => impresora.NextLine(1));
                 impresora.Intentar(() => impresora.PrintEpson([0x1B, 0x61, 0x01]));
                 impresora.Intentar(() => impresora.SetAlignment(1));
-                impresora.Intentar(() => impresora.PrintQRCode(contenidoQr, ImpresionTirilla.ModuloQr, 1));
+                if (!ImprimirQrEnPapel(impresora, contenidoQr!))
+                {
+                    impresora.Intentar(() => impresora.PrintQRCode(
+                        contenidoQr!,
+                        ImpresionTirilla.ModuloQrPara(contenidoQr),
+                        1));
+                }
+
                 impresora.Intentar(() => impresora.SetAlignment(0));
                 impresora.Intentar(() => impresora.PrintEpson([0x1B, 0x61, 0x00]));
                 impresora.Intentar(() => impresora.NextLine(1));
@@ -98,6 +106,50 @@ internal static class ImpresoraInternaSenraise
         finally
         {
             Desligar(actividad, conexion);
+        }
+    }
+
+    private static bool ImprimirQrEnPapel(ProxyImpresora impresora, string contenidoQr)
+    {
+        var png = QrImagen.PngParaTirilla(contenidoQr, ImpresionTirilla.AnchoQrPuntos);
+        if (png.Length == 0)
+        {
+            return false;
+        }
+
+        var original = Android.Graphics.BitmapFactory.DecodeByteArray(png, 0, png.Length);
+        if (original is null)
+        {
+            return false;
+        }
+
+        var lado = ImpresionTirilla.AnchoQrPuntos;
+        var bitmap = original.Width == lado
+            ? original
+            : Android.Graphics.Bitmap.CreateScaledBitmap(original, lado, lado, false);
+        if (bitmap is null)
+        {
+            original.Recycle();
+            return false;
+        }
+
+        return impresora.Intentar(() => impresora.PrintBitmap(bitmap));
+    }
+
+    private static bool QrSePuedeImprimir(string? contenidoQr)
+    {
+        if (string.IsNullOrWhiteSpace(contenidoQr))
+        {
+            return false;
+        }
+
+        try
+        {
+            return QrImagen.Png(contenidoQr).Length > 0;
+        }
+        catch (Exception)
+        {
+            return false;
         }
     }
 
@@ -141,6 +193,7 @@ internal static class ImpresoraInternaSenraise
     {
         private const int CodigoPrintEpson = IBinder.FirstCallTransaction;
         private const int CodigoPrintText = IBinder.FirstCallTransaction + 2;
+        private const int CodigoPrintBitmap = IBinder.FirstCallTransaction + 3;
         private const int CodigoPrintQr = IBinder.FirstCallTransaction + 5;
         private const int CodigoSetAlignment = IBinder.FirstCallTransaction + 6;
         private const int CodigoSetTextSize = IBinder.FirstCallTransaction + 7;
@@ -164,6 +217,13 @@ internal static class ImpresoraInternaSenraise
             Transact(CodigoPrintEpson, data => data.WriteByteArray(datos));
 
         public void PrintText(string texto) => Transact(CodigoPrintText, data => data.WriteString(texto));
+
+        public void PrintBitmap(Android.Graphics.Bitmap pic) =>
+            Transact(CodigoPrintBitmap, data =>
+            {
+                data.WriteInt(1);
+                pic.WriteToParcel(data, ParcelableWriteFlags.None);
+            });
 
         public void PrintQRCode(string datos, int modulo, int correccion) =>
             Transact(CodigoPrintQr, data =>

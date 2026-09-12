@@ -47,23 +47,34 @@ public sealed class SincronizacionOfflineServicio
         try
         {
             var resultado = await _api.DescargarOfflineAsync(cancellationToken);
-            if (!resultado.IsSuccess)
+            if (resultado.IsSuccess)
+            {
+                var guardar = DescargaCodigosOffline.ParaGuardar(resultado.Data);
+                if (guardar.Count > 0)
+                {
+                    await _offline.GuardarDescargaAsync(guardar);
+                }
+            }
+
+            var pendientes = await _offline.VentasPendientesAsync();
+            if (pendientes.Count == 0)
             {
                 return;
             }
 
-            var guardar = DescargaCodigosOffline.ParaGuardar(resultado.Data);
-            if (guardar.Count == 0)
+            var sync = await _api.SincronizarVentasOfflineAsync(pendientes, cancellationToken);
+            if (sync.IsSuccess && sync.Data is not null)
             {
-                return;
+                await _offline.MarcarSincronizadasAsync(sync.Data.Sincronizados);
             }
-
-            await _offline.GuardarDescargaAsync(guardar);
         }
         catch (HttpRequestException)
         {
         }
         catch (TaskCanceledException)
+        {
+        }
+        catch (Exception)
         {
         }
         finally
@@ -80,8 +91,17 @@ public interface IPrinterService
 
 public sealed class PrinterService : IPrinterService
 {
-    public Task<ResultadoImpresion> ImprimirAsync(string tirilla, string? contenidoQr = null) =>
-        ImpresoraInternaSenraise.ImprimirAsync(tirilla, contenidoQr);
+    public Task<ResultadoImpresion> ImprimirAsync(string tirilla, string? contenidoQr = null)
+    {
+        try
+        {
+            return ImpresoraInternaSenraise.ImprimirAsync(tirilla, contenidoQr);
+        }
+        catch (Exception)
+        {
+            return Task.FromResult(ResultadoImpresion.Fallo(PdaTexts.ErrorImpresion));
+        }
+    }
 }
 
 public interface IPdfService

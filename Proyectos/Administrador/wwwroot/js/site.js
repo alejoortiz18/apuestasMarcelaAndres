@@ -466,6 +466,8 @@
 
   const codigoDialog = document.getElementById("codigoDialog");
   const codigoClose = codigoDialog && codigoDialog.querySelector("[data-close-codigo]");
+  const codigoTirilla = codigoDialog && codigoDialog.querySelector("[data-codigo-tirilla]");
+  const codigoTirillaPanel = codigoDialog && codigoDialog.querySelector("[data-codigo-tirilla-panel]");
   let codigoTrigger = null;
 
   function closeCodigo() {
@@ -474,6 +476,13 @@
     }
     codigoDialog.classList.add("hidden");
     codigoDialog.setAttribute("hidden", "hidden");
+    if (codigoTirilla) {
+      codigoTirilla.classList.add("hidden");
+      codigoTirilla.setAttribute("hidden", "hidden");
+    }
+    if (codigoTirillaPanel) {
+      codigoTirillaPanel.innerHTML = "";
+    }
     if (codigoTrigger && typeof codigoTrigger.focus === "function") {
       codigoTrigger.focus();
     }
@@ -491,6 +500,42 @@
     }
   }
 
+  function ocultarTirillaCodigo() {
+    if (codigoTirilla) {
+      codigoTirilla.classList.add("hidden");
+      codigoTirilla.setAttribute("hidden", "hidden");
+    }
+    if (codigoTirillaPanel) {
+      codigoTirillaPanel.innerHTML = "";
+    }
+  }
+
+  async function cargarTirillaCodigo(url) {
+    if (!codigoTirilla || !codigoTirillaPanel || !url) {
+      ocultarTirillaCodigo();
+      return;
+    }
+    codigoTirilla.classList.remove("hidden");
+    codigoTirilla.removeAttribute("hidden");
+    codigoTirillaPanel.textContent = codigoTirilla.getAttribute("data-cargando") || "";
+    const response = await fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" } });
+    if (!response.ok) {
+      codigoTirillaPanel.textContent = codigoTirilla.getAttribute("data-error") || "";
+      return;
+    }
+    codigoTirillaPanel.innerHTML = await response.text();
+    fillReceiptRules(codigoTirillaPanel);
+    requestAnimationFrame(function () {
+      fillReceiptRules(codigoTirillaPanel);
+    });
+    codigoTirillaPanel.querySelectorAll("[data-print-ticket]").forEach(function (el) {
+      el.addEventListener("click", function () {
+        fillReceiptRules(codigoTirillaPanel);
+        window.print();
+      });
+    });
+  }
+
   function openCodigo(button) {
     if (!codigoDialog) {
       return;
@@ -504,8 +549,18 @@
     fillCodigoField("fecha-descarga", button.getAttribute("data-fecha-descarga"));
     fillCodigoField("fecha-venta", button.getAttribute("data-fecha-venta"));
     fillCodigoField("fecha-registro", button.getAttribute("data-fecha-registro"));
+    const tirillaUrl = button.getAttribute("data-tirilla-url");
     codigoDialog.classList.remove("hidden");
     codigoDialog.removeAttribute("hidden");
+    if (tirillaUrl) {
+      cargarTirillaCodigo(tirillaUrl).catch(function () {
+        if (codigoTirillaPanel) {
+          codigoTirillaPanel.textContent = codigoTirilla.getAttribute("data-error") || "";
+        }
+      });
+    } else {
+      ocultarTirillaCodigo();
+    }
     if (codigoClose) {
       codigoClose.focus();
     }

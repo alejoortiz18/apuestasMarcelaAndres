@@ -15,7 +15,7 @@ public static class ValidationMessages
     public const string EstadoInvalido = "El estado indicado no es válido. Valores permitidos: Activo, Inactivo.";
 
     public const string NumeroApuestaRequerido = "El número de la apuesta es obligatorio.";
-    public const string NumeroApuestaFormato = "El número de la apuesta debe tener exactamente 4 dígitos numéricos.";
+    public const string NumeroApuestaFormato = "El número de la apuesta debe tener 3 o 4 dígitos numéricos.";
     public const string ValorApuestaMayorCero = "El valor de la apuesta debe ser mayor que cero.";
     public const string LoteriasRequeridas = "Debe seleccionar al menos una lotería.";
     public const string TipoApuestaInvalido = "El tipo de apuesta no es válido. Valores permitidos: COMBINADO, INDIVIDUAL.";

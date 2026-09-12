@@ -231,8 +231,14 @@ public sealed class SoportePage : ContentPage
         base.OnAppearing();
         _vivo.Recibido -= EnVivo;
         _vivo.Recibido += EnVivo;
-        await CargarAsync();
-        await ConectarVivoAsync();
+        try
+        {
+            await CargarAsync();
+            await ConectarVivoAsync();
+        }
+        catch (Exception)
+        {
+        }
     }
 
     protected override void OnDisappearing()
@@ -355,41 +361,49 @@ public sealed class SoportePage : ContentPage
         _texto.Text = string.Empty;
         LimpiarPendiente();
 
-        if (_conversacionId is null)
+        try
         {
-            var inicio = await _api.IniciarChatAsync(new IniciarChatRequest
+            if (_conversacionId is null)
+            {
+                var inicio = await _api.IniciarChatAsync(new IniciarChatRequest
+                {
+                    Texto = texto,
+                    NombreArchivo = nombre,
+                    ContenidoBase64 = base64
+                }, CancellationToken.None);
+                if (!inicio.IsSuccess)
+                {
+                    await this.AvisoAsync(PdaTexts.Soporte, inicio.Message, PdaTexts.Cerrar);
+                    RestaurarBorrador(texto, nombre, bytes);
+                    return;
+                }
+
+                _conversacionId = inicio.Data?.ConversacionId;
+                await CargarAsync();
+                return;
+            }
+
+            var enviado = await _api.EnviarMensajeAsync(_conversacionId.Value, new EnviarMensajeRequest
             {
                 Texto = texto,
                 NombreArchivo = nombre,
                 ContenidoBase64 = base64
             }, CancellationToken.None);
-            if (!inicio.IsSuccess)
+            if (!enviado.IsSuccess || enviado.Data is null)
             {
-                await this.AvisoAsync(PdaTexts.Soporte, inicio.Message, PdaTexts.Cerrar);
+                await this.AvisoAsync(PdaTexts.Soporte, enviado.Message, PdaTexts.Cerrar);
                 RestaurarBorrador(texto, nombre, bytes);
                 return;
             }
 
-            _conversacionId = inicio.Data?.ConversacionId;
-            await CargarAsync();
-            return;
+            await AgregarAsync(enviado.Data, true);
+            DesplazarAlFinal();
         }
-
-        var enviado = await _api.EnviarMensajeAsync(_conversacionId.Value, new EnviarMensajeRequest
+        catch (Exception)
         {
-            Texto = texto,
-            NombreArchivo = nombre,
-            ContenidoBase64 = base64
-        }, CancellationToken.None);
-        if (!enviado.IsSuccess || enviado.Data is null)
-        {
-            await this.AvisoAsync(PdaTexts.Soporte, enviado.Message, PdaTexts.Cerrar);
             RestaurarBorrador(texto, nombre, bytes);
-            return;
+            await this.AvisoAsync(PdaTexts.Soporte, PdaTexts.SinConexionServidor, PdaTexts.Cerrar);
         }
-
-        await AgregarAsync(enviado.Data, true);
-        DesplazarAlFinal();
     }
 
     private void RestaurarBorrador(string texto, string? nombre, byte[]? bytes)

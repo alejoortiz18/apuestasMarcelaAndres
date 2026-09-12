@@ -57,14 +57,29 @@ public sealed class TicketDraftTests
     }
 
     [Fact]
-    public void Rechaza_numero_que_no_tiene_cuatro_digitos()
+    public void Acepta_numero_de_tres_o_cuatro_digitos()
+    {
+        var tres = TicketDraft.Crear(TipoApuesta.INDIVIDUAL, maxLineas: 6);
+        var cuatro = TicketDraft.Crear(TipoApuesta.INDIVIDUAL, maxLineas: 6);
+
+        tres.AgregarLinea("123", 1000, [Guid.NewGuid()], ["Bogota"]).IsSuccess.Should().BeTrue();
+        cuatro.AgregarLinea("1234", 1000, [Guid.NewGuid()], ["Cali"]).IsSuccess.Should().BeTrue();
+        tres.Lineas[0].Numero.Should().Be("123");
+    }
+
+    [Fact]
+    public void Rechaza_numero_que_no_tiene_tres_o_cuatro_digitos()
     {
         var draft = TicketDraft.Crear(TipoApuesta.INDIVIDUAL, maxLineas: 6);
 
-        var resultado = draft.AgregarLinea("12a", 1000, [Guid.NewGuid()], ["Bogota"]);
+        var letras = draft.AgregarLinea("12a", 1000, [Guid.NewGuid()], ["Bogota"]);
+        var corto = TicketDraft.Crear(TipoApuesta.INDIVIDUAL, maxLineas: 6)
+            .AgregarLinea("12", 1000, [Guid.NewGuid()], ["Bogota"]);
 
-        resultado.IsSuccess.Should().BeFalse();
-        resultado.Message.Should().Be(ValidationMessages.NumeroApuestaFormato);
+        letras.IsSuccess.Should().BeFalse();
+        letras.Message.Should().Be(ValidationMessages.NumeroApuestaFormato);
+        corto.IsSuccess.Should().BeFalse();
+        corto.Message.Should().Be(ValidationMessages.NumeroApuestaFormato);
     }
 
     [Fact]

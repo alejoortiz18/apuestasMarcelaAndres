@@ -33,4 +33,11 @@ public sealed class OfflineController : ApiControllerBase
     {
         return From(await _offlineService.GenerarAsync(request, cancellationToken));
     }
+
+    [Authorize(Roles = "Administrador")]
+    [HttpPost("RegistrarQr")]
+    public async Task<IActionResult> RegistrarQr([FromBody] RegistrarQrOfflineRequest request, CancellationToken cancellationToken)
+    {
+        return From(await _offlineService.RegistrarQrAsync(UsuarioId, request, cancellationToken));
+    }
 }

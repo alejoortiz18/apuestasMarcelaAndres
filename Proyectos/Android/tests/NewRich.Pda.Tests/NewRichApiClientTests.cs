@@ -39,6 +39,24 @@ public sealed class NewRichApiClientTests
         handler.UltimaRuta.Should().EndWith("api/AuthAndroid/LoginMob");
     }
 
+    [Fact]
+    public async Task Llamada_sin_red_no_lanza_y_avisa_sin_conexion()
+    {
+        var handler = new FallaHandler();
+        var client = new NewRichApiClient(new HttpClient(handler), new MemoriaTokens(), new ApiOpciones { BaseUrl = "http://localhost:5295/" });
+
+        var resultado = await client.LoteriasAsync(CancellationToken.None);
+
+        resultado.IsSuccess.Should().BeFalse();
+        resultado.Message.Should().Be(NewRich.Pda.Core.PdaTexts.SinConexionServidor);
+    }
+
+    private sealed class FallaHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("socket");
+    }
+
     private sealed class MemoriaTokens : ITokenStore
     {
         private string? _token;

@@ -31,21 +31,27 @@ public sealed class CasosPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        var resultado = await _api.PremiosAsync(CancellationToken.None);
-        _lista.Children.Clear();
-        if (!resultado.IsSuccess)
+        try
         {
-            _lista.Children.Add(new Label { Text = resultado.Message, TextColor = Ui.Danger });
-            return;
-        }
-
-        foreach (var caso in resultado.Data ?? [])
-        {
-            _lista.Children.Add(Ui.Tarjeta(new Label
+            var resultado = await _api.PremiosAsync(CancellationToken.None);
+            _lista.Children.Clear();
+            if (!resultado.IsSuccess)
             {
-                Text = $"{caso.Ticket} · {caso.Estado} · {caso.Vendedor}",
-                TextColor = Ui.Ink
-            }));
+                _lista.Children.Add(new Label { Text = resultado.Message, TextColor = Ui.Danger });
+                return;
+            }
+
+            foreach (var caso in resultado.Data ?? [])
+            {
+                _lista.Children.Add(Ui.Tarjeta(new Label
+                {
+                    Text = $"{caso.Ticket} · {caso.Estado} · {caso.Vendedor}",
+                    TextColor = Ui.Ink
+                }));
+            }
+        }
+        catch (Exception)
+        {
         }
     }
 }

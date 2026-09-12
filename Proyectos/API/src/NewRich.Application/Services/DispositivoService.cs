@@ -12,11 +12,13 @@ public sealed class DispositivoService : IDispositivoService
 {
     private readonly INewRichDbContext _db;
     private readonly IClock _clock;
+    private readonly IPresenciaDispositivos _presencia;
 
-    public DispositivoService(INewRichDbContext db, IClock clock)
+    public DispositivoService(INewRichDbContext db, IClock clock, IPresenciaDispositivos presencia)
     {
         _db = db;
         _clock = clock;
+        _presencia = presencia;
     }
 
     public async Task<Result<IReadOnlyList<DispositivoResponse>>> ListarAsync(CancellationToken cancellationToken)
@@ -26,14 +28,11 @@ public sealed class DispositivoService : IDispositivoService
             .ThenInclude(x => x.Usuario)
             .ToListAsync(cancellationToken);
 
-        var sesiones = await _db.Sesiones
-            .Where(s => s.Activa && s.FechaExpiracion > _clock.UtcNow && s.DispositivoId != null)
-            .Select(s => s.DispositivoId!.Value)
-            .ToListAsync(cancellationToken);
-
         var disponibles = await ContarCodigosDisponiblesAsync(cancellationToken);
-
-        var response = items.Select(d => Map(d, sesiones.Contains(d.DispositivoId), disponibles.GetValueOrDefault(d.DispositivoId))).ToList();
+        var ahora = _clock.UtcNow;
+        var response = items
+            .Select(d => Map(d, _presencia.EstaVivo(d.DispositivoId, ahora), disponibles.GetValueOrDefault(d.DispositivoId)))
+            .ToList();
         return Result<IReadOnlyList<DispositivoResponse>>.Ok(response, SuccessMessages.OperacionExitosa);
     }
 

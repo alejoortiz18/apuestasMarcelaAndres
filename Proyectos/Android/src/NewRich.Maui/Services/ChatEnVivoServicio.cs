@@ -47,7 +47,14 @@ public sealed class ChatEnVivoServicio : IAsyncDisposable
         {
             MainThread.BeginInvokeOnMainThread(() => CodigosAsignados?.Invoke(aviso));
         });
-        await _hub.StartAsync(cancellationToken);
+        try
+        {
+            await _hub.StartAsync(cancellationToken);
+        }
+        catch (Exception)
+        {
+            await DesconectarAsync();
+        }
     }
 
     public async Task DesconectarAsync()

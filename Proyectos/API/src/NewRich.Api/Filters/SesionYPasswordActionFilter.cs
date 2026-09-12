@@ -51,6 +51,13 @@ public sealed class SesionYPasswordActionFilter : IAsyncActionFilter
             return;
         }
 
+        if (sesion.DispositivoId is Guid dispositivoId)
+        {
+            var clock = http.RequestServices.GetRequiredService<IClock>();
+            http.RequestServices.GetRequiredService<IPresenciaDispositivos>()
+                .MarcarVivo(dispositivoId, clock.UtcNow);
+        }
+
         await next();
     }
 }

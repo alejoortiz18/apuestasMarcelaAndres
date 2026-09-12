@@ -3,6 +3,7 @@ using NewRich.Application.Contracts.Boletos;
 using NewRich.Application.Contracts.Premios;
 using NewRich.Constants;
 using NewRich.Maui.Services;
+using NewRich.Maui.Views;
 using NewRich.Pda.Core;
 using NewRich.Pda.Core.Api;
 
@@ -13,12 +14,14 @@ public sealed class ValidarTicketPage : ContentPage
     private readonly NewRichApiClient _api;
     private readonly ILectorCodigoBarrasServicio _lector;
     private readonly Entry _codigo;
-    private readonly Label _avisoLector;
     private readonly Label _aviso;
     private readonly Border _recibo;
     private readonly VerticalStackLayout _cuerpoRecibo;
     private readonly Button _reportar;
+    private readonly CargandoOverlay _cargando = new();
+    private string _ticketConsultado = string.Empty;
     private bool _escuchando;
+    private bool _validando;
 
     public ValidarTicketPage(NewRichApiClient api, ILectorCodigoBarrasServicio lector)
     {
@@ -29,14 +32,7 @@ public sealed class ValidarTicketPage : ContentPage
         _codigo = Ui.Entrada("AOL-0000001");
         _codigo.MaxLength = 400;
         _codigo.ReturnType = ReturnType.Go;
-        _codigo.Completed += async (_, _) => await ValidarAsync();
-        _avisoLector = new Label
-        {
-            Text = PdaTexts.EsperandoLector,
-            TextColor = Ui.Muted,
-            FontSize = 13,
-            IsVisible = false
-        };
+        _codigo.Completed += async (_, _) => await ValidarAsync(_codigo.Text);
         _aviso = new Label { FontSize = 13, TextColor = Ui.Ink };
         _cuerpoRecibo = new VerticalStackLayout { Spacing = 0 };
         _recibo = new Border
@@ -59,11 +55,11 @@ public sealed class ValidarTicketPage : ContentPage
         _reportar = Ui.Primario(PdaTexts.ReportarCaso);
         _reportar.IsVisible = false;
         _reportar.Clicked += async (_, _) => await ReportarAsync();
-        var leer = Ui.Primario(PdaTexts.LeerCodigoBarras);
-        leer.Clicked += (_, _) => DispararLector();
+        var leer = Ui.Primario(PdaTexts.LeerQr);
+        leer.Clicked += async (_, _) => await LeerQrAsync();
         var validar = Ui.Secundario(PdaTexts.ValidarTicket);
-        validar.Clicked += async (_, _) => await ValidarAsync();
-        Content = new ScrollView
+        validar.Clicked += async (_, _) => await ValidarAsync(_codigo.Text);
+        var formulario = new ScrollView
         {
             Content = new VerticalStackLayout
             {
@@ -82,13 +78,13 @@ public sealed class ValidarTicketPage : ContentPage
                     _codigo,
                     leer,
                     validar,
-                    _avisoLector,
                     _recibo,
                     _reportar,
                     _aviso
                 }
             }
         };
+        Content = new Grid { Children = { formulario, _cargando } };
     }
 
     protected override void OnAppearing()
@@ -117,54 +113,116 @@ public sealed class ValidarTicketPage : ContentPage
         base.OnDisappearing();
     }
 
-    private void DispararLector()
+    private async Task LeerQrAsync()
     {
-        _avisoLector.IsVisible = true;
         _aviso.Text = string.Empty;
-        _codigo.Focus();
-        _lector.Disparar();
-    }
-
-    private async void AlLeerCodigo(object? sender, string codigo)
-    {
-        _avisoLector.IsVisible = false;
-        _codigo.Text = codigo;
-        await ValidarAsync();
-    }
-
-    private async Task ValidarAsync()
-    {
-        _reportar.IsVisible = false;
         _recibo.IsVisible = false;
-        _cuerpoRecibo.Children.Clear();
-        var consulta = await _api.ConsultarTicketAsync(new ConsultaTicketRequest
+        _reportar.IsVisible = false;
+        _lector.Disparar();
+        if (!MediaPicker.Default.IsCaptureSupported)
         {
-            TicketCode = _codigo.Text?.Trim() ?? string.Empty
-        }, CancellationToken.None);
-        if (!consulta.IsSuccess || consulta.Data is null)
+            return;
+        }
+
+        var foto = await MediaPicker.Default.CapturePhotoAsync();
+        if (foto is null)
         {
-            _aviso.Text = string.IsNullOrWhiteSpace(consulta.Message) ? PdaTexts.CodigoNoLeido : consulta.Message;
+            return;
+        }
+
+        await using var stream = await foto.OpenReadAsync();
+        using var buffer = new MemoryStream();
+        await stream.CopyToAsync(buffer);
+        var codigo = QrDesdeFoto.Leer(buffer.ToArray());
+        if (string.IsNullOrWhiteSpace(codigo))
+        {
+            _aviso.Text = PdaTexts.CodigoNoLeido;
             _aviso.TextColor = Ui.Danger;
             return;
         }
 
-        PintarRecibo(TicketConsultaVista.De(consulta.Data));
+        await ValidarAsync(codigo, ocultarCodigo: true);
+    }
+
+    private async void AlLeerCodigo(object? sender, string codigo)
+    {
+        await ValidarAsync(codigo, ocultarCodigo: true);
+    }
+
+    private async Task ValidarAsync(string? codigo, bool ocultarCodigo = false)
+    {
+        if (_validando)
+        {
+            return;
+        }
+
+        _validando = true;
+        _reportar.IsVisible = false;
+        _recibo.IsVisible = false;
+        _cuerpoRecibo.Children.Clear();
         _aviso.Text = string.Empty;
+        var ticket = codigo?.Trim() ?? string.Empty;
+        if (ocultarCodigo)
+        {
+            _codigo.Text = string.Empty;
+            _cargando.Mostrar(PdaTexts.ValidandoQr);
+        }
+
+        try
+        {
+            var consulta = await _api.ConsultarTicketAsync(new ConsultaTicketRequest
+            {
+                TicketCode = ticket
+            }, CancellationToken.None);
+            if (!consulta.IsSuccess || consulta.Data is null)
+            {
+                _ticketConsultado = string.Empty;
+                _aviso.Text = string.IsNullOrWhiteSpace(consulta.Message) ? PdaTexts.CodigoNoLeido : consulta.Message;
+                _aviso.TextColor = Ui.Danger;
+                return;
+            }
+
+            _ticketConsultado = ticket;
+            PintarRecibo(TicketConsultaVista.De(consulta.Data));
+            _aviso.Text = string.Empty;
+        }
+        catch (Exception)
+        {
+            _ticketConsultado = string.Empty;
+            _aviso.Text = PdaTexts.SinConexionServidor;
+            _aviso.TextColor = Ui.Danger;
+        }
+        finally
+        {
+            _cargando.Ocultar();
+            _validando = false;
+        }
     }
 
     private async Task ReportarAsync()
     {
-        var resultado = await _api.ReportarPremioAsync(new ReportarCasoGanadorRequest
+        try
         {
-            TicketCode = _codigo.Text?.Trim() ?? string.Empty
-        }, CancellationToken.None);
-        _aviso.Text = resultado.IsSuccess
-            ? $"{resultado.Message} {resultado.Data?.Ticket}"
-            : resultado.Message;
-        _aviso.TextColor = resultado.IsSuccess ? Ui.Green : Ui.Danger;
-        if (resultado.IsSuccess)
+            var ticket = string.IsNullOrWhiteSpace(_ticketConsultado)
+                ? _codigo.Text?.Trim() ?? string.Empty
+                : _ticketConsultado;
+            var resultado = await _api.ReportarPremioAsync(new ReportarCasoGanadorRequest
+            {
+                TicketCode = ticket
+            }, CancellationToken.None);
+            _aviso.Text = resultado.IsSuccess
+                ? $"{resultado.Message} {resultado.Data?.Ticket}"
+                : resultado.Message;
+            _aviso.TextColor = resultado.IsSuccess ? Ui.Green : Ui.Danger;
+            if (resultado.IsSuccess)
+            {
+                _reportar.IsVisible = false;
+            }
+        }
+        catch (Exception)
         {
-            _reportar.IsVisible = false;
+            _aviso.Text = PdaTexts.SinConexionServidor;
+            _aviso.TextColor = Ui.Danger;
         }
     }
 

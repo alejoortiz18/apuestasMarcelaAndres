@@ -95,15 +95,19 @@ public static class PdaTexts
     public const string TicketVendido = "Ticket vendido";
     public const string ImprimirTirilla = "Imprimir tirilla";
     public const string GenerarPdf = "Generar PDF";
+    public const string GenerandoPdf = "Generando PDF, un momento";
     public const string VolverInicio = "Volver al inicio";
     public const string ConexionNoDisponible = "Conexión no disponible";
     public const string ContinuarOffline = "Continuar en modo offline";
+    public const string ContinuarOfflinePregunta = "Conexión no disponible. ¿Desea continuar en modo offline?";
     public const string EsperarConexion = "Esperar conexión";
     public const string SinCodigosOffline = "Sin conexión ni códigos offline";
-    public const string BorradorConservado = "El borrador de este boleto se conserva en memoria. Debes conectarte al servidor para realizar la venta y continuar operando.";
+    public const string BorradorConservado = "No hay códigos offline descargados. Debe conectarse al servidor para descargarlos y poder vender.";
     public const string Entendido = "Entendido";
     public const string FotoOffline = "Por favor, tomar foto de este código vendido. GRACIAS.";
     public const string FotoLista = "Listo";
+    public const string FotoObligatoria = "Debe tomar la foto del QR o leerlo con el lector del PDA para continuar.";
+    public const string QrNoCoincide = "El código leído no corresponde a esta tirilla.";
     public const string ImpresoraNoConfigurada = "No hay SDK de impresora térmica configurado. Use el PDF de contingencia.";
     public const string ErrorImpresion = "No se pudo imprimir la tirilla. Genere el PDF para enviarlo al cliente por un medio externo.";
     public const string ErrorPdf = "No se pudo generar el PDF. La tirilla permanece abierta para reintentar o enviarlo por un medio externo.";
@@ -113,6 +117,8 @@ public static class PdaTexts
     public const string ModoSincronizacion = "Modo de sincronización";
     public const string TicketCode = "Código del ticket";
     public const string ReportarCaso = "Reportar caso";
+    public const string LeerQr = "Leer QR";
+    public const string ValidandoQr = "validando QR";
     public const string LeerCodigoBarras = "Leer código de barras";
     public const string EsperandoLector = "Apunta el lector al código. Si el equipo tiene gatillo, úsalo ahora.";
     public const string CodigoNoLeido = "No se recibió un código. Vuelve a leerlo con el lector o escríbelo.";
@@ -149,7 +155,13 @@ public static class PdaTexts
     public const string Ver = "Ver";
     public const string Cerrar = "Cerrar";
     public const string UrlApi = "Dirección de la API";
-    public const string SinConexionServidor = "No hay conexión con el servidor. Usa la misma Wi-Fi que el computador o deja el USB conectado.";
+    public const string SinConexionServidor = "No hay conexión con el servidor. Puede usar el PDA sin conexión. Para vender debe tener códigos offline descargados.";
+    public const string IngresoRequiereConexion = "No hay conexión con el servidor. Para iniciar sesión debe conectarse. Después podrá vender sin conexión con códigos offline.";
+
+    public static string AvisoOperacionSinServidor(int codigosDisponibles) =>
+        codigosDisponibles <= 0
+            ? "No hay conexión con el servidor. No cuenta con más códigos offline para realizar ventas. Debe conectarse o solicitar más códigos al administrador."
+            : $"No hay conexión con el servidor. Puede seguir operando con {codigosDisponibles} códigos offline disponibles.";
     public const string GrupoNoConsultado = "Sin dato en el ingreso";
     public const string OfflineNoDisponibleVendedor = "La API actual no permite al vendedor descargar códigos offline. El administrador genera los códigos; hace falta un endpoint de descarga para el PDA.";
     public const string EntregaNoDisponible = "La API actual no expone el registro de entrega con evidencias fotográficas.";

@@ -114,6 +114,17 @@ public sealed class VendedorHomePage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        try
+        {
+            await ActualizarAsync();
+        }
+        catch (Exception)
+        {
+        }
+    }
+
+    private async Task ActualizarAsync()
+    {
         var ping = await _api.ConectarAsync(
             PdaConexion.UrlsPara(DeviceInfo.Current.DeviceType == DeviceType.Virtual),
             CancellationToken.None);
@@ -123,12 +134,25 @@ public sealed class VendedorHomePage : ContentPage
         if (conectado)
         {
             await _enVivo.AsegurarSesionAsync(CancellationToken.None);
+            var loterias = await _api.LoteriasAsync(CancellationToken.None);
+            if (loterias.IsSuccess && loterias.Data is not null)
+            {
+                await _offline.GuardarLoteriasAsync(loterias.Data);
+            }
         }
         var offline = await _offline.ContarDisponiblesAsync();
         _estado.Text = Ui.EstadoLinea(_sesion.CodigoDispositivo, conectado, _sesion.HorarioCerrado, offline);
         _codigos.Text = offline.ToString();
-        _juegoNuevo.IsEnabled = !_sesion.HorarioCerrado;
+        _juegoNuevo.IsEnabled = !_sesion.HorarioCerrado && (conectado || offline > 0);
         _banners.Children.Clear();
+        if (!conectado)
+        {
+            var critico = offline <= 0;
+            _banners.Children.Add(Ui.Banner(
+                PdaTexts.AvisoOperacionSinServidor(offline),
+                critico ? Ui.DangerBg : Ui.WarnBg,
+                critico ? Ui.Danger : Ui.Warn));
+        }
         if (_sesion.HorarioCerrado)
         {
             _banners.Children.Add(Ui.Banner($"{PdaTexts.JuegosCerrados} {PdaTexts.JuegosCerradosDetalle}", Ui.DangerBg, Ui.Danger));

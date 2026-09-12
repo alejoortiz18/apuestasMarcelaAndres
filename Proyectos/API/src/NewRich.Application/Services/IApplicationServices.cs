@@ -126,6 +126,14 @@ public interface IOfflineService
     Task<Result<OfflineListadoResponse>> ListarAsync(CancellationToken cancellationToken);
     Task<Result<CodigoOfflineResponse>> ObtenerAsync(Guid codigoId, CancellationToken cancellationToken);
     Task<Result<IReadOnlyList<CodigoOfflineResponse>>> GenerarAsync(GenerarCodigosOfflineRequest request, CancellationToken cancellationToken);
+    Task<Result<SincronizarVentasOfflineResponse>> SincronizarVentasAsync(
+        Guid vendedorId,
+        SincronizarVentasOfflineRequest request,
+        CancellationToken cancellationToken);
+    Task<Result<CodigoOfflineResponse>> RegistrarQrAsync(
+        Guid administradorId,
+        RegistrarQrOfflineRequest request,
+        CancellationToken cancellationToken);
 }
 
 public interface IPremioService

@@ -46,6 +46,9 @@ public sealed class CodigosOfflineEnVivoServicio
         catch (TaskCanceledException)
         {
         }
+        catch (Exception)
+        {
+        }
     }
 
     public Task DesconectarAsync() => _vivo.DesconectarAsync();

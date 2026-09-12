@@ -59,3 +59,18 @@ public sealed class OfflineResumenLoteResponse
     public int Vendidos { get; init; }
     public int SinUsar { get; init; }
 }
+
+public sealed class SincronizarVentasOfflineRequest
+{
+    public IReadOnlyList<string> QrJson { get; set; } = [];
+}
+
+public sealed class SincronizarVentasOfflineResponse
+{
+    public IReadOnlyList<string> Sincronizados { get; set; } = [];
+}
+
+public sealed class RegistrarQrOfflineRequest
+{
+    public string Qr { get; set; } = string.Empty;
+}

@@ -12,11 +12,13 @@ public sealed class KpiService : IKpiService
 {
     private readonly INewRichDbContext _db;
     private readonly IClock _clock;
+    private readonly IPresenciaDispositivos _presencia;
 
-    public KpiService(INewRichDbContext db, IClock clock)
+    public KpiService(INewRichDbContext db, IClock clock, IPresenciaDispositivos presencia)
     {
         _db = db;
         _clock = clock;
+        _presencia = presencia;
     }
 
     public async Task<Result<KpiResponse>> ConsultarAsync(KpiRequest request, CancellationToken cancellationToken)
@@ -136,7 +138,7 @@ public sealed class KpiService : IKpiService
             .Where(s => s.Activa && s.FechaExpiracion > _clock.UtcNow)
             .ToListAsync(cancellationToken);
         var pdas = await _db.Dispositivos.Include(d => d.DispositivosUsuarios).ToListAsync(cancellationToken);
-        var pdasConectados = pdas.Count(d => sesiones.Any(s => s.DispositivoId == d.DispositivoId));
+        var pdasConectados = pdas.Count(d => _presencia.EstaVivo(d.DispositivoId, _clock.UtcNow));
         var notificaciones = await _db.Notificaciones
             .Where(n => !n.Leida)
             .OrderByDescending(n => n.FechaCreacion)

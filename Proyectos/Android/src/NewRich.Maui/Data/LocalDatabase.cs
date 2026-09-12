@@ -1,3 +1,7 @@
+using System.Text.Json;
+using NewRich.Application.Contracts.Android;
+using NewRich.Application.Contracts.Configuracion;
+using NewRich.Application.Contracts.Loterias;
 using SQLite;
 
 namespace NewRich.Maui.Data;
@@ -10,6 +14,33 @@ public sealed class CodigoOfflineLocal
     public string Payload { get; set; } = string.Empty;
 
     public bool Usado { get; set; }
+}
+
+public sealed class VentaOfflineLocal
+{
+    [PrimaryKey]
+    public string Consecutivo { get; set; } = string.Empty;
+
+    public string QrJson { get; set; } = string.Empty;
+
+    public bool Sincronizada { get; set; }
+
+    public string FechaLocal { get; set; } = string.Empty;
+}
+
+public sealed class DatoLocal
+{
+    [PrimaryKey]
+    public string Clave { get; set; } = string.Empty;
+
+    public string Json { get; set; } = string.Empty;
+}
+
+public sealed class SesionLocal
+{
+    public LoginAndroidResponse Usuario { get; set; } = new();
+    public ConfiguracionOperativaResponse Limites { get; set; } = new();
+    public string CodigoDispositivo { get; set; } = string.Empty;
 }
 
 public sealed class LocalDatabase
@@ -36,6 +67,8 @@ public sealed class LocalDatabase
 
             _db = new SQLiteAsyncConnection(_ruta);
             await _db.CreateTableAsync<CodigoOfflineLocal>();
+            await _db.CreateTableAsync<VentaOfflineLocal>();
+            await _db.CreateTableAsync<DatoLocal>();
         }
         finally
         {
@@ -87,6 +120,101 @@ public sealed class LocalDatabase
         codigo.Usado = true;
         await db.UpdateAsync(codigo);
         return codigo;
+    }
+
+    public async Task GuardarVentaAsync(string consecutivo, string qrJson)
+    {
+        var db = await ConexionAsync();
+        var existente = await db.FindAsync<VentaOfflineLocal>(consecutivo);
+        if (existente is null)
+        {
+            await db.InsertAsync(new VentaOfflineLocal
+            {
+                Consecutivo = consecutivo,
+                QrJson = qrJson,
+                Sincronizada = false,
+                FechaLocal = DateTime.Now.ToString("O")
+            });
+            return;
+        }
+
+        if (!existente.Sincronizada)
+        {
+            existente.QrJson = qrJson;
+            await db.UpdateAsync(existente);
+        }
+    }
+
+    public async Task<IReadOnlyList<string>> VentasPendientesAsync()
+    {
+        var db = await ConexionAsync();
+        var filas = await db.Table<VentaOfflineLocal>().Where(v => !v.Sincronizada).ToListAsync();
+        return filas.Select(v => v.QrJson).ToArray();
+    }
+
+    public async Task MarcarSincronizadasAsync(IEnumerable<string> consecutivos)
+    {
+        var db = await ConexionAsync();
+        foreach (var consecutivo in consecutivos)
+        {
+            var fila = await db.FindAsync<VentaOfflineLocal>(consecutivo);
+            if (fila is null)
+            {
+                continue;
+            }
+
+            fila.Sincronizada = true;
+            await db.UpdateAsync(fila);
+        }
+    }
+
+    public async Task GuardarLoteriasAsync(IReadOnlyList<LoteriaResponse> loterias) =>
+        await GuardarJsonAsync("loterias", loterias);
+
+    public async Task<IReadOnlyList<LoteriaResponse>> LoteriasAsync()
+    {
+        var lista = await LeerJsonAsync<List<LoteriaResponse>>("loterias");
+        return lista ?? [];
+    }
+
+    public async Task GuardarSesionAsync(SesionLocal sesion) =>
+        await GuardarJsonAsync("sesion", sesion);
+
+    public async Task<SesionLocal?> SesionAsync() =>
+        await LeerJsonAsync<SesionLocal>("sesion");
+
+    private async Task GuardarJsonAsync<T>(string clave, T valor)
+    {
+        var db = await ConexionAsync();
+        var json = JsonSerializer.Serialize(valor);
+        var fila = await db.FindAsync<DatoLocal>(clave);
+        if (fila is null)
+        {
+            await db.InsertAsync(new DatoLocal { Clave = clave, Json = json });
+            return;
+        }
+
+        fila.Json = json;
+        await db.UpdateAsync(fila);
+    }
+
+    private async Task<T?> LeerJsonAsync<T>(string clave)
+    {
+        var db = await ConexionAsync();
+        var fila = await db.FindAsync<DatoLocal>(clave);
+        if (fila is null || string.IsNullOrWhiteSpace(fila.Json))
+        {
+            return default;
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<T>(fila.Json);
+        }
+        catch (JsonException)
+        {
+            return default;
+        }
     }
 
     private async Task<SQLiteAsyncConnection> ConexionAsync()

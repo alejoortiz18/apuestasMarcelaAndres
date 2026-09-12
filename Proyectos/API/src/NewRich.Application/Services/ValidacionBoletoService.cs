@@ -289,7 +289,7 @@ public sealed class ValidacionBoletoService : IValidacionBoletoService
 
         var gano = boleto.Juegos.Any(j =>
             j.JuegoLoterias.Any(l =>
-                resultados.Any(r => r.LoteriaId == l.LoteriaId && r.Numero == j.Numero)));
+                resultados.Any(r => r.LoteriaId == l.LoteriaId && r.Numero.Trim() == j.Numero.Trim())));
 
         if (gano)
         {

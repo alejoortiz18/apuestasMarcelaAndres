@@ -66,4 +66,8 @@ public static class OfflineAgrupacion
 
     private static bool Es(CodigoOfflineResponse codigo, EstadoCodigoOffline estado) =>
         string.Equals(codigo.Estado, estado.ToString(), StringComparison.OrdinalIgnoreCase);
+
+    public static bool TieneTirillaVendida(string? estado) =>
+        string.Equals(estado, nameof(EstadoCodigoOffline.Utilizado), StringComparison.OrdinalIgnoreCase)
+        || string.Equals(estado, nameof(EstadoCodigoOffline.Registrado), StringComparison.OrdinalIgnoreCase);
 }

@@ -1,5 +1,7 @@
 @using NewRich.Admin.Constants
 @using NewRich.Admin.Services
+@using NewRich.Application.Services
+@using NewRich.Domain.Enums
 @model NewRich.Admin.Models.OfflineLoteViewModel
 @{
     var resumen = Model.Resumen;
@@ -68,6 +70,28 @@
         <a class="secondary pda-clear" asp-action="Codigos" asp-route-usuarioId="@Model.UsuarioId" asp-route-dispositivoId="@Model.DispositivoId">@UiTexts.LimpiarFiltros</a>
     </form>
 </div>
+<div class="panel estados-codigo">
+    <h2 class="estados-codigo-titulo">@UiTexts.EstadosDelCodigo</h2>
+    <p class="estados-codigo-ayuda">@UiTexts.EstadosDelCodigoAyuda</p>
+    <ul class="estados-codigo-lista">
+        <li>
+            <span class="pill @EstadoUi.Pill(nameof(EstadoCodigoOffline.Generado))">@nameof(EstadoCodigoOffline.Generado)</span>
+            <span>@UiTexts.EstadoGeneradoAyuda</span>
+        </li>
+        <li>
+            <span class="pill @EstadoUi.Pill(nameof(EstadoCodigoOffline.Descargado))">@nameof(EstadoCodigoOffline.Descargado)</span>
+            <span>@UiTexts.EstadoDescargadoAyuda</span>
+        </li>
+        <li>
+            <span class="pill @EstadoUi.Pill(nameof(EstadoCodigoOffline.Utilizado))">@nameof(EstadoCodigoOffline.Utilizado)</span>
+            <span>@UiTexts.EstadoUtilizadoAyuda</span>
+        </li>
+        <li>
+            <span class="pill @EstadoUi.Pill(nameof(EstadoCodigoOffline.Registrado))">@nameof(EstadoCodigoOffline.Registrado)</span>
+            <span>@UiTexts.EstadoRegistradoAyuda</span>
+        </li>
+    </ul>
+</div>
 <div class="panel">
     @if (!Model.Pagina.Items.Any())
     {
@@ -88,6 +112,7 @@
                 <tbody>
                 @foreach (var item in Model.Pagina.Items)
                 {
+                    var muestraTirilla = OfflineAgrupacion.TieneTirillaVendida(item.Estado);
                     <tr tabindex="0">
                         <td><strong>@item.Consecutivo</strong></td>
                         <td>@Formato(item.FechaVenta)</td>
@@ -104,7 +129,8 @@
                                     data-fecha-creacion="@item.FechaCreacion.ToLocalTime().ToString("dd/MM/yyyy HH:mm")"
                                     data-fecha-descarga="@Formato(item.FechaDescarga)"
                                     data-fecha-venta="@Formato(item.FechaVenta)"
-                                    data-fecha-registro="@Formato(item.FechaRegistro)">@UiTexts.Ver</button>
+                                    data-fecha-registro="@Formato(item.FechaRegistro)"
+                                    data-tirilla-url="@(muestraTirilla ? Url.Action("Ticket", "Ventas", new { id = item.CodigoId }) : null)">@UiTexts.Ver</button>
                         </td>
                     </tr>
                 }
@@ -116,16 +142,22 @@
 </div>
 <div id="codigoDialog" class="dialog-back hidden" role="dialog" aria-modal="true" aria-labelledby="codigoDialogTitle" hidden>
     <div class="dialog dialog-codigo">
-        <h2 id="codigoDialogTitle">@UiTexts.DetalleCodigo</h2>
+        <div class="codigo-dialog-titulo">
+            <h2 id="codigoDialogTitle">@UiTexts.DetalleCodigo</h2>
+            <span class="pill" data-codigo-field="estado"></span>
+        </div>
         <div class="receipt">
             <div class="receipt-row"><span>@UiTexts.Consecutivo</span><strong data-codigo-field="consecutivo"></strong></div>
             <div class="receipt-row"><span>@UiTexts.NombreCompleto</span><strong data-codigo-field="usuario"></strong></div>
             <div class="receipt-row"><span>@UiTexts.Pda</span><strong data-codigo-field="pda"></strong></div>
-            <div class="receipt-row"><span>@UiTexts.EstadoDelCodigo</span><strong><span class="pill" data-codigo-field="estado"></span></strong></div>
             <div class="receipt-row"><span>@UiTexts.FechaCreacion</span><strong data-codigo-field="fecha-creacion"></strong></div>
             <div class="receipt-row"><span>@UiTexts.FechaDescarga</span><strong data-codigo-field="fecha-descarga"></strong></div>
             <div class="receipt-row"><span>@UiTexts.FechaVenta</span><strong data-codigo-field="fecha-venta"></strong></div>
             <div class="receipt-row"><span>@UiTexts.FechaRegistro</span><strong data-codigo-field="fecha-registro"></strong></div>
+        </div>
+        <div class="codigo-tirilla hidden" data-codigo-tirilla data-cargando="@UiTexts.CargandoTirilla" data-error="@UiTexts.TirillaNoDisponible" hidden>
+            <h3 class="codigo-tirilla-titulo">@UiTexts.TirillaDeCompra</h3>
+            <div data-codigo-tirilla-panel></div>
         </div>
         <div class="dialog-actions">
             <button type="button" class="primary" data-close-codigo>@UiTexts.Cerrar</button>

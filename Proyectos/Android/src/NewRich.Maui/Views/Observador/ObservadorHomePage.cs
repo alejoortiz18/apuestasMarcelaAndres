@@ -66,16 +66,24 @@ public sealed class ObservadorHomePage : ContentPage
 
     private async Task ValidarAsync()
     {
-        var resultado = await _api.ValidarQrAsync(new ValidarQrRequest { Qr = _qr.Text?.Trim() ?? string.Empty }, CancellationToken.None);
-        if (!resultado.IsSuccess || resultado.Data is null)
+        try
         {
-            _resultado.Text = resultado.Message;
-            _resultado.TextColor = Ui.Danger;
-            return;
-        }
+            var resultado = await _api.ValidarQrAsync(new ValidarQrRequest { Qr = _qr.Text?.Trim() ?? string.Empty }, CancellationToken.None);
+            if (!resultado.IsSuccess || resultado.Data is null)
+            {
+                _resultado.Text = resultado.Message;
+                _resultado.TextColor = Ui.Danger;
+                return;
+            }
 
-        var d = resultado.Data;
-        _resultado.Text = $"{d.ResultadoVisual}\n{d.CodigoPublico} · {d.Vendedor} · {d.Estado} · {d.Vigencia}";
-        _resultado.TextColor = Ui.Green;
+            var d = resultado.Data;
+            _resultado.Text = $"{d.ResultadoVisual}\n{d.CodigoPublico} · {d.Vendedor} · {d.Estado} · {d.Vigencia}";
+            _resultado.TextColor = Ui.Green;
+        }
+        catch (Exception)
+        {
+            _resultado.Text = PdaTexts.SinConexionServidor;
+            _resultado.TextColor = Ui.Danger;
+        }
     }
 }

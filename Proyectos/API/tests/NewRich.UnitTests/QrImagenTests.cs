@@ -24,4 +24,21 @@ public sealed class QrImagenTests
         bytes[3].Should().Be(0x47);
         QrImagen.DataUri("1.key.nonce.cipher.tag").Should().StartWith("data:image/png;base64,");
     }
+
+    [Fact]
+    public void Png_de_un_sobre_largo_no_lanza()
+    {
+        var largo = new string('A', 4000);
+        var bytes = QrImagen.Png(largo);
+        bytes.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void Png_de_tirilla_cabe_en_el_ancho_del_papel()
+    {
+        var bytes = QrImagen.PngParaTirilla("NR1." + new string('A', 400), 360);
+
+        bytes.Should().HaveCountGreaterThan(100);
+        bytes[0].Should().Be(0x89);
+    }
 }

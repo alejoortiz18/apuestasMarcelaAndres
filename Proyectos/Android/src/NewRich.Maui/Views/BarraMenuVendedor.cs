@@ -5,7 +5,6 @@ namespace NewRich.Maui.Views;
 
 public sealed class BarraMenuVendedor : Border
 {
-    private const string CapaId = "menu-inferior-vendedor";
     private static readonly Color FondoBarra = Color.FromArgb("#0B1A14");
     private static readonly Color Oro = Color.FromArgb("#D4B15A");
     private static readonly Color Crema = Color.FromArgb("#F0E6C8");
@@ -56,26 +55,46 @@ public sealed class BarraMenuVendedor : Border
 
         Shell.SetTabBarIsVisible(contenido, false);
         var ruta = MenuInferiorVendedor.RutaActiva(ubicacion);
-        if (contenido.Content is Grid capa && capa.ClassId == CapaId)
+        if (contenido.Content is Grid capa && MenuInferiorVendedor.EsCapa(capa.ClassId)
+            && capa.RowDefinitions.Count >= 2)
         {
             foreach (var anterior in capa.Children.OfType<BarraMenuVendedor>().ToList())
             {
                 capa.Remove(anterior);
             }
-            var barra = new BarraMenuVendedor(ruta)
-            {
-                VerticalOptions = LayoutOptions.End
-            };
+
+            var barra = new BarraMenuVendedor(ruta);
+            Grid.SetRow(barra, MenuInferiorVendedor.FilaMenu);
             capa.Add(barra);
             return;
         }
 
-        var original = contenido.Content;
-        ReservarEspacio(original);
-        var nueva = new Grid { ClassId = CapaId };
+        var original = ExtraerContenido(contenido);
+        if (original is null)
+        {
+            return;
+        }
+
+        original.VerticalOptions = LayoutOptions.Fill;
+        var nueva = new Grid { ClassId = MenuInferiorVendedor.CapaId };
+        nueva.RowDefinitions.Add(new RowDefinition(GridLength.Star));
+        nueva.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+        Grid.SetRow(original, MenuInferiorVendedor.FilaContenido);
         nueva.Add(original);
-        nueva.Add(new BarraMenuVendedor(ruta) { VerticalOptions = LayoutOptions.End });
+        var menu = new BarraMenuVendedor(ruta);
+        Grid.SetRow(menu, MenuInferiorVendedor.FilaMenu);
+        nueva.Add(menu);
         contenido.Content = nueva;
+    }
+
+    private static View? ExtraerContenido(ContentPage pagina)
+    {
+        if (pagina.Content is Grid capa && MenuInferiorVendedor.EsCapa(capa.ClassId))
+        {
+            return capa.Children.OfType<View>().FirstOrDefault(v => v is not BarraMenuVendedor);
+        }
+
+        return pagina.Content;
     }
 
     private static View CrearCelda(ItemMenuInferior item, bool activo)
@@ -155,25 +174,5 @@ public sealed class BarraMenuVendedor : Border
             _ => "M12 3 C7 3 4 7 4 12 C4 17 7 21 12 21 C17 21 20 17 20 12 C20 7 17 3 12 3 Z M4 12 H20 M12 3 C10 8 10 16 12 21 C14 16 14 8 12 3"
         };
         return (Geometry)new PathGeometryConverter().ConvertFromInvariantString(datos)!;
-    }
-
-    private static void ReservarEspacio(View original)
-    {
-        const double reserva = 88;
-        if (original is ScrollView scroll)
-        {
-            scroll.Padding = new Thickness(
-                scroll.Padding.Left,
-                scroll.Padding.Top,
-                scroll.Padding.Right,
-                Math.Max(scroll.Padding.Bottom, reserva));
-            return;
-        }
-
-        original.Margin = new Thickness(
-            original.Margin.Left,
-            original.Margin.Top,
-            original.Margin.Right,
-            Math.Max(original.Margin.Bottom, reserva));
     }
 }

@@ -29,9 +29,20 @@ public sealed class ImpresionTirillaTests
     }
 
     [Fact]
-    public void La_letra_es_grande_y_el_modulo_del_qr_no_se_reduce()
+    public void La_letra_es_grande_y_el_modulo_del_qr_en_linea_no_se_reduce()
     {
         ImpresionTirilla.TamanoLetra.Should().Be(28f);
         ImpresionTirilla.ModuloQr.Should().Be(5);
+        ImpresionTirilla.ModuloQrPara("1.8f2c1a6e4b094d739e215a7c0b8d3f14.nonce.cipher.tag").Should().Be(5);
+    }
+
+    [Fact]
+    public void El_qr_offline_imprime_chico_y_al_ancho_del_papel()
+    {
+        ImpresionTirilla.AnchoQrPuntos.Should().Be(360);
+        ImpresionTirilla.ModuloQrOffline.Should().Be(3);
+        ImpresionTirilla.ModuloQrPara("NR1.abc_def-ghi").Should().Be(3);
+        ImpresionTirilla.ModuloQrPara("""{"codigo":"1.x","consecutivo":"OFF-000001","jugada":{}}""")
+            .Should().Be(3);
     }
 }

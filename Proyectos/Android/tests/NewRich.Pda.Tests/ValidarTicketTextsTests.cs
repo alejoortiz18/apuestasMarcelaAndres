@@ -10,6 +10,8 @@ public sealed class ValidarTicketTextsTests
     {
         PdaTexts.ValidarTicket.Should().Be("Validar ticket ganador");
         PdaTexts.ValidarTicketAyuda.Should().Be("Apunta el lector al código de barras o QR del ticket, o escribe el código del recibo.");
+        PdaTexts.LeerQr.Should().Be("Leer QR");
+        PdaTexts.ValidandoQr.Should().Be("validando QR");
         PdaTexts.LeerCodigoBarras.Should().Be("Leer código de barras");
         PdaTexts.EsperandoLector.Should().Be("Apunta el lector al código. Si el equipo tiene gatillo, úsalo ahora.");
         PdaTexts.CodigoNoLeido.Should().Be("No se recibió un código. Vuelve a leerlo con el lector o escríbelo.");

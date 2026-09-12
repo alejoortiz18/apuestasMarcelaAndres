@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using NewRich.Application.Abstractions;
+using NewRich.Application.Contracts.Offline;
 using NewRich.Domain.Entities;
 
 namespace NewRich.Application.Services;
@@ -20,6 +21,28 @@ public static class BoletoPorCodigo
             if (porCodigo is not null)
             {
                 return porCodigo;
+            }
+        }
+
+        if (SobreQrOfflineCodec.TryLeer(brutoLimpio, out var sobre))
+        {
+            var interno = qr.Decrypt(sobre.Codigo);
+            if (interno is not null)
+            {
+                var codigoInterno = Normalizar(interno.CodigoPublico);
+                var porSobre = await boletos.FirstOrDefaultAsync(
+                    b => b.BoletoId == interno.BoletoId && b.CodigoPublico == codigoInterno,
+                    cancellationToken);
+                if (porSobre is not null)
+                {
+                    return porSobre;
+                }
+            }
+
+            var porJson = await boletos.FirstOrDefaultAsync(b => b.QrCifrado == brutoLimpio, cancellationToken);
+            if (porJson is not null)
+            {
+                return porJson;
             }
         }
 

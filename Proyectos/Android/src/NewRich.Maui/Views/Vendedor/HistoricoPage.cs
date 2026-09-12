@@ -54,7 +54,13 @@ public sealed class HistoricoPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        await CargarAsync();
+        try
+        {
+            await CargarAsync();
+        }
+        catch (Exception)
+        {
+        }
     }
 
     private View Paginador()

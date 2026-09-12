@@ -70,6 +70,16 @@ public sealed class OfflineAgrupacionTests
         filtrados[0].Estado.Should().Be(nameof(EstadoCodigoOffline.Descargado));
     }
 
+    [Fact]
+    public void Tiene_tirilla_vendida_solo_en_utilizado_y_registrado()
+    {
+        OfflineAgrupacion.TieneTirillaVendida(nameof(EstadoCodigoOffline.Utilizado)).Should().BeTrue();
+        OfflineAgrupacion.TieneTirillaVendida(nameof(EstadoCodigoOffline.Registrado)).Should().BeTrue();
+        OfflineAgrupacion.TieneTirillaVendida(nameof(EstadoCodigoOffline.Generado)).Should().BeFalse();
+        OfflineAgrupacion.TieneTirillaVendida(nameof(EstadoCodigoOffline.Descargado)).Should().BeFalse();
+        OfflineAgrupacion.TieneTirillaVendida(null).Should().BeFalse();
+    }
+
     private static CodigoOfflineResponse Codigo(
         Guid usuarioId,
         string usuario,

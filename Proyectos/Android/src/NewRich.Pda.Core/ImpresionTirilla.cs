@@ -1,3 +1,5 @@
+using NewRich.Application.Contracts.Offline;
+
 namespace NewRich.Pda.Core;
 
 public sealed record CuerpoImpresion(string Antes, string Despues);
@@ -12,6 +14,21 @@ public static class ImpresionTirilla
 
     public const float TamanoLetra = 28f;
     public const int ModuloQr = 5;
+    public const int ModuloQrOffline = 3;
+    public const int AnchoQrPuntos = 360;
+
+    public static int ModuloQrPara(string? contenidoQr)
+    {
+        var texto = contenidoQr?.TrimStart() ?? string.Empty;
+        if (texto.StartsWith('{')
+            || texto.StartsWith(SobreQrOfflineCodec.PrefijoTirilla, StringComparison.OrdinalIgnoreCase)
+            || texto.Length > 180)
+        {
+            return ModuloQrOffline;
+        }
+
+        return ModuloQr;
+    }
 
     public static CuerpoImpresion Cuerpo(string texto)
     {

@@ -103,7 +103,7 @@ public sealed class VentaService : IVentaService
             decimal total = 0;
             foreach (var linea in request.Juegos)
             {
-                if (string.IsNullOrWhiteSpace(linea.Numero) || linea.Numero.Length != 4 || !linea.Numero.All(char.IsDigit))
+                if (!NumeroApuesta.EsValido(linea.Numero))
                 {
                     throw new InvalidOperationException(ValidationMessages.NumeroApuestaFormato);
                 }
@@ -133,7 +133,7 @@ public sealed class VentaService : IVentaService
                 {
                     JuegoId = Guid.NewGuid(),
                     BoletoId = boleto.BoletoId,
-                    Numero = linea.Numero,
+                    Numero = linea.Numero.Trim(),
                     Valor = linea.Valor,
                     TipoJuego = request.TipoApuesta == TipoApuesta.COMBINADO ? TipoJuego.COMBINADA : TipoJuego.INDIVIDUAL
                 };

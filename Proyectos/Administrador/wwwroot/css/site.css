@@ -1468,6 +1468,7 @@ a[data-offline-associate][hidden] { display: none; }
   .heading .primary { width: 100%; margin-top: 15px; }
   .stats { gap: 9px; }
   .lote-meta { grid-template-columns: 1fr; }
+  .estados-codigo-lista li { grid-template-columns: 1fr; }
   .kpi-filter, .kpi-filter-extra { grid-template-columns: 1fr 1fr; }
   .kpi-filter button, .kpi-filter .secondary, .kpi-filter-extra .secondary { width: 100%; }
   .metric-grid { grid-template-columns: 1fr 1fr; }
@@ -1526,6 +1527,39 @@ a[data-offline-associate][hidden] { display: none; }
 }
 .dialog.dialog-codigo,
 .dialog.dialog-usuario { width: min(520px, 100%); }
+.dialog.dialog-codigo { width: min(640px, 100%); max-height: min(90vh, 900px); overflow: auto; }
+.codigo-dialog-titulo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.codigo-dialog-titulo h2 { margin: 0; }
+.codigo-dialog-titulo .pill { font-weight: 800; }
+.codigo-tirilla { margin: 0 0 16px; padding-top: 8px; border-top: 1px solid var(--line); }
+.codigo-tirilla-titulo { font-size: 14px; margin: 0 0 10px; }
+.codigo-tirilla .dialog-head,
+.codigo-tirilla [data-close-ticket] { display: none; }
+.codigo-tirilla .ticket-actions { justify-content: flex-start; }
+.estados-codigo-titulo { font-size: 16px; margin: 0 0 6px; }
+.estados-codigo-ayuda { margin: 0 0 14px; color: var(--muted); font-size: 13px; line-height: 1.45; }
+.estados-codigo-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.estados-codigo-lista li {
+  display: grid;
+  grid-template-columns: minmax(108px, auto) 1fr;
+  gap: 10px 14px;
+  align-items: start;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.estados-codigo-lista .pill { justify-self: start; }
 .usuario-detalle-nombre { font-weight: 800; margin: 0 0 4px; }
 .dialog .receipt { margin: 12px 0 18px; }
 .dialog h2 { font-size: 17px; margin: 0 0 8px; }

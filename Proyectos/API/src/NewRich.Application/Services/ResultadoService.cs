@@ -3,6 +3,7 @@ using NewRich.Application.Abstractions;
 using NewRich.Application.Contracts.Resultados;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
+using NewRich.Domain.Services;
 using NewRich.Shared.Results;
 
 namespace NewRich.Application.Services;
@@ -20,7 +21,7 @@ public sealed class ResultadoService : IResultadoService
 
     public async Task<Result<ResultadoResponse>> RegistrarAsync(RegistrarResultadoRequest request, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(request.Numero) || request.Numero.Length != 4 || !request.Numero.All(char.IsDigit))
+        if (!NumeroApuesta.EsValido(request.Numero))
         {
             return Result<ResultadoResponse>.Fail(ValidationMessages.NumeroApuestaFormato);
         }
@@ -42,7 +43,7 @@ public sealed class ResultadoService : IResultadoService
             NumeroGanadorId = Guid.NewGuid(),
             LoteriaId = request.LoteriaId,
             FechaJuego = fecha,
-            Numero = request.Numero,
+            Numero = request.Numero.Trim(),
             FechaRegistro = _clock.UtcNow,
             Loteria = loteria
         };

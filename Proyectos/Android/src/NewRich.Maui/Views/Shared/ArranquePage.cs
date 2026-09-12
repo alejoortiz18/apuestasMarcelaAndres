@@ -134,9 +134,15 @@ public sealed class ArranquePage : ContentPage
             catch (OperationCanceledException)
             {
             }
+            catch (Exception)
+            {
+            }
 
             await MostrarAsync(4);
             await MostrarAsync(ArranqueSecuencia.Pasos.Count);
+        }
+        catch (Exception)
+        {
         }
         finally
         {

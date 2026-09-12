@@ -321,6 +321,12 @@ public sealed class OfflineFormViewModel
     public IReadOnlyList<UsuarioResponse> Usuarios { get; set; } = [];
 }
 
+public sealed class OfflineRegistrarViewModel
+{
+    [Display(Name = UiTexts.QrTirilla)]
+    public string Qr { get; set; } = string.Empty;
+}
+
 public sealed class PremiosIndexViewModel
 {
     public string? Busqueda { get; init; }

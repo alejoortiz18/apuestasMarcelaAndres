@@ -42,7 +42,7 @@ public sealed class TicketDraft
             return Result.Fail(VentaMessages.MaximoLineasExcedido);
         }
 
-        if (string.IsNullOrWhiteSpace(numero) || numero.Length != 4 || !numero.All(char.IsDigit))
+        if (!NumeroApuesta.EsValido(numero))
         {
             return Result.Fail(ValidationMessages.NumeroApuestaFormato);
         }

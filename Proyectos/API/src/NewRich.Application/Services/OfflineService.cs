@@ -6,6 +6,7 @@ using NewRich.Application.Contracts.Offline;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
 using NewRich.Domain.Enums;
+using NewRich.Domain.Services;
 using NewRich.Shared.Results;
 
 namespace NewRich.Application.Services;
@@ -149,6 +150,225 @@ public sealed class OfflineService : IOfflineService
         return Result<IReadOnlyList<CodigoOfflineResponse>>.Created(
             creados.Select(c => Map(c, usuario.NombreCompleto, pda.CodigoDispositivo)).ToList(),
             SuccessMessages.CodigosOfflineGenerados);
+    }
+
+    public async Task<Result<SincronizarVentasOfflineResponse>> SincronizarVentasAsync(
+        Guid vendedorId,
+        SincronizarVentasOfflineRequest request,
+        CancellationToken cancellationToken)
+    {
+        var sincronizados = new List<string>();
+        foreach (var qr in request.QrJson ?? [])
+        {
+            var resultado = await IngestarAsync(qr, vendedorId, null, cancellationToken);
+            if (resultado.IsSuccess && resultado.Data is not null)
+            {
+                sincronizados.Add(resultado.Data.Consecutivo);
+            }
+        }
+
+        return Result<SincronizarVentasOfflineResponse>.Ok(
+            new SincronizarVentasOfflineResponse { Sincronizados = sincronizados },
+            SuccessMessages.VentasOfflineSincronizadas);
+    }
+
+    public Task<Result<CodigoOfflineResponse>> RegistrarQrAsync(
+        Guid administradorId,
+        RegistrarQrOfflineRequest request,
+        CancellationToken cancellationToken) =>
+        IngestarAsync(request.Qr, null, administradorId, cancellationToken);
+
+    private async Task<Result<CodigoOfflineResponse>> IngestarAsync(
+        string? qrJson,
+        Guid? vendedorId,
+        Guid? administradorId,
+        CancellationToken cancellationToken)
+    {
+        if (!SobreQrOfflineCodec.TryLeer(qrJson, out var sobre))
+        {
+            return Result<CodigoOfflineResponse>.Fail(UsuarioMessages.QrInvalidoOAlterado);
+        }
+
+        var payload = _qr.Decrypt(sobre.Codigo);
+        CodigoPreventaOffline? codigo = null;
+        if (payload is not null)
+        {
+            codigo = await _db.CodigosPreventaOffline
+                .Include(c => c.Usuario)
+                .Include(c => c.Dispositivo)
+                .FirstOrDefaultAsync(c => c.CodigoId == payload.BoletoId, cancellationToken);
+        }
+
+        if (codigo is null)
+        {
+            var todos = await _db.CodigosPreventaOffline
+                .Include(c => c.Usuario)
+                .Include(c => c.Dispositivo)
+                .ToListAsync(cancellationToken);
+            codigo = todos.FirstOrDefault(c =>
+                Encoding.UTF8.GetString(c.PayloadCifrado) == sobre.Codigo
+                && string.Equals(c.ConsecutivoUnico, sobre.Consecutivo, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (codigo is null
+            || !string.Equals(codigo.ConsecutivoUnico, sobre.Consecutivo, StringComparison.OrdinalIgnoreCase)
+            || payload is null)
+        {
+            return Result<CodigoOfflineResponse>.Fail(UsuarioMessages.QrInvalidoOAlterado);
+        }
+
+        if (vendedorId is Guid vendedor && codigo.UsuarioId != vendedor)
+        {
+            return Result<CodigoOfflineResponse>.Fail(UsuarioMessages.QrInvalidoOAlterado);
+        }
+
+        var yaHabiaVenta = codigo.VentaId.HasValue
+            || await _db.Boletos.AnyAsync(b => b.BoletoId == codigo.CodigoId, cancellationToken);
+
+        if (!yaHabiaVenta)
+        {
+            var creada = await CrearVentaOficialAsync(codigo, payload, sobre, cancellationToken);
+            if (!creada.IsSuccess)
+            {
+                return Result<CodigoOfflineResponse>.Fail(creada.Message, creada.StatusCode);
+            }
+        }
+
+        if (administradorId is Guid admin)
+        {
+            if (codigo.EstadoDelCodigo != EstadoCodigoOffline.Registrado)
+            {
+                codigo.EstadoDelCodigo = EstadoCodigoOffline.Registrado;
+                codigo.FechaRegistro = _clock.UtcNow;
+                codigo.AdminQueRegistro = admin;
+                await _db.SaveChangesAsync(cancellationToken);
+            }
+
+            return Result<CodigoOfflineResponse>.Ok(
+                Map(codigo),
+                yaHabiaVenta ? UsuarioMessages.QrYaRegistrado : SuccessMessages.CodigoOfflineRegistrado);
+        }
+
+        if (codigo.EstadoDelCodigo != EstadoCodigoOffline.Registrado)
+        {
+            codigo.EstadoDelCodigo = EstadoCodigoOffline.Utilizado;
+            codigo.FechaVentaOffline ??= sobre.Jugada.Fecha == default ? _clock.UtcNow : sobre.Jugada.Fecha.ToUniversalTime();
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+
+        return Result<CodigoOfflineResponse>.Ok(Map(codigo), SuccessMessages.VentasOfflineSincronizadas);
+    }
+
+    private async Task<Result> CrearVentaOficialAsync(
+        CodigoPreventaOffline codigo,
+        QrPayload payload,
+        SobreQrOffline sobre,
+        CancellationToken cancellationToken)
+    {
+        if (sobre.Jugada.Lineas.Count == 0)
+        {
+            return Result.Fail(UsuarioMessages.QrInvalidoOAlterado);
+        }
+
+        if (!Enum.TryParse<TipoApuesta>(sobre.Jugada.Tipo, true, out var tipo))
+        {
+            tipo = TipoApuesta.INDIVIDUAL;
+        }
+
+        var vigencia = 30;
+        var cfg = await _db.Configuraciones.AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Clave == "VigenciaPremiosDias", cancellationToken);
+        if (cfg is not null && int.TryParse(cfg.Valor, out var dias) && dias > 0)
+        {
+            vigencia = dias;
+        }
+
+        decimal total = 0;
+        var juegos = new List<Juego>();
+        foreach (var linea in sobre.Jugada.Lineas)
+        {
+            if (!NumeroApuesta.EsValido(linea.Numero))
+            {
+                return Result.Fail(UsuarioMessages.QrInvalidoOAlterado);
+            }
+
+            var ids = linea.LoteriaIds.Distinct().ToArray();
+            if (ids.Length == 0)
+            {
+                return Result.Fail(UsuarioMessages.QrInvalidoOAlterado);
+            }
+
+            var loterias = await _db.Loterias.Where(l => ids.Contains(l.LoteriaId)).ToListAsync(cancellationToken);
+            if (loterias.Count != ids.Length)
+            {
+                return Result.Fail(UsuarioMessages.QrInvalidoOAlterado);
+            }
+
+            var juego = new Juego
+            {
+                JuegoId = Guid.NewGuid(),
+                BoletoId = codigo.CodigoId,
+                Numero = linea.Numero.Trim(),
+                Valor = linea.Valor,
+                TipoJuego = tipo == TipoApuesta.COMBINADO ? TipoJuego.COMBINADA : TipoJuego.INDIVIDUAL
+            };
+            foreach (var loteria in loterias)
+            {
+                juego.JuegoLoterias.Add(new JuegoLoteria { JuegoId = juego.JuegoId, LoteriaId = loteria.LoteriaId });
+            }
+
+            total += TotalesApuesta.TotalJuego(linea.Valor, loterias.Count);
+            juegos.Add(juego);
+        }
+
+        var ventaId = Guid.NewGuid();
+        var fecha = sobre.Jugada.Fecha == default ? _clock.UtcNow : sobre.Jugada.Fecha.ToUniversalTime();
+        var venta = new Venta
+        {
+            VentaId = ventaId,
+            UsuarioId = codigo.UsuarioId,
+            DispositivoId = codigo.DispositivoId,
+            FechaVenta = fecha,
+            Total = total,
+            TipoApuesta = tipo,
+            EstadoSincronizacion = "Sincronizada",
+            IdempotencyKey = $"offline:{codigo.ConsecutivoUnico}",
+            FechaSincronizacion = _clock.UtcNow
+        };
+
+        var boleto = new Boleto
+        {
+            BoletoId = codigo.CodigoId,
+            VentaId = ventaId,
+            CodigoPublico = payload.CodigoPublico,
+            ClaveValidacionHash = _qr.HashClaveValidacion(payload.ClaveValidacion),
+            QrCifrado = SobreQrOfflineCodec.Armar(sobre.Codigo, sobre.Consecutivo, sobre.Jugada),
+            EstadoBoleto = EstadoBoleto.Jugado,
+            FechaCreacion = fecha,
+            VigenciaDias = vigencia
+        };
+        foreach (var juego in juegos)
+        {
+            boleto.Juegos.Add(juego);
+        }
+
+        var clave = new ClaveValidacionBoleto
+        {
+            ClaveId = payload.IdentificadorClave == Guid.Empty ? Guid.NewGuid() : payload.IdentificadorClave,
+            BoletoId = boleto.BoletoId,
+            ClaveHash = boleto.ClaveValidacionHash,
+            Version = payload.Version <= 0 ? 1 : payload.Version,
+            IdentificadorClave = payload.IdentificadorClave == Guid.Empty ? Guid.NewGuid() : payload.IdentificadorClave,
+            FechaCreacion = _clock.UtcNow
+        };
+
+        _db.Ventas.Add(venta);
+        _db.Boletos.Add(boleto);
+        _db.ClavesValidacionBoleto.Add(clave);
+        codigo.VentaId = ventaId;
+        codigo.FechaVentaOffline ??= fecha;
+        await _db.SaveChangesAsync(cancellationToken);
+        return Result.Ok(SuccessMessages.VentasOfflineSincronizadas);
     }
 
     private static OfflineResumenResponse ResumenDe(IReadOnlyList<CodigoPreventaOffline> items) => new()

@@ -35,4 +35,11 @@ public static class MenuInferiorVendedor
 
         return "inicio";
     }
+
+    public const string CapaId = "menu-inferior-vendedor";
+    public const int FilaContenido = 0;
+    public const int FilaMenu = 1;
+
+    public static bool EsCapa(string? classId) =>
+        string.Equals(classId, CapaId, StringComparison.Ordinal);
 }

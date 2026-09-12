@@ -143,6 +143,41 @@ public sealed class OfflineController : AdminControllerBase
         return RedirectToAction(nameof(Index));
     }
 
+    [HttpGet]
+    public IActionResult Registrar()
+    {
+        SetNav("offline", UiTexts.RegistrarQrOffline);
+        return View(new OfflineRegistrarViewModel());
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Registrar(OfflineRegistrarViewModel model, CancellationToken cancellationToken)
+    {
+        SetNav("offline", UiTexts.RegistrarQrOffline);
+        if (string.IsNullOrWhiteSpace(model.Qr))
+        {
+            ModelState.AddModelError(nameof(model.Qr), UsuarioMessages.QrInvalidoOAlterado);
+            return View(model);
+        }
+
+        var result = await _api.RegistrarQrOfflineAsync(new RegistrarQrOfflineRequest { Qr = model.Qr }, cancellationToken);
+        var unauthorized = RedirectIfUnauthorized(result);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
+        if (!result.Success)
+        {
+            ModelState.AddModelError(string.Empty, result.Message);
+            return View(model);
+        }
+
+        SetFlash(result.Message);
+        return RedirectToAction(nameof(Index));
+    }
+
     private async Task FormularioAsync(OfflineFormViewModel model, CancellationToken cancellationToken)
     {
         var usuarios = await _api.ListarUsuariosAsync(cancellationToken);
