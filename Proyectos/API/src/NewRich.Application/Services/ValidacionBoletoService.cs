@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using NewRich.Application.Abstractions;
 using NewRich.Application.Contracts.Boletos;
+using NewRich.Application.Contracts.Offline;
 using NewRich.Application.Contracts.Ventas;
 using NewRich.Constants;
 using NewRich.Constants.Messages;
@@ -26,20 +27,34 @@ public sealed class ValidacionBoletoService : IValidacionBoletoService
 
     public async Task<Result<ValidacionBoletoResponse>> ValidarQrAsync(ValidarQrRequest request, CancellationToken cancellationToken)
     {
-        var payload = _qr.Decrypt(request.Qr);
-        if (payload is null)
+        var payload = _qr.Decrypt(request.Qr ?? string.Empty);
+        if (payload is null
+            && SobreQrOfflineCodec.TryLeer(request.Qr, out var sobre)
+            && !sobre.EsLlaveCorta)
         {
-            return Result<ValidacionBoletoResponse>.Ok(new ValidacionBoletoResponse { ResultadoVisual = BoletoMessages.BoletoNoEncontrado }, BoletoMessages.BoletoNoEncontrado);
+            payload = _qr.Decrypt(sobre.Codigo);
         }
 
-        var boleto = await QueryBoletos().FirstOrDefaultAsync(b => b.BoletoId == payload.BoletoId, cancellationToken);
-        if (boleto is null || boleto.CodigoPublico != payload.CodigoPublico)
+        if (payload is not null)
         {
-            return Result<ValidacionBoletoResponse>.Ok(new ValidacionBoletoResponse { ResultadoVisual = BoletoMessages.BoletoNoEncontrado }, BoletoMessages.BoletoNoEncontrado);
+            var boletoCifrado = await QueryBoletos().FirstOrDefaultAsync(b => b.BoletoId == payload.BoletoId, cancellationToken);
+            if (boletoCifrado is null || boletoCifrado.CodigoPublico != payload.CodigoPublico)
+            {
+                return Result<ValidacionBoletoResponse>.Ok(new ValidacionBoletoResponse { ResultadoVisual = BoletoMessages.BoletoNoEncontrado }, BoletoMessages.BoletoNoEncontrado);
+            }
+
+            var hash = _qr.HashClaveValidacion(payload.ClaveValidacion);
+            if (!string.Equals(hash, boletoCifrado.ClaveValidacionHash, StringComparison.OrdinalIgnoreCase))
+            {
+                return Result<ValidacionBoletoResponse>.Ok(new ValidacionBoletoResponse { ResultadoVisual = BoletoMessages.BoletoNoEncontrado }, BoletoMessages.BoletoNoEncontrado);
+            }
+
+            var evaluado = await Evaluar(boletoCifrado, cancellationToken);
+            return Result<ValidacionBoletoResponse>.Ok(evaluado, evaluado.ResultadoVisual);
         }
 
-        var hash = _qr.HashClaveValidacion(payload.ClaveValidacion);
-        if (!string.Equals(hash, boleto.ClaveValidacionHash, StringComparison.OrdinalIgnoreCase))
+        var boleto = await BoletoPorCodigo.BuscarAsync(QueryBoletos(), _qr, request.Qr ?? string.Empty, cancellationToken);
+        if (boleto is null)
         {
             return Result<ValidacionBoletoResponse>.Ok(new ValidacionBoletoResponse { ResultadoVisual = BoletoMessages.BoletoNoEncontrado }, BoletoMessages.BoletoNoEncontrado);
         }
@@ -84,17 +99,27 @@ public sealed class ValidacionBoletoService : IValidacionBoletoService
 
         return Result<TirillaResponse>.Ok(new TirillaResponse
         {
-            CodigoImpreso = CodigoPublicoGenerator.FormatoImpreso(boleto.CodigoPublico),
+            CodigoImpreso = CodigoImpresoTicket.De(
+                boleto.CodigoPublico,
+                boleto.QrCifrado,
+                await ConsecutivoOfflineAsync(boleto.BoletoId, cancellationToken)),
             Fecha = boleto.Venta?.FechaVenta ?? boleto.FechaCreacion,
             Vendedor = boleto.Venta?.Usuario?.Alias ?? boleto.Venta?.Usuario?.NombreCompleto ?? string.Empty,
             Total = boleto.Venta?.Total ?? 0,
             TipoApuesta = boleto.Venta?.TipoApuesta ?? TipoApuesta.COMBINADO,
             VigenciaDias = boleto.VigenciaDias > 0 ? boleto.VigenciaDias : 30,
-            Qr = await AsegurarQrCifradoAsync(boleto, cancellationToken),
+            Qr = SobreQrOfflineCodec.ParaPapel(await AsegurarQrCifradoAsync(boleto, cancellationToken), boleto.CodigoPublico),
             Juegos = boleto.Juegos.Select(MapJuego).ToList(),
             Leyenda = await ComponerLeyendaAsync(boleto.VigenciaDias > 0 ? boleto.VigenciaDias : 30, cancellationToken)
         }, SuccessMessages.OperacionExitosa);
     }
+
+    private async Task<string?> ConsecutivoOfflineAsync(Guid boletoId, CancellationToken cancellationToken) =>
+        await _db.CodigosPreventaOffline
+            .AsNoTracking()
+            .Where(c => c.CodigoId == boletoId)
+            .Select(c => c.ConsecutivoUnico)
+            .FirstOrDefaultAsync(cancellationToken);
 
     private async Task<string> ComponerLeyendaAsync(int vigenciaDias, CancellationToken cancellationToken)
     {

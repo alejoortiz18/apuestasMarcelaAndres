@@ -10,7 +10,7 @@ public static class PremioMessages
     public const string TransicionInvalida = "El caso no admite esa acción en su estado actual.";
     public const string ObservadorInvalido = "Debe asignar un observador activo.";
     public const string TicketRequerido = "Indica el código del ticket.";
-    public const string TicketDemasiadoLargo = "El código del ticket no puede superar 400 caracteres.";
+    public const string TicketDemasiadoLargo = "El código del ticket es demasiado largo.";
     public const string TicketNoEsDelVendedor = "El ticket no pertenece al vendedor autenticado.";
     public const string ConsultaGanador = "Este ticket es ganador.";
     public const string ConsultaNoGanador = "Este ticket no ganó.";

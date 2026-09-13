@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using NewRich.Application.Abstractions;
 using NewRich.Application.Contracts.Notificaciones;
+using NewRich.Application.Contracts.Offline;
 using NewRich.Application.Contracts.Ventas;
 using NewRich.Application.Services;
 using NewRich.Domain.Entities;
@@ -42,6 +43,8 @@ public sealed class VentaServiceTests
             CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue(result.Message);
+        result.Data!.Qr.Should().Be(SobreQrOfflineCodec.ParaPapel($"qr:{result.Data.CodigoPublico}", result.Data.CodigoPublico));
+        (await db.Boletos.FindAsync(result.Data.BoletoId))!.QrCifrado.Should().Be($"qr:{result.Data.CodigoPublico}");
         db.Notificaciones.Should().Contain(n => n.UsuarioId == adminId && n.Tipo == "ValorAlto");
         tiempoReal.Avisos.Should().Contain(a =>
             a.UsuarioId == adminId

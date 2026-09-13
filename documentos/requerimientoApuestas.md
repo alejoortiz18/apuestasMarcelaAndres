@@ -171,24 +171,24 @@ Cuatro semanas. La validación debe cubrir QR, existencia, estado, vigencia y co
 
 El administrador registra números ganadores por fecha y lotería. Puede haber varios ganadores en una fecha, pero solo uno por combinación `FechaJuego + LoteriaId`; esa restricción se implementa en la base de datos. El mismo número puede ganar en loterías diferentes.
 
-### Validación por QR
+### Validación por QR o recibo de venta
 
-El observador escanea el QR con la cámara. La API:
+El observador puede validar de dos formas, ambas de solo lectura:
 
-1. Localiza la clave maestra indicada por el QR y descifra/verifica el payload.
-2. Comprueba que boleto, código público y hash de la clave de validación correspondan.
-3. Comprueba número, lotería y fecha contra el resultado registrado.
-4. Comprueba vigencia y si el boleto fue cobrado previamente.
+- **QR:** escanea con la cámara. La API localiza la clave maestra, descifra/verifica el payload y comprueba boleto, código público y hash de la clave de validación.
+- **Recibo de venta:** ingresa el código impreso `AOL-` + 7 dígitos (o solo los 7 dígitos). La API busca el boleto por `CodigoPublico`.
 
-La vigencia inicial es de 30 días calendario y el administrador la puede cambiar. Solo el Administrador puede autorizar un cobro y cambiar el estado de un boleto ganador a `PAGADO`; el Observador únicamente lo consulta. Estados visuales:
+En ambos casos comprueba número, lotería y fecha contra el resultado registrado, vigencia y si el boleto fue cobrado. Solo el Administrador puede autorizar un cobro y cambiar el estado a `PAGADO`; el Observador únicamente consulta. Estados visuales:
 
 | Resultado | Mensaje |
 | --- | --- |
-| QR inválido o boleto inexistente | `NO SE ENCONTRÓ INFORMACIÓN` |
+| QR inválido, recibo inexistente o boleto inexistente | `NO SE ENCONTRÓ INFORMACIÓN` |
 | Ganador pendiente | `GANADOR` |
 | Ganador ya cobrado | `PAGADO` |
 | No coincide | `NO GANADOR` |
 | Fuera de vigencia | `BOLETO VENCIDO` |
+
+La vigencia inicial es de 30 días calendario y el administrador la puede cambiar.
 
 ## Límites de A2 (no-gos)
 
@@ -199,7 +199,7 @@ La vigencia inicial es de 30 días calendario y el administrador la puede cambia
 ## Hecho cuando
 
 - El administrador no puede registrar dos resultados para la misma fecha y lotería.
-- El observador puede validar un QR y ve el estado correcto.
+- El observador puede validar un QR o un recibo de venta (`AOL-` + 7 dígitos) y ve el estado correcto, sin modificar el boleto.
 - Un boleto ganador cobrado deja de mostrarse como pendiente.
 - Un QR alterado o un boleto inexistente nunca se valida como auténtico.
 
@@ -224,25 +224,26 @@ Seis semanas. La prioridad es operar usuarios, PDA, loterías, resultados, consu
 | Crear apuesta / imprimir / PDF | Sí | No | No |
 | Consultar ventas e históricos | Propias | Sí | Sí |
 | Validar QR | No | Sí | Sí |
+| Validar boleto por recibo de venta | No | Sí | Sí |
 | Administrar usuarios, PDA y loterías | No | Solo lectura | Sí |
 | Registrar ganadores, horarios y vigencia | No | No | Sí |
 | Autorizar cobro y cambiar a `PAGADO` | No | No | Sí |
 | Restablecer contraseña | No | No | Sí |
 | Crear y administrar grupos | No | No | Sí |
 | Cambiar grupo de vendedor | No | No | Sí |
-| KPI con filtro por grupos | No | No | Sí |
+| KPI con filtro por grupos | No | Solo lectura | Sí |
 
 ### Administración
 
 El administrador crea vendedores desde solicitudes externas, con nombre, usuario, alias, documento, contacto, rol, estado operativo (Activo/Inactivo), PDA e información técnica. **Es obligatorio asignar un grupo a cada vendedor** al momento de crearlo. El administrador puede crear nuevos grupos con nombre libremente definible. Al crear un vendedor, `estadoValidado` queda en true y el sistema muestra una contraseña temporal solo en pantalla. Al pulsar `Restablecer contraseña` en el perfil de un vendedor ACTIVO, el sistema muestra una contraseña temporal solo en pantalla, pone `estadoValidado` en true y cierra todas las sesiones abiertas de ese vendedor. Al pulsar `Desbloquear` en el perfil de un vendedor ACTIVO bloqueado, el sistema pone `estadoBloqueado` en false, pone `estadoValidado` en true, resetea el contador de intentos fallidos a 0 y cierra todas las sesiones abiertas de ese vendedor. Al pulsar `Cambiar grupo`, el sistema permite seleccionar un nuevo grupo y reemplaza automáticamente el grupo anterior; el vendedor se mueve con todo su histórico y datos asociados al nuevo grupo. El vendedor solicita el restablecimiento o desbloqueo por un medio externo; el negocio valida la identidad fuera del sistema. Asocia el PDA antes de entregarlo, activa/desactiva usuarios y dispositivos, administra loterías, hora de cierre, vigencia, configuraciones y notificaciones.
 
-Puede consultar por número, vendedor, boleto o lotería; visualizar una tirilla equivalente y revisar ventas, boletos, números, dispositivos y configuraciones. Los KPI mínimos son usuarios activos/inactivos, ventas por período/vendedor/día y números jugados/ganadores, con filtro dinámico por grupo que permite seleccionar información general o de un grupo específico, actualizando todos los indicadores, gráficos y estadísticas en tiempo real. El administrador puede descargar el informe en PDF conservando todos los datos, indicadores y filtros aplicados al momento de la descarga.
+Puede consultar por número, vendedor, boleto o lotería; visualizar una tirilla equivalente y revisar ventas, boletos, números, dispositivos y configuraciones. Los KPI mínimos son usuarios activos/inactivos, ventas por período/vendedor/día y números jugados/ganadores, con filtro dinámico por grupo que permite seleccionar información general o de un grupo específico, actualizando todos los indicadores, gráficos y estadísticas en tiempo real. El administrador y el observador pueden descargar el informe en PDF conservando todos los datos, indicadores y filtros aplicados al momento de la descarga. El observador consulta el mismo módulo en solo lectura.
 
 Eliminar un usuario elimina en cascada sus accesos, asociación PDA, boletos, ventas, juegos y relaciones. Esta acción es irreversible y requiere confirmación explícita. No se conserva auditoría histórica de esa eliminación, conforme al alcance original.
 
 ### Supervisión
 
-El observador opera en modo lectura para vendedores, ventas, números, PDA, configuraciones, históricos, filtros de boletos y validación de QR. No puede crear, modificar, eliminar, configurar, cobrar ni alterar información operativa. La excepción es el chat con el Administrador, que cualquiera de los dos perfiles puede iniciar. El observador no atiende chats de vendedores.
+El observador opera en modo lectura para vendedores, ventas, números, PDA, configuraciones, históricos, filtros de boletos, KPI (los mismos indicadores y filtros que el administrador), validación por QR y validación por recibo de venta. No puede crear, modificar, eliminar, configurar, cobrar ni alterar información operativa. La excepción es el chat con el Administrador, que cualquiera de los dos perfiles puede iniciar, y el registro de entrega de premio cuando el caso está asignado. El observador no atiende chats de vendedores.
 
 ## Límites de A3 (no-gos)
 
@@ -261,7 +262,7 @@ El observador opera en modo lectura para vendedores, ventas, números, PDA, conf
 - Un usuario bloqueado por 3 intentos fallidos solo puede ser desbloqueado por admin.
 - Un grupo se puede crear vacío; al crear un vendedor es obligatorio asignarle un grupo.
 - Al cambiar de grupo, el vendedor se mueve con todo su histórico al nuevo grupo.
-- Los KPI son completamente dinámicos; cambian instantáneamente según el filtro de grupo seleccionado.
+- Los KPI son completamente dinámicos; cambian instantáneamente según el filtro de grupo seleccionado. El observador consulta el mismo módulo en solo lectura.
 - Observador no puede crear apuestas ni modificar configuraciones.
 - Las consultas soportan los filtros definidos sin exponer datos de compradores.
 
@@ -532,7 +533,7 @@ Desarrollar una plataforma integral para la gestión de apuestas que permita reg
 El sistema estará compuesto por tres aplicaciones principales:
 
 - **Aplicación Android — Vendedor:** registra apuestas, crea uno o varios juegos por boleto, selecciona números y loterías, registra valores, imprime o genera PDF de contingencia, consulta históricos/resultados y solicita soporte.
-- **Aplicación Android — Observador:** consulta vendedores, ventas, boletos, números ganadores, dispositivos, históricos y configuraciones; valida boletos mediante QR y puede chatear con el administrador. No atiende chats de vendedores.
+- **Aplicación Android — Observador:** consulta vendedores, ventas, boletos, números ganadores, dispositivos, históricos, configuraciones y el mismo módulo de KPI que el administrador (solo lectura); valida boletos mediante QR o mediante el recibo de venta (`AOL-` + 7 dígitos) y puede chatear con el administrador. No atiende chats de vendedores.
 - **Aplicación Web — Administrador:** administra usuarios, PDA, loterías, números ganadores, horarios, vigencia, notificaciones y configuraciones; consulta ventas/boletos/vendedores, visualiza KPI y autoriza el estado `PAGADO` de un boleto ganador.
 
 ---
@@ -1086,7 +1087,7 @@ Al seleccionar una venta, número o boleto, el administrador podrá visualizar l
 
 RF-072
 
-Únicamente el administrador tendrá acceso al módulo de KPI.
+El administrador y el observador tendrán acceso al mismo módulo de KPI. El observador consulta en solo lectura los mismos indicadores, filtros y PDF que el administrador; no configura ni altera datos.
 
 Podrá consultar:
 
@@ -1126,7 +1127,7 @@ Fechas de números ganadores.
 
 RF-073
 
-El administrador podrá seleccionar un vendedor y un rango de fechas.
+El administrador y el observador podrán seleccionar un vendedor y un rango de fechas. El observador consulta el mismo desglose en solo lectura.
 
 El sistema mostrará:
 
@@ -1330,6 +1331,7 @@ Todo el sistema utilizará una base de datos centralizada SQL Server.
 | Consultar ventas | ❌ | ✅ | ✅ |
 | Consultar históricos | ✅ | ✅ | ✅ |
 | Validar QR | ❌ | ✅ | ✅ |
+| Validar boleto por recibo de venta | ❌ | ✅ | ✅ |
 | Ver vendedores | ❌ | ✅ | ✅ |
 | Crear usuarios | ❌ | ❌ | ✅ |
 | Modificar usuarios | ❌ | ❌ | ✅ |
@@ -1340,7 +1342,7 @@ Todo el sistema utilizará una base de datos centralizada SQL Server.
 | Configurar horario | ❌ | ❌ | ✅ |
 | Configurar vigencia | ❌ | ❌ | ✅ |
 | Configurar notificaciones | ❌ | ❌ | ✅ |
-| Ver KPI | ❌ | ❌ | ✅ |
+| Ver KPI | ❌ | ✅ | ✅ |
 | Chat | Con administrador | Con administrador | Con vendedores y observadores |
 
 
@@ -1399,8 +1401,8 @@ Todo el sistema utilizará una base de datos centralizada SQL Server.
 | RN-046 | Solo los vendedores pertenecen a grupos; observadores y administrador no pertenecen a ningún grupo. |
 | RN-047 | Al crear un vendedor es obligatorio asignarle un grupo de la lista disponible; cada vendedor pertenece a un solo grupo. El administrador puede crear grupos con nombre libremente definible. |
 | RN-048 | Al cambiar de grupo un vendedor, el sistema reemplaza automáticamente el grupo anterior y el vendedor se mueve con todo su histórico y datos asociados (ventas, boletos, juegos) al nuevo grupo. |
-| RN-049 | Los indicadores KPI son completamente dinámicos: pueden filtrar por general (todos los vendedores) o por un grupo específico; todos los datos, gráficos y estadísticas se actualizan en tiempo real según el filtro seleccionado. |
-| RN-050 | El administrador puede descargar el informe KPI en PDF, conservando absolutamente todos los datos, indicadores, filtros de grupo y el estado de la consulta al momento de la descarga. |
+| RN-049 | Los indicadores KPI son completamente dinámicos: pueden filtrar por general (todos los vendedores) o por un grupo específico; todos los datos, gráficos y estadísticas se actualizan en tiempo real según el filtro seleccionado. El administrador y el observador ven el mismo módulo; el observador solo consulta. |
+| RN-050 | El administrador y el observador pueden descargar el informe KPI en PDF, conservando absolutamente todos los datos, indicadores, filtros de grupo y el estado de la consulta al momento de la descarga. El observador no modifica el contenido del informe. |
 
 
 ---
@@ -1600,7 +1602,7 @@ El administrador pueda configurar parámetros.
 
 El sistema pueda generar notificaciones.
 
-El administrador pueda consultar KPI.
+El administrador y el observador puedan consultar el mismo módulo de KPI; el observador solo en lectura.
 
 El sistema pueda gestionar el chat.
 
@@ -1836,7 +1838,7 @@ El observador utilizará una aplicación Android.
 
 La información y las acciones operativas disponibles para el observador serán exclusivamente de lectura.
 
-El observador podrá escanear y consultar la validación de un QR, pero no podrá cambiar el estado de un boleto, autorizar pagos, crear, modificar, eliminar, configurar ni alterar datos. Podrá iniciar y responder chat con el Administrador. No atenderá chats de vendedores.
+El observador podrá validar un boleto escaneando el QR o ingresando el código del recibo de venta (`AOL-` + 7 dígitos). Ambas consultas son de solo lectura: no podrá cambiar el estado de un boleto, autorizar pagos, crear, modificar, eliminar, configurar ni alterar datos. Podrá consultar el mismo KPI que el administrador, también en solo lectura. Podrá iniciar y responder chat con el Administrador. No atenderá chats de vendedores.
 
 
 ---
@@ -1978,6 +1980,23 @@ Validar su autenticidad.
 
 Consultar el boleto.
 
+Ingresar el código impreso del recibo de venta (`AOL-` + 7 dígitos, o los 7 dígitos) y consultar el mismo resultado en solo lectura, sin autorizar cobro ni cambiar estado.
+
+
+---
+
+## RS-048A — 37A. VALIDACIÓN POR RECIBO DE VENTA
+
+RF-047A
+
+El observador podrá validar un boleto por el recibo de venta impreso.
+
+Deberá ingresar el código público del comprobante en el formato `RECIBO DE VENTA AOL-1234567` (prefijo visual `AOL-` más exactamente 7 dígitos) o únicamente los 7 dígitos.
+
+El servidor buscará el boleto por `CodigoPublico`, aplicará las mismas reglas de existencia, vigencia, coincidencia de número/lotería/fecha y estado de cobro que la validación por QR, y mostrará el mismo resultado visual (`GANADOR`, `PAGADO`, `NO GANADOR`, `BOLETO VENCIDO` o `NO SE ENCONTRÓ INFORMACIÓN`).
+
+Esta operación es exclusivamente de lectura. No autoriza pago ni modifica el boleto.
+
 
 ---
 
@@ -1986,7 +2005,7 @@ Consultar el boleto.
 
 RF-048
 
-Si el QR no corresponde a un boleto registrado:
+Si el QR o el código del recibo de venta no corresponde a un boleto registrado:
 
 NO SE ENCONTRÓ INFORMACIÓN
 
@@ -2180,16 +2199,21 @@ Ejemplo:
 
 ## RS-059 — 80. FLUJO DE VALIDACIÓN DEL BOLETO
 
-El Observador consulta y valida el boleto sin modificar datos. El Administrador es el único perfil que puede autorizar el cambio posterior a `PAGADO`.
+El Observador consulta y valida el boleto sin modificar datos, por QR o por el código del recibo de venta. El Administrador es el único perfil que puede autorizar el cambio posterior a `PAGADO`.
 
 ```mermaid
 flowchart TD
-    A[Observador escanea QR] --> B{¿QR cifrado y autenticado válido?}
+    A[Observador valida boleto] --> M{¿QR o recibo de venta?}
+    M -->|QR| B{¿QR cifrado y autenticado válido?}
+    M -->|Recibo AOL-7 dígitos| C[Consultar boleto por codigo público]
     B -->|No| X[Mostrar: NO SE ENCONTRÓ INFORMACIÓN]
-    B -->|Sí| C[Consultar boleto en servidor]
-    C --> D{¿Existe y coincide clave de validación?}
+    B -->|Sí| C2[Consultar boleto en servidor]
+    C2 --> D{¿Existe y coincide clave de validación?}
+    C --> D2{¿Existe el codigo público?}
     D -->|No| X
+    D2 -->|No| X
     D -->|Sí| E[Validar número, lotería, fecha y vigencia]
+    D2 -->|Sí| E
     E --> F{Resultado de validación}
     F -->|Ganador pendiente| G[Mostrar: GANADOR]
     F -->|Ganador ya autorizado por Administrador| H[Mostrar: PAGADO]

@@ -3,8 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Moq;
 using NewRich.Application.Abstractions;
+using NewRich.Application.Contracts.Offline;
 using NewRich.Application.Contracts.Premios;
 using NewRich.Application.Services;
+using NewRich.Constants;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
 using NewRich.Domain.Enums;
@@ -81,12 +83,32 @@ public sealed class PremioServiceTests
     }
 
     [Fact]
-    public async Task ReportarAsync_acepta_hasta_400_caracteres_en_el_codigo()
+    public async Task ReportarAsync_acepta_el_nr3_impreso_completo_de_una_venta_en_linea()
+    {
+        var crypto = CrearCryptoReal();
+        var (sut, db) = CreateSut(crypto);
+        var escenario = await CrearBoletoGanadorAsync(db);
+        var clave = crypto.GenerarClaveValidacion();
+        var aes = crypto.Encrypt(new QrPayload(escenario.Boleto.BoletoId, escenario.Boleto.CodigoPublico, clave, 1, Guid.NewGuid()));
+        escenario.Boleto.QrCifrado = aes;
+        escenario.Boleto.ClaveValidacionHash = crypto.HashClaveValidacion(clave);
+        await db.SaveChangesAsync();
+        var papel = SobreQrOfflineCodec.ParaPapel(aes, escenario.Boleto.CodigoPublico);
+
+        papel.Length.Should().BeGreaterThan(400);
+        var result = await sut.ReportarAsync(escenario.Vendedor.UsuarioId, Reporte(papel), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Ticket.Should().Be(escenario.Boleto.CodigoPublico);
+    }
+
+    [Fact]
+    public async Task ReportarAsync_acepta_hasta_el_limite_de_caracteres_en_el_codigo()
     {
         var qr = new FakeQr();
         var (sut, db) = CreateSut(qr);
         var escenario = await CrearBoletoGanadorAsync(db);
-        var contenidoQr = new string('Q', 400);
+        var contenidoQr = new string('Q', TicketCodeLimits.MaxInputLength);
         qr.Registrar(contenidoQr, new QrPayload(escenario.Boleto.BoletoId, escenario.Boleto.CodigoPublico, "clave", 1, Guid.NewGuid()));
 
         var result = await sut.ReportarAsync(escenario.Vendedor.UsuarioId, Reporte(contenidoQr), CancellationToken.None);
@@ -96,14 +118,14 @@ public sealed class PremioServiceTests
     }
 
     [Fact]
-    public async Task ReportarAsync_rechaza_un_codigo_con_mas_de_400_caracteres()
+    public async Task ReportarAsync_rechaza_un_codigo_que_supera_el_limite()
     {
         var (sut, db) = CreateSut();
         var escenario = await CrearBoletoGanadorAsync(db);
 
         var result = await sut.ReportarAsync(escenario.Vendedor.UsuarioId, new ReportarCasoGanadorRequest
         {
-            TicketCode = new string('Q', 401)
+            TicketCode = new string('Q', TicketCodeLimits.MaxInputLength + 1)
         }, CancellationToken.None);
 
         result.IsSuccess.Should().BeFalse();

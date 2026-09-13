@@ -189,25 +189,46 @@ public sealed class OfflineService : IOfflineService
             return Result<CodigoOfflineResponse>.Fail(UsuarioMessages.QrInvalidoOAlterado);
         }
 
-        var payload = _qr.Decrypt(sobre.Codigo);
+        QrPayload? payload = null;
         CodigoPreventaOffline? codigo = null;
-        if (payload is not null)
+        if (sobre.EsLlaveCorta)
         {
             codigo = await _db.CodigosPreventaOffline
                 .Include(c => c.Usuario)
                 .Include(c => c.Dispositivo)
-                .FirstOrDefaultAsync(c => c.CodigoId == payload.BoletoId, cancellationToken);
-        }
+                .FirstOrDefaultAsync(
+                    c => c.ConsecutivoUnico == sobre.Consecutivo,
+                    cancellationToken);
+            var secreto = codigo is null ? string.Empty : Encoding.UTF8.GetString(codigo.PayloadCifrado);
+            if (codigo is null
+                || !SobreQrOfflineCodec.SelloCoincide(secreto, codigo.ConsecutivoUnico, sobre.Sello))
+            {
+                return Result<CodigoOfflineResponse>.Fail(UsuarioMessages.QrInvalidoOAlterado);
+            }
 
-        if (codigo is null)
+            payload = _qr.Decrypt(secreto);
+        }
+        else
         {
-            var todos = await _db.CodigosPreventaOffline
-                .Include(c => c.Usuario)
-                .Include(c => c.Dispositivo)
-                .ToListAsync(cancellationToken);
-            codigo = todos.FirstOrDefault(c =>
-                Encoding.UTF8.GetString(c.PayloadCifrado) == sobre.Codigo
-                && string.Equals(c.ConsecutivoUnico, sobre.Consecutivo, StringComparison.OrdinalIgnoreCase));
+            payload = _qr.Decrypt(sobre.Codigo);
+            if (payload is not null)
+            {
+                codigo = await _db.CodigosPreventaOffline
+                    .Include(c => c.Usuario)
+                    .Include(c => c.Dispositivo)
+                    .FirstOrDefaultAsync(c => c.CodigoId == payload.BoletoId, cancellationToken);
+            }
+
+            if (codigo is null)
+            {
+                var todos = await _db.CodigosPreventaOffline
+                    .Include(c => c.Usuario)
+                    .Include(c => c.Dispositivo)
+                    .ToListAsync(cancellationToken);
+                codigo = todos.FirstOrDefault(c =>
+                    Encoding.UTF8.GetString(c.PayloadCifrado) == sobre.Codigo
+                    && string.Equals(c.ConsecutivoUnico, sobre.Consecutivo, StringComparison.OrdinalIgnoreCase));
+            }
         }
 
         if (codigo is null
@@ -227,6 +248,11 @@ public sealed class OfflineService : IOfflineService
 
         if (!yaHabiaVenta)
         {
+            if (sobre.EsLlaveCorta)
+            {
+                return Result<CodigoOfflineResponse>.Fail(UsuarioMessages.QrPendienteDeSincronizar);
+            }
+
             var creada = await CrearVentaOficialAsync(codigo, payload, sobre, cancellationToken);
             if (!creada.IsSuccess)
             {

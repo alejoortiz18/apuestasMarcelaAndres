@@ -400,8 +400,11 @@ public static class UiTexts
     public const string OfflineKicker = "Operación especial";
     public const string OfflineTitulo = "Ventas offline";
     public const string OfflineSub = "Genera, asigna y registra códigos preasignados.";
+    public const string OfflinePestanas = "Secciones de ventas offline";
+    public const string InformacionGeneral = "Información general";
+    public const string RegistroQrVendidos = "Registro QR vendidos";
     public const string RegistrarQrOffline = "Registrar QR vendido";
-    public const string RegistrarQrAyuda = "Pegue o escanee el JSON del QR de la tirilla. El sistema valida el código cifrado y no registra el mismo código dos veces.";
+    public const string RegistrarQrAyuda = "Pegue o escanee el QR de la tirilla. El código trae la jugada y la clave; no hace falta que el PDA haya sincronizado. El sistema no registra el mismo código dos veces.";
     public const string QrTirilla = "QR de la tirilla";
     public const string GenerarCodigos = "Generar códigos";
     public const string AsociarPdaAntesDeGenerar = "Debes asociar un PDA antes de generar los códigos";
@@ -454,7 +457,7 @@ public static class UiTexts
     public const string BuscarTicket = "Buscar ticket";
     public const string PlaceholderPremio = "Código, vendedor o PDA";
     public const string CodigoTicket = "Código del ticket";
-    public const string PremioAyudaCodigoTicket = "Puede ingresar el código de 7 dígitos o pegar el contenido completo del QR, hasta 400 caracteres.";
+    public const string PremioAyudaCodigoTicket = "Puede ingresar el código de 7 dígitos o pegar el contenido completo del QR de la tirilla.";
     public const string SeguimientoDeCasos = "Seguimiento de casos";
     public const string SeguimientoDeCasosSub = "Cada ticket puede avanzar de reportado a premio entregado.";
     public const string AccionesDePremio = "Acciones del caso de premio";

@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NewRich.Admin.Constants;
 using NewRich.Admin.Models;
-using NewRich.Admin.Services;
+using NewRich.Application.Services;
 
 namespace NewRich.Admin.Controllers;
 
@@ -23,6 +23,19 @@ public abstract class AdminControllerBase : Controller
     protected void SetFlash(string message, bool success = true)
     {
         TempData[success ? "FlashOk" : "FlashError"] = message;
+    }
+
+    protected void SetAvisoModal(string? message)
+    {
+        if (!string.IsNullOrWhiteSpace(message))
+        {
+            TempData["AvisoModal"] = message;
+        }
+    }
+
+    protected void SetOfflinePestana(string pestana)
+    {
+        ViewData["OfflinePestana"] = OfflinePestanas.Normalizar(pestana);
     }
 
     protected void SetNav(string key, string crumb)

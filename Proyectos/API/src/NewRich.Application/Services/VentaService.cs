@@ -1,6 +1,7 @@
 using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using NewRich.Application.Abstractions;
+using NewRich.Application.Contracts.Offline;
 using NewRich.Application.Contracts.Ventas;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
@@ -189,7 +190,7 @@ public sealed class VentaService : IVentaService
                 BoletoId = boleto.BoletoId,
                 CodigoPublico = boleto.CodigoPublico,
                 CodigoImpreso = CodigoPublicoGenerator.FormatoImpreso(boleto.CodigoPublico),
-                Qr = qr,
+                Qr = SobreQrOfflineCodec.ParaPapel(qr, boleto.CodigoPublico),
                 VendedorId = vendedor.UsuarioId,
                 Vendedor = vendedor.Alias ?? vendedor.NombreCompleto,
                 FechaVenta = venta.FechaVenta,

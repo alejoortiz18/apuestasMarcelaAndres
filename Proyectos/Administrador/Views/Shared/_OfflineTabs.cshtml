@@ -1,0 +1,19 @@
+@using NewRich.Admin.Constants
+@using NewRich.Application.Services
+@{
+    var pestana = OfflinePestanas.Normalizar(ViewData["OfflinePestana"] as string);
+}
+<nav class="view-tabs" aria-label="@UiTexts.OfflinePestanas">
+    <a class="view-tab@(OfflinePestanas.Es(pestana, OfflinePestanas.General) ? " is-active" : "")"
+       asp-controller="Offline"
+       asp-action="Index"
+       aria-current="@(OfflinePestanas.Es(pestana, OfflinePestanas.General) ? "page" : null)">@UiTexts.InformacionGeneral</a>
+    <a class="view-tab@(OfflinePestanas.Es(pestana, OfflinePestanas.Generar) ? " is-active" : "")"
+       asp-controller="Offline"
+       asp-action="Crear"
+       aria-current="@(OfflinePestanas.Es(pestana, OfflinePestanas.Generar) ? "page" : null)">@UiTexts.GenerarCodigos</a>
+    <a class="view-tab@(OfflinePestanas.Es(pestana, OfflinePestanas.Registrar) ? " is-active" : "")"
+       asp-controller="Offline"
+       asp-action="Registrar"
+       aria-current="@(OfflinePestanas.Es(pestana, OfflinePestanas.Registrar) ? "page" : null)">@UiTexts.RegistroQrVendidos</a>
+</nav>

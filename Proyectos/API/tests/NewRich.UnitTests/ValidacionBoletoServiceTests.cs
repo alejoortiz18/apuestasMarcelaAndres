@@ -1,12 +1,17 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Moq;
 using NewRich.Application.Abstractions;
+using NewRich.Application.Contracts.Boletos;
+using NewRich.Application.Contracts.Offline;
 using NewRich.Application.Services;
 using NewRich.Constants;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
 using NewRich.Domain.Enums;
 using NewRich.Infrastructure.Persistence;
+using NewRich.Infrastructure.Security;
 
 namespace NewRich.UnitTests;
 
@@ -21,8 +26,9 @@ public sealed class ValidacionBoletoServiceTests
         var result = await sut.ObtenerTirillaAsync(boletoId, CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
-        result.Data!.Qr.Should().Be("1.key.nonce.cipher.tag");
+        result.Data!.Qr.Should().Be(SobreQrOfflineCodec.ParaPapel("1.key.nonce.cipher.tag", "7986875"));
         result.Data.Leyenda.Should().Be(TirillaCuerpo.Leyenda(30));
+        (await db.Boletos.FindAsync(boletoId))!.QrCifrado.Should().Be("1.key.nonce.cipher.tag");
     }
 
     [Fact]
@@ -85,6 +91,60 @@ public sealed class ValidacionBoletoServiceTests
         result.IsSuccess.Should().BeTrue();
         result.Data!.Tirilla!.CodigoImpreso.Should().Be("AOL-" + boleto.CodigoPublico);
         result.Data.BoletoId.Should().Be(boleto.BoletoId);
+    }
+
+    [Fact]
+    public async Task ConsultarPorCodigo_de_venta_offline_muestra_el_consecutivo_impreso()
+    {
+        var (sut, db) = CreateSut();
+        var boleto = await CrearBoletoConJuegoAsync(db, EstadoBoleto.Jugado, "1234");
+        boleto.QrCifrado = SobreQrOfflineCodec.Armar("1.clave.nonce.cipher.tag", "OFF-000018", new JugadaOffline());
+        await db.SaveChangesAsync();
+
+        var result = await sut.ConsultarPorCodigoAsync(boleto.CodigoPublico, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Tirilla!.CodigoImpreso.Should().Be("OFF-000018");
+    }
+
+    [Fact]
+    public async Task ConsultarPorCodigo_de_venta_offline_registrada_muestra_off_aunque_el_qr_sea_solo_cifrado()
+    {
+        var (sut, db) = CreateSut();
+        var boleto = await CrearBoletoConJuegoAsync(db, EstadoBoleto.Jugado, "1234");
+        boleto.CodigoPublico = "4839201";
+        boleto.QrCifrado = "1.clave.nonce.cipher.tag";
+        db.CodigosPreventaOffline.Add(new CodigoPreventaOffline
+        {
+            CodigoId = boleto.BoletoId,
+            ConsecutivoUnico = "OFF-000018",
+            UsuarioId = boleto.Venta!.UsuarioId,
+            DispositivoId = Guid.NewGuid(),
+            PayloadCifrado = [1],
+            EstadoDelCodigo = EstadoCodigoOffline.Registrado,
+            FechaCreacion = boleto.FechaCreacion
+        });
+        await db.SaveChangesAsync();
+
+        var result = await sut.ConsultarPorCodigoAsync(boleto.CodigoPublico, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Tirilla!.CodigoImpreso.Should().Be("OFF-000018");
+    }
+
+    [Fact]
+    public async Task ConsultarPorCodigo_acepta_el_consecutivo_off_impreso()
+    {
+        var (sut, db) = CreateSut();
+        var boleto = await CrearBoletoConJuegoAsync(db, EstadoBoleto.Jugado, "1234");
+        boleto.QrCifrado = SobreQrOfflineCodec.Armar("1.clave.nonce.cipher.tag", "OFF-000018", new JugadaOffline());
+        await db.SaveChangesAsync();
+
+        var result = await sut.ConsultarPorCodigoAsync("OFF-000018", CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.BoletoId.Should().Be(boleto.BoletoId);
+        result.Data.Tirilla!.CodigoImpreso.Should().Be("OFF-000018");
     }
 
     [Fact]
@@ -254,18 +314,112 @@ public sealed class ValidacionBoletoServiceTests
 
         var result = await sut.ObtenerTirillaAsync(boletoId, CancellationToken.None);
 
-        result.Data!.Qr.Should().Be("qr:7986875");
+        result.Data!.Qr.Should().Be(SobreQrOfflineCodec.ParaPapel("qr:7986875", "7986875"));
         qr.EncryptCalls.Should().Be(1);
         (await db.Boletos.FindAsync(boletoId))!.QrCifrado.Should().Be("qr:7986875");
     }
 
-    private static (ValidacionBoletoService Sut, NewRichDbContext Db) CreateSut(FakeQr? qr = null)
+    [Fact]
+    public async Task ConsultarPorCodigo_acepta_el_nr2_impreso()
+    {
+        var (sut, db) = CreateSut();
+        var boleto = await CrearBoletoConJuegoAsync(db, EstadoBoleto.Jugado, "1234");
+        var papel = SobreQrOfflineCodec.ParaPapel(boleto.QrCifrado, boleto.CodigoPublico);
+
+        var result = await sut.ConsultarPorCodigoAsync(papel, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.BoletoId.Should().Be(boleto.BoletoId);
+        result.Data.Tirilla!.Qr.Should().Be(papel);
+    }
+
+    [Fact]
+    public async Task ConsultarPorCodigo_acepta_el_nr3_impreso_completo_de_una_venta_en_linea()
+    {
+        var crypto = CrearCryptoReal();
+        var (sut, db) = CreateSut(crypto);
+        var boleto = await CrearBoletoConJuegoAsync(db, EstadoBoleto.Jugado, "1234");
+        var aes = crypto.Encrypt(new QrPayload(boleto.BoletoId, boleto.CodigoPublico, crypto.GenerarClaveValidacion(), 1, Guid.NewGuid()));
+        boleto.QrCifrado = aes;
+        await db.SaveChangesAsync();
+        var papel = SobreQrOfflineCodec.ParaPapel(aes, boleto.CodigoPublico);
+
+        papel.Length.Should().BeGreaterThan(400);
+        var result = await sut.ConsultarPorCodigoAsync(papel, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.BoletoId.Should().Be(boleto.BoletoId);
+        result.Data.Tirilla!.Qr.Should().Be(papel);
+    }
+
+    [Fact]
+    public async Task ConsultarPorCodigo_con_nr3_cortado_a_400_caracteres_encuentra_el_boleto()
+    {
+        var crypto = CrearCryptoReal();
+        var (sut, db) = CreateSut(crypto);
+        var boleto = await CrearBoletoConJuegoAsync(db, EstadoBoleto.Jugado, "1234");
+        var aes = crypto.Encrypt(new QrPayload(boleto.BoletoId, boleto.CodigoPublico, crypto.GenerarClaveValidacion(), 1, Guid.NewGuid()));
+        boleto.QrCifrado = aes;
+        await db.SaveChangesAsync();
+        var papel = SobreQrOfflineCodec.ParaPapel(aes, boleto.CodigoPublico);
+
+        papel.Length.Should().BeGreaterThan(400);
+        var result = await sut.ConsultarPorCodigoAsync(papel[..400], CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.BoletoId.Should().Be(boleto.BoletoId);
+    }
+
+    [Fact]
+    public async Task ValidarQr_acepta_el_nr3_impreso_completo_de_una_venta_en_linea()
+    {
+        var crypto = CrearCryptoReal();
+        var (sut, db) = CreateSut(crypto);
+        var boleto = await CrearBoletoConJuegoAsync(db, EstadoBoleto.Jugado, "1234");
+        var clave = crypto.GenerarClaveValidacion();
+        boleto.ClaveValidacionHash = crypto.HashClaveValidacion(clave);
+        var aes = crypto.Encrypt(new QrPayload(boleto.BoletoId, boleto.CodigoPublico, clave, 1, Guid.NewGuid()));
+        boleto.QrCifrado = aes;
+        await db.SaveChangesAsync();
+        var papel = SobreQrOfflineCodec.ParaPapel(aes, boleto.CodigoPublico);
+
+        papel.Length.Should().BeGreaterThan(400);
+        var result = await sut.ValidarQrAsync(new ValidarQrRequest { Qr = papel }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.BoletoId.Should().Be(boleto.BoletoId);
+        result.Data.ResultadoVisual.Should().Be(BoletoMessages.BoletoJugado);
+    }
+
+    [Fact]
+    public async Task ValidarQr_acepta_el_nr2_impreso()
+    {
+        var (sut, db) = CreateSut();
+        var boleto = await CrearBoletoConJuegoAsync(db, EstadoBoleto.Jugado, "1234");
+        var papel = SobreQrOfflineCodec.ParaPapel(boleto.QrCifrado, boleto.CodigoPublico);
+
+        var result = await sut.ValidarQrAsync(new ValidarQrRequest { Qr = papel }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.BoletoId.Should().Be(boleto.BoletoId);
+        result.Data.ResultadoVisual.Should().Be(BoletoMessages.BoletoJugado);
+    }
+
+    private static (ValidacionBoletoService Sut, NewRichDbContext Db) CreateSut(IQrCryptoService? qr = null)
     {
         var options = new DbContextOptionsBuilder<NewRichDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         var db = new NewRichDbContext(options);
         return (new ValidacionBoletoService(db, qr ?? new FakeQr(), new FixedClock(DateTime.UtcNow)), db);
+    }
+
+    private static AesGcmQrCryptoService CrearCryptoReal()
+    {
+        var config = new Mock<IConfiguration>();
+        config.Setup(c => c["Qr:MasterKey"]).Returns("B7E4C19A83D206F5E8A14C9B3D7F20E6A5C8B1D4E7F93A0C6B2D5E8F1A4C7D90");
+        config.Setup(c => c["Qr:KeyId"]).Returns("8f2c1a6e-4b09-4d73-9e21-5a7c0b8d3f14");
+        return new AesGcmQrCryptoService(config.Object);
     }
 
     private sealed class FixedClock(DateTime now) : IClock

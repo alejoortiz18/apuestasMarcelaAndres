@@ -40,6 +40,11 @@ public static class MauiProgram
         builder.Services.AddSingleton<IPrinterService, PrinterService>();
         builder.Services.AddSingleton<IPdfService, PdfService>();
         builder.Services.AddSingleton<ILectorCodigoBarrasServicio, LectorCodigoBarrasServicio>();
+        builder.Services.AddSingleton<IEscanerQrVendedor, EscanerQrVendedorServicio>();
+        builder.Services.AddSingleton<ILectorQrFotoVendedor, LectorQrFotoVendedorServicio>();
+        builder.Services.AddSingleton<IEscanerQrCamara, EscanerQrCamaraServicio>();
+        builder.Services.AddSingleton<IEscanerQrObservador, EscanerQrObservadorServicio>();
+        builder.Services.AddSingleton<ILectorQrFotoObservador, LectorQrFotoObservadorServicio>();
         builder.Services.AddSingleton<NavegadorApp>();
 
         builder.Services.AddSingleton<ChatEnVivoServicio>();
@@ -59,7 +64,10 @@ public static class MauiProgram
         builder.Services.AddTransient<MasPage>();
         builder.Services.AddTransient<VendedorShell>();
         builder.Services.AddTransient<ObservadorHomePage>();
+        builder.Services.AddTransient<ObservadorValidarPage>();
         builder.Services.AddTransient<ConsultasPage>();
+        builder.Services.AddTransient<KpiPage>();
+        builder.Services.AddTransient<ObservadorMasPage>();
         builder.Services.AddTransient<CasosPage>();
         builder.Services.AddTransient<ObservadorShell>();
 

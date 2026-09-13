@@ -22,19 +22,26 @@ public sealed class EvidenciaOfflineTests
     }
 
     [Fact]
-    public void Qr_de_tirilla_reusa_el_cifrado_y_agrega_la_jugada()
+    public void Qr_de_tirilla_es_corto_y_el_json_se_guarda_para_sincronizar()
     {
         var payload = "payload.cifrado.original";
         var almacenado = Convert.ToBase64String(Encoding.UTF8.GetBytes(payload));
         var draft = TicketDraft.Crear(TipoApuesta.INDIVIDUAL, 10);
         draft.AgregarLinea("1234", 1000, [Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")], ["Cundinamarca"]);
 
-        var json = EvidenciaOffline.QrTirilla(almacenado, "OFF-000001", draft);
+        var json = EvidenciaOffline.SobreParaSincronizar(almacenado, "OFF-000001", draft);
+        var papel = EvidenciaOffline.QrTirilla(almacenado, "OFF-000001", draft);
 
-        SobreQrOfflineCodec.TryLeer(json, out var sobre).Should().BeTrue();
-        sobre.Codigo.Should().Be(payload);
-        sobre.Jugada.Lineas.Should().ContainSingle(l => l.Numero == "1234");
-        EvidenciaOffline.EsElMismoQr(json, json).Should().BeTrue();
+        SobreQrOfflineCodec.TryLeer(json, out var sobreJson).Should().BeTrue();
+        sobreJson.Codigo.Should().Be(payload);
+        sobreJson.Jugada.Lineas.Should().ContainSingle(l => l.Numero == "1234");
+        papel.Should().StartWith("NR3.");
+        papel.Length.Should().BeLessThan(json.Length);
+        SobreQrOfflineCodec.TryLeer(papel, out var sobrePapel).Should().BeTrue();
+        sobrePapel.Codigo.Should().Be(payload);
+        sobrePapel.Jugada.Lineas.Should().ContainSingle(l => l.Numero == "1234");
+        EvidenciaOffline.EsElMismoQr(papel, json).Should().BeTrue();
+        EvidenciaOffline.EsElMismoQr(papel, papel).Should().BeTrue();
     }
 
     [Fact]

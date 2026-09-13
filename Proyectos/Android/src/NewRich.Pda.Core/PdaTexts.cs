@@ -30,6 +30,7 @@ public static class PdaTexts
     public const string Salir = "Salir";
     public const string Inicio = "Inicio";
     public const string Vender = "Vender";
+    public const string Validar = "Validar";
     public const string Historico = "Histórico";
     public const string Soporte = "Soporte";
     public const string Mas = "Más";
@@ -55,6 +56,21 @@ public static class PdaTexts
     public const string ValidarTicket = "Validar ticket ganador";
     public const string ValidarTicketAyuda = "Apunta el lector al código de barras o QR del ticket, o escribe el código del recibo.";
     public const string ValidarTicketAyudaCorta = "Leer código y validar ticket";
+    public const string ValidarTicketElegir = "Elige cómo vas a consultar el ticket.";
+    public const string ValidarCodigoVenta = "Validar código de venta";
+    public const string ValidarCodigoVentaAyuda = "Escribe el código impreso en el recibo.";
+    public const string ValidarQr = "Validar QR";
+    public const string ValidarQrAyuda = "Apunta la cámara al QR del ticket. Al leerlo se consulta en el servidor.";
+    public const string ValidarConImagen = "Validar con imagen";
+    public const string ValidarConImagenAyuda = "Toma o sube una foto del QR del ticket.";
+    public const string TomarFotoQr = "Tomar foto";
+    public const string SubirFotoQr = "Subir foto";
+    public const string LeyendoQr = "Leyendo QR";
+    public const string LeyendoQrFoto = "Leyendo el QR de la foto...";
+    public const string QrNoEncontradoEnFoto = "No se encontró un QR en la imagen. Toma o sube otra foto más nítida.";
+    public const string OtraFormaDeValidar = "Elegir otra forma";
+    public const string Consultar = "Consultar";
+    public const string LecturaDelScanner = "Si el lector del equipo deja un código, aparece aquí.";
     public const string SoporteAyuda = "Chat directo con el administrador";
     public const string ConfiguracionSync = "Configuración de sincronización";
     public const string ConfiguracionSyncAyuda = "Códigos offline manual o automático";
@@ -118,17 +134,60 @@ public static class PdaTexts
     public const string TicketCode = "Código del ticket";
     public const string ReportarCaso = "Reportar caso";
     public const string LeerQr = "Leer QR";
-    public const string ValidandoQr = "validando QR";
+    public const string ValidandoQr = "Validando QR";
     public const string LeerCodigoBarras = "Leer código de barras";
-    public const string EsperandoLector = "Apunta el lector al código. Si el equipo tiene gatillo, úsalo ahora.";
+    public const string EsperandoLector = "Apunta la cámara al QR del ticket. Al leerlo se consulta en el servidor.";
     public const string CodigoNoLeido = "No se recibió un código. Vuelve a leerlo con el lector o escríbelo.";
     public const string ReciboDeVenta = "Recibo de venta";
     public const string Vendedor = "Vendedor";
     public const string EscanearCamara = "Escanear con cámara";
     public const string IngresarCodigoManual = "Ingresar código manual";
     public const string Consultas = "Consultas";
+    public const string ConsultasAyuda = "Consulta boletos, ventas, vendedores y dispositivos.";
+    public const string RolObservador = "Observador";
+    public const string NumerosHoy = "Números hoy";
+    public const string KpiAyuda = "Indicadores de solo lectura.";
     public const string CasosPremios = "Casos de premios";
     public const string ValidarBoleto = "Validar boleto";
+    public const string Kpi = "KPI";
+    public const string KpiSoloLectura = "Los indicadores son de solo lectura.";
+    public const string KpiSinMovimientos = "No hay movimientos de venta en el periodo seleccionado.";
+    public const string KpiVentasDelPeriodo = "Ventas del periodo";
+    public const string KpiComoSeMovieron = "Cómo se movieron las ventas";
+    public const string KpiPorVendedor = "Quién vendió más";
+    public const string KpiMovimientos = "Movimientos por día";
+    public const string KpiPicoDelPeriodo = "Día de mayor venta";
+    public const string KpiTicketPromedio = "Ticket promedio";
+    public const string KpiFrenteAnterior = "frente al periodo anterior";
+    public const string KpiAyudaTablero = "Compara el periodo con el anterior, mira la curva de todos los vendedores y entra a un usuario para ver sus movimientos.";
+    public static string KpiLecturaSubieron(string porcentaje) =>
+        $"Las ventas de todos los usuarios subieron {porcentaje}% respecto al periodo anterior.";
+    public static string KpiLecturaBajaron(string porcentaje) =>
+        $"Las ventas de todos los usuarios bajaron {porcentaje}% respecto al periodo anterior.";
+    public static string KpiLecturaEstables() =>
+        "Las ventas de todos los usuarios se mantuvieron estables respecto al periodo anterior.";
+    public static string KpiLecturaVendedorSubieron(string porcentaje) =>
+        $"Las ventas de este vendedor subieron {porcentaje}% respecto al periodo anterior.";
+    public static string KpiLecturaVendedorBajaron(string porcentaje) =>
+        $"Las ventas de este vendedor bajaron {porcentaje}% respecto al periodo anterior.";
+    public static string KpiLecturaVendedorEstables() =>
+        "Las ventas de este vendedor se mantuvieron estables respecto al periodo anterior.";
+    public static string KpiVariacion(decimal valor) =>
+        valor > 0 ? $"+{FormatoPorcentaje(valor)}%" : valor < 0 ? $"-{FormatoPorcentaje(valor)}%" : "0%";
+    public static string FormatoPorcentaje(decimal valor)
+    {
+        var abs = Math.Abs(valor);
+        return abs == decimal.Truncate(abs) ? abs.ToString("0") : abs.ToString("0.#");
+    }
+    public const string ConsultaBoletos = "Boletos";
+    public const string ConsultaVentas = "Ventas";
+    public const string ConsultaVendedores = "Vendedores";
+    public const string ConsultaDispositivos = "Dispositivos";
+    public const string ConsultaResultados = "Resultados";
+    public const string ConsultaConfiguracion = "Configuración";
+    public const string FiltroGeneral = "General";
+    public const string TipoConsulta = "Tipo de consulta";
+    public const string EstadoBoleto = "Estado";
     public const string Enviar = "Enviar";
     public const string NuevoMensaje = "Escribe un mensaje";
     public const string EnviarMensajeAria = "Enviar mensaje";
@@ -152,6 +211,8 @@ public static class PdaTexts
     public const string Buscar = "Buscar";
     public const string Limpiar = "Limpiar";
     public const string Fecha = "Fecha";
+    public const string Desde = "Desde";
+    public const string Hasta = "Hasta";
     public const string Ver = "Ver";
     public const string Cerrar = "Cerrar";
     public const string UrlApi = "Dirección de la API";
@@ -164,6 +225,16 @@ public static class PdaTexts
             : $"No hay conexión con el servidor. Puede seguir operando con {codigosDisponibles} códigos offline disponibles.";
     public const string GrupoNoConsultado = "Sin dato en el ingreso";
     public const string OfflineNoDisponibleVendedor = "La API actual no permite al vendedor descargar códigos offline. El administrador genera los códigos; hace falta un endpoint de descarga para el PDA.";
+    public const string ObservadorValidarTitulo = "Validar ticket";
+    public const string ObservadorValidarAyuda = "En el celular, apunta la cámara al QR del recibo. Si no lo lee, toma o sube una foto nítida del código.";
+    public const string ObservadorLeerQrCamara = "Leer QR con la cámara";
+    public const string ObservadorTomarFotoQr = "Tomar foto del QR";
+    public const string ObservadorSubirFotoQr = "Subir foto del QR";
+    public const string ObservadorLeyendoQr = "Leyendo el QR...";
+    public const string ObservadorCamaraLeyendo = "Leyendo QR";
+    public const string ObservadorConsultandoTicket = "Consultando el ticket...";
+    public const string ObservadorQrNoLeido = "No se leyó el QR. Apunta de nuevo o toma una foto más nítida.";
+    public const string ObservadorCamaraNoDisponible = "No se pudo abrir la cámara. Revisa el permiso o toma una foto del QR.";
     public const string EntregaNoDisponible = "La API actual no expone el registro de entrega con evidencias fotográficas.";
     public const string CancelarBoletoConfirma = "Se perderán los juegos agregados en este boleto. ¿Deseas continuar?";
     public const string ArranqueEslogan = "Cargando un futuro más brillante...";

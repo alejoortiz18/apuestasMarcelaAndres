@@ -41,7 +41,9 @@ public sealed class ImpresionTirillaTests
     {
         ImpresionTirilla.AnchoQrPuntos.Should().Be(360);
         ImpresionTirilla.ModuloQrOffline.Should().Be(3);
+        ImpresionTirilla.ModuloQrPara("NR3.ABCDEFG234567").Should().Be(3);
         ImpresionTirilla.ModuloQrPara("NR1.abc_def-ghi").Should().Be(3);
+        ImpresionTirilla.ModuloQrPara("NR2.OFF-000015.a1b2c3").Should().Be(5);
         ImpresionTirilla.ModuloQrPara("""{"codigo":"1.x","consecutivo":"OFF-000001","jugada":{}}""")
             .Should().Be(3);
     }

@@ -3,12 +3,12 @@
 <div class="heading">
     <div>
         <div class="eyebrow">@UiTexts.OfflineKicker</div>
-        <h1>@UiTexts.RegistrarQrOffline</h1>
+        <h1>@UiTexts.RegistroQrVendidos</h1>
         <p>@UiTexts.RegistrarQrAyuda</p>
+        <partial name="_OfflineTabs" />
     </div>
 </div>
 <div class="panel">
-    <div asp-validation-summary="ModelOnly" class="notice error"></div>
     <form method="post">
         <div class="field">
             <label asp-for="Qr"></label>
@@ -17,7 +17,6 @@
         </div>
         <div class="text-center-actions">
             <button class="primary" type="submit">@UiTexts.RegistrarQrOffline</button>
-            <a class="secondary" asp-action="Index">@UiTexts.Cancelar</a>
         </div>
     </form>
 </div>

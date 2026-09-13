@@ -6,10 +6,14 @@ using NewRich.Application.Contracts.Auth;
 using NewRich.Application.Contracts.Boletos;
 using NewRich.Application.Contracts.Chat;
 using NewRich.Application.Contracts.Configuracion;
+using NewRich.Application.Contracts.Dispositivos;
+using NewRich.Application.Contracts.Grupos;
+using NewRich.Application.Contracts.Kpi;
 using NewRich.Application.Contracts.Loterias;
 using NewRich.Application.Contracts.Offline;
 using NewRich.Application.Contracts.Premios;
 using NewRich.Application.Contracts.Resultados;
+using NewRich.Application.Contracts.Usuarios;
 using NewRich.Application.Contracts.Ventas;
 using NewRich.Constants.Messages;
 using NewRich.Shared.Results;
@@ -125,6 +129,11 @@ public sealed class NewRichApiClient
             q.Add($"loteriaId={request.LoteriaId}");
         }
 
+        if (request.VendedorId.HasValue)
+        {
+            q.Add($"vendedorId={request.VendedorId}");
+        }
+
         var url = q.Count == 0 ? "api/VentasAndroid/ConsultarMob" : "api/VentasAndroid/ConsultarMob?" + string.Join("&", q);
         return Enviar<IReadOnlyList<VentaResponse>>(HttpMethod.Get, url, null, ct);
     }
@@ -146,11 +155,52 @@ public sealed class NewRichApiClient
         return Enviar<IReadOnlyList<ResultadoResponse>>(HttpMethod.Get, url, null, ct);
     }
 
+    public Task<Result<IReadOnlyList<UsuarioResponse>>> UsuariosAsync(CancellationToken ct) =>
+        Enviar<IReadOnlyList<UsuarioResponse>>(HttpMethod.Get, "api/Usuarios", null, ct);
+
+    public Task<Result<IReadOnlyList<DispositivoResponse>>> DispositivosAsync(CancellationToken ct) =>
+        Enviar<IReadOnlyList<DispositivoResponse>>(HttpMethod.Get, "api/Dispositivos", null, ct);
+
+    public Task<Result<IReadOnlyList<GrupoResponse>>> GruposAsync(CancellationToken ct) =>
+        Enviar<IReadOnlyList<GrupoResponse>>(HttpMethod.Get, "api/Grupos", null, ct);
+
+    public Task<Result<KpiResponse>> KpiAsync(KpiRequest request, CancellationToken ct)
+    {
+        var q = new List<string>();
+        if (request.GrupoId.HasValue)
+        {
+            q.Add($"grupoId={request.GrupoId}");
+        }
+
+        if (request.VendedorId.HasValue)
+        {
+            q.Add($"vendedorId={request.VendedorId}");
+        }
+
+        if (request.FechaInicial.HasValue)
+        {
+            q.Add($"fechaInicial={Uri.EscapeDataString(request.FechaInicial.Value.ToString("o"))}");
+        }
+
+        if (request.FechaFinal.HasValue)
+        {
+            q.Add($"fechaFinal={Uri.EscapeDataString(request.FechaFinal.Value.ToString("o"))}");
+        }
+
+        q.Add($"compararAnterior={(request.CompararAnterior ? "true" : "false")}");
+
+        var url = q.Count == 0 ? "api/KpiAndroid/ConsultarMob" : "api/KpiAndroid/ConsultarMob?" + string.Join("&", q);
+        return Enviar<KpiResponse>(HttpMethod.Get, url, null, ct);
+    }
+
     public Task<Result<CasoGanadorResponse>> ReportarPremioAsync(ReportarCasoGanadorRequest request, CancellationToken ct) =>
         Enviar<CasoGanadorResponse>(HttpMethod.Post, "api/PremiosAndroid/ReportarMob", request, ct);
 
     public Task<Result<ConsultaTicketResponse>> ConsultarTicketAsync(ConsultaTicketRequest request, CancellationToken ct) =>
         Enviar<ConsultaTicketResponse>(HttpMethod.Post, "api/BoletosAndroid/ConsultarMob", request, ct);
+
+    public Task<Result<ConsultaTicketResponse>> ConsultarTicketObservadorAsync(ConsultaTicketRequest request, CancellationToken ct) =>
+        Enviar<ConsultaTicketResponse>(HttpMethod.Post, global::NewRich.Pda.Core.ObservadorConsultaTicket.RutaApi, request, ct);
 
     public Task<Result<IReadOnlyList<CasoGanadorResponse>>> PremiosAsync(CancellationToken ct) =>
         Enviar<IReadOnlyList<CasoGanadorResponse>>(HttpMethod.Get, "api/PremiosAndroid/ListarMob", null, ct);

@@ -83,6 +83,92 @@ public sealed class IngestarQrOfflineTests
         result.Message.Should().Be(UsuarioMessages.QrInvalidoOAlterado);
     }
 
+    [Fact]
+    public async Task Admin_crea_la_venta_desde_el_qr_impreso_aunque_el_pda_no_sincronice()
+    {
+        var (sut, db, qr) = CreateSut();
+        var (codigo, loteria, cifrado) = await SemillaAsync(db, qr);
+        var papel = SobreQrOfflineCodec.ParaTirilla(
+            cifrado,
+            codigo.ConsecutivoUnico,
+            new JugadaOffline
+            {
+                Tipo = TipoApuesta.INDIVIDUAL.ToString(),
+                Fecha = new DateTime(2026, 9, 11, 11, 0, 0, DateTimeKind.Utc),
+                Total = 1000,
+                Lineas =
+                [
+                    new LineaJugadaOffline
+                    {
+                        Numero = "4321",
+                        Valor = 1000,
+                        LoteriaIds = [loteria.LoteriaId],
+                        Loterias = ["Chance"]
+                    }
+                ]
+            });
+
+        var registro = await sut.RegistrarQrAsync(Guid.NewGuid(), new RegistrarQrOfflineRequest { Qr = papel }, CancellationToken.None);
+
+        registro.IsSuccess.Should().BeTrue();
+        db.Ventas.Should().ContainSingle();
+        db.Juegos.Should().ContainSingle(j => j.Numero == "4321");
+        (await db.CodigosPreventaOffline.SingleAsync(c => c.CodigoId == codigo.CodigoId))
+            .EstadoDelCodigo.Should().Be(EstadoCodigoOffline.Registrado);
+    }
+
+    [Fact]
+    public async Task Admin_con_nr2_espera_la_sincronizacion_del_pda()
+    {
+        var (sut, db, qr) = CreateSut();
+        var (codigo, _, cifrado) = await SemillaAsync(db, qr);
+        var papel = SobreQrOfflineCodec.LlaveCorta(cifrado, codigo.ConsecutivoUnico);
+
+        var registro = await sut.RegistrarQrAsync(Guid.NewGuid(), new RegistrarQrOfflineRequest { Qr = papel }, CancellationToken.None);
+
+        registro.IsSuccess.Should().BeFalse();
+        registro.Message.Should().Be(UsuarioMessages.QrPendienteDeSincronizar);
+        db.Ventas.Should().BeEmpty();
+        (await db.CodigosPreventaOffline.SingleAsync(c => c.CodigoId == codigo.CodigoId))
+            .EstadoDelCodigo.Should().Be(EstadoCodigoOffline.Descargado);
+    }
+
+    [Fact]
+    public async Task Admin_registra_con_nr2_despues_de_que_el_pda_sincroniza_el_json()
+    {
+        var (sut, db, qr) = CreateSut();
+        var (codigo, loteria, cifrado) = await SemillaAsync(db, qr);
+        var json = Sobre(cifrado, codigo.ConsecutivoUnico, loteria.LoteriaId);
+        await sut.SincronizarVentasAsync(codigo.UsuarioId, new SincronizarVentasOfflineRequest { QrJson = [json] }, CancellationToken.None);
+        var papel = SobreQrOfflineCodec.LlaveCorta(cifrado, codigo.ConsecutivoUnico)
+            .Replace('-', '\'');
+
+        var registro = await sut.RegistrarQrAsync(Guid.NewGuid(), new RegistrarQrOfflineRequest { Qr = papel }, CancellationToken.None);
+
+        registro.IsSuccess.Should().BeTrue();
+        registro.Message.Should().Be(UsuarioMessages.QrYaRegistrado);
+        db.Ventas.Should().ContainSingle();
+        (await db.CodigosPreventaOffline.SingleAsync(c => c.CodigoId == codigo.CodigoId))
+            .EstadoDelCodigo.Should().Be(EstadoCodigoOffline.Registrado);
+    }
+
+    [Fact]
+    public async Task Admin_rechaza_nr2_con_sello_falso()
+    {
+        var (sut, db, qr) = CreateSut();
+        var (codigo, loteria, cifrado) = await SemillaAsync(db, qr);
+        var json = Sobre(cifrado, codigo.ConsecutivoUnico, loteria.LoteriaId);
+        await sut.SincronizarVentasAsync(codigo.UsuarioId, new SincronizarVentasOfflineRequest { QrJson = [json] }, CancellationToken.None);
+
+        var registro = await sut.RegistrarQrAsync(
+            Guid.NewGuid(),
+            new RegistrarQrOfflineRequest { Qr = "NR2.OFF-000099.000000" },
+            CancellationToken.None);
+
+        registro.IsSuccess.Should().BeFalse();
+        registro.Message.Should().Be(UsuarioMessages.QrInvalidoOAlterado);
+    }
+
     private static string Sobre(string cifrado, string consecutivo, Guid loteriaId) =>
         SobreQrOfflineCodec.Armar(cifrado, consecutivo, new JugadaOffline
         {

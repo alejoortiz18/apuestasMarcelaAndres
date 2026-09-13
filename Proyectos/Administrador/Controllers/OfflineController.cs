@@ -25,6 +25,7 @@ public sealed class OfflineController : AdminControllerBase
         CancellationToken cancellationToken = default)
     {
         SetNav("offline", UiTexts.NavOffline);
+        SetOfflinePestana(OfflinePestanas.General);
         var listado = await _api.ListarCodigosOfflineAsync(cancellationToken);
         var unauthorized = RedirectIfUnauthorized(listado);
         if (unauthorized is not null)
@@ -61,6 +62,7 @@ public sealed class OfflineController : AdminControllerBase
         CancellationToken cancellationToken = default)
     {
         SetNav("offline", UiTexts.CodigosDelUsuario);
+        SetOfflinePestana(OfflinePestanas.General);
         var listado = await _api.ListarCodigosOfflineAsync(cancellationToken);
         var unauthorized = RedirectIfUnauthorized(listado);
         if (unauthorized is not null)
@@ -96,6 +98,7 @@ public sealed class OfflineController : AdminControllerBase
     public async Task<IActionResult> Crear(CancellationToken cancellationToken)
     {
         SetNav("offline", UiTexts.GenerarCodigos);
+        SetOfflinePestana(OfflinePestanas.Generar);
         var model = new OfflineFormViewModel();
         await FormularioAsync(model, cancellationToken);
         return View(model);
@@ -106,6 +109,7 @@ public sealed class OfflineController : AdminControllerBase
     public async Task<IActionResult> Crear(OfflineFormViewModel model, CancellationToken cancellationToken)
     {
         SetNav("offline", UiTexts.GenerarCodigos);
+        SetOfflinePestana(OfflinePestanas.Generar);
         if (!ModelState.IsValid)
         {
             await FormularioAsync(model, cancellationToken);
@@ -139,7 +143,7 @@ public sealed class OfflineController : AdminControllerBase
             return View(model);
         }
 
-        SetFlash(SuccessMessages.CodigosOfflineGenerados);
+        SetAvisoModal(SuccessMessages.CodigosOfflineGenerados);
         return RedirectToAction(nameof(Index));
     }
 
@@ -147,6 +151,7 @@ public sealed class OfflineController : AdminControllerBase
     public IActionResult Registrar()
     {
         SetNav("offline", UiTexts.RegistrarQrOffline);
+        SetOfflinePestana(OfflinePestanas.Registrar);
         return View(new OfflineRegistrarViewModel());
     }
 
@@ -155,9 +160,10 @@ public sealed class OfflineController : AdminControllerBase
     public async Task<IActionResult> Registrar(OfflineRegistrarViewModel model, CancellationToken cancellationToken)
     {
         SetNav("offline", UiTexts.RegistrarQrOffline);
+        SetOfflinePestana(OfflinePestanas.Registrar);
         if (string.IsNullOrWhiteSpace(model.Qr))
         {
-            ModelState.AddModelError(nameof(model.Qr), UsuarioMessages.QrInvalidoOAlterado);
+            SetAvisoModal(UsuarioMessages.QrInvalidoOAlterado);
             return View(model);
         }
 
@@ -168,14 +174,13 @@ public sealed class OfflineController : AdminControllerBase
             return unauthorized;
         }
 
+        SetAvisoModal(result.Message);
         if (!result.Success)
         {
-            ModelState.AddModelError(string.Empty, result.Message);
             return View(model);
         }
 
-        SetFlash(result.Message);
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(Registrar));
     }
 
     private async Task FormularioAsync(OfflineFormViewModel model, CancellationToken cancellationToken)

@@ -23,15 +23,15 @@ public static class OfflineAgrupacion
     public static OfflineResumenLoteResponse Resumen(IEnumerable<CodigoOfflineResponse> items)
     {
         var lista = items.ToList();
-        var generados = lista.Count(c => Es(c, EstadoCodigoOffline.Generado));
-        var descargados = lista.Count(c => Es(c, EstadoCodigoOffline.Descargado));
+        var enGenerado = lista.Count(c => Es(c, EstadoCodigoOffline.Generado));
+        var enDescargado = lista.Count(c => Es(c, EstadoCodigoOffline.Descargado));
         var vendidos = lista.Count(c => Es(c, EstadoCodigoOffline.Utilizado) || Es(c, EstadoCodigoOffline.Registrado));
         return new OfflineResumenLoteResponse
         {
-            Generados = generados,
-            Descargados = descargados,
+            Generados = lista.Count,
+            Descargados = lista.Count - enGenerado,
             Vendidos = vendidos,
-            SinUsar = generados + descargados
+            SinUsar = enGenerado + enDescargado
         };
     }
 

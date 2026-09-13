@@ -40,4 +40,22 @@ public sealed class TicketConsultaVistaTests
         vista.Juegos.Should().ContainSingle(j => j.Numero == "1234" && j.Loterias == "Bogotá, Medellín");
         vista.Total.Should().Be(4000);
     }
+
+    [Fact]
+    public void Recibo_offline_conserva_el_consecutivo_impreso()
+    {
+        var consulta = new ConsultaTicketResponse
+        {
+            ResultadoVisual = "JUGADO",
+            Mensaje = "El ticket está jugado. Todavía no hay resultados publicados.",
+            Tono = TicketConsultaTono.Pendiente,
+            Tirilla = new TirillaResponse
+            {
+                CodigoImpreso = "OFF-000018",
+                Total = 57000
+            }
+        };
+
+        TicketConsultaVista.De(consulta).Codigo.Should().Be("OFF-000018");
+    }
 }

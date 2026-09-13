@@ -1,8 +1,9 @@
-using NewRich.Application.Contracts.Boletos;
+using NewRich.Application.Contracts.Ventas;
 using NewRich.Pda.Core;
 using NewRich.Pda.Core.Api;
 using NewRich.Pda.Core.Auth;
 using NewRich.Maui.Views;
+using NewRich.Maui.Views.Vendedor;
 
 namespace NewRich.Maui.Views.Observador;
 
@@ -10,80 +11,179 @@ public sealed class ObservadorHomePage : ContentPage
 {
     private readonly NewRichApiClient _api;
     private readonly SesionPda _sesion;
-    private readonly Entry _qr = Ui.Entrada(string.Empty);
-    private readonly Label _resultado = new() { FontSize = 13, TextColor = Ui.Ink };
+    private readonly IServiceProvider _services;
+    private readonly Label _total = new() { FontSize = 30, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink };
+    private readonly Label _boletos = new() { FontSize = 19, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink };
+    private readonly Label _numeros = new() { FontSize = 19, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink };
+    private readonly Label _estado = new() { FontSize = 11, TextColor = Color.FromArgb("#bce9cc") };
+    private readonly VerticalStackLayout _banners = new() { Spacing = 8 };
+    private readonly Button _validar;
 
-    public ObservadorHomePage(NewRichApiClient api, SesionPda sesion)
+    public ObservadorHomePage(NewRichApiClient api, SesionPda sesion, IServiceProvider services)
     {
         _api = api;
         _sesion = sesion;
+        _services = services;
         Title = PdaTexts.Inicio;
-        BackgroundColor = Ui.Paper;
-        var escanear = Ui.Primario(PdaTexts.EscanearCamara);
-        escanear.Clicked += async (_, _) => await this.AvisoAsync(PdaTexts.ValidarBoleto, "El lector de cámara QR se habilitará cuando se defina el paquete de lectura. Use el código cifrado o el payload del QR en el campo manual.", PdaTexts.Cerrar);
-        var validar = Ui.Secundario(PdaTexts.IngresarCodigoManual);
-        validar.Clicked += async (_, _) => await ValidarAsync();
+        _validar = Ui.Primario(PdaTexts.ValidarTicket);
+        _validar.Clicked += (_, _) => _ = Shell.Current.GoToAsync("//ovalidar");
 
         Content = new ScrollView
         {
+            BackgroundColor = Ui.Paper,
             Content = new VerticalStackLayout
             {
                 Padding = 16,
-                Spacing = 12,
+                Spacing = 14,
                 Children =
                 {
                     new Frame
                     {
                         BackgroundColor = Ui.Dark,
                         BorderColor = Ui.Dark,
-                        Padding = 18,
+                        CornerRadius = 0,
+                        Padding = new Thickness(18, 18, 18, 22),
                         Content = new VerticalStackLayout
                         {
                             Children =
                             {
-                                new Label { Text = PdaTexts.Marca, TextColor = Color.FromArgb("#aed8c4"), FontAttributes = FontAttributes.Bold },
-                                Ui.Titulo(_sesion.Usuario?.NombreCompleto ?? string.Empty),
+                                Ui.Titulo(_sesion.Usuario?.NombreCompleto ?? PdaTexts.Inicio),
                                 new Label
                                 {
-                                    Text = string.IsNullOrWhiteSpace(_sesion.Usuario?.GrupoNombre) ? PdaTexts.GrupoNoConsultado : _sesion.Usuario!.GrupoNombre,
-                                    TextColor = Color.FromArgb("#bce9cc"),
+                                    Text = PdaTexts.PdaObservador,
+                                    TextColor = Color.FromArgb("#aed8c4"),
                                     FontSize = 13
                                 },
-                                new Label { Text = PdaTexts.PdaObservador, TextColor = Color.FromArgb("#bce9cc"), FontSize = 12 }
+                                _estado
                             }
                         }
                     },
-                    new Label { Text = PdaTexts.ValidarBoleto, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink },
-                    Ui.Campo("QR o payload"),
-                    _qr,
-                    escanear,
-                    validar,
-                    _resultado
+                    _banners,
+                    new Frame
+                    {
+                        BackgroundColor = Ui.Gold,
+                        BorderColor = Ui.Gold,
+                        CornerRadius = 15,
+                        Padding = 20,
+                        Content = new VerticalStackLayout
+                        {
+                            Spacing = 8,
+                            Children =
+                            {
+                                new Label { Text = PdaTexts.VentasDelDia, FontAttributes = FontAttributes.Bold, FontSize = 12, TextColor = Ui.Ink },
+                                _total,
+                                _validar
+                            }
+                        }
+                    },
+                    new Label { Text = PdaTexts.ResumenTurno, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink },
+                    new Grid
+                    {
+                        ColumnDefinitions = new ColumnDefinitionCollection { new(GridLength.Star), new(GridLength.Star) },
+                        RowDefinitions = new RowDefinitionCollection { new(GridLength.Auto), new(GridLength.Auto) },
+                        ColumnSpacing = 10,
+                        RowSpacing = 10,
+                        Children =
+                        {
+                            Mini(PdaTexts.BoletosHoy, _boletos, 0, 0),
+                            Mini(PdaTexts.NumerosHoy, _numeros, 1, 0),
+                            Mini(PdaTexts.PdaAsociado, new Label { Text = _sesion.CodigoDispositivo, FontSize = 19, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink }, 0, 1),
+                            Mini(PdaTexts.RolObservador, new Label { Text = PdaTexts.ResultadosSoloLectura, FontSize = 13, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink }, 1, 1)
+                        }
+                    },
+                    new Label { Text = PdaTexts.AccesosRapidos, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink },
+                    Menu(PdaTexts.ResultadosTitulo, PdaTexts.ResultadosAyuda, async () => await Navigation.PushAsync(_services.GetRequiredService<ResultadosPage>())),
+                    Menu(PdaTexts.ValidarTicket, PdaTexts.ValidarTicketAyuda, async () => await Shell.Current.GoToAsync("//ovalidar")),
+                    Menu(PdaTexts.Consultas, PdaTexts.ConsultasAyuda, async () => await Shell.Current.GoToAsync("//consultas")),
+                    Menu(PdaTexts.Kpi, PdaTexts.KpiAyuda, async () => await Navigation.PushAsync(_services.GetRequiredService<KpiPage>()))
                 }
             }
         };
     }
 
-    private async Task ValidarAsync()
+    protected override async void OnAppearing()
     {
+        base.OnAppearing();
         try
         {
-            var resultado = await _api.ValidarQrAsync(new ValidarQrRequest { Qr = _qr.Text?.Trim() ?? string.Empty }, CancellationToken.None);
-            if (!resultado.IsSuccess || resultado.Data is null)
-            {
-                _resultado.Text = resultado.Message;
-                _resultado.TextColor = Ui.Danger;
-                return;
-            }
-
-            var d = resultado.Data;
-            _resultado.Text = $"{d.ResultadoVisual}\n{d.CodigoPublico} · {d.Vendedor} · {d.Estado} · {d.Vigencia}";
-            _resultado.TextColor = Ui.Green;
+            await ActualizarAsync();
         }
         catch (Exception)
         {
-            _resultado.Text = PdaTexts.SinConexionServidor;
-            _resultado.TextColor = Ui.Danger;
         }
+    }
+
+    private async Task ActualizarAsync()
+    {
+        var ping = await _api.ConectarAsync(
+            PdaConexion.UrlsPara(DeviceInfo.Current.DeviceType == DeviceType.Virtual),
+            CancellationToken.None);
+        var conectado = ping.IsSuccess;
+        _estado.Text = $"PDA {_sesion.CodigoDispositivo} · {(conectado ? PdaTexts.Conectado : PdaTexts.SinConexion)} · {PdaTexts.HorarioAbierto}";
+        _banners.Children.Clear();
+        if (!conectado)
+        {
+            _banners.Children.Add(Ui.Banner(PdaTexts.SinConexionServidor, Ui.WarnBg, Ui.Warn));
+        }
+
+        var hoy = DateTime.Today;
+        var ventas = await _api.VentasAsync(new ConsultaVentasRequest
+        {
+            FechaInicial = hoy,
+            FechaFinal = hoy.AddDays(1).AddTicks(-1)
+        }, CancellationToken.None);
+        if (ventas.IsSuccess && ventas.Data is not null)
+        {
+            _total.Text = FormatoDinero.Pesos(ventas.Data.Sum(v => v.Total));
+            _boletos.Text = ventas.Data.Count.ToString();
+        }
+        else
+        {
+            _total.Text = FormatoDinero.Pesos(0);
+            _boletos.Text = "0";
+        }
+
+        var resultados = await _api.ResultadosAsync(DateOnly.FromDateTime(hoy), null, CancellationToken.None);
+        _numeros.Text = resultados.IsSuccess && resultados.Data is not null
+            ? resultados.Data.Count.ToString()
+            : "0";
+    }
+
+    private static Frame Mini(string titulo, View valor, int col, int row)
+    {
+        var frame = new Frame
+        {
+            BackgroundColor = Colors.White,
+            BorderColor = Ui.Line,
+            CornerRadius = 12,
+            Padding = 14,
+            Content = new VerticalStackLayout
+            {
+                Children =
+                {
+                    new Label { Text = titulo, FontSize = 11, TextColor = Ui.Muted },
+                    valor
+                }
+            }
+        };
+        Grid.SetColumn(frame, col);
+        Grid.SetRow(frame, row);
+        return frame;
+    }
+
+    private static Button Menu(string titulo, string ayuda, Func<Task> accion)
+    {
+        var boton = new Button
+        {
+            Text = $"{titulo}\n{ayuda}",
+            BackgroundColor = Colors.White,
+            TextColor = Ui.Ink,
+            BorderColor = Ui.Line,
+            BorderWidth = 1,
+            CornerRadius = 12,
+            HeightRequest = 64
+        };
+        boton.Clicked += async (_, _) => await accion();
+        return boton;
     }
 }

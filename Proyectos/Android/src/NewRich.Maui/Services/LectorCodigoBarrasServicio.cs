@@ -16,7 +16,9 @@ public sealed class LectorCodigoBarrasServicio : ILectorCodigoBarrasServicio
         "com.scan.onDecodeComplete",
         "nlscan.action.SCANNER_RESULT",
         "com.sunmi.scanner.ACTION_DATA_CODE_RECEIVED",
-        "com.symbol.datawedge.api.RESULT_ACTION"
+        "com.symbol.datawedge.api.RESULT_ACTION",
+        "android.intent.ACTION_SCAN_OUTPUT",
+        "com.android.serial.BARCODESCAN"
     ];
 
     private static readonly string[] Disparos =
@@ -123,7 +125,7 @@ public sealed class LectorCodigoBarrasServicio : ILectorCodigoBarrasServicio
         MainThread.BeginInvokeOnMainThread(() => CodigoLeido?.Invoke(this, codigo));
 
     private static Android.Content.Context? Contexto() =>
-        Platform.CurrentActivity ?? Android.App.Application.Context;
+        Android.App.Application.Context;
 
     private sealed class Receptor : BroadcastReceiver
     {
@@ -141,7 +143,7 @@ public sealed class LectorCodigoBarrasServicio : ILectorCodigoBarrasServicio
             var extras = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
             foreach (var clave in intent.Extras.KeySet() ?? [])
             {
-                extras[clave] = intent.Extras.Get(clave)?.ToString();
+                extras[clave] = TextoExtra(intent.Extras, clave);
             }
 
             var codigo = LectorCodigoBarras.CodigoDe(extras);
@@ -149,6 +151,18 @@ public sealed class LectorCodigoBarrasServicio : ILectorCodigoBarrasServicio
             {
                 _servicio.Publicar(codigo);
             }
+        }
+
+        private static string? TextoExtra(Android.OS.Bundle extras, string clave)
+        {
+            var texto = extras.GetString(clave);
+            if (!string.IsNullOrWhiteSpace(texto))
+            {
+                return texto.Trim();
+            }
+
+            var bytes = extras.GetByteArray(clave);
+            return LectorCodigoBarras.TextoDe(bytes) ?? LectorCodigoBarras.TextoDe(extras.Get(clave));
         }
     }
 }

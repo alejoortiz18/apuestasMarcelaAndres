@@ -331,8 +331,9 @@ public sealed class ConstruirApuestaPage : ContentPage
             return;
         }
 
+        var json = EvidenciaOffline.SobreParaSincronizar(codigo.Payload, codigo.Consecutivo, draft);
         var qr = EvidenciaOffline.QrTirilla(codigo.Payload, codigo.Consecutivo, draft);
-        await _offline.GuardarVentaAsync(codigo.Consecutivo, qr);
+        await _offline.GuardarVentaAsync(codigo.Consecutivo, json);
         await MostrarTirillaAsync(codigo.Consecutivo, draft, true, qr);
     }
 

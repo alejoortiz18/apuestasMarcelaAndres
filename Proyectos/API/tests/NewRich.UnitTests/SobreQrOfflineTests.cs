@@ -100,43 +100,54 @@ public sealed class SobreQrOfflineTests
             });
 
         json.Should().StartWith("{");
-        tirilla.Should().StartWith("NR1.");
+        tirilla.Should().StartWith("NR3.");
+        tirilla.Should().MatchRegex(@"^NR3\.[A-Z2-7]+$");
+        tirilla.Length.Should().BeLessThan(json.Length);
         tirilla.Should().NotContain("codigo");
-        tirilla.Length.Should().BeLessThan(Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(json)).Length);
+        tirilla.Should().NotContain("{");
         SobreQrOfflineCodec.TryLeer(tirilla, out var sobre).Should().BeTrue();
         sobre.Consecutivo.Should().Be("OFF-000002");
-        sobre.Jugada.Lineas[0].Numero.Should().Be("890");
-        sobre.Jugada.Lineas[0].LoteriaIds.Should().Contain(Guid.Parse("b8103d73-75c5-49d1-a90f-38ea93c2afa7"));
+        sobre.EsLlaveCorta.Should().BeFalse();
+        sobre.Codigo.Should().Be("1.key.nonce.cipher");
+        sobre.Jugada.Tipo.Should().Be("INDIVIDUAL");
+        sobre.Jugada.Total.Should().Be(1000);
+        sobre.Jugada.Lineas.Should().ContainSingle(l => l.Numero == "890" && l.Valor == 1000);
+        sobre.Jugada.Lineas[0].LoteriaIds.Should().Equal(Guid.Parse("b8103d73-75c5-49d1-a90f-38ea93c2afa7"));
     }
 
     [Fact]
-    public void Lee_el_nr1_aunque_el_lector_cambie_guion_y_guion_bajo()
+    public void Lee_el_nr3_de_venta_en_linea_aunque_el_formulario_lo_corte_a_400()
     {
-        var jugada = new JugadaOffline
-        {
-            Tipo = "COMBINADO",
-            Fecha = new DateTime(2026, 9, 11, 15, 17, 0, DateTimeKind.Unspecified),
-            Total = 7800,
-            Lineas =
-            [
-                new LineaJugadaOffline
-                {
-                    Numero = "809",
-                    Valor = 7800,
-                    LoteriaIds = [Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")],
-                    Loterias = ["Armenia"]
-                }
-            ]
-        };
-        var tirilla = SobreQrOfflineCodec.ParaTirilla("1.key.nonce.cipher.tag", "OFF-000014", jugada);
-        var leido = tirilla
-            .Replace('-', '\'')
-            .Replace('_', '?');
+        const string escaneado =
+            "NR3.AEDTSOJYGQ4TGOAAAAAAAAAAAAAAAAABNYNCZDYJJNZU3HRBLJ6AXDJ7CQU5JTPGB4XFFOLK3DJG2N5BWSPZWYS6FAO2RXXAMSMNPJAAZLFHJPLSW3CS7UNNBHG3ABD2KCCGJ6UCRUIWJ5CZD3ADLH2PIJM6IJTZAF4BPFIYTJBTILBLCKLHH6EFY7UVWNRNNIQBZBD7ZT3IOUJXLIQBV3DUB6M2VLND7CHRQSUDHVPKC7423SYKM7AJVNIJHVIDGS4HXIAXASGURVBHE35EBT3J6BIL7V7G37NF5VQS4YO6ELLJJKXW4KV6SZIIJ5UEISCNY6VIKQCTEQVWNXXZ6H364ZMKYZLWFC6DMAIKZ7MBLVOHGC7CVJPSSSAN7FKBC7GK7WQV22P4";
 
-        leido.Should().NotBe(tirilla);
+        escaneado.Length.Should().Be(400);
+        SobreQrOfflineCodec.TryLeer(escaneado, out var sobre).Should().BeTrue();
+        sobre.Consecutivo.Should().Be("9984938");
+        sobre.EsLlaveCorta.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Lee_el_nr2_aunque_el_lector_cambie_el_guion_del_consecutivo()
+    {
+        var tirilla = SobreQrOfflineCodec.LlaveCorta("1.key.nonce.cipher.tag", "OFF-000014");
+        var leido = tirilla.Replace('-', '\'');
+
         SobreQrOfflineCodec.TryLeer(leido, out var sobre).Should().BeTrue();
         sobre.Consecutivo.Should().Be("OFF-000014");
-        sobre.Jugada.Lineas[0].Numero.Should().Be("809");
+        sobre.EsLlaveCorta.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Rechaza_nr2_con_sello_alterado()
+    {
+        var tirilla = SobreQrOfflineCodec.LlaveCorta("secreto", "OFF-000003");
+        var partes = tirilla.Split('.');
+        partes[^1] = "000000";
+        var falso = string.Join('.', partes);
+
+        SobreQrOfflineCodec.TryLeer(falso, out var sobre).Should().BeTrue();
+        SobreQrOfflineCodec.SelloCoincide("secreto", "OFF-000003", sobre.Sello).Should().BeFalse();
     }
 
     [Fact]

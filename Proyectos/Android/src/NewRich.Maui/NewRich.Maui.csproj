@@ -12,7 +12,7 @@
     <ApplicationTitle>New Rich</ApplicationTitle>
     <ApplicationId>com.newrich.pda</ApplicationId>
     <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
-    <ApplicationVersion>36</ApplicationVersion>
+    <ApplicationVersion>58</ApplicationVersion>
     <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">24.0</SupportedOSPlatformVersion>
     <RuntimeIdentifiers Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">android-arm;android-arm64</RuntimeIdentifiers>
   </PropertyGroup>
@@ -31,6 +31,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
     <PackageReference Include="sqlite-net-pcl" Version="1.9.172" />
     <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="3.50.3" />
+    <PackageReference Include="Xamarin.Google.MLKit.BarcodeScanning" Version="117.3.0.3" />
   </ItemGroup>
 
   <ItemGroup>

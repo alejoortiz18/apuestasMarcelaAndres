@@ -3,14 +3,14 @@ using NewRich.Pda.Core;
 
 namespace NewRich.Maui.Views;
 
-public sealed class BarraMenuVendedor : Border
+public sealed class BarraMenuPda : Border
 {
     private static readonly Color FondoBarra = Color.FromArgb("#0B1A14");
     private static readonly Color Oro = Color.FromArgb("#D4B15A");
     private static readonly Color Crema = Color.FromArgb("#F0E6C8");
     private static readonly Color FondoActivo = Color.FromArgb("#163028");
 
-    public BarraMenuVendedor(string rutaActiva)
+    public BarraMenuPda(string rutaActiva, IReadOnlyList<ItemMenuInferior> items)
     {
         Stroke = Oro;
         StrokeThickness = 1.5;
@@ -32,7 +32,6 @@ public sealed class BarraMenuVendedor : Border
             ColumnSpacing = 2,
             HeightRequest = 64
         };
-        var items = MenuInferiorVendedor.Items;
         for (var i = 0; i < items.Count; i++)
         {
             fila.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
@@ -46,7 +45,12 @@ public sealed class BarraMenuVendedor : Border
         Content = fila;
     }
 
-    public static void Asegurar(Page? pagina, string? ubicacion)
+    public static void Asegurar(
+        Page? pagina,
+        string? ubicacion,
+        IReadOnlyList<ItemMenuInferior> items,
+        Func<string?, string> rutaActiva,
+        string capaId)
     {
         if (pagina is not ContentPage contenido || contenido.Content is null)
         {
@@ -54,44 +58,44 @@ public sealed class BarraMenuVendedor : Border
         }
 
         Shell.SetTabBarIsVisible(contenido, false);
-        var ruta = MenuInferiorVendedor.RutaActiva(ubicacion);
-        if (contenido.Content is Grid capa && MenuInferiorVendedor.EsCapa(capa.ClassId)
+        var ruta = rutaActiva(ubicacion);
+        if (contenido.Content is Grid capa && string.Equals(capa.ClassId, capaId, StringComparison.Ordinal)
             && capa.RowDefinitions.Count >= 2)
         {
-            foreach (var anterior in capa.Children.OfType<BarraMenuVendedor>().ToList())
+            foreach (var anterior in capa.Children.OfType<BarraMenuPda>().ToList())
             {
                 capa.Remove(anterior);
             }
 
-            var barra = new BarraMenuVendedor(ruta);
-            Grid.SetRow(barra, MenuInferiorVendedor.FilaMenu);
+            var barra = new BarraMenuPda(ruta, items);
+            Grid.SetRow(barra, 1);
             capa.Add(barra);
             return;
         }
 
-        var original = ExtraerContenido(contenido);
+        var original = ExtraerContenido(contenido, capaId);
         if (original is null)
         {
             return;
         }
 
         original.VerticalOptions = LayoutOptions.Fill;
-        var nueva = new Grid { ClassId = MenuInferiorVendedor.CapaId };
+        var nueva = new Grid { ClassId = capaId };
         nueva.RowDefinitions.Add(new RowDefinition(GridLength.Star));
         nueva.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
-        Grid.SetRow(original, MenuInferiorVendedor.FilaContenido);
+        Grid.SetRow(original, 0);
         nueva.Add(original);
-        var menu = new BarraMenuVendedor(ruta);
-        Grid.SetRow(menu, MenuInferiorVendedor.FilaMenu);
+        var menu = new BarraMenuPda(ruta, items);
+        Grid.SetRow(menu, 1);
         nueva.Add(menu);
         contenido.Content = nueva;
     }
 
-    private static View? ExtraerContenido(ContentPage pagina)
+    private static View? ExtraerContenido(ContentPage pagina, string capaId)
     {
-        if (pagina.Content is Grid capa && MenuInferiorVendedor.EsCapa(capa.ClassId))
+        if (pagina.Content is Grid capa && string.Equals(capa.ClassId, capaId, StringComparison.Ordinal))
         {
-            return capa.Children.OfType<View>().FirstOrDefault(v => v is not BarraMenuVendedor);
+            return capa.Children.OfType<View>().FirstOrDefault(v => v is not BarraMenuPda);
         }
 
         return pagina.Content;
@@ -175,4 +179,26 @@ public sealed class BarraMenuVendedor : Border
         };
         return (Geometry)new PathGeometryConverter().ConvertFromInvariantString(datos)!;
     }
+}
+
+public static class BarraMenuVendedor
+{
+    public static void Asegurar(Page? pagina, string? ubicacion) =>
+        BarraMenuPda.Asegurar(
+            pagina,
+            ubicacion,
+            MenuInferiorVendedor.Items,
+            MenuInferiorVendedor.RutaActiva,
+            MenuInferiorVendedor.CapaId);
+}
+
+public static class BarraMenuObservador
+{
+    public static void Asegurar(Page? pagina, string? ubicacion) =>
+        BarraMenuPda.Asegurar(
+            pagina,
+            ubicacion,
+            MenuInferiorObservador.Items,
+            MenuInferiorObservador.RutaActiva,
+            MenuInferiorObservador.CapaId);
 }

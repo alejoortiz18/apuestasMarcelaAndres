@@ -24,25 +24,57 @@ public static class BoletoPorCodigo
             }
         }
 
+        if (EsConsecutivoOffline(brutoLimpio))
+        {
+            var porOff = await boletos.FirstOrDefaultAsync(
+                b => b.QrCifrado.Contains(brutoLimpio),
+                cancellationToken);
+            if (porOff is not null)
+            {
+                return porOff;
+            }
+        }
+
         if (SobreQrOfflineCodec.TryLeer(brutoLimpio, out var sobre))
         {
-            var interno = qr.Decrypt(sobre.Codigo);
-            if (interno is not null)
+            if (sobre.EsLlaveCorta)
             {
-                var codigoInterno = Normalizar(interno.CodigoPublico);
-                var porSobre = await boletos.FirstOrDefaultAsync(
-                    b => b.BoletoId == interno.BoletoId && b.CodigoPublico == codigoInterno,
-                    cancellationToken);
-                if (porSobre is not null)
+                var porLlave = await BuscarPorLlaveCortaAsync(boletos, sobre, cancellationToken);
+                if (porLlave is not null)
                 {
-                    return porSobre;
+                    return porLlave;
                 }
             }
-
-            var porJson = await boletos.FirstOrDefaultAsync(b => b.QrCifrado == brutoLimpio, cancellationToken);
-            if (porJson is not null)
+            else
             {
-                return porJson;
+                var interno = qr.Decrypt(sobre.Codigo);
+                if (interno is not null)
+                {
+                    var codigoInterno = Normalizar(interno.CodigoPublico);
+                    var porSobre = await boletos.FirstOrDefaultAsync(
+                        b => b.BoletoId == interno.BoletoId && b.CodigoPublico == codigoInterno,
+                        cancellationToken);
+                    if (porSobre is not null)
+                    {
+                        return porSobre;
+                    }
+                }
+
+                var id = Normalizar(sobre.Consecutivo);
+                if (EsCodigoPublico(id))
+                {
+                    var porPublico = await boletos.FirstOrDefaultAsync(b => b.CodigoPublico == id, cancellationToken);
+                    if (porPublico is not null)
+                    {
+                        return porPublico;
+                    }
+                }
+
+                var porJson = await boletos.FirstOrDefaultAsync(b => b.QrCifrado == brutoLimpio, cancellationToken);
+                if (porJson is not null)
+                {
+                    return porJson;
+                }
             }
         }
 
@@ -93,6 +125,51 @@ public static class BoletoPorCodigo
 
         return codigo;
     }
+
+    private static async Task<Boleto?> BuscarPorLlaveCortaAsync(
+        IQueryable<Boleto> boletos,
+        SobreQrOffline sobre,
+        CancellationToken cancellationToken)
+    {
+        var id = Normalizar(sobre.Consecutivo);
+        Boleto? boleto = null;
+        if (EsCodigoPublico(id))
+        {
+            boleto = await boletos.FirstOrDefaultAsync(b => b.CodigoPublico == id, cancellationToken);
+        }
+
+        boleto ??= await boletos.FirstOrDefaultAsync(
+            b => b.QrCifrado.Contains(sobre.Consecutivo),
+            cancellationToken);
+        if (boleto is null)
+        {
+            return null;
+        }
+
+        var secreto = SecretoGuardado(boleto.QrCifrado);
+        if (!SobreQrOfflineCodec.SelloCoincide(secreto, sobre.Consecutivo, sobre.Sello)
+            && !SobreQrOfflineCodec.SelloCoincide(secreto, boleto.CodigoPublico, sobre.Sello)
+            && !SobreQrOfflineCodec.SelloCoincide(secreto, id, sobre.Sello))
+        {
+            return null;
+        }
+
+        return boleto;
+    }
+
+    private static string SecretoGuardado(string qrCifrado)
+    {
+        if (SobreQrOfflineCodec.TryLeer(qrCifrado, out var sobre) && !sobre.EsLlaveCorta)
+        {
+            return sobre.Codigo;
+        }
+
+        return qrCifrado;
+    }
+
+    private static bool EsConsecutivoOffline(string valor) =>
+        valor.StartsWith("OFF-", StringComparison.OrdinalIgnoreCase)
+        && valor.Length >= 10;
 
     private static bool EsCodigoPublico(string codigo) =>
         codigo.Length == 7 && EsSoloDigitos(codigo);

@@ -451,7 +451,7 @@ El vendedor no conversa por este canal con observadores. Los mensajes de evidenc
 
 ```mermaid
 flowchart TD
-    A[Administrador abre KPI] --> B[Seleccionar período]
+    A[Administrador u observador abre KPI] --> B[Seleccionar período]
     B --> C{¿Filtro?}
     C -->|General| D[Consolidar todos los vendedores]
     C -->|Grupo| E[Consolidar vendedores del grupo]

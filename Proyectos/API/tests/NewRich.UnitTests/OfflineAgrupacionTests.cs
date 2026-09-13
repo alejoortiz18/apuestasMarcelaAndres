@@ -31,7 +31,7 @@ public sealed class OfflineAgrupacionTests
     }
 
     [Fact]
-    public void Resumen_cuenta_vendidos_y_sin_usar_segun_estado()
+    public void Resumen_cuenta_el_total_generado_y_el_saldo_segun_el_recorrido()
     {
         var usuario = Guid.NewGuid();
         var pda = Guid.NewGuid();
@@ -46,8 +46,8 @@ public sealed class OfflineAgrupacionTests
 
         var resumen = OfflineAgrupacion.Resumen(items);
 
-        resumen.Generados.Should().Be(2);
-        resumen.Descargados.Should().Be(1);
+        resumen.Generados.Should().Be(5);
+        resumen.Descargados.Should().Be(3);
         resumen.Vendidos.Should().Be(2);
         resumen.SinUsar.Should().Be(3);
     }

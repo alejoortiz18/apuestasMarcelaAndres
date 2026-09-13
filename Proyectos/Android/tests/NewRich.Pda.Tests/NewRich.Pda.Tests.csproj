@@ -23,4 +23,8 @@
     <ProjectReference Include="..\..\src\NewRich.Pda.Core\NewRich.Pda.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="Fotos\recibo-qr.png" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

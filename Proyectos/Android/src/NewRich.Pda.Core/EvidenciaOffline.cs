@@ -27,23 +27,11 @@ public static class EvidenciaOffline
         }
     }
 
+    public static string SobreParaSincronizar(string payloadAlmacenado, string consecutivo, TicketDraft draft) =>
+        SobreQrOfflineCodec.Armar(ContenidoQr(payloadAlmacenado), consecutivo, JugadaDe(draft));
+
     public static string QrTirilla(string payloadAlmacenado, string consecutivo, TicketDraft draft) =>
-        SobreQrOfflineCodec.ParaTirilla(
-            ContenidoQr(payloadAlmacenado),
-            consecutivo,
-            new JugadaOffline
-            {
-                Tipo = draft.Tipo.ToString(),
-                Fecha = DateTime.Now,
-                Total = draft.Total,
-                Lineas = draft.Lineas.Select(l => new LineaJugadaOffline
-                {
-                    Numero = l.Numero,
-                    Valor = l.Valor,
-                    LoteriaIds = l.LoteriaIds,
-                    Loterias = l.LoteriaNombres
-                }).ToArray()
-            });
+        SobreQrOfflineCodec.ParaTirilla(ContenidoQr(payloadAlmacenado), consecutivo, JugadaDe(draft));
 
     public static string TextoChat(string consecutivo, DateTime enviadoLocal) =>
         $"{MensajeChat}{Environment.NewLine}{consecutivo}{Environment.NewLine}{enviadoLocal.ToString("dd/MM/yyyy HH:mm", CultureInfo.GetCultureInfo("es-CO"))}";
@@ -62,14 +50,44 @@ public static class EvidenciaOffline
             return true;
         }
 
-        if (SobreQrOfflineCodec.TryLeer(a, out var sobreA) && SobreQrOfflineCodec.TryLeer(b, out var sobreB))
+        if (SobreQrOfflineCodec.TryLeer(a, out var sobreA) && SobreQrOfflineCodec.TryLeer(b, out var sobreB)
+            && string.Equals(sobreA.Consecutivo, sobreB.Consecutivo, StringComparison.OrdinalIgnoreCase))
         {
-            return string.Equals(sobreA.Consecutivo, sobreB.Consecutivo, StringComparison.OrdinalIgnoreCase)
-                && string.Equals(sobreA.Codigo, sobreB.Codigo, StringComparison.Ordinal);
+            if (sobreA.EsLlaveCorta && sobreB.EsLlaveCorta)
+            {
+                return string.Equals(sobreA.Sello, sobreB.Sello, StringComparison.OrdinalIgnoreCase);
+            }
+
+            if (sobreA.EsLlaveCorta)
+            {
+                return SobreQrOfflineCodec.SelloCoincide(sobreB.Codigo, sobreB.Consecutivo, sobreA.Sello);
+            }
+
+            if (sobreB.EsLlaveCorta)
+            {
+                return SobreQrOfflineCodec.SelloCoincide(sobreA.Codigo, sobreA.Consecutivo, sobreB.Sello);
+            }
+
+            return string.Equals(sobreA.Codigo, sobreB.Codigo, StringComparison.Ordinal);
         }
 
         return false;
     }
+
+    private static JugadaOffline JugadaDe(TicketDraft draft) =>
+        new()
+        {
+            Tipo = draft.Tipo.ToString(),
+            Fecha = DateTime.Now,
+            Total = draft.Total,
+            Lineas = draft.Lineas.Select(l => new LineaJugadaOffline
+            {
+                Numero = l.Numero,
+                Valor = l.Valor,
+                LoteriaIds = l.LoteriaIds,
+                Loterias = l.LoteriaNombres
+            }).ToArray()
+        };
 
     public static EnviarMensajeRequest MensajeConQr(string codigo, byte[] png, DateTime enviadoLocal)
     {

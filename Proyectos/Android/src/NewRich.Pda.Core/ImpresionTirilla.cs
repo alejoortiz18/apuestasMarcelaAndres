@@ -22,6 +22,7 @@ public static class ImpresionTirilla
         var texto = contenidoQr?.TrimStart() ?? string.Empty;
         if (texto.StartsWith('{')
             || texto.StartsWith(SobreQrOfflineCodec.PrefijoTirilla, StringComparison.OrdinalIgnoreCase)
+            || texto.StartsWith(SobreQrOfflineCodec.PrefijoTirillaCompacta, StringComparison.OrdinalIgnoreCase)
             || texto.Length > 180)
         {
             return ModuloQrOffline;
