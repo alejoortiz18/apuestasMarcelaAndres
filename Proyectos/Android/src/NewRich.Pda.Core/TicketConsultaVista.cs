@@ -1,8 +1,34 @@
 using NewRich.Application.Contracts.Boletos;
+using NewRich.Constants;
 
 namespace NewRich.Pda.Core;
 
 public sealed record TicketJuegoVista(string Numero, string Loterias, decimal Valor);
+
+public sealed record TicketResultadoVista(
+    string Loteria,
+    string NumeroApostado,
+    string NumeroGanador,
+    string Veredicto,
+    string Tono)
+{
+    public static TicketResultadoVista De(ResultadoLoteriaResponse resultado)
+    {
+        if (string.IsNullOrWhiteSpace(resultado.NumeroGanador))
+        {
+            return new(
+                resultado.Loteria,
+                resultado.Numero,
+                "—",
+                PdaTexts.SinPublicar,
+                TicketConsultaTono.Pendiente);
+        }
+
+        return resultado.Gano
+            ? new(resultado.Loteria, resultado.Numero, resultado.NumeroGanador, PdaTexts.VeredictoGano, TicketConsultaTono.Ganador)
+            : new(resultado.Loteria, resultado.Numero, resultado.NumeroGanador, PdaTexts.VeredictoNoGano, TicketConsultaTono.NoGanador);
+    }
+}
 
 public sealed record TicketConsultaVista(
     string Codigo,
@@ -15,6 +41,9 @@ public sealed record TicketConsultaVista(
     decimal Total,
     IReadOnlyList<TicketJuegoVista> Juegos)
 {
+    public IReadOnlyList<TicketResultadoVista> Resultados { get; init; } = [];
+    public string? AvisoResultados { get; init; }
+
     public static TicketConsultaVista De(ConsultaTicketResponse consulta)
     {
         var tirilla = consulta.Tirilla;
@@ -31,6 +60,10 @@ public sealed record TicketConsultaVista(
             consulta.Tono,
             consulta.PuedeIniciarCaso,
             tirilla?.Total ?? 0,
-            juegos);
+            juegos)
+        {
+            Resultados = consulta.Resultados.Select(TicketResultadoVista.De).ToList(),
+            AvisoResultados = consulta.AvisoResultados
+        };
     }
 }

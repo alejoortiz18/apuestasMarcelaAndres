@@ -5,6 +5,7 @@ namespace NewRich.Application.Contracts.Loterias;
 public sealed class CrearLoteriaRequest
 {
     public string Nombre { get; set; } = string.Empty;
+    public List<DiaSemana> DiasHabilitados { get; set; } = [];
 }
 
 public sealed class ActualizarLoteriaRequest
@@ -23,4 +24,20 @@ public sealed class LoteriaResponse
     public int BoletosVendidos { get; set; }
     public decimal TotalVendido { get; set; }
     public string? TipoApuesta { get; set; }
+
+    /// <summary>Dias de la semana en los que el administrador habilito la venta de esta loteria.</summary>
+    public List<DiaSemana> DiasHabilitados { get; set; } = [];
+}
+
+/// <summary>Dias habilitados que el administrador guarda para una loteria.</summary>
+public sealed class DiasLoteriaRequest
+{
+    public Guid LoteriaId { get; set; }
+    public List<DiaSemana> DiasHabilitados { get; set; } = [];
+}
+
+/// <summary>Guarda de una sola vez la habilitacion por dia de varias loterias.</summary>
+public sealed class ActualizarDiasLoteriasRequest
+{
+    public List<DiasLoteriaRequest> Loterias { get; set; } = [];
 }

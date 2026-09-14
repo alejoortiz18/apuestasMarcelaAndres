@@ -7,6 +7,7 @@ using NewRich.Application.Contracts.Ventas;
 using NewRich.Application.Services;
 using NewRich.Domain.Entities;
 using NewRich.Domain.Enums;
+using NewRich.Domain.Services;
 using NewRich.Infrastructure.Persistence;
 
 namespace NewRich.UnitTests;
@@ -52,6 +53,44 @@ public sealed class VentaServiceTests
             && a.Aviso.Mensaje.Contains("10.500"));
     }
 
+    [Fact]
+    public async Task ConfirmarAsync_rechaza_loteria_que_hoy_no_esta_habilitada()
+    {
+        var (sut, db, _) = await CreateSutAsync(new TiempoRealFake());
+        var vendedor = db.Usuarios.Single(u => u.Rol == RolUsuario.Vendedor);
+        var loteria = db.Loterias.Single();
+        db.LoteriasDiasSemana.RemoveRange(db.LoteriasDiasSemana);
+        db.LoteriasDiasSemana.Add(new LoteriaDiaSemana
+        {
+            LoteriaId = loteria.LoteriaId,
+            DiaSemana = DiaSemana.Lunes,
+            FechaActualizacion = Ahora
+        });
+        await db.SaveChangesAsync();
+
+        var result = await sut.ConfirmarAsync(
+            vendedor.UsuarioId,
+            null,
+            new ConfirmarVentaRequest
+            {
+                TipoApuesta = TipoApuesta.INDIVIDUAL,
+                Juegos =
+                [
+                    new LineaJuegoRequest
+                    {
+                        Numero = "1234",
+                        Valor = 1000,
+                        LoteriaIds = [loteria.LoteriaId]
+                    }
+                ]
+            },
+            Guid.NewGuid().ToString("N"),
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Message.Should().Be("Una de las loterías seleccionadas no está habilitada para vender hoy.");
+    }
+
     private static async Task<(VentaService Sut, NewRichDbContext Db, Guid AdminId)> CreateSutAsync(TiempoRealFake tiempoReal)
     {
         var options = new DbContextOptionsBuilder<NewRichDbContext>()
@@ -81,13 +120,23 @@ public sealed class VentaServiceTests
             FechaCreacion = Ahora
         };
         db.Usuarios.AddRange(admin, vendedor);
-        db.Loterias.Add(new Loteria
+        var loteria = new Loteria
         {
             LoteriaId = Guid.NewGuid(),
             Nombre = "Cali",
             Estado = EstadoGeneral.Activo,
             FechaCreacion = Ahora
-        });
+        };
+        db.Loterias.Add(loteria);
+        foreach (var dia in DiasVentaLoteria.Semana)
+        {
+            db.LoteriasDiasSemana.Add(new LoteriaDiaSemana
+            {
+                LoteriaId = loteria.LoteriaId,
+                DiaSemana = dia,
+                FechaActualizacion = Ahora
+            });
+        }
         db.ConfiguracionesTipoApuesta.Add(new ConfiguracionTipoApuesta
         {
             ConfiguracionTipoApuestaId = Guid.NewGuid(),

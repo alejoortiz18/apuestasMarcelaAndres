@@ -33,28 +33,7 @@ public static class ReciboConsultaVista
                     BackgroundColor = fondoEstado,
                     StrokeShape = new RoundRectangle { CornerRadius = 8 },
                     Padding = new Thickness(12, 10),
-                    Content = new VerticalStackLayout
-                    {
-                        Spacing = 4,
-                        Children =
-                        {
-                            new Label
-                            {
-                                Text = vista.Estado,
-                                FontAttributes = FontAttributes.Bold,
-                                FontSize = 15,
-                                TextColor = letraEstado,
-                                HorizontalTextAlignment = TextAlignment.Center
-                            },
-                            new Label
-                            {
-                                Text = vista.Mensaje,
-                                FontSize = 13,
-                                TextColor = letraEstado,
-                                HorizontalTextAlignment = TextAlignment.Center
-                            }
-                        }
-                    }
+                    Content = InsigniaEstado(vista.Estado, vista.Mensaje, letraEstado)
                 },
                 Fila(PdaTexts.Vendedor, vista.Vendedor),
                 Fila(PdaTexts.Fecha, vista.Fecha == default ? "—" : vista.Fecha.ToLocalTime().ToString("dd/MM/yyyy HH:mm"))
@@ -70,11 +49,21 @@ public static class ReciboConsultaVista
         });
         foreach (var juego in vista.Juegos)
         {
-            juegos.Children.Add(new Label
+            juegos.Children.Add(new Grid
             {
-                Text = $"{juego.Numero} · {juego.Loterias} · {FormatoDinero.Pesos(juego.Valor)}",
-                TextColor = Ui.Ink,
-                FontSize = 13
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition(GridLength.Auto),
+                    new ColumnDefinition(GridLength.Star),
+                    new ColumnDefinition(GridLength.Auto)
+                },
+                ColumnSpacing = 10,
+                Children =
+                {
+                    Celda(juego.Numero, 0, true),
+                    Celda(juego.Loterias, 1, false),
+                    Celda(FormatoDinero.Pesos(juego.Valor), 2, true)
+                }
             });
         }
 
@@ -84,6 +73,11 @@ public static class ReciboConsultaVista
         }
 
         cuerpo.Children.Add(juegos);
+        var resultados = CrearResultados(vista);
+        if (resultados is not null)
+        {
+            cuerpo.Children.Add(resultados);
+        }
         cuerpo.Children.Add(new Grid
         {
             Padding = new Thickness(18, 12, 18, 18),
@@ -116,6 +110,130 @@ public static class ReciboConsultaVista
             Padding = 0,
             Content = cuerpo
         };
+    }
+
+    public static View? CrearResultados(TicketConsultaVista vista)
+    {
+        if (vista.Resultados.Count == 0 && string.IsNullOrWhiteSpace(vista.AvisoResultados))
+        {
+            return null;
+        }
+
+        var bloque = new VerticalStackLayout
+        {
+            Padding = new Thickness(18, 0, 18, 8),
+            Spacing = 8
+        };
+        bloque.Children.Add(new Label
+        {
+            Text = PdaTexts.ResultadoPorLoteria,
+            FontAttributes = FontAttributes.Bold,
+            FontSize = 12,
+            TextColor = Ui.Muted
+        });
+        foreach (var resultado in vista.Resultados)
+        {
+            var (fondo, letra) = ColorEstado(resultado.Tono);
+            bloque.Children.Add(new Border
+            {
+                StrokeThickness = 0,
+                BackgroundColor = fondo,
+                StrokeShape = new RoundRectangle { CornerRadius = 8 },
+                Padding = new Thickness(12, 8),
+                Content = new Grid
+                {
+                    ColumnDefinitions =
+                    {
+                        new ColumnDefinition(GridLength.Star),
+                        new ColumnDefinition(GridLength.Auto)
+                    },
+                    Children =
+                    {
+                        new VerticalStackLayout
+                        {
+                            Spacing = 2,
+                            Children =
+                            {
+                                new Label
+                                {
+                                    Text = $"{resultado.Loteria} · {resultado.NumeroApostado}",
+                                    FontAttributes = FontAttributes.Bold,
+                                    FontSize = 13,
+                                    TextColor = letra
+                                },
+                                new Label
+                                {
+                                    Text = resultado.NumeroGanador == "—"
+                                        ? PdaTexts.SinPublicar
+                                        : $"{PdaTexts.NumeroGanador}: {resultado.NumeroGanador}",
+                                    FontSize = 12,
+                                    TextColor = letra
+                                }
+                            }
+                        },
+                        Columna(new Label
+                        {
+                            Text = resultado.Veredicto,
+                            FontAttributes = FontAttributes.Bold,
+                            FontSize = 13,
+                            TextColor = letra,
+                            VerticalTextAlignment = TextAlignment.Center
+                        }, 1)
+                    }
+                }
+            });
+        }
+
+        if (!string.IsNullOrWhiteSpace(vista.AvisoResultados))
+        {
+            bloque.Children.Add(new Label
+            {
+                Text = vista.AvisoResultados,
+                FontSize = 12,
+                TextColor = Ui.Warn
+            });
+        }
+
+        return bloque;
+    }
+
+    public static View InsigniaEstado(string estado, string mensaje, Color letra)
+    {
+        var textos = new VerticalStackLayout { Spacing = 4 };
+        textos.Children.Add(new Label
+        {
+            Text = estado,
+            FontAttributes = FontAttributes.Bold,
+            FontSize = 15,
+            TextColor = letra,
+            HorizontalTextAlignment = TextAlignment.Center
+        });
+        if (!string.IsNullOrWhiteSpace(mensaje))
+        {
+            textos.Children.Add(new Label
+            {
+                Text = mensaje,
+                FontSize = 13,
+                TextColor = letra,
+                HorizontalTextAlignment = TextAlignment.Center
+            });
+        }
+
+        return textos;
+    }
+
+    private static View Celda(string texto, int columna, bool negrita)
+    {
+        var etiqueta = new Label
+        {
+            Text = texto,
+            FontSize = 14,
+            FontAttributes = negrita ? FontAttributes.Bold : FontAttributes.None,
+            TextColor = Ui.Ink,
+            VerticalTextAlignment = TextAlignment.Center
+        };
+        Grid.SetColumn(etiqueta, columna);
+        return etiqueta;
     }
 
     private static View Cabecera()

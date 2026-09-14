@@ -130,6 +130,22 @@ public sealed class VentaService : IVentaService
                     throw new InvalidOperationException(VentaMessages.LoteriaInactiva);
                 }
 
+                var hoy = DiasVentaLoteria.DiaDe(_clock.LocalNow);
+                var loteriaIds = loterias.Select(l => l.LoteriaId).ToList();
+                var dias = await _db.LoteriasDiasSemana
+                    .Where(d => loteriaIds.Contains(d.LoteriaId))
+                    .ToListAsync(ct);
+                var porLoteria = dias
+                    .GroupBy(d => d.LoteriaId)
+                    .ToDictionary(g => g.Key, g => g.Select(x => x.DiaSemana).ToList());
+                if (loterias.Any(l => !DiasVentaLoteria.SePuedeVender(
+                        EstadoGeneral.Activo,
+                        porLoteria.GetValueOrDefault(l.LoteriaId),
+                        hoy)))
+                {
+                    throw new InvalidOperationException(VentaMessages.LoteriaNoHabilitadaHoy);
+                }
+
                 var juego = new Juego
                 {
                     JuegoId = Guid.NewGuid(),

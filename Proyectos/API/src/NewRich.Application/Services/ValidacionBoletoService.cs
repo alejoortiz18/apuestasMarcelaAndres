@@ -207,7 +207,7 @@ public sealed class ValidacionBoletoService : IValidacionBoletoService
         }
 
         var evaluacion = await Evaluar(boleto, cancellationToken);
-        var vista = TicketConsultaPresentacion.De(evaluacion.ResultadoVisual);
+        var vista = TicketConsultaPresentacion.De(evaluacion.ResultadoVisual, evaluacion.AvisoResultados is not null);
         var tirilla = await ObtenerTirillaAsync(boleto.BoletoId, cancellationToken);
         var tieneCaso = await _db.CasosGanadores.AnyAsync(c => c.BoletoId == boleto.BoletoId, cancellationToken);
 
@@ -218,6 +218,8 @@ public sealed class ValidacionBoletoService : IValidacionBoletoService
             Tono = vista.Tono,
             BoletoId = boleto.BoletoId,
             Tirilla = tirilla.Data,
+            Resultados = evaluacion.Resultados,
+            AvisoResultados = evaluacion.AvisoResultados,
             PuedeIniciarCaso = evaluacion.ResultadoVisual == BoletoMessages.BoletoGanador && !tieneCaso
         }, vista.Mensaje);
     }
@@ -264,8 +266,9 @@ public sealed class ValidacionBoletoService : IValidacionBoletoService
 
     private async Task<ValidacionBoletoResponse> Evaluar(Boleto boleto, CancellationToken cancellationToken)
     {
-        var fechaJuego = DateOnly.FromDateTime((boleto.Venta?.FechaVenta ?? boleto.FechaCreacion).Date);
-        var vigenciaHasta = (boleto.Venta?.FechaVenta ?? boleto.FechaCreacion).Date.AddDays(boleto.VigenciaDias);
+        var desfase = FechaJuegoBoleto.Desfase(_clock.UtcNow, _clock.LocalNow);
+        var fechaJuego = FechaJuegoBoleto.De(boleto.Venta?.FechaVenta ?? boleto.FechaCreacion, desfase);
+        var vigenciaHasta = fechaJuego.ToDateTime(TimeOnly.MinValue).AddDays(boleto.VigenciaDias);
         var juegos = boleto.Juegos.Select(MapJuego).ToList();
 
         var baseResponse = new ValidacionBoletoResponse
@@ -307,40 +310,77 @@ public sealed class ValidacionBoletoService : IValidacionBoletoService
             return baseResponse;
         }
 
-        var loteriaIds = boleto.Juegos.SelectMany(j => j.JuegoLoterias.Select(l => l.LoteriaId)).Distinct().ToList();
-        var resultados = await _db.NumerosGanadores
-            .Where(n => n.FechaJuego == fechaJuego.ToDateTime(TimeOnly.MinValue) && loteriaIds.Contains(n.LoteriaId))
-            .ToListAsync(cancellationToken);
+        var publicados = await NumerosGanadoresAsync(boleto, fechaJuego, cancellationToken);
+        var lineas = LineasResultado(boleto, publicados);
+        var detalle = lineas.Select(MapLinea).ToList();
+        var faltan = ResolucionBoletoRegla.FaltanResultados(lineas);
 
-        var gano = boleto.Juegos.Any(j =>
-            j.JuegoLoterias.Any(l =>
-                resultados.Any(r => r.LoteriaId == l.LoteriaId && r.Numero.Trim() == j.Numero.Trim())));
-
-        if (gano)
+        switch (ResolucionBoletoRegla.Resolver(lineas))
         {
-            if (_clock.LocalNow.Date > vigenciaHasta)
-            {
+            case EstadoBoleto.Ganador when _clock.LocalNow.Date > vigenciaHasta:
                 baseResponse.ResultadoVisual = BoletoMessages.BoletoVencido;
                 baseResponse.Estado = BoletoMessages.BoletoVencido;
                 return baseResponse;
-            }
 
-            baseResponse.ResultadoVisual = BoletoMessages.BoletoGanador;
-            baseResponse.Estado = BoletoMessages.BoletoGanador;
-            return baseResponse;
+            case EstadoBoleto.Ganador:
+                baseResponse.ResultadoVisual = BoletoMessages.BoletoGanador;
+                baseResponse.Estado = BoletoMessages.BoletoGanador;
+                AdjuntarDetalle(baseResponse, detalle, faltan);
+                return baseResponse;
+
+            case EstadoBoleto.NoGanador:
+                baseResponse.ResultadoVisual = BoletoMessages.BoletoNoGanador;
+                baseResponse.Estado = BoletoMessages.BoletoNoGanador;
+                AdjuntarDetalle(baseResponse, detalle, faltan);
+                return baseResponse;
         }
 
-        if (resultados.Count == 0)
+        baseResponse.ResultadoVisual = BoletoMessages.BoletoJugado;
+        baseResponse.Estado = BoletoMessages.BoletoJugado;
+        if (lineas.Any(l => l.Publicado))
         {
-            baseResponse.ResultadoVisual = BoletoMessages.BoletoJugado;
-            baseResponse.Estado = BoletoMessages.BoletoJugado;
-            return baseResponse;
+            AdjuntarDetalle(baseResponse, detalle, true);
         }
 
-        baseResponse.ResultadoVisual = BoletoMessages.BoletoNoGanador;
-        baseResponse.Estado = BoletoMessages.BoletoNoGanador;
         return baseResponse;
     }
+
+    private static void AdjuntarDetalle(
+        ValidacionBoletoResponse respuesta,
+        IReadOnlyList<ResultadoLoteriaResponse> detalle,
+        bool faltan)
+    {
+        respuesta.Resultados = detalle;
+        if (faltan)
+        {
+            respuesta.AvisoResultados = PremioMessages.ResultadosIncompletos;
+        }
+    }
+
+    private async Task<List<NumeroGanador>> NumerosGanadoresAsync(Boleto boleto, DateOnly fechaJuego, CancellationToken cancellationToken)
+    {
+        var loteriaIds = boleto.Juegos.SelectMany(j => j.JuegoLoterias.Select(l => l.LoteriaId)).Distinct().ToList();
+        var (inicio, fin) = FechaJuegoBoleto.Rango(fechaJuego);
+        return await _db.NumerosGanadores
+            .Where(n => n.FechaJuego >= inicio && n.FechaJuego < fin && loteriaIds.Contains(n.LoteriaId))
+            .ToListAsync(cancellationToken);
+    }
+
+    private static List<LineaResultadoBoleto> LineasResultado(Boleto boleto, IReadOnlyCollection<NumeroGanador> publicados) =>
+        boleto.Juegos
+            .SelectMany(juego => juego.JuegoLoterias.Select(jl => new LineaResultadoBoleto(
+                jl.Loteria?.Nombre ?? string.Empty,
+                juego.Numero,
+                publicados.FirstOrDefault(n => n.LoteriaId == jl.LoteriaId)?.Numero)))
+            .ToList();
+
+    private static ResultadoLoteriaResponse MapLinea(LineaResultadoBoleto linea) => new()
+    {
+        Loteria = linea.Loteria,
+        Numero = linea.NumeroApostado.Trim(),
+        NumeroGanador = linea.NumeroGanador?.Trim(),
+        Gano = linea.Acierta
+    };
 
     private static bool CoincideFiltroEstado(string filtro, string visual, EstadoBoleto estado) =>
         filtro.Equals("por jugar", StringComparison.OrdinalIgnoreCase) && estado == EstadoBoleto.PorJugar ||

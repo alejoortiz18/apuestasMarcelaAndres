@@ -29,9 +29,9 @@ public sealed class ObservadorValidarPage : ContentPage
         var leer = Ui.Primario(PdaTexts.ObservadorLeerQrCamara);
         leer.Clicked += async (_, _) => await LeerCamaraAsync();
         var tomar = Ui.Primario(PdaTexts.ObservadorTomarFotoQr);
-        tomar.Clicked += async (_, _) => await LeerFotoAsync(camara: true);
+        tomar.Clicked += async (_, _) => await LeerFotoAsync();
         var subir = Ui.Secundario(PdaTexts.ObservadorSubirFotoQr);
-        subir.Clicked += async (_, _) => await LeerFotoAsync(camara: false);
+        subir.Clicked += async (_, _) => await LeerFotoSubidaAsync();
 
         var formulario = new ScrollView
         {
@@ -102,7 +102,7 @@ public sealed class ObservadorValidarPage : ContentPage
         }
     }
 
-    private async Task LeerFotoAsync(bool camara)
+    private async Task LeerFotoAsync()
     {
         if (_ocupado)
         {
@@ -112,24 +112,17 @@ public sealed class ObservadorValidarPage : ContentPage
         FileResult? archivo;
         try
         {
-            if (camara)
+            var permiso = await Permissions.RequestAsync<Permissions.Camera>();
+            if (permiso != PermissionStatus.Granted)
             {
-                var permiso = await Permissions.RequestAsync<Permissions.Camera>();
-                if (permiso != PermissionStatus.Granted)
-                {
-                    await this.AvisoAsync(
-                        PdaTexts.ObservadorValidarTitulo,
-                        PdaTexts.ObservadorCamaraNoDisponible,
-                        PdaTexts.Cerrar);
-                    return;
-                }
+                await this.AvisoAsync(
+                    PdaTexts.ObservadorValidarTitulo,
+                    PdaTexts.ObservadorCamaraNoDisponible,
+                    PdaTexts.Cerrar);
+                return;
+            }
 
-                archivo = await MediaPicker.Default.CapturePhotoAsync();
-            }
-            else
-            {
-                archivo = await MediaPicker.Default.PickPhotoAsync();
-            }
+            archivo = await MediaPicker.Default.CapturePhotoAsync();
         }
         catch (Exception)
         {
@@ -140,6 +133,36 @@ public sealed class ObservadorValidarPage : ContentPage
             return;
         }
 
+        await DecodificarArchivoAsync(archivo, subida: false);
+    }
+
+    private async Task LeerFotoSubidaAsync()
+    {
+        if (_ocupado)
+        {
+            return;
+        }
+
+        FileResult? archivo;
+        try
+        {
+            await Permissions.RequestAsync<Permissions.Photos>();
+            archivo = await MediaPicker.Default.PickPhotoAsync();
+        }
+        catch (Exception)
+        {
+            await this.AvisoAsync(
+                PdaTexts.ObservadorValidarTitulo,
+                PdaTexts.ObservadorQrNoLeido,
+                PdaTexts.Cerrar);
+            return;
+        }
+
+        await DecodificarArchivoAsync(archivo, subida: true);
+    }
+
+    private async Task DecodificarArchivoAsync(FileResult? archivo, bool subida)
+    {
         if (archivo is null)
         {
             return;
@@ -154,7 +177,10 @@ public sealed class ObservadorValidarPage : ContentPage
             await using var stream = await archivo.OpenReadAsync();
             using var buffer = new MemoryStream();
             await stream.CopyToAsync(buffer);
-            codigo = await _fotos.LeerAsync(buffer.ToArray());
+            var bytes = buffer.ToArray();
+            codigo = subida
+                ? await _fotos.LeerFotoSubidaAsync(bytes)
+                : await _fotos.LeerAsync(bytes);
         }
         catch (Exception)
         {

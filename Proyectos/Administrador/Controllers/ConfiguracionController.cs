@@ -31,7 +31,8 @@ public sealed class ConfiguracionController : AdminControllerBase
             return unauthorized;
         }
 
-        IReadOnlyList<LoteriaResponse> loterias = loteriasTask.Result.Data ?? [];
+        IReadOnlyList<LoteriaResponse> todas = loteriasTask.Result.Data ?? [];
+        IReadOnlyList<LoteriaResponse> loterias = todas;
         if (!string.IsNullOrWhiteSpace(q))
         {
             var termino = q.Trim();
@@ -42,7 +43,8 @@ public sealed class ConfiguracionController : AdminControllerBase
         {
             Form = Mapear(configTask.Result.Data),
             Busqueda = q,
-            Pagina = PagingHelper.Paginate(loterias, page, pageSize)
+            Pagina = PagingHelper.Paginate(loterias, page, pageSize),
+            DiasVenta = MapDias(todas)
         });
     }
 
@@ -63,7 +65,8 @@ public sealed class ConfiguracionController : AdminControllerBase
             return View("Index", new ConfiguracionIndexViewModel
             {
                 Form = form,
-                Pagina = PagingHelper.Paginate(loterias.Data ?? [], 1, 5)
+                Pagina = PagingHelper.Paginate(loterias.Data ?? [], 1, 5),
+                DiasVenta = MapDias(loterias.Data ?? [])
             });
         }
 
@@ -78,6 +81,29 @@ public sealed class ConfiguracionController : AdminControllerBase
             CodigosOfflineCapacidad = form.CodigosOfflineCapacidad,
             SincronizacionModo = form.SincronizacionModo,
             LeyendaTirilla = form.LeyendaTirilla
+        }, cancellationToken);
+        var denied = RedirectIfUnauthorized(result);
+        if (denied is not null)
+        {
+            return denied;
+        }
+
+        SetFlash(result.Success ? SuccessMessages.RegistroActualizado : result.Message, result.Success);
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> GuardarDias(List<DiasLoteriaFormItem> diasVenta, CancellationToken cancellationToken)
+    {
+        SetNav("configuracion", UiTexts.NavConfiguracion);
+        var result = await _api.ActualizarDiasLoteriasAsync(new ActualizarDiasLoteriasRequest
+        {
+            Loterias = (diasVenta ?? []).Select(item => new DiasLoteriaRequest
+            {
+                LoteriaId = item.LoteriaId,
+                DiasHabilitados = item.DiasHabilitados ?? []
+            }).ToList()
         }, cancellationToken);
         var denied = RedirectIfUnauthorized(result);
         if (denied is not null)
@@ -106,7 +132,11 @@ public sealed class ConfiguracionController : AdminControllerBase
             return View("LoteriaForm", model);
         }
 
-        var result = await _api.CrearLoteriaAsync(new CrearLoteriaRequest { Nombre = model.Nombre.Trim() }, cancellationToken);
+        var result = await _api.CrearLoteriaAsync(new CrearLoteriaRequest
+        {
+            Nombre = model.Nombre.Trim(),
+            DiasHabilitados = model.DiasHabilitados
+        }, cancellationToken);
         var unauthorized = RedirectIfUnauthorized(result);
         if (unauthorized is not null)
         {
@@ -242,4 +272,16 @@ public sealed class ConfiguracionController : AdminControllerBase
                 : data.LeyendaTirilla
         };
     }
+
+    private static List<DiasLoteriaFormItem> MapDias(IReadOnlyList<LoteriaResponse> loterias) =>
+        loterias
+            .OrderBy(l => l.Nombre)
+            .Select(l => new DiasLoteriaFormItem
+            {
+                LoteriaId = l.LoteriaId,
+                Nombre = l.Nombre,
+                Estado = l.Estado,
+                DiasHabilitados = [.. l.DiasHabilitados]
+            })
+            .ToList();
 }

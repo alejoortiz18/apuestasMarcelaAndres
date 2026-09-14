@@ -8,4 +8,6 @@ public interface IEscanerQrObservador
 public interface ILectorQrFotoObservador
 {
     Task<string?> LeerAsync(byte[] imagen);
+
+    Task<string?> LeerFotoSubidaAsync(byte[] imagen);
 }

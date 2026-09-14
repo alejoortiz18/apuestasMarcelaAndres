@@ -12,4 +12,5 @@ public class Loteria
 
     public ICollection<JuegoLoteria> JuegoLoterias { get; set; } = new List<JuegoLoteria>();
     public ICollection<NumeroGanador> NumerosGanadores { get; set; } = new List<NumeroGanador>();
+    public ICollection<LoteriaDiaSemana> DiasSemana { get; set; } = new List<LoteriaDiaSemana>();
 }

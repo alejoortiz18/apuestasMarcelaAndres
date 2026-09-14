@@ -347,9 +347,18 @@ public static class UiTexts
 
     public const string ConfigKicker = "Parámetros";
     public const string ConfigTitulo = "Configuración operativa";
-    public const string ConfigSub = "Define el cierre de los PDA, la vigencia de premios, los límites de apuesta, las alertas, los códigos offline y el texto de la tirilla.";
+    public const string ConfigSub = "Define el cierre de los PDA, la vigencia de premios, los límites de apuesta, las alertas, los códigos offline, el texto de la tirilla y los días de venta de cada lotería.";
     public const string GuardarConfiguracion = "Guardar configuración";
     public const string ConfigHorarioPremios = "Horario y premios";
+    public const string ConfigDiasVenta = "Días de venta";
+    public const string ConfigDiasVentaSub = "Marque las loterías que el vendedor puede vender cada día. El PDA solo muestra las de hoy.";
+    public const string GuardarDiasVenta = "Guardar días de venta";
+    public const string DiasDeJuego = "Días de juego";
+    public const string DiasDeJuegoAyuda = "Indique el día o los días en que esta lotería se puede vender.";
+    public const string BuscarLoteriaDia = "Buscar lotería";
+    public const string VacioDiasVenta = "No hay loterías en el catálogo. Agregue una lotería para habilitarla por día.";
+    public const string LoteriasHabilitadasDelDia = "loterías habilitadas este día";
+    public const string DiaDeLaSemana = "Día de la semana";
     public const string ConfigTirilla = "Texto de la tirilla";
     public const string ConfigApuestas = "Límites de apuesta";
     public const string ConfigAlertas = "Alertas de jugada";

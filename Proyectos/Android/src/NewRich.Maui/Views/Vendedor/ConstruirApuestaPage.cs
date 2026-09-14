@@ -38,20 +38,20 @@ public sealed class ConstruirApuestaPage : ContentPage
             var loterias = await _api.LoteriasAsync(CancellationToken.None);
             if (loterias.IsSuccess && loterias.Data is not null)
             {
-                lote = loterias.Data.Where(l => l.Estado == EstadoGeneral.Activo).ToArray();
+                lote = loterias.Data;
                 await _offline.GuardarLoteriasAsync(lote);
             }
             else
             {
-                lote = (await _offline.LoteriasAsync()).Where(l => l.Estado == EstadoGeneral.Activo).ToArray();
+                lote = await _offline.LoteriasAsync();
             }
 
-            _loterias = lote;
+            _loterias = LoteriasDelDia.FiltrarHoy(lote);
             Render();
         }
         catch (Exception)
         {
-            _loterias = (await _offline.LoteriasAsync()).Where(l => l.Estado == EstadoGeneral.Activo).ToArray();
+            _loterias = LoteriasDelDia.FiltrarHoy(await _offline.LoteriasAsync());
             Render();
         }
     }
@@ -62,6 +62,12 @@ public sealed class ConstruirApuestaPage : ContentPage
         if (draft is null)
         {
             Content = new Label { Text = PdaTexts.TipoApuestaAyuda, Padding = 16 };
+            return;
+        }
+
+        if (_loterias.Count == 0)
+        {
+            Content = new Label { Text = PdaTexts.SinLoteriasHoy, Padding = 16, TextColor = Ui.Ink };
             return;
         }
 

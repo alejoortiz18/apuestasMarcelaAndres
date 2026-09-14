@@ -22,6 +22,7 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
     public DbSet<DispositivoUsuario> DispositivosUsuarios => Set<DispositivoUsuario>();
     public DbSet<Sesion> Sesiones => Set<Sesion>();
     public DbSet<Loteria> Loterias => Set<Loteria>();
+    public DbSet<LoteriaDiaSemana> LoteriasDiasSemana => Set<LoteriaDiaSemana>();
     public DbSet<Venta> Ventas => Set<Venta>();
     public DbSet<Boleto> Boletos => Set<Boleto>();
     public DbSet<Juego> Juegos => Set<Juego>();
@@ -147,6 +148,14 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
             e.ToTable("Loterias");
             e.HasKey(x => x.LoteriaId);
             e.Property(x => x.Estado).HasConversion(estadoGeneral).HasMaxLength(20);
+        });
+
+        modelBuilder.Entity<LoteriaDiaSemana>(e =>
+        {
+            e.ToTable("LoteriasDiasSemana");
+            e.HasKey(x => new { x.LoteriaId, x.DiaSemana });
+            e.Property(x => x.DiaSemana).HasConversion<byte>();
+            e.HasOne(x => x.Loteria).WithMany(x => x.DiasSemana).HasForeignKey(x => x.LoteriaId);
         });
 
         modelBuilder.Entity<Venta>(e =>

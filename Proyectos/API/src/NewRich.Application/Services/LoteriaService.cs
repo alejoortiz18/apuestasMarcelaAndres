@@ -4,6 +4,7 @@ using NewRich.Application.Contracts.Loterias;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
 using NewRich.Domain.Enums;
+using NewRich.Domain.Services;
 using NewRich.Shared.Results;
 
 namespace NewRich.Application.Services;
@@ -23,6 +24,7 @@ public sealed class LoteriaService : ILoteriaService
     {
         var items = await _db.Loterias.OrderBy(x => x.Nombre).ToListAsync(cancellationToken);
         var horaCierre = await ObtenerHoraCierreAsync(cancellationToken);
+        var dias = await CargarDiasAsync(items.Select(l => l.LoteriaId).ToList(), cancellationToken);
         var resumen = await _db.JuegoLoterias
             .Include(x => x.Juego)
             .ThenInclude(j => j!.Boleto)
@@ -41,7 +43,7 @@ public sealed class LoteriaService : ILoteriaService
                     NumerosJugados(g.Select(x => x.Juego!.Numero).ToList())));
 
         return Result<IReadOnlyList<LoteriaResponse>>.Ok(
-            items.Select(l => Map(l, horaCierre, porLoteria.GetValueOrDefault(l.LoteriaId))).ToList(),
+            items.Select(l => Map(l, horaCierre, porLoteria.GetValueOrDefault(l.LoteriaId), dias.GetValueOrDefault(l.LoteriaId))).ToList(),
             SuccessMessages.OperacionExitosa);
     }
 
@@ -50,6 +52,12 @@ public sealed class LoteriaService : ILoteriaService
         if (string.IsNullOrWhiteSpace(request.Nombre))
         {
             return Result<LoteriaResponse>.Fail(ValidationMessages.CampoRequerido);
+        }
+
+        var dias = DiasVentaLoteria.Normalizar(request.DiasHabilitados);
+        if (dias.Count == 0)
+        {
+            return Result<LoteriaResponse>.Fail(ValidationMessages.DiasLoteriaRequeridos);
         }
 
         if (await _db.Loterias.AnyAsync(x => x.Nombre == request.Nombre.Trim(), cancellationToken))
@@ -65,8 +73,9 @@ public sealed class LoteriaService : ILoteriaService
             FechaCreacion = _clock.UtcNow
         };
         _db.Loterias.Add(loteria);
+        ReemplazarDias(loteria.LoteriaId, dias);
         await _db.SaveChangesAsync(cancellationToken);
-        return Result<LoteriaResponse>.Created(Map(loteria, null, null), SuccessMessages.RegistroCreado);
+        return Result<LoteriaResponse>.Created(Map(loteria, null, null, dias), SuccessMessages.RegistroCreado);
     }
 
     public async Task<Result<LoteriaResponse>> ActualizarAsync(Guid loteriaId, ActualizarLoteriaRequest request, CancellationToken cancellationToken)
@@ -85,7 +94,65 @@ public sealed class LoteriaService : ILoteriaService
         loteria.Nombre = request.Nombre.Trim();
         loteria.Estado = request.Estado;
         await _db.SaveChangesAsync(cancellationToken);
-        return Result<LoteriaResponse>.Ok(Map(loteria, null, null), SuccessMessages.RegistroActualizado);
+        var dias = await CargarDiasAsync([loteriaId], cancellationToken);
+        return Result<LoteriaResponse>.Ok(Map(loteria, null, null, dias.GetValueOrDefault(loteriaId)), SuccessMessages.RegistroActualizado);
+    }
+
+    public async Task<Result<IReadOnlyList<LoteriaResponse>>> ActualizarDiasAsync(
+        ActualizarDiasLoteriasRequest request,
+        CancellationToken cancellationToken)
+    {
+        var cambios = request.Loterias ?? [];
+        var ids = cambios.Select(x => x.LoteriaId).Distinct().ToList();
+        var loterias = await _db.Loterias.Where(l => ids.Contains(l.LoteriaId)).ToListAsync(cancellationToken);
+        if (loterias.Count != ids.Count)
+        {
+            return Result<IReadOnlyList<LoteriaResponse>>.Fail(VentaMessages.LoteriaNoEncontrada, 404);
+        }
+
+        foreach (var cambio in cambios)
+        {
+            ReemplazarDias(cambio.LoteriaId, DiasVentaLoteria.Normalizar(cambio.DiasHabilitados));
+        }
+
+        await _db.SaveChangesAsync(cancellationToken);
+        return await ListarAsync(cancellationToken);
+    }
+
+    private async Task<Dictionary<Guid, IReadOnlyList<DiaSemana>>> CargarDiasAsync(
+        IReadOnlyList<Guid> loteriaIds,
+        CancellationToken cancellationToken)
+    {
+        if (loteriaIds.Count == 0)
+        {
+            return [];
+        }
+
+        var filas = await _db.LoteriasDiasSemana
+            .Where(d => loteriaIds.Contains(d.LoteriaId))
+            .ToListAsync(cancellationToken);
+        return filas
+            .GroupBy(d => d.LoteriaId)
+            .ToDictionary(g => g.Key, g => DiasVentaLoteria.Normalizar(g.Select(x => x.DiaSemana)));
+    }
+
+    private void ReemplazarDias(Guid loteriaId, IReadOnlyList<DiaSemana> dias)
+    {
+        var actuales = _db.LoteriasDiasSemana.Where(d => d.LoteriaId == loteriaId).ToList();
+        if (actuales.Count > 0)
+        {
+            _db.LoteriasDiasSemana.RemoveRange(actuales);
+        }
+
+        foreach (var dia in dias)
+        {
+            _db.LoteriasDiasSemana.Add(new LoteriaDiaSemana
+            {
+                LoteriaId = loteriaId,
+                DiaSemana = dia,
+                FechaActualizacion = _clock.UtcNow
+            });
+        }
     }
 
     private async Task<string?> ObtenerHoraCierreAsync(CancellationToken cancellationToken)
@@ -122,7 +189,11 @@ public sealed class LoteriaService : ILoteriaService
         return unicos.Count == 0 ? null : string.Join(", ", unicos);
     }
 
-    private static LoteriaResponse Map(Loteria loteria, string? horaCierre, ResumenLoteria? resumen) => new()
+    private static LoteriaResponse Map(
+        Loteria loteria,
+        string? horaCierre,
+        ResumenLoteria? resumen,
+        IReadOnlyList<DiaSemana>? dias) => new()
     {
         LoteriaId = loteria.LoteriaId,
         Nombre = loteria.Nombre,
@@ -131,7 +202,8 @@ public sealed class LoteriaService : ILoteriaService
         NumeroJugado = resumen?.NumeroJugado,
         BoletosVendidos = resumen?.BoletosVendidos ?? 0,
         TotalVendido = resumen?.TotalVendido ?? 0,
-        TipoApuesta = resumen?.TipoApuesta
+        TipoApuesta = resumen?.TipoApuesta,
+        DiasHabilitados = [.. DiasVentaLoteria.Normalizar(dias)]
     };
 
     private sealed record ResumenLoteria(int BoletosVendidos, decimal TotalVendido, string? TipoApuesta, string? NumeroJugado);

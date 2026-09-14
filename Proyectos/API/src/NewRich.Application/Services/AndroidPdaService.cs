@@ -11,6 +11,7 @@ using NewRich.Application.Contracts.Resultados;
 using NewRich.Application.Contracts.Ventas;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Enums;
+using NewRich.Domain.Services;
 using NewRich.Shared.Results;
 
 namespace NewRich.Application.Services;
@@ -126,8 +127,21 @@ public sealed class AndroidPdaService : IAndroidPdaService
     public Task<Result<ConfiguracionOperativaResponse>> ObtenerOperativaMobAsync(CancellationToken cancellationToken) =>
         _configuracion.ObtenerOperativaAsync(cancellationToken);
 
-    public Task<Result<IReadOnlyList<LoteriaResponse>>> LoteriasMobAsync(CancellationToken cancellationToken) =>
-        _loterias.ListarAsync(cancellationToken);
+    public async Task<Result<IReadOnlyList<LoteriaResponse>>> LoteriasMobAsync(CancellationToken cancellationToken)
+    {
+        var resultado = await _loterias.ListarAsync(cancellationToken);
+        if (!resultado.IsSuccess || resultado.Data is null)
+        {
+            return resultado;
+        }
+
+        // El vendedor solo vende loterias del dia en curso (Colombia), no de dias siguientes.
+        var hoy = DiasVentaLoteria.DiaDe(_clock.LocalNow);
+        IReadOnlyList<LoteriaResponse> delDia = resultado.Data
+            .Where(l => DiasVentaLoteria.SePuedeVender(l.Estado, l.DiasHabilitados, hoy))
+            .ToList();
+        return Result<IReadOnlyList<LoteriaResponse>>.Ok(delDia, resultado.Message);
+    }
 
     public Task<Result<VentaResponse>> ConfirmarVentaMobAsync(Guid vendedorId, Guid? dispositivoId, ConfirmarVentaRequest request, string? idempotencyKey, CancellationToken cancellationToken) =>
         _ventas.ConfirmarAsync(vendedorId, dispositivoId, request, idempotencyKey, cancellationToken);

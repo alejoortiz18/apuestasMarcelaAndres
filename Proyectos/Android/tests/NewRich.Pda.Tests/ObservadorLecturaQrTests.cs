@@ -2,6 +2,7 @@ using FluentAssertions;
 using NewRich.Application.Services;
 using NewRich.Pda.Core;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
@@ -39,6 +40,45 @@ public sealed class ObservadorLecturaQrTests
         var png = Lienzo(QrImagen.Png(contenido), 2400, 3200, 0);
 
         ObservadorLecturaQr.DesdeFoto(png).Should().Be(contenido);
+    }
+
+    [Fact]
+    public void Lee_el_qr_de_una_foto_de_galeria()
+    {
+        var contenido = "NR3.GALERIA01";
+        var png = Lienzo(Escalar(QrImagen.Png(contenido), 900), 1400, 1900, null);
+
+        ObservadorLecturaQr.DesdeFotoDeGaleria(png).Should().Be(contenido);
+    }
+
+    [Fact]
+    public void Lee_el_qr_de_una_foto_de_galeria_guardada_girada()
+    {
+        var contenido = "NR3.GIRADA123";
+        using var imagen = Image.Load<Rgba32>(QrImagen.Png(contenido));
+        imagen.Metadata.ExifProfile ??= new ExifProfile();
+        imagen.Metadata.ExifProfile.SetValue(ExifTag.Orientation, (ushort)6);
+        using var jpeg = new MemoryStream();
+        imagen.SaveAsJpeg(jpeg);
+
+        ObservadorLecturaQr.DesdeFotoDeGaleria(jpeg.ToArray()).Should().Be(contenido);
+    }
+
+    [Fact]
+    public void Lee_el_qr_cuando_queda_pequeno_en_la_foto_de_galeria()
+    {
+        var contenido = "NR3.PEQUENO77";
+        var png = Lienzo(Escalar(QrImagen.Png(contenido), 300), 1600, 1200, null);
+
+        ObservadorLecturaQr.DesdeFotoDeGaleria(png).Should().Be(contenido);
+    }
+
+    [Fact]
+    public void Devuelve_nulo_si_la_foto_de_galeria_no_tiene_qr()
+    {
+        ObservadorLecturaQr.DesdeFotoDeGaleria(null).Should().BeNull();
+        ObservadorLecturaQr.DesdeFotoDeGaleria([]).Should().BeNull();
+        ObservadorLecturaQr.DesdeFotoDeGaleria([9, 9, 9]).Should().BeNull();
     }
 
     [Fact]

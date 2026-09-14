@@ -29,6 +29,13 @@ public sealed class LoteriasController : ApiControllerBase
     }
 
     [Authorize(Roles = "Administrador")]
+    [HttpPut("dias")]
+    public async Task<IActionResult> ActualizarDias([FromBody] ActualizarDiasLoteriasRequest request, CancellationToken cancellationToken)
+    {
+        return From(await _loteriaService.ActualizarDiasAsync(request, cancellationToken));
+    }
+
+    [Authorize(Roles = "Administrador")]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Actualizar(Guid id, [FromBody] ActualizarLoteriaRequest request, CancellationToken cancellationToken)
     {

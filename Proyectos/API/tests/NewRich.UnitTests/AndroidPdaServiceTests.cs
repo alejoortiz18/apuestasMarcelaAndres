@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Moq;
 using NewRich.Application.Abstractions;
 using NewRich.Application.Contracts.Auth;
+using NewRich.Application.Contracts.Loterias;
 using NewRich.Application.Services;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
@@ -186,31 +187,74 @@ public sealed class AndroidPdaServiceTests
             .EstadoDelCodigo.Should().Be(EstadoCodigoOffline.Descargado);
     }
 
-    private static (AndroidPdaService Sut, NewRichDbContext Db, Mock<IAuthService> Auth) CreateSut()
+    [Fact]
+    public async Task LoteriasMob_solo_entrega_las_habilitadas_para_hoy()
+    {
+        var loterias = new Mock<ILoteriaService>();
+        loterias
+            .Setup(s => s.ListarAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<IReadOnlyList<LoteriaResponse>>.Ok(
+                [
+                    new LoteriaResponse
+                    {
+                        Nombre = "Cali",
+                        Estado = EstadoGeneral.Activo,
+                        DiasHabilitados = [DiaSemana.Domingo]
+                    },
+                    new LoteriaResponse
+                    {
+                        Nombre = "Pasto",
+                        Estado = EstadoGeneral.Activo,
+                        DiasHabilitados = [DiaSemana.Lunes]
+                    },
+                    new LoteriaResponse
+                    {
+                        Nombre = "Bogotá",
+                        Estado = EstadoGeneral.Activo,
+                        DiasHabilitados = [DiaSemana.Domingo, DiaSemana.Jueves]
+                    }
+                ],
+                SuccessMessages.OperacionExitosa));
+        var (sut, _, _) = CreateSut(loterias.Object, new RelojFijo(new DateTime(2026, 9, 13, 22, 40, 0)));
+
+        var resultado = await sut.LoteriasMobAsync(CancellationToken.None);
+
+        resultado.IsSuccess.Should().BeTrue();
+        resultado.Data!.Select(l => l.Nombre).Should().Equal("Cali", "Bogotá");
+    }
+
+    private static (AndroidPdaService Sut, NewRichDbContext Db, Mock<IAuthService> Auth) CreateSut(
+        ILoteriaService? loterias = null,
+        IClock? clock = null)
     {
         var options = new DbContextOptionsBuilder<NewRichDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         var db = new NewRichDbContext(options);
         var auth = new Mock<IAuthService>();
-        var clock = new RelojFijo();
         var sut = new AndroidPdaService(
             auth.Object,
             Mock.Of<IVentaService>(),
-            Mock.Of<ILoteriaService>(),
+            loterias ?? Mock.Of<ILoteriaService>(),
             Mock.Of<IResultadoService>(),
             Mock.Of<IPremioService>(),
             Mock.Of<IValidacionBoletoService>(),
             Mock.Of<IChatService>(),
             Mock.Of<IConfiguracionService>(),
             db,
-            clock);
+            clock ?? new RelojFijo());
         return (sut, db, auth);
     }
 
     private sealed class RelojFijo : IClock
     {
-        public DateTime UtcNow { get; } = new(2026, 9, 9, 16, 0, 0, DateTimeKind.Utc);
-        public DateTime LocalNow => UtcNow;
+        public RelojFijo(DateTime? localNow = null)
+        {
+            LocalNow = localNow ?? new DateTime(2026, 9, 9, 16, 0, 0, DateTimeKind.Utc);
+            UtcNow = LocalNow;
+        }
+
+        public DateTime UtcNow { get; }
+        public DateTime LocalNow { get; }
     }
 }

@@ -7,12 +7,13 @@ public sealed record TicketConsultaVista(string Mensaje, string Tono);
 
 public static class TicketConsultaPresentacion
 {
-    public static TicketConsultaVista De(string? resultadoVisual)
+    public static TicketConsultaVista De(string? resultadoVisual, bool faltanResultados = false)
     {
         return resultadoVisual switch
         {
-            BoletoMessages.BoletoGanador => new(PremioMessages.ConsultaGanador, TicketConsultaTono.Ganador),
+            BoletoMessages.BoletoGanador => new(string.Empty, TicketConsultaTono.Ganador),
             BoletoMessages.BoletoNoGanador => new(PremioMessages.ConsultaNoGanador, TicketConsultaTono.NoGanador),
+            BoletoMessages.BoletoJugado when faltanResultados => new(PremioMessages.ConsultaJugadoParcial, TicketConsultaTono.Pendiente),
             BoletoMessages.BoletoJugado => new(PremioMessages.ConsultaJugado, TicketConsultaTono.Pendiente),
             BoletoMessages.BoletoPorJugar => new(PremioMessages.ConsultaPorJugar, TicketConsultaTono.Pendiente),
             BoletoMessages.BoletoVencido => new(PremioMessages.ConsultaVencido, TicketConsultaTono.Vencido),

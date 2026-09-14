@@ -52,6 +52,7 @@ public interface ILoteriaService
     Task<Result<IReadOnlyList<LoteriaResponse>>> ListarAsync(CancellationToken cancellationToken);
     Task<Result<LoteriaResponse>> CrearAsync(CrearLoteriaRequest request, CancellationToken cancellationToken);
     Task<Result<LoteriaResponse>> ActualizarAsync(Guid loteriaId, ActualizarLoteriaRequest request, CancellationToken cancellationToken);
+    Task<Result<IReadOnlyList<LoteriaResponse>>> ActualizarDiasAsync(ActualizarDiasLoteriasRequest request, CancellationToken cancellationToken);
 }
 
 public interface IGrupoService
@@ -82,6 +83,9 @@ public interface IResultadoService
 {
     Task<Result<ResultadoResponse>> RegistrarAsync(RegistrarResultadoRequest request, CancellationToken cancellationToken);
     Task<Result<IReadOnlyList<ResultadoResponse>>> ListarAsync(DateOnly? fecha, Guid? loteriaId, CancellationToken cancellationToken);
+
+    /// <summary>Vuelve a resolver todos los boletos contra los números ganadores ya publicados.</summary>
+    Task<Result<int>> RecalcularAsync(CancellationToken cancellationToken);
 }
 
 public interface IValidacionBoletoService

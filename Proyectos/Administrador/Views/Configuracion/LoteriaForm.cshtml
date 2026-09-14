@@ -16,6 +16,10 @@
             <input asp-for="Nombre" />
             <span asp-validation-for="Nombre"></span>
         </div>
+        @if (!Model.LoteriaId.HasValue)
+        {
+            <partial name="_DiasJuegoCampos" model="Model" />
+        }
         @if (Model.LoteriaId.HasValue)
         {
             <div class="field">

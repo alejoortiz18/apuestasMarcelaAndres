@@ -4,7 +4,11 @@ namespace NewRich.Maui.Services;
 
 public sealed class LectorQrFotoObservadorServicio : ILectorQrFotoObservador
 {
-    public Task<string?> LeerAsync(byte[] imagen) =>
+    public Task<string?> LeerAsync(byte[] imagen) => DecodificarAsync(imagen, deGaleria: false);
+
+    public Task<string?> LeerFotoSubidaAsync(byte[] imagen) => DecodificarAsync(imagen, deGaleria: true);
+
+    private static Task<string?> DecodificarAsync(byte[] imagen, bool deGaleria) =>
         Task.Run<string?>(async () =>
         {
             if (imagen is null || imagen.Length == 0)
@@ -13,21 +17,35 @@ public sealed class LectorQrFotoObservadorServicio : ILectorQrFotoObservador
             }
 
 #if ANDROID
-            var ml = await Platforms.Android.ObservadorLectorQrMlKit.DesdeJpegAsync(imagen).ConfigureAwait(false);
+            var origen = imagen;
+            if (deGaleria)
+            {
+                origen = ObservadorFotoGaleria.BytesParaLeer(
+                    imagen,
+                    Platforms.Android.ObservadorFotoGaleriaComoCaptura.AJpeg(imagen));
+            }
+
+            var ml = await Platforms.Android.ObservadorLectorQrMlKit.DesdeJpegAsync(origen).ConfigureAwait(false);
             if (!string.IsNullOrWhiteSpace(ml))
             {
-                Registrar("foto leída con ml kit");
+                Registrar(deGaleria ? "galería leída con ml kit" : "foto leída con ml kit");
                 return ml;
             }
 
-            var interno = ObservadorLecturaQr.DesdeFoto(imagen);
+            var interno = deGaleria
+                ? ObservadorLecturaQr.DesdeFotoDeGaleria(origen)
+                : ObservadorLecturaQr.DesdeFoto(origen);
             Registrar(string.IsNullOrWhiteSpace(interno)
                 ? "ninguna vía pudo leer el qr de la foto"
-                : "foto leída con el lector interno");
+                : deGaleria
+                    ? "galería leída con el lector interno"
+                    : "foto leída con el lector interno");
             return interno;
 #else
             await Task.CompletedTask;
-            return ObservadorLecturaQr.DesdeFoto(imagen);
+            return deGaleria
+                ? ObservadorLecturaQr.DesdeFotoDeGaleria(imagen)
+                : ObservadorLecturaQr.DesdeFoto(imagen);
 #endif
         });
 

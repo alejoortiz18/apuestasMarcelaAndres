@@ -1,6 +1,7 @@
 @using NewRich.Admin.Constants
 @using NewRich.Admin.Services
 @using NewRich.Domain.Enums
+@using NewRich.Domain.Services
 @model NewRich.Admin.Models.ConfiguracionIndexViewModel
 <div class="heading">
     <div>
@@ -81,6 +82,67 @@
     <div class="config-save">
         <button class="primary" type="submit">@UiTexts.GuardarConfiguracion</button>
     </div>
+</form>
+<form asp-action="GuardarDias" method="post" class="dias-venta" id="dias-venta">
+    @Html.AntiForgeryToken()
+    <section class="kpi-section kpi-section-wide dias-venta-panel" data-resumen="@UiTexts.LoteriasHabilitadasDelDia">
+        <h2>@UiTexts.ConfigDiasVenta</h2>
+        <p>@UiTexts.ConfigDiasVentaSub</p>
+        @if (Model.DiasVenta.Count == 0)
+        {
+            <div class="empty">@UiTexts.VacioDiasVenta</div>
+        }
+        else
+        {
+            <div class="dias-venta-semana" role="tablist" aria-label="@UiTexts.DiaDeLaSemana">
+                @foreach (var dia in DiasVentaLoteria.Semana)
+                {
+                    var activo = dia == DiaSemana.Lunes;
+                    <button type="button"
+                            class="dias-venta-tab@(activo ? " is-active" : null)"
+                            role="tab"
+                            id="dia-tab-@((byte)dia)"
+                            aria-selected="@(activo ? "true" : "false")"
+                            aria-controls="dia-panel"
+                            data-dia="@((byte)dia)">
+                        @DiasVentaLoteria.Nombre(dia)
+                    </button>
+                }
+            </div>
+            <div class="dias-venta-toolbar">
+                <div class="field">
+                    <label for="buscar-dia-loteria">@UiTexts.BuscarLoteriaDia</label>
+                    <input id="buscar-dia-loteria" type="search" autocomplete="off" placeholder="@UiTexts.PlaceholderLoteria" />
+                </div>
+                <p class="dias-venta-resumen" id="dias-venta-resumen" aria-live="polite"></p>
+            </div>
+            <div class="dias-venta-lista" id="dia-panel" role="tabpanel" aria-labelledby="dia-tab-1" data-dia-activo="1">
+                @for (var i = 0; i < Model.DiasVenta.Count; i++)
+                {
+                    var item = Model.DiasVenta[i];
+                    <input type="hidden" name="DiasVenta[@i].LoteriaId" value="@item.LoteriaId" />
+                    @foreach (var dia in DiasVentaLoteria.Semana)
+                    {
+                        var marcado = item.DiasHabilitados.Contains(dia);
+                        <label class="dias-venta-fila" data-dia="@((byte)dia)" data-nombre="@item.Nombre">
+                            <input type="checkbox"
+                                   name="DiasVenta[@i].DiasHabilitados"
+                                   value="@((byte)dia)"
+                                   @(marcado ? "checked" : null)
+                                   aria-label="@item.Nombre @DiasVentaLoteria.Nombre(dia)" />
+                            <span>
+                                <strong>@item.Nombre</strong>
+                                <span class="pill @(item.Estado == EstadoGeneral.Activo ? "ok" : "info")">@item.Estado</span>
+                            </span>
+                        </label>
+                    }
+                }
+            </div>
+            <div class="config-save">
+                <button class="primary" type="submit">@UiTexts.GuardarDiasVenta</button>
+            </div>
+        }
+    </section>
 </form>
 <div class="panel">
     <div class="panel-head">

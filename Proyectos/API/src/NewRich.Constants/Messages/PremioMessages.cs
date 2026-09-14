@@ -12,9 +12,10 @@ public static class PremioMessages
     public const string TicketRequerido = "Indica el código del ticket.";
     public const string TicketDemasiadoLargo = "El código del ticket es demasiado largo.";
     public const string TicketNoEsDelVendedor = "El ticket no pertenece al vendedor autenticado.";
-    public const string ConsultaGanador = "Este ticket es ganador.";
     public const string ConsultaNoGanador = "Este ticket no ganó.";
     public const string ConsultaJugado = "El ticket está jugado. Todavía no hay resultados publicados.";
+    public const string ConsultaJugadoParcial = "El ticket está jugado. Faltan loterías por publicar.";
+    public const string ResultadosIncompletos = "Señor usuario, el administrador no ha publicado todos los números. Contáctelo para más información.";
     public const string ConsultaPorJugar = "El ticket está por jugar.";
     public const string ConsultaVencido = "Este ticket está vencido.";
     public const string ConsultaPagado = "El premio de este ticket ya fue pagado.";

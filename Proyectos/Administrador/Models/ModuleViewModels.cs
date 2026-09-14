@@ -121,6 +121,9 @@ public sealed class LoteriaFormViewModel
 
     [Display(Name = UiTexts.Estado)]
     public EstadoGeneral Estado { get; set; } = EstadoGeneral.Activo;
+
+    [Display(Name = UiTexts.DiasDeJuego)]
+    public List<DiaSemana> DiasHabilitados { get; set; } = [];
 }
 
 public sealed class GruposIndexViewModel
@@ -239,6 +242,15 @@ public sealed class ConfiguracionIndexViewModel
     public ConfiguracionOperativaFormViewModel Form { get; set; } = new();
     public string? Busqueda { get; init; }
     public PagedViewModel<LoteriaResponse> Pagina { get; init; } = new();
+    public List<DiasLoteriaFormItem> DiasVenta { get; set; } = [];
+}
+
+public sealed class DiasLoteriaFormItem
+{
+    public Guid LoteriaId { get; set; }
+    public string Nombre { get; set; } = string.Empty;
+    public EstadoGeneral Estado { get; set; }
+    public List<DiaSemana> DiasHabilitados { get; set; } = [];
 }
 
 public sealed class ConfiguracionOperativaFormViewModel

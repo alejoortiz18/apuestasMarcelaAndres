@@ -1,0 +1,19 @@
+@using NewRich.Admin.Constants
+@using NewRich.Domain.Enums
+@using NewRich.Domain.Services
+@model NewRich.Admin.Models.LoteriaFormViewModel
+<fieldset class="dias-juego">
+    <legend>@UiTexts.DiasDeJuego</legend>
+    <p class="field-help">@UiTexts.DiasDeJuegoAyuda</p>
+    <span asp-validation-for="DiasHabilitados"></span>
+    <div class="dias-juego-opciones" role="group" aria-label="@UiTexts.DiasDeJuego">
+        @foreach (var dia in DiasVentaLoteria.Semana)
+        {
+            var marcado = Model.DiasHabilitados.Contains(dia);
+            <label class="dias-juego-opcion">
+                <input type="checkbox" name="DiasHabilitados" value="@((byte)dia)" @(marcado ? "checked" : null) />
+                <span>@DiasVentaLoteria.Nombre(dia)</span>
+            </label>
+        }
+    </div>
+</fieldset>

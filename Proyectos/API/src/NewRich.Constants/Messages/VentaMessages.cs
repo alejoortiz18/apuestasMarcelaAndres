@@ -11,6 +11,7 @@ public static class VentaMessages
     public const string VentaFueraDeHorario = "No es posible registrar ventas fuera del horario de operación.";
     public const string CodigoPublicoNoGenerado = "No fue posible generar un código público único. Intente nuevamente.";
     public const string LoteriaInactiva = "Una de las loterías seleccionadas se encuentra inactiva.";
+    public const string LoteriaNoHabilitadaHoy = "Una de las loterías seleccionadas no está habilitada para vender hoy.";
     public const string LoteriaNoEncontrada = "La lotería seleccionada no existe.";
     public const string LoteriaNombreDuplicado = "Ya existe una lotería con ese nombre.";
     public const string CombinadoUnaSolaLinea = "Una apuesta COMBINADO admite una sola línea de juego.";

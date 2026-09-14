@@ -2,6 +2,7 @@ using FluentAssertions;
 using NewRich.Application.Contracts.Boletos;
 using NewRich.Application.Contracts.Ventas;
 using NewRich.Constants;
+using NewRich.Constants.Messages;
 using NewRich.Pda.Core;
 
 namespace NewRich.Pda.Tests;
@@ -13,8 +14,8 @@ public sealed class TicketConsultaVistaTests
     {
         var consulta = new ConsultaTicketResponse
         {
-            ResultadoVisual = "GANADOR",
-            Mensaje = "Este ticket es ganador.",
+            ResultadoVisual = BoletoMessages.BoletoGanador,
+            Mensaje = string.Empty,
             Tono = TicketConsultaTono.Ganador,
             PuedeIniciarCaso = true,
             Tirilla = new TirillaResponse
@@ -57,5 +58,34 @@ public sealed class TicketConsultaVistaTests
         };
 
         TicketConsultaVista.De(consulta).Codigo.Should().Be("OFF-000018");
+    }
+
+    [Fact]
+    public void El_recibo_pinta_ganador_en_verde_no_ganador_en_rojo_y_sin_publicar()
+    {
+        var consulta = new ConsultaTicketResponse
+        {
+            ResultadoVisual = BoletoMessages.BoletoJugado,
+            Mensaje = PremioMessages.ConsultaJugadoParcial,
+            Tono = TicketConsultaTono.Pendiente,
+            AvisoResultados = PremioMessages.ResultadosIncompletos,
+            Resultados =
+            [
+                new ResultadoLoteriaResponse { Loteria = "Armenia", Numero = "5432", NumeroGanador = "5432", Gano = true },
+                new ResultadoLoteriaResponse { Loteria = "Cali", Numero = "5432", NumeroGanador = "1111", Gano = false },
+                new ResultadoLoteriaResponse { Loteria = "Bogotá", Numero = "5432", NumeroGanador = null, Gano = false }
+            ],
+            Tirilla = new TirillaResponse { CodigoImpreso = "AOL-1", Total = 4000 }
+        };
+
+        var vista = TicketConsultaVista.De(consulta);
+
+        vista.AvisoResultados.Should().Be(PremioMessages.ResultadosIncompletos);
+        vista.Resultados.Should().BeEquivalentTo(new[]
+        {
+            new TicketResultadoVista("Armenia", "5432", "5432", PdaTexts.VeredictoGano, TicketConsultaTono.Ganador),
+            new TicketResultadoVista("Cali", "5432", "1111", PdaTexts.VeredictoNoGano, TicketConsultaTono.NoGanador),
+            new TicketResultadoVista("Bogotá", "5432", "—", PdaTexts.SinPublicar, TicketConsultaTono.Pendiente)
+        });
     }
 }

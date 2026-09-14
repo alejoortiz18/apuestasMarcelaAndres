@@ -111,7 +111,11 @@ public sealed class LoteriasController : AdminControllerBase
             return View("Form", model);
         }
 
-        var result = await _api.CrearLoteriaAsync(new CrearLoteriaRequest { Nombre = model.Nombre.Trim() }, cancellationToken);
+        var result = await _api.CrearLoteriaAsync(new CrearLoteriaRequest
+        {
+            Nombre = model.Nombre.Trim(),
+            DiasHabilitados = model.DiasHabilitados
+        }, cancellationToken);
         var unauthorized = RedirectIfUnauthorized(result);
         if (unauthorized is not null)
         {

@@ -29,6 +29,17 @@ public sealed class ValidacionBoletoResponse
     public string? Estado { get; set; }
     public string? Vigencia { get; set; }
     public IReadOnlyList<Contracts.Ventas.JuegoResponse> Juegos { get; set; } = [];
+    public IReadOnlyList<ResultadoLoteriaResponse> Resultados { get; set; } = [];
+    public string? AvisoResultados { get; set; }
+}
+
+/// <summary>Número jugado frente al número ganador de una lotería. NumeroGanador nulo: sin publicar.</summary>
+public sealed class ResultadoLoteriaResponse
+{
+    public string Loteria { get; set; } = string.Empty;
+    public string Numero { get; set; } = string.Empty;
+    public string? NumeroGanador { get; set; }
+    public bool Gano { get; set; }
 }
 
 public sealed class BoletoListaResponse
@@ -67,4 +78,6 @@ public sealed class ConsultaTicketResponse
     public Guid? BoletoId { get; set; }
     public bool PuedeIniciarCaso { get; set; }
     public TirillaResponse? Tirilla { get; set; }
+    public IReadOnlyList<ResultadoLoteriaResponse> Resultados { get; set; } = [];
+    public string? AvisoResultados { get; set; }
 }

@@ -1434,6 +1434,125 @@ a[data-offline-associate][hidden] { display: none; }
 .field-help { display: block; color: var(--muted); font-size: 11px; margin-top: 6px; }
 .config-form textarea { min-height: 140px; resize: vertical; line-height: 1.45; }
 
+.dias-venta { margin: 0 0 22px; }
+.dias-venta-panel { display: grid; gap: 14px; }
+.dias-venta-semana {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.dias-venta-tab {
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 8px 14px;
+  min-height: 40px;
+  font: inherit;
+  cursor: pointer;
+}
+.dias-venta-tab:hover,
+.dias-venta-tab:focus-visible {
+  border-color: var(--gold);
+  outline: 2px solid #f0d078;
+  outline-offset: 2px;
+}
+.dias-venta-tab.is-active {
+  background: #102820;
+  color: #f4efe4;
+  border-color: #102820;
+}
+.dias-venta-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+.dias-venta-toolbar .field { margin: 0; }
+.dias-venta-resumen {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  padding-bottom: 8px;
+}
+.dias-venta-lista {
+  display: grid;
+  gap: 8px;
+  max-height: 420px;
+  overflow: auto;
+  padding-right: 4px;
+}
+.dias-venta-fila {
+  display: none;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper);
+  cursor: pointer;
+}
+.dias-venta-lista[data-dia-activo="1"] .dias-venta-fila[data-dia="1"],
+.dias-venta-lista[data-dia-activo="2"] .dias-venta-fila[data-dia="2"],
+.dias-venta-lista[data-dia-activo="3"] .dias-venta-fila[data-dia="3"],
+.dias-venta-lista[data-dia-activo="4"] .dias-venta-fila[data-dia="4"],
+.dias-venta-lista[data-dia-activo="5"] .dias-venta-fila[data-dia="5"],
+.dias-venta-lista[data-dia-activo="6"] .dias-venta-fila[data-dia="6"],
+.dias-venta-lista[data-dia-activo="7"] .dias-venta-fila[data-dia="7"] {
+  display: flex;
+}
+.dias-venta-fila.is-filtered { display: none !important; }
+.dias-venta-fila span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+.dias-venta-fila input {
+  width: 18px;
+  height: 18px;
+  accent-color: #102820;
+}
+.dias-juego {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin: 0 0 18px;
+}
+.dias-juego legend {
+  font-weight: 600;
+  padding: 0 6px;
+}
+.dias-juego-opciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.dias-juego-opcion {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper);
+  cursor: pointer;
+}
+.dias-juego-opcion:has(input:checked) {
+  border-color: #c9a44a;
+  background: #f8f1dc;
+}
+.dias-juego-opcion input {
+  width: 18px;
+  height: 18px;
+  accent-color: #102820;
+}
+
 @media (max-width: 1050px) {
   .app { grid-template-columns: 74px 1fr; }
   .side { padding: 20px 10px; }
@@ -1453,6 +1572,7 @@ a[data-offline-associate][hidden] { display: none; }
   .kpi-section-wide { grid-column: auto; }
   .chat-shell { grid-template-columns: 240px minmax(0, 1fr); height: calc(100vh - 230px); }
   .config-grid { grid-template-columns: 1fr; }
+  .dias-venta-toolbar { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 650px) {

@@ -17,6 +17,11 @@ namespace NewRich.UnitTests;
 
 public sealed class ValidacionBoletoServiceTests
 {
+    private static readonly TimeSpan Colombia = TimeSpan.FromHours(-5);
+
+    /// <summary>13/09/2026 20:10 en Colombia, que en UTC ya es el día siguiente.</summary>
+    private static readonly DateTime VentaNocturna = new(2026, 9, 14, 1, 10, 7, DateTimeKind.Utc);
+
     [Fact]
     public async Task ObtenerTirilla_incluye_el_payload_cifrado_del_qr()
     {
@@ -194,9 +199,114 @@ public sealed class ValidacionBoletoServiceTests
         result.IsSuccess.Should().BeTrue();
         result.Data!.ResultadoVisual.Should().Be(BoletoMessages.BoletoGanador);
         result.Data.Tono.Should().Be(TicketConsultaTono.Ganador);
-        result.Data.Mensaje.Should().Be(PremioMessages.ConsultaGanador);
+        result.Data.Mensaje.Should().BeEmpty();
         result.Data.Tirilla.Should().NotBeNull();
         result.Data.PuedeIniciarCaso.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ConsultarPorCodigo_de_una_venta_nocturna_usa_la_fecha_local_del_sorteo()
+    {
+        var (sut, db) = CreateSut(desfaseLocal: Colombia, ahoraUtc: new DateTime(2026, 9, 14, 2, 0, 0, DateTimeKind.Utc));
+        var boleto = await CrearBoletoConJuegoAsync(db, EstadoBoleto.Jugado, "7854", VentaNocturna, "Armenia");
+        PublicarResultado(db, boleto, "Armenia", new DateOnly(2026, 9, 13), "5432");
+        await db.SaveChangesAsync();
+
+        var result = await sut.ConsultarPorCodigoAsync(boleto.CodigoPublico, CancellationToken.None);
+
+        result.Data!.ResultadoVisual.Should().Be(BoletoMessages.BoletoNoGanador);
+        result.Data.Mensaje.Should().Be(PremioMessages.ConsultaNoGanador);
+        result.Data.Tono.Should().Be(TicketConsultaTono.NoGanador);
+    }
+
+    [Fact]
+    public async Task ConsultarPorCodigo_de_una_venta_nocturna_ganadora_muestra_ganador()
+    {
+        var (sut, db) = CreateSut(desfaseLocal: Colombia, ahoraUtc: new DateTime(2026, 9, 14, 2, 0, 0, DateTimeKind.Utc));
+        var boleto = await CrearBoletoConJuegoAsync(db, EstadoBoleto.Jugado, "5432", VentaNocturna, "Armenia");
+        PublicarResultado(db, boleto, "Armenia", new DateOnly(2026, 9, 13), "5432");
+        await db.SaveChangesAsync();
+
+        var result = await sut.ConsultarPorCodigoAsync(boleto.CodigoPublico, CancellationToken.None);
+
+        result.Data!.ResultadoVisual.Should().Be(BoletoMessages.BoletoGanador);
+        result.Data.Mensaje.Should().BeEmpty();
+        result.Data.Tono.Should().Be(TicketConsultaTono.Ganador);
+    }
+
+    [Fact]
+    public async Task ConsultarPorCodigo_encuentra_el_resultado_aunque_la_fecha_guardada_tenga_hora()
+    {
+        var (sut, db) = CreateSut(desfaseLocal: Colombia, ahoraUtc: new DateTime(2026, 9, 14, 2, 0, 0, DateTimeKind.Utc));
+        var boleto = await CrearBoletoConJuegoAsync(db, EstadoBoleto.Jugado, "7854", VentaNocturna, "Armenia");
+        var loteriaId = boleto.Juegos.Single().JuegoLoterias.Single().LoteriaId;
+        db.NumerosGanadores.Add(new NumeroGanador
+        {
+            NumeroGanadorId = Guid.NewGuid(),
+            LoteriaId = loteriaId,
+            FechaJuego = new DateTime(2026, 9, 13, 5, 0, 0),
+            Numero = "5432",
+            FechaRegistro = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+
+        var result = await sut.ConsultarPorCodigoAsync(boleto.CodigoPublico, CancellationToken.None);
+
+        result.Data!.ResultadoVisual.Should().Be(BoletoMessages.BoletoNoGanador);
+        result.Data.Mensaje.Should().Be(PremioMessages.ConsultaNoGanador);
+        result.Data.Tono.Should().Be(TicketConsultaTono.NoGanador);
+        result.Data.Resultados.Should().ContainSingle(r => r.Loteria == "Armenia" && r.Gano == false && r.NumeroGanador == "5432");
+    }
+
+    [Fact]
+    public async Task ConsultarPorCodigo_con_ticket_ganador_lista_el_resultado_en_verde()
+    {
+        var (sut, db) = CreateSut(desfaseLocal: Colombia, ahoraUtc: new DateTime(2026, 9, 14, 2, 0, 0, DateTimeKind.Utc));
+        var boleto = await CrearBoletoConJuegoAsync(db, EstadoBoleto.Jugado, "5432", VentaNocturna, "Armenia");
+        PublicarResultado(db, boleto, "Armenia", new DateOnly(2026, 9, 13), "5432");
+        await db.SaveChangesAsync();
+
+        var result = await sut.ConsultarPorCodigoAsync(boleto.CodigoPublico, CancellationToken.None);
+
+        result.Data!.ResultadoVisual.Should().Be(BoletoMessages.BoletoGanador);
+        result.Data.Mensaje.Should().BeEmpty();
+        result.Data.Tono.Should().Be(TicketConsultaTono.Ganador);
+        result.Data.Resultados.Should().ContainSingle(r => r.Loteria == "Armenia" && r.Gano && r.NumeroGanador == "5432");
+    }
+
+    [Fact]
+    public async Task ConsultarPorCodigo_con_loterias_sin_publicar_lista_cada_loteria_y_avisa_al_vendedor()
+    {
+        var (sut, db) = CreateSut(desfaseLocal: Colombia, ahoraUtc: new DateTime(2026, 9, 14, 2, 0, 0, DateTimeKind.Utc));
+        var boleto = await CrearBoletoConJuegoAsync(db, EstadoBoleto.Jugado, "9845", VentaNocturna, "Medellín", "Cali", "Bogotá");
+        PublicarResultado(db, boleto, "Medellín", new DateOnly(2026, 9, 13), "1234");
+        await db.SaveChangesAsync();
+
+        var result = await sut.ConsultarPorCodigoAsync(boleto.CodigoPublico, CancellationToken.None);
+
+        result.Data!.ResultadoVisual.Should().Be(BoletoMessages.BoletoJugado);
+        result.Data.Mensaje.Should().Be(PremioMessages.ConsultaJugadoParcial);
+        result.Data.AvisoResultados.Should().Be(PremioMessages.ResultadosIncompletos);
+        result.Data.Resultados.Should().BeEquivalentTo(new[]
+        {
+            new ResultadoLoteriaResponse { Loteria = "Medellín", Numero = "9845", NumeroGanador = "1234", Gano = false },
+            new ResultadoLoteriaResponse { Loteria = "Cali", Numero = "9845", NumeroGanador = null, Gano = false },
+            new ResultadoLoteriaResponse { Loteria = "Bogotá", Numero = "9845", NumeroGanador = null, Gano = false }
+        });
+    }
+
+    [Fact]
+    public async Task ConsultarPorCodigo_sin_ningun_resultado_publicado_no_muestra_la_tabla()
+    {
+        var (sut, db) = CreateSut(desfaseLocal: Colombia, ahoraUtc: new DateTime(2026, 9, 14, 2, 0, 0, DateTimeKind.Utc));
+        var boleto = await CrearBoletoConJuegoAsync(db, EstadoBoleto.Jugado, "9845", VentaNocturna, "Medellín", "Cali");
+
+        var result = await sut.ConsultarPorCodigoAsync(boleto.CodigoPublico, CancellationToken.None);
+
+        result.Data!.ResultadoVisual.Should().Be(BoletoMessages.BoletoJugado);
+        result.Data.Mensaje.Should().Be(PremioMessages.ConsultaJugado);
+        result.Data.AvisoResultados.Should().BeNull();
+        result.Data.Resultados.Should().BeEmpty();
     }
 
     [Fact]
@@ -249,7 +359,12 @@ public sealed class ValidacionBoletoServiceTests
         return boleto.BoletoId;
     }
 
-    private static async Task<Boleto> CrearBoletoConJuegoAsync(NewRichDbContext db, EstadoBoleto estado, string numero)
+    private static async Task<Boleto> CrearBoletoConJuegoAsync(
+        NewRichDbContext db,
+        EstadoBoleto estado,
+        string numero,
+        DateTime? fechaVenta = null,
+        params string[] nombresLoteria)
     {
         var usuario = new Usuario
         {
@@ -261,18 +376,20 @@ public sealed class ValidacionBoletoServiceTests
             Rol = RolUsuario.Vendedor,
             FechaCreacion = DateTime.UtcNow
         };
-        var loteria = new Loteria
-        {
-            LoteriaId = Guid.NewGuid(),
-            Nombre = "Cundinamarca",
-            Estado = EstadoGeneral.Activo,
-            FechaCreacion = DateTime.UtcNow
-        };
+        var loterias = (nombresLoteria.Length == 0 ? ["Cundinamarca"] : nombresLoteria)
+            .Select(nombre => new Loteria
+            {
+                LoteriaId = Guid.NewGuid(),
+                Nombre = nombre,
+                Estado = EstadoGeneral.Activo,
+                FechaCreacion = DateTime.UtcNow
+            })
+            .ToList();
         var venta = new Venta
         {
             VentaId = Guid.NewGuid(),
             UsuarioId = usuario.UsuarioId,
-            FechaVenta = new DateTime(2026, 9, 10, 14, 0, 0, DateTimeKind.Utc),
+            FechaVenta = fechaVenta ?? new DateTime(2026, 9, 10, 14, 0, 0, DateTimeKind.Utc),
             Total = 4000,
             TipoApuesta = TipoApuesta.COMBINADO
         };
@@ -295,14 +412,34 @@ public sealed class ValidacionBoletoServiceTests
             Valor = 2000,
             TipoJuego = TipoJuego.COMBINADA
         };
-        juego.JuegoLoterias.Add(new JuegoLoteria { JuegoId = juego.JuegoId, LoteriaId = loteria.LoteriaId, Loteria = loteria });
+        foreach (var loteria in loterias)
+        {
+            juego.JuegoLoterias.Add(new JuegoLoteria { JuegoId = juego.JuegoId, LoteriaId = loteria.LoteriaId, Loteria = loteria });
+        }
+
         boleto.Juegos.Add(juego);
         db.Usuarios.Add(usuario);
-        db.Loterias.Add(loteria);
+        db.Loterias.AddRange(loterias);
         db.Ventas.Add(venta);
         db.Boletos.Add(boleto);
         await db.SaveChangesAsync();
         return boleto;
+    }
+
+    private static void PublicarResultado(NewRichDbContext db, Boleto boleto, string loteria, DateOnly fechaJuego, string numero)
+    {
+        var loteriaId = boleto.Juegos
+            .SelectMany(j => j.JuegoLoterias)
+            .First(l => l.Loteria!.Nombre == loteria)
+            .LoteriaId;
+        db.NumerosGanadores.Add(new NumeroGanador
+        {
+            NumeroGanadorId = Guid.NewGuid(),
+            LoteriaId = loteriaId,
+            FechaJuego = fechaJuego.ToDateTime(TimeOnly.MinValue),
+            Numero = numero,
+            FechaRegistro = DateTime.UtcNow
+        });
     }
 
     [Fact]
@@ -405,13 +542,17 @@ public sealed class ValidacionBoletoServiceTests
         result.Data.ResultadoVisual.Should().Be(BoletoMessages.BoletoJugado);
     }
 
-    private static (ValidacionBoletoService Sut, NewRichDbContext Db) CreateSut(IQrCryptoService? qr = null)
+    private static (ValidacionBoletoService Sut, NewRichDbContext Db) CreateSut(
+        IQrCryptoService? qr = null,
+        TimeSpan? desfaseLocal = null,
+        DateTime? ahoraUtc = null)
     {
         var options = new DbContextOptionsBuilder<NewRichDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         var db = new NewRichDbContext(options);
-        return (new ValidacionBoletoService(db, qr ?? new FakeQr(), new FixedClock(DateTime.UtcNow)), db);
+        var clock = new FixedClock(ahoraUtc ?? DateTime.UtcNow, desfaseLocal ?? TimeSpan.Zero);
+        return (new ValidacionBoletoService(db, qr ?? new FakeQr(), clock), db);
     }
 
     private static AesGcmQrCryptoService CrearCryptoReal()
@@ -422,10 +563,10 @@ public sealed class ValidacionBoletoServiceTests
         return new AesGcmQrCryptoService(config.Object);
     }
 
-    private sealed class FixedClock(DateTime now) : IClock
+    private sealed class FixedClock(DateTime now, TimeSpan desfaseLocal) : IClock
     {
         public DateTime UtcNow => now;
-        public DateTime LocalNow => now;
+        public DateTime LocalNow => now.Add(desfaseLocal);
     }
 
     private sealed class FakeQr : IQrCryptoService

@@ -787,3 +787,91 @@ function iniciarNotificacionesEnVivo() {
       window.setTimeout(iniciarNotificacionesEnVivo, 8000);
     });
 }
+
+function iniciarDiasVenta() {
+  const root = document.getElementById("dias-venta");
+  if (!root) {
+    return;
+  }
+
+  const lista = root.querySelector(".dias-venta-lista");
+  const resumen = document.getElementById("dias-venta-resumen");
+  const buscador = document.getElementById("buscar-dia-loteria");
+  const panel = root.querySelector(".dias-venta-panel");
+  const sufijo = (panel && panel.getAttribute("data-resumen")) || "";
+  const tabs = Array.from(root.querySelectorAll(".dias-venta-tab"));
+
+  function filasDelDia(dia) {
+    return Array.from(root.querySelectorAll('.dias-venta-fila[data-dia="' + dia + '"]'));
+  }
+
+  function actualizarResumen() {
+    if (!lista || !resumen) {
+      return;
+    }
+    const dia = lista.getAttribute("data-dia-activo") || "1";
+    const visibles = filasDelDia(dia).filter(function (fila) {
+      return !fila.classList.contains("is-filtered");
+    });
+    const marcadas = visibles.filter(function (fila) {
+      const caja = fila.querySelector('input[type="checkbox"]');
+      return caja && caja.checked;
+    }).length;
+    resumen.textContent = marcadas + " de " + visibles.length + " " + sufijo;
+  }
+
+  function mostrarDia(dia) {
+    if (!lista) {
+      return;
+    }
+    lista.setAttribute("data-dia-activo", dia);
+    lista.setAttribute("aria-labelledby", "dia-tab-" + dia);
+    tabs.forEach(function (tab) {
+      const activo = tab.getAttribute("data-dia") === dia;
+      tab.classList.toggle("is-active", activo);
+      tab.setAttribute("aria-selected", activo ? "true" : "false");
+    });
+    actualizarResumen();
+  }
+
+  tabs.forEach(function (tab) {
+    tab.addEventListener("click", function () {
+      mostrarDia(tab.getAttribute("data-dia") || "1");
+    });
+    tab.addEventListener("keydown", function (event) {
+      const indice = tabs.indexOf(tab);
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        tabs[(indice + 1) % tabs.length].focus();
+        tabs[(indice + 1) % tabs.length].click();
+      }
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        tabs[(indice - 1 + tabs.length) % tabs.length].focus();
+        tabs[(indice - 1 + tabs.length) % tabs.length].click();
+      }
+    });
+  });
+
+  root.addEventListener("change", function (event) {
+    if (event.target && event.target.matches('.dias-venta-fila input[type="checkbox"]')) {
+      actualizarResumen();
+    }
+  });
+
+  if (buscador) {
+    buscador.addEventListener("input", function () {
+      const q = buscador.value.toLowerCase().trim();
+      root.querySelectorAll(".dias-venta-fila").forEach(function (fila) {
+        const nombre = (fila.getAttribute("data-nombre") || "").toLowerCase();
+        fila.classList.toggle("is-filtered", q.length > 0 && nombre.indexOf(q) === -1);
+      });
+      actualizarResumen();
+    });
+  }
+
+  mostrarDia("1");
+}
+
+iniciarDiasVenta();
+

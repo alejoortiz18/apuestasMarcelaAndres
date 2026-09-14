@@ -8,7 +8,7 @@ namespace NewRich.UnitTests;
 public sealed class TicketConsultaPresentacionTests
 {
     [Theory]
-    [InlineData(BoletoMessages.BoletoGanador, TicketConsultaTono.Ganador, PremioMessages.ConsultaGanador)]
+    [InlineData(BoletoMessages.BoletoGanador, TicketConsultaTono.Ganador, "")]
     [InlineData(BoletoMessages.BoletoNoGanador, TicketConsultaTono.NoGanador, PremioMessages.ConsultaNoGanador)]
     [InlineData(BoletoMessages.BoletoJugado, TicketConsultaTono.Pendiente, PremioMessages.ConsultaJugado)]
     [InlineData(BoletoMessages.BoletoPorJugar, TicketConsultaTono.Pendiente, PremioMessages.ConsultaPorJugar)]

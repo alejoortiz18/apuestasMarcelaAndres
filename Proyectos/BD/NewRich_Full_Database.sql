@@ -222,6 +222,20 @@ BEGIN
 END
 GO
 
+IF OBJECT_ID(N'dbo.LoteriasDiasSemana', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.LoteriasDiasSemana (
+        LoteriaId           UNIQUEIDENTIFIER NOT NULL,
+        DiaSemana           TINYINT          NOT NULL,
+        FechaActualizacion  DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT PK_LoteriasDiasSemana PRIMARY KEY (LoteriaId, DiaSemana),
+        CONSTRAINT FK_LoteriasDiasSemana_Loterias FOREIGN KEY (LoteriaId) REFERENCES dbo.Loterias(LoteriaId),
+        CONSTRAINT CK_LoteriasDiasSemana_Dia CHECK (DiaSemana BETWEEN 1 AND 7)
+    );
+    PRINT 'Tabla LoteriasDiasSemana creada.';
+END
+GO
+
 /* 4.2. Ventas */
 IF OBJECT_ID(N'dbo.Ventas', N'U') IS NULL
 BEGIN
@@ -1349,6 +1363,18 @@ IF NOT EXISTS (SELECT 1 FROM dbo.Loterias WHERE Nombre = 'Pasto')
     INSERT INTO dbo.Loterias (Nombre, Estado) VALUES ('Pasto', 'Activo');
 GO
 PRINT 'Datos maestros de Loterias insertados.';
+
+INSERT INTO dbo.LoteriasDiasSemana (LoteriaId, DiaSemana)
+SELECT l.LoteriaId, d.DiaSemana
+FROM dbo.Loterias l
+CROSS JOIN (VALUES (1), (2), (3), (4), (5), (6), (7)) d(DiaSemana)
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM dbo.LoteriasDiasSemana x
+    WHERE x.LoteriaId = l.LoteriaId
+);
+GO
+PRINT 'Dias de venta iniciales de Loterias insertados.';
 
 /* 10.6. Grupos */
 IF NOT EXISTS (SELECT 1 FROM dbo.Grupos WHERE Nombre = N'Grupo Norte')

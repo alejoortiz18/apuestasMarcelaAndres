@@ -93,6 +93,11 @@ public static class PdaTexts
     public const string MaximoJuegos = "Máximo de juegos alcanzado";
     public const string MaximoLineas = "Máximo de líneas alcanzado";
     public const string JuegosDelBoleto = "Juegos del boleto";
+    public const string ResultadoPorLoteria = "Resultado por lotería";
+    public const string NumeroGanador = "Número ganador";
+    public const string VeredictoGano = "Ganó";
+    public const string VeredictoNoGano = "No ganó";
+    public const string SinPublicar = "Sin publicar";
     public const string SinJuegos = "Aún no hay juegos agregados";
     public const string TotalApostado = "Total apostado";
     public const string Jugar = "JUGAR";
@@ -199,6 +204,7 @@ public static class PdaTexts
     public const string SinVentas = "No hay ventas en el periodo consultado.";
     public const string SinResultados = "No hay resultados para la fecha consultada.";
     public const string SinLoterias = "No hay loterías activas.";
+    public const string SinLoteriasHoy = "Hoy no hay loterías habilitadas para la venta.";
     public const string Conectado = "Conectado";
     public const string SinConexion = "Sin conexión";
     public const string HorarioAbierto = "Horario abierto";

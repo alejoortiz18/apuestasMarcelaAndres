@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using FluentAssertions;
 using NewRich.Application.Contracts.Auth;
+using NewRich.Domain.Enums;
 using NewRich.Pda.Core.Api;
 
 namespace NewRich.Pda.Tests;
@@ -37,6 +38,27 @@ public sealed class NewRichApiClientTests
         resultado.Data!.Token.Should().Be("abc");
         resultado.Data.DebeCambiarPassword.Should().BeTrue();
         handler.UltimaRuta.Should().EndWith("api/AuthAndroid/LoginMob");
+    }
+
+    [Fact]
+    public async Task Loterias_deserializa_dias_habilitados()
+    {
+        var handler = new StubHandler("""
+            {"success":true,"message":"ok","data":[
+              {"loteriaId":"11111111-1111-1111-1111-111111111111","nombre":"Cali","estado":1,"diasHabilitados":[7]},
+              {"loteriaId":"22222222-2222-2222-2222-222222222222","nombre":"Pasto","estado":1,"diasHabilitados":[1,2]}
+            ]}
+            """);
+        var tokens = new MemoriaTokens();
+        await tokens.GuardarAsync("t");
+        var client = new NewRichApiClient(new HttpClient(handler), tokens, new ApiOpciones { BaseUrl = "http://localhost:5295/" });
+
+        var resultado = await client.LoteriasAsync(CancellationToken.None);
+
+        resultado.IsSuccess.Should().BeTrue();
+        resultado.Data!.Should().HaveCount(2);
+        resultado.Data[0].DiasHabilitados.Should().Equal(DiaSemana.Domingo);
+        resultado.Data[1].DiasHabilitados.Should().Equal(DiaSemana.Lunes, DiaSemana.Martes);
     }
 
     [Fact]

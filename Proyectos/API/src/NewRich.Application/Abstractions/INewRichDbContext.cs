@@ -15,6 +15,7 @@ public interface INewRichDbContext
     DbSet<DispositivoUsuario> DispositivosUsuarios { get; }
     DbSet<Sesion> Sesiones { get; }
     DbSet<Loteria> Loterias { get; }
+    DbSet<LoteriaDiaSemana> LoteriasDiasSemana { get; }
     DbSet<Venta> Ventas { get; }
     DbSet<Boleto> Boletos { get; }
     DbSet<Juego> Juegos { get; }

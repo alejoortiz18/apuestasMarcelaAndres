@@ -18,6 +18,7 @@ public static class ValidationMessages
     public const string NumeroApuestaFormato = "El número de la apuesta debe tener 3 o 4 dígitos numéricos.";
     public const string ValorApuestaMayorCero = "El valor de la apuesta debe ser mayor que cero.";
     public const string LoteriasRequeridas = "Debe seleccionar al menos una lotería.";
+    public const string DiasLoteriaRequeridos = "Debe indicar al menos un día de juego para la lotería.";
     public const string TipoApuestaInvalido = "El tipo de apuesta no es válido. Valores permitidos: COMBINADO, INDIVIDUAL.";
     public const string CodigoPublicoFormato = "El código público del boleto debe tener exactamente 7 dígitos.";
     public const string FechaJuegoRequerida = "La fecha de juego es obligatoria.";

@@ -66,6 +66,57 @@ public static class ObservadorLecturaQr
         }
     }
 
+    /// <summary>
+    /// Lectura de una foto elegida en la galería: se endereza con el EXIF y, si el QR quedó
+    /// pequeño en el encuadre, se acerca al centro antes de reintentar.
+    /// </summary>
+    public static string? DesdeFotoDeGaleria(byte[]? imagen)
+    {
+        if (imagen is null || imagen.Length == 0)
+        {
+            return null;
+        }
+
+        try
+        {
+            var opciones = new DecoderOptions
+            {
+                TargetSize = new Size(ObservadorFotoGaleria.LadoMaximo, ObservadorFotoGaleria.LadoMaximo)
+            };
+            using var foto = Image.Load<Rgba32>(opciones, imagen);
+            foto.Mutate(ctx => ctx.AutoOrient());
+
+            foreach (var intento in ObservadorFotoGaleria.Intentos)
+            {
+                using var acercada = Acercar(foto, intento);
+                var codigo = DecodificarFoto(acercada);
+                if (codigo is not null)
+                {
+                    return codigo;
+                }
+            }
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+
+        return DesdeFoto(imagen);
+    }
+
+    private static Image<Rgba32> Acercar(Image<Rgba32> foto, ObservadorFotoGaleria.Intento intento)
+    {
+        var zona = ObservadorFotoGaleria.Zona(foto.Width, foto.Height, intento.Relativo);
+        var acercada = foto.Clone(ctx => ctx.Crop(new Rectangle(zona.X, zona.Y, zona.Ancho, zona.Alto)));
+        var escala = ObservadorFotoGaleria.EscalaSegura(zona.Ancho, zona.Alto, intento.Escala);
+        if (escala > 1)
+        {
+            acercada.Mutate(ctx => ctx.Resize(zona.Ancho * escala, zona.Alto * escala, KnownResamplers.Lanczos3));
+        }
+
+        return acercada;
+    }
+
     public static string? DesdeNv21(byte[]? nv21, int ancho, int alto)
     {
         if (nv21 is null || ancho <= 0 || alto <= 0)
