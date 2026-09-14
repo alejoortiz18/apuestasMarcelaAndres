@@ -23,6 +23,27 @@ public sealed class PremiosAndroidController : ApiControllerBase
         return From(await _pda.PremiosMobAsync(cancellationToken));
     }
 
+    [Authorize(Roles = "Observador")]
+    [HttpGet("ListarAsignadosMob")]
+    public async Task<IActionResult> ListarAsignadosMob(CancellationToken cancellationToken)
+    {
+        return From(await _pda.PremiosAsignadosMobAsync(UsuarioId, cancellationToken));
+    }
+
+    [Authorize(Roles = "Observador")]
+    [HttpPost("IniciarRegistroMob/{id:guid}")]
+    public async Task<IActionResult> IniciarRegistroMob(Guid id, CancellationToken cancellationToken)
+    {
+        return From(await _pda.IniciarRegistroPremioMobAsync(id, UsuarioId, cancellationToken));
+    }
+
+    [Authorize(Roles = "Observador")]
+    [HttpPost("RegistrarEntregaMob/{id:guid}")]
+    public async Task<IActionResult> RegistrarEntregaMob(Guid id, [FromBody] RegistrarEntregaPremioRequest request, CancellationToken cancellationToken)
+    {
+        return From(await _pda.RegistrarEntregaPremioMobAsync(id, UsuarioId, request, cancellationToken));
+    }
+
     [HttpPost("ReportarMob")]
     public async Task<IActionResult> ReportarMob([FromBody] ReportarCasoGanadorRequest request, CancellationToken cancellationToken)
     {

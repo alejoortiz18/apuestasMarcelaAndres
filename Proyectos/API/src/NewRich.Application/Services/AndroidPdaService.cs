@@ -30,6 +30,9 @@ public interface IAndroidPdaService
     Task<Result<CasoGanadorResponse>> ReportarPremioMobAsync(Guid solicitanteId, ReportarCasoGanadorRequest request, CancellationToken cancellationToken);
     Task<Result<DescargaAdjuntoResponse>> ObtenerFotoPremioMobAsync(Guid casoId, CancellationToken cancellationToken);
     Task<Result<IReadOnlyList<CasoGanadorResponse>>> PremiosMobAsync(CancellationToken cancellationToken);
+    Task<Result<IReadOnlyList<CasoGanadorResponse>>> PremiosAsignadosMobAsync(Guid observadorId, CancellationToken cancellationToken);
+    Task<Result<CasoGanadorResponse>> IniciarRegistroPremioMobAsync(Guid casoId, Guid observadorId, CancellationToken cancellationToken);
+    Task<Result<CasoGanadorResponse>> RegistrarEntregaPremioMobAsync(Guid casoId, Guid observadorId, RegistrarEntregaPremioRequest request, CancellationToken cancellationToken);
     Task<Result<ValidacionBoletoResponse>> ValidarQrMobAsync(ValidarQrRequest request, CancellationToken cancellationToken);
     Task<Result<ConsultaTicketResponse>> ConsultarTicketMobAsync(string? ticketCode, CancellationToken cancellationToken);
     Task<Result<IReadOnlyList<BoletoListaResponse>>> FiltrarBoletosMobAsync(FiltroBoletosRequest request, CancellationToken cancellationToken);
@@ -160,6 +163,15 @@ public sealed class AndroidPdaService : IAndroidPdaService
 
     public Task<Result<IReadOnlyList<CasoGanadorResponse>>> PremiosMobAsync(CancellationToken cancellationToken) =>
         _premios.ListarAsync(cancellationToken);
+
+    public Task<Result<IReadOnlyList<CasoGanadorResponse>>> PremiosAsignadosMobAsync(Guid observadorId, CancellationToken cancellationToken) =>
+        _premios.ListarAsignadosAsync(observadorId, cancellationToken);
+
+    public Task<Result<CasoGanadorResponse>> IniciarRegistroPremioMobAsync(Guid casoId, Guid observadorId, CancellationToken cancellationToken) =>
+        _premios.IniciarRegistroAsync(casoId, observadorId, cancellationToken);
+
+    public Task<Result<CasoGanadorResponse>> RegistrarEntregaPremioMobAsync(Guid casoId, Guid observadorId, RegistrarEntregaPremioRequest request, CancellationToken cancellationToken) =>
+        _premios.RegistrarEntregaAsync(casoId, observadorId, request, cancellationToken);
 
     public Task<Result<ValidacionBoletoResponse>> ValidarQrMobAsync(ValidarQrRequest request, CancellationToken cancellationToken) =>
         _boletos.ValidarQrAsync(request, cancellationToken);

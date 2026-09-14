@@ -1,12 +1,14 @@
 using Microsoft.EntityFrameworkCore;
 using NewRich.Application.Abstractions;
 using NewRich.Application.Chat;
+using NewRich.Application.Contracts.Boletos;
 using NewRich.Application.Contracts.Chat;
 using NewRich.Application.Contracts.Premios;
 using NewRich.Constants;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
 using NewRich.Domain.Enums;
+using NewRich.Domain.Services;
 using NewRich.Shared.Results;
 
 namespace NewRich.Application.Services;
@@ -42,13 +44,138 @@ public sealed class PremioService : IPremioService
         return Result<IReadOnlyList<CasoGanadorResponse>>.Ok(casos.Select(Map).ToList(), SuccessMessages.OperacionExitosa);
     }
 
+    public async Task<Result<IReadOnlyList<CasoGanadorResponse>>> ListarAsignadosAsync(Guid observadorId, CancellationToken cancellationToken)
+    {
+        var casos = await Query()
+            .Where(c => c.ObservadorAsignado == observadorId
+                && (c.Estado == EstadoCasoGanador.Asignado || c.Estado == EstadoCasoGanador.EnProceso))
+            .OrderByDescending(c => c.FechaAsignacion ?? c.FechaReporte)
+            .ToListAsync(cancellationToken);
+        return Result<IReadOnlyList<CasoGanadorResponse>>.Ok(casos.Select(Map).ToList(), SuccessMessages.OperacionExitosa);
+    }
+
     public async Task<Result<CasoGanadorResponse>> ObtenerAsync(Guid casoId, CancellationToken cancellationToken)
     {
-        var caso = await Query().FirstOrDefaultAsync(c => c.CasoId == casoId, cancellationToken);
-        return caso is null
-            ? Result<CasoGanadorResponse>.Fail(PremioMessages.CasoNoEncontrado, 404)
-            : Result<CasoGanadorResponse>.Ok(Map(caso), SuccessMessages.OperacionExitosa);
+        var caso = await Query()
+            .Include(c => c.EntregaGanador)
+            .ThenInclude(e => e!.Evidencias)
+            .Include(c => c.EntregaGanador)
+            .ThenInclude(e => e!.PersonaQueEntregaNavigation)
+            .FirstOrDefaultAsync(c => c.CasoId == casoId, cancellationToken);
+        if (caso is null)
+        {
+            return Result<CasoGanadorResponse>.Fail(PremioMessages.CasoNoEncontrado, 404);
+        }
+
+        var detalle = Map(caso);
+        await AgregarDetalleApuestaAsync(caso, detalle, cancellationToken);
+        AgregarDetalleEntrega(caso, detalle);
+        return Result<CasoGanadorResponse>.Ok(detalle, SuccessMessages.OperacionExitosa);
     }
+
+    public async Task<Result<DescargaAdjuntoResponse>> ObtenerEvidenciaAsync(
+        Guid casoId,
+        Guid evidenciaId,
+        CancellationToken cancellationToken)
+    {
+        var evidencia = await _db.EvidenciasGanador
+            .Include(e => e.EntregaGanador)
+            .FirstOrDefaultAsync(e => e.EvidenciaId == evidenciaId && e.EntregaGanador!.CasoId == casoId, cancellationToken);
+        if (evidencia is null)
+        {
+            return Result<DescargaAdjuntoResponse>.Fail(PremioMessages.EvidenciaNoEncontrada, 404);
+        }
+
+        var stream = await _files.OpenReadAsync(evidencia.RutaImagen, cancellationToken);
+        if (stream is null)
+        {
+            return Result<DescargaAdjuntoResponse>.Fail(PremioMessages.EvidenciaNoEncontrada, 404);
+        }
+
+        return Result<DescargaAdjuntoResponse>.Ok(new DescargaAdjuntoResponse
+        {
+            NombreArchivo = Path.GetFileName(evidencia.RutaImagen),
+            Contenido = stream
+        }, SuccessMessages.OperacionExitosa);
+    }
+
+    private async Task AgregarDetalleApuestaAsync(
+        CasoGanador caso,
+        CasoGanadorResponse detalle,
+        CancellationToken cancellationToken)
+    {
+        var boleto = await _db.Boletos
+            .Include(b => b.Venta)
+            .Include(b => b.Juegos)
+            .ThenInclude(j => j.JuegoLoterias)
+            .ThenInclude(jl => jl.Loteria)
+            .FirstOrDefaultAsync(b => b.BoletoId == caso.BoletoId, cancellationToken);
+        if (boleto is null)
+        {
+            return;
+        }
+
+        detalle.TotalApostado = boleto.Venta?.Total;
+        var consecutivoOffline = await _db.CodigosPreventaOffline
+            .AsNoTracking()
+            .Where(c => c.CodigoId == boleto.BoletoId)
+            .Select(c => c.ConsecutivoUnico)
+            .FirstOrDefaultAsync(cancellationToken);
+        detalle.CodigoRecibo = CodigoImpresoTicket.De(boleto.CodigoPublico, boleto.QrCifrado, consecutivoOffline);
+        var desfase = FechaJuegoBoleto.Desfase(_clock.UtcNow, _clock.LocalNow);
+        var fechaJuego = FechaJuegoBoleto.De(boleto.Venta?.FechaVenta ?? boleto.FechaCreacion, desfase);
+        detalle.FechaJuego = fechaJuego.ToDateTime(TimeOnly.MinValue);
+
+        var loteriaIds = boleto.Juegos.SelectMany(j => j.JuegoLoterias.Select(jl => jl.LoteriaId)).Distinct().ToList();
+        var (inicio, fin) = FechaJuegoBoleto.Rango(fechaJuego);
+        var publicados = await _db.NumerosGanadores
+            .Where(n => n.FechaJuego >= inicio && n.FechaJuego < fin && loteriaIds.Contains(n.LoteriaId))
+            .ToListAsync(cancellationToken);
+
+        detalle.Resultados = boleto.Juegos
+            .SelectMany(juego => juego.JuegoLoterias.Select(jl =>
+            {
+                var ganador = publicados.FirstOrDefault(n => n.LoteriaId == jl.LoteriaId)?.Numero?.Trim();
+                var apostado = juego.Numero.Trim();
+                return new ResultadoLoteriaResponse
+                {
+                    Loteria = jl.Loteria?.Nombre ?? string.Empty,
+                    Numero = apostado,
+                    NumeroGanador = ganador,
+                    Gano = ganador is not null && string.Equals(ganador, apostado, StringComparison.Ordinal)
+                };
+            }))
+            .ToList();
+    }
+
+    private static void AgregarDetalleEntrega(CasoGanador caso, CasoGanadorResponse detalle)
+    {
+        if (caso.EntregaGanador is not { } entrega)
+        {
+            return;
+        }
+
+        detalle.NombreVendedorEntrega = entrega.NombreVendedor;
+        detalle.PersonaQueEntrega = entrega.PersonaQueEntregaNavigation?.NombreCompleto
+            ?? caso.ObservadorAsignadoNavigation?.NombreCompleto;
+        detalle.FechaEntrega = entrega.FechaEntrega;
+        detalle.Evidencias = entrega.Evidencias
+            .OrderBy(e => e.TipoEvidencia)
+            .Select(e => new EvidenciaEntregaResponse
+            {
+                EvidenciaId = e.EvidenciaId,
+                Tipo = NombreEvidencia(e.TipoEvidencia),
+                FechaCaptura = e.FechaCaptura
+            })
+            .ToList();
+    }
+
+    private static string NombreEvidencia(TipoEvidencia tipo) => tipo switch
+    {
+        TipoEvidencia.TicketConQR => PremioMessages.EvidenciaTicketConQr,
+        TipoEvidencia.GanadorConTicket => PremioMessages.EvidenciaGanadorConTicket,
+        _ => PremioMessages.EvidenciaCedula
+    };
 
     public async Task<Result<CasoGanadorResponse>> ReportarAsync(Guid solicitanteId, ReportarCasoGanadorRequest request, CancellationToken cancellationToken)
     {
@@ -135,8 +262,9 @@ public sealed class PremioService : IPremioService
             FotoTicketNombre = foto.Data?.Nombre
         };
         _db.CasosGanadores.Add(caso);
-        boleto.CasoGanadorId = caso.CasoId;
         boleto.EstadoDelPremio = EstadoDelPremio.Vigente;
+        await _db.SaveChangesAsync(cancellationToken);
+        boleto.CasoGanadorId = caso.CasoId;
 
         var admins = await _db.Usuarios
             .Where(u => u.Rol == RolUsuario.Administrador && u.Estado == EstadoUsuario.Activo && !u.EstadoBloqueado)
@@ -263,6 +391,173 @@ public sealed class PremioService : IPremioService
             $"Se te asignó el caso del ticket {caso.TicketCode.Trim()}.",
             cancellationToken);
         return Result<CasoGanadorResponse>.Ok(Map(caso), SuccessMessages.CasoGanadorAsignado);
+    }
+
+    public async Task<Result<CasoGanadorResponse>> IniciarRegistroAsync(Guid casoId, Guid observadorId, CancellationToken cancellationToken)
+    {
+        var caso = await Query().FirstOrDefaultAsync(c => c.CasoId == casoId, cancellationToken);
+        if (caso is null || caso.ObservadorAsignado != observadorId)
+        {
+            return Result<CasoGanadorResponse>.Fail(PremioMessages.CasoNoAsignado, 404);
+        }
+
+        if (caso.Estado == EstadoCasoGanador.EnProceso)
+        {
+            return Result<CasoGanadorResponse>.Ok(Map(caso), SuccessMessages.OperacionExitosa);
+        }
+
+        if (caso.Estado != EstadoCasoGanador.Asignado)
+        {
+            return Result<CasoGanadorResponse>.Fail(PremioMessages.TransicionInvalida);
+        }
+
+        caso.Estado = EstadoCasoGanador.EnProceso;
+        await _db.SaveChangesAsync(cancellationToken);
+        return Result<CasoGanadorResponse>.Ok(Map(caso), SuccessMessages.OperacionExitosa);
+    }
+
+    public async Task<Result<CasoGanadorResponse>> RegistrarEntregaAsync(
+        Guid casoId,
+        Guid observadorId,
+        RegistrarEntregaPremioRequest request,
+        CancellationToken cancellationToken)
+    {
+        var caso = await Query().FirstOrDefaultAsync(c => c.CasoId == casoId, cancellationToken);
+        if (caso is null || caso.ObservadorAsignado != observadorId)
+        {
+            return Result<CasoGanadorResponse>.Fail(PremioMessages.CasoNoAsignado, 404);
+        }
+
+        if (caso.Estado is not (EstadoCasoGanador.Asignado or EstadoCasoGanador.EnProceso))
+        {
+            return Result<CasoGanadorResponse>.Fail(PremioMessages.TransicionInvalida);
+        }
+
+        if (!DatosEntregaCompletos(request))
+        {
+            return Result<CasoGanadorResponse>.Fail(PremioMessages.DatosEntregaIncompletos);
+        }
+
+        if (request.FotoTicketConQr is null || request.FotoGanadorConTicket is null || request.FotoCedula is null)
+        {
+            return Result<CasoGanadorResponse>.Fail(PremioMessages.TresFotosObligatorias);
+        }
+
+        var fotoTicket = await GuardarEvidenciaAsync(request.FotoTicketConQr, cancellationToken);
+        if (!fotoTicket.IsSuccess)
+        {
+            return Result<CasoGanadorResponse>.Fail(fotoTicket.Message);
+        }
+
+        var fotoGanador = await GuardarEvidenciaAsync(request.FotoGanadorConTicket, cancellationToken);
+        if (!fotoGanador.IsSuccess)
+        {
+            return Result<CasoGanadorResponse>.Fail(fotoGanador.Message);
+        }
+
+        var fotoCedula = await GuardarEvidenciaAsync(request.FotoCedula, cancellationToken);
+        if (!fotoCedula.IsSuccess)
+        {
+            return Result<CasoGanadorResponse>.Fail(fotoCedula.Message);
+        }
+
+        var ahora = _clock.UtcNow;
+        var entrega = new EntregaGanador
+        {
+            EntregaId = Guid.NewGuid(),
+            CasoId = caso.CasoId,
+            NombreGanador = request.NombreGanador.Trim(),
+            ApellidoGanador = request.ApellidoGanador.Trim(),
+            NumeroContacto = request.NumeroContacto.Trim(),
+            LugarGano = request.LugarGano.Trim(),
+            NombreVendedor = caso.VendedorQueReportoNavigation?.NombreCompleto
+                ?? caso.Boleto?.Venta?.Usuario?.NombreCompleto
+                ?? string.Empty,
+            ValorTotalGanado = request.ValorTotalGanado,
+            PersonaQueEntrega = observadorId,
+            FechaEntrega = ahora
+        };
+
+        entrega.Evidencias.Add(new EvidenciaGanador
+        {
+            EvidenciaId = Guid.NewGuid(),
+            EntregaId = entrega.EntregaId,
+            TipoEvidencia = TipoEvidencia.TicketConQR,
+            RutaImagen = fotoTicket.Data!.Ruta,
+            FechaCaptura = ahora
+        });
+        entrega.Evidencias.Add(new EvidenciaGanador
+        {
+            EvidenciaId = Guid.NewGuid(),
+            EntregaId = entrega.EntregaId,
+            TipoEvidencia = TipoEvidencia.GanadorConTicket,
+            RutaImagen = fotoGanador.Data!.Ruta,
+            FechaCaptura = ahora
+        });
+        entrega.Evidencias.Add(new EvidenciaGanador
+        {
+            EvidenciaId = Guid.NewGuid(),
+            EntregaId = entrega.EntregaId,
+            TipoEvidencia = TipoEvidencia.CedulaIdentidad,
+            RutaImagen = fotoCedula.Data!.Ruta,
+            FechaCaptura = ahora
+        });
+
+        _db.EntregasGanadores.Add(entrega);
+        caso.Estado = EstadoCasoGanador.Registrado;
+        caso.FechaRegistro = ahora;
+        caso.EntregaGanador = entrega;
+        if (caso.Boleto is not null)
+        {
+            caso.Boleto.EstadoBoleto = EstadoBoleto.PremioEntregado;
+            caso.Boleto.EstadoDelPremio = EstadoDelPremio.PremioEntregado;
+            caso.Boleto.FechaEntregaPremio = ahora;
+        }
+
+        await _db.SaveChangesAsync(cancellationToken);
+        var actualizado = await Query().FirstAsync(c => c.CasoId == caso.CasoId, cancellationToken);
+        return Result<CasoGanadorResponse>.Ok(Map(actualizado), SuccessMessages.EntregaPremioRegistrada);
+    }
+
+    private static bool DatosEntregaCompletos(RegistrarEntregaPremioRequest request) =>
+        !string.IsNullOrWhiteSpace(request.NombreGanador)
+        && !string.IsNullOrWhiteSpace(request.ApellidoGanador)
+        && !string.IsNullOrWhiteSpace(request.NumeroContacto)
+        && !string.IsNullOrWhiteSpace(request.LugarGano)
+        && request.ValorTotalGanado > 0;
+
+    private async Task<Result<FotoGuardada>> GuardarEvidenciaAsync(EvidenciaFotoRequest request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.ContenidoBase64))
+        {
+            return Result<FotoGuardada>.Fail(PremioMessages.TresFotosObligatorias);
+        }
+
+        byte[] bytes;
+        try
+        {
+            bytes = Convert.FromBase64String(request.ContenidoBase64);
+        }
+        catch (FormatException)
+        {
+            return Result<FotoGuardada>.Fail(PremioMessages.FotoQrInvalida);
+        }
+
+        var nombre = ChatAdjunto.NombreSeguro(request.NombreArchivo);
+        if (!ChatAdjunto.EsImagen(nombre))
+        {
+            return Result<FotoGuardada>.Fail(PremioMessages.FotoQrInvalida);
+        }
+
+        var validacion = ChatAdjunto.Validar(nombre, bytes);
+        if (!validacion.IsSuccess)
+        {
+            return Result<FotoGuardada>.Fail(PremioMessages.FotoQrInvalida);
+        }
+
+        await using var stream = new MemoryStream(bytes);
+        var ruta = await _files.SaveAsync(stream, nombre, cancellationToken);
+        return Result<FotoGuardada>.Ok(new FotoGuardada(ruta, nombre), SuccessMessages.OperacionExitosa);
     }
 
     private IQueryable<CasoGanador> Query() =>

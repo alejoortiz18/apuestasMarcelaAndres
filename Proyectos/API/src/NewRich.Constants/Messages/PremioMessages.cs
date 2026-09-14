@@ -22,4 +22,11 @@ public static class PremioMessages
     public const string ConsultaPremioEntregado = "El premio de este ticket ya fue entregado.";
     public const string FotoQrRequerida = "Tome una foto del ticket con el código QR visible para reportar el caso.";
     public const string FotoQrInvalida = "La fotografía del ticket debe ser una imagen JPG, PNG o WEBP de máximo 5 MB.";
+    public const string TresFotosObligatorias = "Debe cargar las tres fotografías obligatorias: ticket con QR, ganador con ticket y cédula.";
+    public const string DatosEntregaIncompletos = "Complete todos los datos obligatorios del ganador antes de registrar la entrega.";
+    public const string CasoNoAsignado = "El caso no está asignado a este observador o no admite registro.";
+    public const string EvidenciaNoEncontrada = "La fotografía de la entrega no está disponible.";
+    public const string EvidenciaTicketConQr = "Ticket con QR";
+    public const string EvidenciaGanadorConTicket = "Ganador con el ticket";
+    public const string EvidenciaCedula = "Documento de identidad";
 }

@@ -69,4 +69,17 @@ public sealed class PremiosController : ApiControllerBase
 
         return File(result.Data.Contenido, ChatAdjunto.TipoMime(result.Data.NombreArchivo), result.Data.NombreArchivo);
     }
+
+    [Authorize(Roles = "Administrador,Observador")]
+    [HttpGet("{id:guid}/evidencias/{evidenciaId:guid}")]
+    public async Task<IActionResult> Evidencia(Guid id, Guid evidenciaId, CancellationToken cancellationToken)
+    {
+        var result = await _premioService.ObtenerEvidenciaAsync(id, evidenciaId, cancellationToken);
+        if (!result.IsSuccess || result.Data is null)
+        {
+            return From(result);
+        }
+
+        return File(result.Data.Contenido, ChatAdjunto.TipoMime(result.Data.NombreArchivo), result.Data.NombreArchivo);
+    }
 }

@@ -1,3 +1,5 @@
+using NewRich.Application.Contracts.Boletos;
+
 namespace NewRich.Application.Contracts.Premios;
 
 public sealed class ReportarCasoGanadorRequest
@@ -10,6 +12,24 @@ public sealed class ReportarCasoGanadorRequest
 public sealed class AsignarObservadorRequest
 {
     public Guid ObservadorId { get; set; }
+}
+
+public sealed class EvidenciaFotoRequest
+{
+    public string? NombreArchivo { get; set; }
+    public string? ContenidoBase64 { get; set; }
+}
+
+public sealed class RegistrarEntregaPremioRequest
+{
+    public string NombreGanador { get; set; } = string.Empty;
+    public string ApellidoGanador { get; set; } = string.Empty;
+    public string NumeroContacto { get; set; } = string.Empty;
+    public string LugarGano { get; set; } = string.Empty;
+    public decimal ValorTotalGanado { get; set; }
+    public EvidenciaFotoRequest? FotoTicketConQr { get; set; }
+    public EvidenciaFotoRequest? FotoGanadorConTicket { get; set; }
+    public EvidenciaFotoRequest? FotoCedula { get; set; }
 }
 
 public sealed class CasoGanadorResponse
@@ -32,4 +52,21 @@ public sealed class CasoGanadorResponse
     public decimal? ValorTotalGanado { get; set; }
     public bool TieneFoto { get; set; }
     public string? NombreFoto { get; set; }
+    public string? NombreVendedorEntrega { get; set; }
+    public string? PersonaQueEntrega { get; set; }
+    public DateTime? FechaEntrega { get; set; }
+    public DateTime? FechaJuego { get; set; }
+    /// <summary>Código del recibo de venta: OFF-###### en ventas offline, AOL-####### en línea.</summary>
+    public string? CodigoRecibo { get; set; }
+    public decimal? TotalApostado { get; set; }
+    public IReadOnlyList<ResultadoLoteriaResponse> Resultados { get; set; } = [];
+    public IReadOnlyList<EvidenciaEntregaResponse> Evidencias { get; set; } = [];
+}
+
+/// <summary>Evidencia fotográfica de la entrega del premio (RS-111).</summary>
+public sealed class EvidenciaEntregaResponse
+{
+    public Guid EvidenciaId { get; set; }
+    public string Tipo { get; set; } = string.Empty;
+    public DateTime FechaCaptura { get; set; }
 }

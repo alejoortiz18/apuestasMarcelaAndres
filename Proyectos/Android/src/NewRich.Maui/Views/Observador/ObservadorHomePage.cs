@@ -15,6 +15,7 @@ public sealed class ObservadorHomePage : ContentPage
     private readonly Label _total = new() { FontSize = 30, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink };
     private readonly Label _boletos = new() { FontSize = 19, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink };
     private readonly Label _numeros = new() { FontSize = 19, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink };
+    private readonly Label _casosPremios = new() { FontSize = 19, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink };
     private readonly Label _estado = new() { FontSize = 11, TextColor = Color.FromArgb("#bce9cc") };
     private readonly VerticalStackLayout _banners = new() { Spacing = 8 };
     private readonly Button _validar;
@@ -87,13 +88,16 @@ public sealed class ObservadorHomePage : ContentPage
                         {
                             Mini(PdaTexts.BoletosHoy, _boletos, 0, 0),
                             Mini(PdaTexts.NumerosHoy, _numeros, 1, 0),
-                            Mini(PdaTexts.PdaAsociado, new Label { Text = _sesion.CodigoDispositivo, FontSize = 19, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink }, 0, 1),
+                            MiniTocable(PdaTexts.CasosPremios, _casosPremios, 0, 1, async () =>
+                                await Navigation.PushAsync(_services.GetRequiredService<CasosPage>())),
                             Mini(PdaTexts.RolObservador, new Label { Text = PdaTexts.ResultadosSoloLectura, FontSize = 13, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink }, 1, 1)
                         }
                     },
                     new Label { Text = PdaTexts.AccesosRapidos, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink },
                     Menu(PdaTexts.ResultadosTitulo, PdaTexts.ResultadosAyuda, async () => await Navigation.PushAsync(_services.GetRequiredService<ResultadosPage>())),
                     Menu(PdaTexts.ValidarTicket, PdaTexts.ValidarTicketAyuda, async () => await Shell.Current.GoToAsync("//ovalidar")),
+                    Menu(PdaTexts.CasosPremios, PdaTexts.CasosPremiosAyuda, async () =>
+                        await Navigation.PushAsync(_services.GetRequiredService<CasosPage>())),
                     Menu(PdaTexts.Consultas, PdaTexts.ConsultasAyuda, async () => await Shell.Current.GoToAsync("//consultas")),
                     Menu(PdaTexts.Kpi, PdaTexts.KpiAyuda, async () => await Navigation.PushAsync(_services.GetRequiredService<KpiPage>()))
                 }
@@ -147,6 +151,11 @@ public sealed class ObservadorHomePage : ContentPage
         _numeros.Text = resultados.IsSuccess && resultados.Data is not null
             ? resultados.Data.Count.ToString()
             : "0";
+
+        var casos = await _api.PremiosAsignadosAsync(CancellationToken.None);
+        _casosPremios.Text = casos.IsSuccess && casos.Data is not null
+            ? casos.Data.Count.ToString()
+            : "0";
     }
 
     private static Frame Mini(string titulo, View valor, int col, int row)
@@ -168,6 +177,15 @@ public sealed class ObservadorHomePage : ContentPage
         };
         Grid.SetColumn(frame, col);
         Grid.SetRow(frame, row);
+        return frame;
+    }
+
+    private static Frame MiniTocable(string titulo, View valor, int col, int row, Func<Task> accion)
+    {
+        var frame = Mini(titulo, valor, col, row);
+        var tap = new TapGestureRecognizer();
+        tap.Tapped += async (_, _) => await accion();
+        frame.GestureRecognizers.Add(tap);
         return frame;
     }
 

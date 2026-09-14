@@ -43,6 +43,20 @@ public sealed class TicketConsultaVistaTests
     }
 
     [Fact]
+    public void Ganador_muestra_reportar_caso_aunque_el_ticket_ya_tenga_caso()
+    {
+        var consulta = new ConsultaTicketResponse
+        {
+            ResultadoVisual = BoletoMessages.BoletoGanador,
+            Tono = TicketConsultaTono.Ganador,
+            PuedeIniciarCaso = false,
+            Tirilla = new TirillaResponse { CodigoImpreso = "AOL-5981759", Total = 5000 }
+        };
+
+        TicketConsultaVista.De(consulta).PuedeReportar.Should().BeTrue();
+    }
+
+    [Fact]
     public void Recibo_offline_conserva_el_consecutivo_impreso()
     {
         var consulta = new ConsultaTicketResponse

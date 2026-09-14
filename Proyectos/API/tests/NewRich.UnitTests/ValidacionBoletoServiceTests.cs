@@ -205,6 +205,37 @@ public sealed class ValidacionBoletoServiceTests
     }
 
     [Fact]
+    public async Task ConsultarPorCodigo_ganador_con_caso_sigue_siendo_ganador_pero_no_inicia_otro()
+    {
+        var (sut, db) = CreateSut();
+        var boleto = await CrearBoletoConJuegoAsync(db, EstadoBoleto.Ganador, "1234");
+        var loteriaId = boleto.Juegos.Single().JuegoLoterias.Single().LoteriaId;
+        db.NumerosGanadores.Add(new NumeroGanador
+        {
+            NumeroGanadorId = Guid.NewGuid(),
+            LoteriaId = loteriaId,
+            FechaJuego = boleto.FechaCreacion.Date,
+            Numero = "1234",
+            FechaRegistro = DateTime.UtcNow
+        });
+        db.CasosGanadores.Add(new CasoGanador
+        {
+            CasoId = Guid.NewGuid(),
+            BoletoId = boleto.BoletoId,
+            TicketCode = boleto.CodigoPublico,
+            Estado = EstadoCasoGanador.Reportado,
+            FechaReporte = DateTime.UtcNow,
+            VendedorQueReporto = await db.Ventas.Where(v => v.VentaId == boleto.VentaId).Select(v => v.UsuarioId).FirstAsync()
+        });
+        await db.SaveChangesAsync();
+
+        var result = await sut.ConsultarPorCodigoAsync(boleto.CodigoPublico, CancellationToken.None);
+
+        result.Data!.ResultadoVisual.Should().Be(BoletoMessages.BoletoGanador);
+        result.Data.PuedeIniciarCaso.Should().BeFalse();
+    }
+
+    [Fact]
     public async Task ConsultarPorCodigo_de_una_venta_nocturna_usa_la_fecha_local_del_sorteo()
     {
         var (sut, db) = CreateSut(desfaseLocal: Colombia, ahoraUtc: new DateTime(2026, 9, 14, 2, 0, 0, DateTimeKind.Utc));

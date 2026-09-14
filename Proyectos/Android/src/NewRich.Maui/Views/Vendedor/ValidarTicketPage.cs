@@ -570,10 +570,7 @@ public sealed class ValidarTicketPage : ContentPage
                 ? $"{resultado.Message} {resultado.Data?.Ticket}"
                 : resultado.Message;
             _aviso.TextColor = resultado.IsSuccess ? Ui.Green : Ui.Danger;
-            if (resultado.IsSuccess)
-            {
-                _reportar.IsVisible = false;
-            }
+            _reportar.IsVisible = true;
         }
         catch (Exception)
         {

@@ -83,7 +83,25 @@
                         <td>@item.FechaReporte.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
                         <td>@item.Pda</td>
                         <td><span class="pill @EstadoUi.Pill(item.Estado)">@item.Estado</span></td>
-                        <td>@(item.TieneFoto ? UiTexts.ConFoto : UiTexts.SinFoto)</td>
+                        <td>
+                            @if (item.TieneFoto)
+                            {
+                                <a class="premio-foto-enlace"
+                                   href="@Url.Action("Foto", new { id = item.CasoId })"
+                                   target="_blank"
+                                   rel="noopener"
+                                   title="@UiTexts.VerFotoDelTicket">
+                                    <img class="premio-foto-miniatura"
+                                         src="@Url.Action("Foto", new { id = item.CasoId })"
+                                         alt="@UiTexts.FotoDelTicket @item.Ticket"
+                                         loading="lazy" />
+                                </a>
+                            }
+                            else
+                            {
+                                <span class="field-help">@UiTexts.SinFoto</span>
+                            }
+                        </td>
                         <td>@item.Observador</td>
                         <td>
                             <a class="secondary table-ver" asp-action="Ver" asp-route-id="@item.CasoId">@UiTexts.Ver</a>

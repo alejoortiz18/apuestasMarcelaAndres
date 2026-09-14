@@ -42,6 +42,18 @@
         <div class="receipt-row"><span>@UiTexts.Pda</span><strong>@caso.Pda</strong></div>
         <div class="receipt-row"><span>@UiTexts.Observador</span><strong>@caso.Observador</strong></div>
         <div class="receipt-row"><span>@UiTexts.FechaReporte</span><strong>@caso.FechaReporte.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</strong></div>
+        @if (caso.FechaValidacion.HasValue)
+        {
+            <div class="receipt-row"><span>@UiTexts.FechaValidacion</span><strong>@caso.FechaValidacion.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</strong></div>
+        }
+        @if (caso.FechaAsignacion.HasValue)
+        {
+            <div class="receipt-row"><span>@UiTexts.FechaAsignacion</span><strong>@caso.FechaAsignacion.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</strong></div>
+        }
+        @if (caso.FechaRegistro.HasValue)
+        {
+            <div class="receipt-row"><span>@UiTexts.FechaRegistro</span><strong>@caso.FechaRegistro.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</strong></div>
+        }
         @if (caso.ValorTotalGanado.HasValue)
         {
             <div class="receipt-rule">----------------</div>
@@ -91,5 +103,124 @@
             </div>
             <button class="primary" type="submit">@UiTexts.AsignarObservador</button>
         </form>
+    }
+</div>
+<div class="panel">
+    <div class="panel-head">
+        <div>
+            <h2>@UiTexts.DatosDeLaApuesta</h2>
+            <div class="panel-sub">@UiTexts.DatosDeLaApuestaSub</div>
+        </div>
+    </div>
+    <div class="receipt">
+        <div class="receipt-row"><span>@UiTexts.Ticket</span><strong>@caso.Ticket</strong></div>
+        @if (!string.IsNullOrWhiteSpace(caso.CodigoRecibo))
+        {
+            <div class="receipt-row"><span>@UiTexts.ReciboDeVentaCaso</span><strong>@caso.CodigoRecibo</strong></div>
+        }
+        @if (caso.FechaJuego.HasValue)
+        {
+            <div class="receipt-row"><span>@UiTexts.FechaEnQueGano</span><strong>@caso.FechaJuego.Value.ToString("dd/MM/yyyy")</strong></div>
+        }
+        @if (caso.TotalApostado.HasValue)
+        {
+            <div class="receipt-row"><span>@UiTexts.TotalApostadoCaso</span><strong>@caso.TotalApostado.Value.ToString("N0")</strong></div>
+        }
+    </div>
+    @if (!caso.Resultados.Any())
+    {
+        <div class="empty" style="margin-top:14px">@UiTexts.SinDatosApuesta</div>
+    }
+    else
+    {
+        <div class="table-wrap" style="margin-top:14px">
+            <table>
+                <thead>
+                <tr>
+                    <th>@UiTexts.Loteria</th>
+                    <th>@UiTexts.NumeroApostado</th>
+                    <th>@UiTexts.NumeroGanadorColumna</th>
+                    <th>@UiTexts.ResultadoColumna</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var linea in caso.Resultados)
+                {
+                    <tr>
+                        <td>@linea.Loteria</td>
+                        <td><strong>@linea.Numero</strong></td>
+                        <td>@(linea.NumeroGanador ?? UiTexts.ResultadoSinPublicar)</td>
+                        <td>
+                            @if (linea.NumeroGanador is null)
+                            {
+                                <span class="pill info">@UiTexts.ResultadoSinPublicar</span>
+                            }
+                            else if (linea.Gano)
+                            {
+                                <span class="pill ok">@UiTexts.ResultadoGano</span>
+                            }
+                            else
+                            {
+                                <span class="pill warn">@UiTexts.ResultadoNoGano</span>
+                            }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+<div class="panel">
+    <div class="panel-head">
+        <div>
+            <h2>@UiTexts.EntregaDelPremio</h2>
+            <div class="panel-sub">@UiTexts.EntregaDelPremioSub</div>
+        </div>
+    </div>
+    @if (!caso.FechaEntrega.HasValue && !caso.ValorTotalGanado.HasValue)
+    {
+        <div class="empty">@UiTexts.SinEntregaRegistrada</div>
+    }
+    else
+    {
+        <div class="receipt">
+            <div class="receipt-row"><span>@UiTexts.NombreGanador</span><strong>@caso.NombreGanador</strong></div>
+            <div class="receipt-row"><span>@UiTexts.ApellidoGanador</span><strong>@caso.ApellidoGanador</strong></div>
+            <div class="receipt-row"><span>@UiTexts.NumeroContacto</span><strong>@caso.NumeroContacto</strong></div>
+            <div class="receipt-row"><span>@UiTexts.LugarGano</span><strong>@caso.LugarGano</strong></div>
+            <div class="receipt-row"><span>@UiTexts.NombreVendedorEntrega</span><strong>@(caso.NombreVendedorEntrega ?? caso.Vendedor)</strong></div>
+            @if (caso.ValorTotalGanado.HasValue)
+            {
+                <div class="receipt-row"><span>@UiTexts.ValorTotalGanado</span><strong>@caso.ValorTotalGanado.Value.ToString("N0")</strong></div>
+            }
+            <div class="receipt-row"><span>@UiTexts.PersonaQueEntrega</span><strong>@(caso.PersonaQueEntrega ?? caso.Observador)</strong></div>
+            @if (caso.FechaEntrega.HasValue)
+            {
+                <div class="receipt-row"><span>@UiTexts.FechaEntrega</span><strong>@caso.FechaEntrega.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</strong></div>
+            }
+        </div>
+        <div class="field" style="margin-top:18px">
+            <label>@UiTexts.EvidenciasEntrega</label>
+            @if (!caso.Evidencias.Any())
+            {
+                <p class="field-help">@UiTexts.SinEvidencias</p>
+            }
+            else
+            {
+                <div class="premio-evidencias">
+                    @foreach (var evidencia in caso.Evidencias)
+                    {
+                        var url = Url.Action("Evidencia", new { id = caso.CasoId, evidenciaId = evidencia.EvidenciaId });
+                        <figure class="premio-evidencia">
+                            <a href="@url" target="_blank" rel="noopener">
+                                <img src="@url" alt="@evidencia.Tipo" loading="lazy" />
+                            </a>
+                            <span>@evidencia.Tipo · @evidencia.FechaCaptura.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
+                        </figure>
+                    }
+                </div>
+            }
+        </div>
     }
 </div>

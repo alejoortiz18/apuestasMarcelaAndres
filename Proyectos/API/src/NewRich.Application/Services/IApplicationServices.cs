@@ -143,10 +143,14 @@ public interface IOfflineService
 public interface IPremioService
 {
     Task<Result<IReadOnlyList<CasoGanadorResponse>>> ListarAsync(CancellationToken cancellationToken);
+    Task<Result<IReadOnlyList<CasoGanadorResponse>>> ListarAsignadosAsync(Guid observadorId, CancellationToken cancellationToken);
     Task<Result<CasoGanadorResponse>> ObtenerAsync(Guid casoId, CancellationToken cancellationToken);
     Task<Result<CasoGanadorResponse>> ReportarAsync(Guid solicitanteId, ReportarCasoGanadorRequest request, CancellationToken cancellationToken);
     Task<Result<DescargaAdjuntoResponse>> ObtenerFotoAsync(Guid casoId, CancellationToken cancellationToken);
+    Task<Result<DescargaAdjuntoResponse>> ObtenerEvidenciaAsync(Guid casoId, Guid evidenciaId, CancellationToken cancellationToken);
     Task<Result<CasoGanadorResponse>> ValidarAsync(Guid casoId, Guid adminId, CancellationToken cancellationToken);
     Task<Result<CasoGanadorResponse>> RechazarAsync(Guid casoId, Guid adminId, CancellationToken cancellationToken);
     Task<Result<CasoGanadorResponse>> AsignarAsync(Guid casoId, Guid adminId, AsignarObservadorRequest request, CancellationToken cancellationToken);
+    Task<Result<CasoGanadorResponse>> IniciarRegistroAsync(Guid casoId, Guid observadorId, CancellationToken cancellationToken);
+    Task<Result<CasoGanadorResponse>> RegistrarEntregaAsync(Guid casoId, Guid observadorId, RegistrarEntregaPremioRequest request, CancellationToken cancellationToken);
 }

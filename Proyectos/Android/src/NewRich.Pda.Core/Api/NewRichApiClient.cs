@@ -205,6 +205,15 @@ public sealed class NewRichApiClient
     public Task<Result<IReadOnlyList<CasoGanadorResponse>>> PremiosAsync(CancellationToken ct) =>
         Enviar<IReadOnlyList<CasoGanadorResponse>>(HttpMethod.Get, "api/PremiosAndroid/ListarMob", null, ct);
 
+    public Task<Result<IReadOnlyList<CasoGanadorResponse>>> PremiosAsignadosAsync(CancellationToken ct) =>
+        Enviar<IReadOnlyList<CasoGanadorResponse>>(HttpMethod.Get, "api/PremiosAndroid/ListarAsignadosMob", null, ct);
+
+    public Task<Result<CasoGanadorResponse>> IniciarRegistroPremioAsync(Guid casoId, CancellationToken ct) =>
+        Enviar<CasoGanadorResponse>(HttpMethod.Post, $"api/PremiosAndroid/IniciarRegistroMob/{casoId}", new { }, ct);
+
+    public Task<Result<CasoGanadorResponse>> RegistrarEntregaPremioAsync(Guid casoId, RegistrarEntregaPremioRequest request, CancellationToken ct) =>
+        Enviar<CasoGanadorResponse>(HttpMethod.Post, $"api/PremiosAndroid/RegistrarEntregaMob/{casoId}", request, ct);
+
     public Task<Result<ValidacionBoletoResponse>> ValidarQrAsync(ValidarQrRequest request, CancellationToken ct) =>
         Enviar<ValidacionBoletoResponse>(HttpMethod.Post, "api/BoletosAndroid/ValidarQrMob", request, ct);
 

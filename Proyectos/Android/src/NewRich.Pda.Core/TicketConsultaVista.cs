@@ -1,5 +1,6 @@
 using NewRich.Application.Contracts.Boletos;
 using NewRich.Constants;
+using NewRich.Constants.Messages;
 
 namespace NewRich.Pda.Core;
 
@@ -58,7 +59,7 @@ public sealed record TicketConsultaVista(
             consulta.ResultadoVisual,
             consulta.Mensaje,
             consulta.Tono,
-            consulta.PuedeIniciarCaso,
+            EsGanadorListoParaReportar(consulta.ResultadoVisual),
             tirilla?.Total ?? 0,
             juegos)
         {
@@ -66,4 +67,7 @@ public sealed record TicketConsultaVista(
             AvisoResultados = consulta.AvisoResultados
         };
     }
+
+    public static bool EsGanadorListoParaReportar(string resultadoVisual) =>
+        string.Equals(resultadoVisual, BoletoMessages.BoletoGanador, StringComparison.OrdinalIgnoreCase);
 }

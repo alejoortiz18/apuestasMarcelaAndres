@@ -249,6 +249,154 @@ public sealed class PremioServiceTests
         result.Message.Should().Be(PremioMessages.ObservadorInvalido);
     }
 
+    [Fact]
+    public async Task ListarAsignadosAsync_solo_devuelve_casos_asignados_o_en_proceso_del_observador()
+    {
+        var (sut, db) = CreateSut();
+        var escenario = await CrearBoletoGanadorAsync(db);
+        var reporte = await sut.ReportarAsync(escenario.Vendedor.UsuarioId, Reporte(escenario.Boleto.CodigoPublico), CancellationToken.None);
+        await sut.ValidarAsync(reporte.Data!.CasoId, escenario.Admin.UsuarioId, CancellationToken.None);
+        await sut.AsignarAsync(reporte.Data.CasoId, escenario.Admin.UsuarioId, new AsignarObservadorRequest
+        {
+            ObservadorId = escenario.Observador.UsuarioId
+        }, CancellationToken.None);
+
+        var result = await sut.ListarAsignadosAsync(escenario.Observador.UsuarioId, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data.Should().ContainSingle(c => c.CasoId == reporte.Data.CasoId && c.Estado == "Asignado");
+        (await sut.ListarAsignadosAsync(escenario.Vendedor.UsuarioId, CancellationToken.None)).Data.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task IniciarRegistroAsync_pasa_de_asignado_a_en_proceso()
+    {
+        var (sut, db) = CreateSut();
+        var casoId = await CasoAsignadoAsync(sut, db);
+
+        var result = await sut.IniciarRegistroAsync(casoId.CasoId, casoId.ObservadorId, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Estado.Should().Be("En proceso");
+    }
+
+    [Fact]
+    public async Task RegistrarEntregaAsync_guarda_datos_tres_fotos_y_marca_premio_entregado()
+    {
+        var (sut, db) = CreateSut();
+        var caso = await CasoAsignadoAsync(sut, db);
+
+        var result = await sut.RegistrarEntregaAsync(caso.CasoId, caso.ObservadorId, EntregaCompleta(), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Message.Should().Be(SuccessMessages.EntregaPremioRegistrada);
+        result.Data!.Estado.Should().Be("Premio entregado");
+        result.Data.NombreGanador.Should().Be("Juan");
+        result.Data.ApellidoGanador.Should().Be("Pérez");
+        result.Data.ValorTotalGanado.Should().Be(250000);
+        db.EntregasGanadores.Should().ContainSingle();
+        db.EvidenciasGanador.Should().HaveCount(3);
+        db.CasosGanadores.Single().Estado.Should().Be(EstadoCasoGanador.Registrado);
+        db.Boletos.Single().EstadoBoleto.Should().Be(EstadoBoleto.PremioEntregado);
+        db.Boletos.Single().EstadoDelPremio.Should().Be(EstadoDelPremio.PremioEntregado);
+        db.Boletos.Single().FechaEntregaPremio.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task RegistrarEntregaAsync_rechaza_si_faltan_fotos()
+    {
+        var (sut, db) = CreateSut();
+        var caso = await CasoAsignadoAsync(sut, db);
+        var request = EntregaCompleta();
+        request.FotoCedula = null;
+
+        var result = await sut.RegistrarEntregaAsync(caso.CasoId, caso.ObservadorId, request, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Message.Should().Be(PremioMessages.TresFotosObligatorias);
+    }
+
+    [Fact]
+    public async Task ObtenerAsync_incluye_entrega_evidencias_y_datos_de_la_apuesta()
+    {
+        var (sut, db) = CreateSut();
+        var escenario = await CrearBoletoJugadoConResultadoAsync(db, "1234", "1234");
+        var caso = await CasoAsignadoAsync(sut, escenario);
+        await sut.RegistrarEntregaAsync(caso.CasoId, caso.ObservadorId, EntregaCompleta(), CancellationToken.None);
+
+        var result = await sut.ObtenerAsync(caso.CasoId, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        var detalle = result.Data!;
+        detalle.PersonaQueEntrega.Should().Be(escenario.Observador.NombreCompleto);
+        detalle.NombreVendedorEntrega.Should().Be(escenario.Vendedor.NombreCompleto);
+        detalle.FechaEntrega.Should().NotBeNull();
+        detalle.Evidencias.Should().HaveCount(3);
+        detalle.Evidencias.Select(e => e.Tipo).Should().Contain("Ticket con QR");
+        detalle.Resultados.Should().ContainSingle(r => r.Loteria == "Cundinamarca" && r.Numero == "1234" && r.NumeroGanador == "1234" && r.Gano);
+        detalle.FechaJuego.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task ObtenerAsync_de_venta_online_devuelve_el_recibo_con_prefijo_aol()
+    {
+        var (sut, db) = CreateSut();
+        var escenario = await CrearBoletoGanadorAsync(db);
+        var caso = await CasoAsignadoAsync(sut, escenario);
+
+        var result = await sut.ObtenerAsync(caso.CasoId, CancellationToken.None);
+
+        result.Data!.CodigoRecibo.Should().Be($"AOL-{escenario.Boleto.CodigoPublico}");
+    }
+
+    [Fact]
+    public async Task ObtenerAsync_de_venta_offline_devuelve_el_consecutivo_del_recibo()
+    {
+        var (sut, db) = CreateSut();
+        var escenario = await CrearBoletoGanadorAsync(db);
+        db.CodigosPreventaOffline.Add(new CodigoPreventaOffline
+        {
+            CodigoId = escenario.Boleto.BoletoId,
+            ConsecutivoUnico = "OFF-000022",
+            UsuarioId = escenario.Vendedor.UsuarioId,
+            DispositivoId = Guid.NewGuid(),
+            EstadoDelCodigo = EstadoCodigoOffline.Utilizado,
+            FechaCreacion = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+        var caso = await CasoAsignadoAsync(sut, escenario);
+
+        var result = await sut.ObtenerAsync(caso.CasoId, CancellationToken.None);
+
+        result.Data!.CodigoRecibo.Should().Be("OFF-000022");
+    }
+
+    [Fact]
+    public async Task ObtenerEvidenciaAsync_devuelve_la_imagen_registrada()
+    {
+        var (sut, db) = CreateSut();
+        var caso = await CasoAsignadoAsync(sut, db);
+        await sut.RegistrarEntregaAsync(caso.CasoId, caso.ObservadorId, EntregaCompleta(), CancellationToken.None);
+        var evidenciaId = db.EvidenciasGanador.First().EvidenciaId;
+
+        var result = await sut.ObtenerEvidenciaAsync(caso.CasoId, evidenciaId, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Contenido.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task ObtenerEvidenciaAsync_rechaza_evidencia_de_otro_caso()
+    {
+        var (sut, db) = CreateSut();
+        var caso = await CasoAsignadoAsync(sut, db);
+        await sut.RegistrarEntregaAsync(caso.CasoId, caso.ObservadorId, EntregaCompleta(), CancellationToken.None);
+
+        var result = await sut.ObtenerEvidenciaAsync(Guid.NewGuid(), db.EvidenciasGanador.First().EvidenciaId, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+    }
+
     private static (PremioService Sut, NewRichDbContext Db) CreateSut(IQrCryptoService? qr = null)
     {
         var options = new DbContextOptionsBuilder<NewRichDbContext>()
@@ -268,6 +416,39 @@ public sealed class PremioServiceTests
         ContenidoBase64 = Convert.ToBase64String(Convert.FromBase64String(
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="))
     };
+
+    private static RegistrarEntregaPremioRequest EntregaCompleta() => new()
+    {
+        NombreGanador = "Juan",
+        ApellidoGanador = "Pérez",
+        NumeroContacto = "3001234567",
+        LugarGano = "Comercio XYZ en calle 10",
+        ValorTotalGanado = 250000,
+        FotoTicketConQr = Foto("ticket.jpg"),
+        FotoGanadorConTicket = Foto("ganador.jpg"),
+        FotoCedula = Foto("cedula.jpg")
+    };
+
+    private static EvidenciaFotoRequest Foto(string nombre) => new()
+    {
+        NombreArchivo = nombre,
+        ContenidoBase64 = Convert.ToBase64String(Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="))
+    };
+
+    private static async Task<(Guid CasoId, Guid ObservadorId)> CasoAsignadoAsync(PremioService sut, NewRichDbContext db) =>
+        await CasoAsignadoAsync(sut, await CrearBoletoGanadorAsync(db));
+
+    private static async Task<(Guid CasoId, Guid ObservadorId)> CasoAsignadoAsync(PremioService sut, EscenarioPremio escenario)
+    {
+        var reporte = await sut.ReportarAsync(escenario.Vendedor.UsuarioId, Reporte(escenario.Boleto.CodigoPublico), CancellationToken.None);
+        await sut.ValidarAsync(reporte.Data!.CasoId, escenario.Admin.UsuarioId, CancellationToken.None);
+        await sut.AsignarAsync(reporte.Data.CasoId, escenario.Admin.UsuarioId, new AsignarObservadorRequest
+        {
+            ObservadorId = escenario.Observador.UsuarioId
+        }, CancellationToken.None);
+        return (reporte.Data.CasoId, escenario.Observador.UsuarioId);
+    }
 
     private static AesGcmQrCryptoService CrearCryptoReal()
     {

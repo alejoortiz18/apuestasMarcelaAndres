@@ -97,6 +97,7 @@ public interface IAdminApiClient
     Task<ApiCallResult<CasoGanadorResponse>> RechazarCasoPremioAsync(Guid id, CancellationToken cancellationToken);
     Task<ApiCallResult<CasoGanadorResponse>> AsignarObservadorPremioAsync(Guid id, AsignarObservadorRequest request, CancellationToken cancellationToken);
     Task<ApiCallResult<ArchivoChat>> DescargarFotoCasoPremioAsync(Guid id, CancellationToken cancellationToken);
+    Task<ApiCallResult<ArchivoChat>> DescargarEvidenciaCasoPremioAsync(Guid id, Guid evidenciaId, CancellationToken cancellationToken);
 }
 
 public sealed class AdminApiClient : IAdminApiClient
@@ -380,11 +381,17 @@ public sealed class AdminApiClient : IAdminApiClient
     public Task<ApiCallResult<CasoGanadorResponse>> AsignarObservadorPremioAsync(Guid id, AsignarObservadorRequest request, CancellationToken cancellationToken) =>
         SendAsync<CasoGanadorResponse>(HttpMethod.Post, $"api/Premios/{id}/asignar", request, true, cancellationToken);
 
-    public async Task<ApiCallResult<ArchivoChat>> DescargarFotoCasoPremioAsync(Guid id, CancellationToken cancellationToken)
+    public Task<ApiCallResult<ArchivoChat>> DescargarFotoCasoPremioAsync(Guid id, CancellationToken cancellationToken) =>
+        DescargarImagenPremioAsync($"api/Premios/{id}/foto", cancellationToken);
+
+    public Task<ApiCallResult<ArchivoChat>> DescargarEvidenciaCasoPremioAsync(Guid id, Guid evidenciaId, CancellationToken cancellationToken) =>
+        DescargarImagenPremioAsync($"api/Premios/{id}/evidencias/{evidenciaId}", cancellationToken);
+
+    private async Task<ApiCallResult<ArchivoChat>> DescargarImagenPremioAsync(string ruta, CancellationToken cancellationToken)
     {
         try
         {
-            using var request = new HttpRequestMessage(HttpMethod.Get, $"api/Premios/{id}/foto");
+            using var request = new HttpRequestMessage(HttpMethod.Get, ruta);
             var token = _httpContextAccessor.HttpContext?.Request.Cookies[AuthCookieNames.AccessToken];
             if (!string.IsNullOrWhiteSpace(token))
             {

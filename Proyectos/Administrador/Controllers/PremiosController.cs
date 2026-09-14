@@ -201,7 +201,17 @@ public sealed class PremiosController : AdminControllerBase
     [HttpGet]
     public async Task<IActionResult> Foto(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _api.DescargarFotoCasoPremioAsync(id, cancellationToken);
+        return Imagen(await _api.DescargarFotoCasoPremioAsync(id, cancellationToken));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Evidencia(Guid id, Guid evidenciaId, CancellationToken cancellationToken)
+    {
+        return Imagen(await _api.DescargarEvidenciaCasoPremioAsync(id, evidenciaId, cancellationToken));
+    }
+
+    private IActionResult Imagen(ApiCallResult<ArchivoChat> result)
+    {
         var unauthorized = RedirectIfUnauthorized(result);
         if (unauthorized is not null)
         {
