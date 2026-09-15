@@ -1,7 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using NewRich.Admin.Constants;
+using NewRich.Admin.Hubs;
 using NewRich.Admin.Models;
 using NewRich.Admin.Services;
+using NewRich.Admin.Services.Pda;
 using NewRich.Application.Contracts.Dispositivos;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Enums;
@@ -11,10 +14,20 @@ namespace NewRich.Admin.Controllers;
 public sealed class DispositivosController : AdminControllerBase
 {
     private readonly IAdminApiClient _api;
+    private readonly IRegistroPdaService _registro;
+    private readonly IHubContext<RegistroPdaHub> _hub;
+    private readonly CandadoRegistroPda _candado;
 
-    public DispositivosController(IAdminApiClient api)
+    public DispositivosController(
+        IAdminApiClient api,
+        IRegistroPdaService registro,
+        IHubContext<RegistroPdaHub> hub,
+        CandadoRegistroPda candado)
     {
         _api = api;
+        _registro = registro;
+        _hub = hub;
+        _candado = candado;
     }
 
     public async Task<IActionResult> Index(string? q, int? estado, int page = 1, int pageSize = 5, CancellationToken cancellationToken = default)
@@ -30,12 +43,16 @@ public sealed class DispositivosController : AdminControllerBase
         }
 
         IReadOnlyList<DispositivoResponse> items = dispositivosTask.Result.Data ?? [];
+        var codigosRegistrados = items
+            .Select(d => d.CodigoDispositivo)
+            .OrderBy(codigo => codigo, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
         if (!string.IsNullOrWhiteSpace(q))
         {
-            var term = q.Trim();
-            items = items.Where(d =>
-                    d.CodigoDispositivo.Contains(term, StringComparison.OrdinalIgnoreCase)
-                    || (d.UsuarioAsociado?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false))
+            var codigo = q.Trim();
+            items = items
+                .Where(d => string.Equals(d.CodigoDispositivo, codigo, StringComparison.OrdinalIgnoreCase))
                 .ToList();
         }
 
@@ -51,51 +68,62 @@ public sealed class DispositivosController : AdminControllerBase
             Busqueda = q,
             Estado = estado,
             Pagina = PagingHelper.Paginate(items, page, pageSize),
-            Usuarios = usuariosTask.Result.Data ?? []
+            Usuarios = usuariosTask.Result.Data ?? [],
+            CodigosRegistrados = codigosRegistrados
         });
     }
 
+    /// <summary>Asistente guiado. El administrador no escribe ni conoce el codigo del dispositivo.</summary>
     [HttpGet]
     public IActionResult Crear()
     {
         SetNav("pda", UiTexts.RegistrarPda);
-        return View(new DispositivoFormViewModel());
+        return View();
     }
 
+    /// <summary>Confirma que el PDA quedo bien preparado antes de iniciar la instalacion.</summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Crear(DispositivoFormViewModel model, CancellationToken cancellationToken)
+    public async Task<IActionResult> Verificar(CancellationToken cancellationToken)
     {
-        SetNav("pda", UiTexts.RegistrarPda);
-        if (!ModelState.IsValid)
+        var verificacion = await _registro.VerificarAsync(cancellationToken);
+        return Json(new
         {
-            return View(model);
+            listo = verificacion.Listo,
+            mensaje = verificacion.Mensaje,
+            modelo = verificacion.Modelo
+        });
+    }
+
+    /// <summary>
+    /// Ejecuta el registro completo e informa el avance por el hub. La respuesta nunca incluye el
+    /// codigo del dispositivo.
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Registrar(TipoDispositivo tipo, string? conexionId, CancellationToken cancellationToken)
+    {
+        if (!_candado.Tomar())
+        {
+            return Json(new { exitoso = false, mensaje = UiTexts.PdaRegistroEnCurso });
         }
 
-        var result = await _api.CrearDispositivoAsync(new CrearDispositivoRequest
+        try
         {
-            CodigoDispositivo = model.CodigoDispositivo.Trim(),
-            Tipo = model.Tipo,
-            Modelo = model.Modelo,
-            NumeroSerie = string.IsNullOrWhiteSpace(model.NumeroSerie)
-                ? Guid.NewGuid().ToString("N")[..16]
-                : model.NumeroSerie
-        }, cancellationToken);
-
-        var unauthorized = RedirectIfUnauthorized(result);
-        if (unauthorized is not null)
-        {
-            return unauthorized;
+            var avance = new AvanceRegistroPdaPorHub(_hub, conexionId);
+            var resultado = await _registro.RegistrarAsync(tipo, avance, cancellationToken);
+            return Json(new
+            {
+                exitoso = resultado.Exitoso,
+                mensaje = resultado.Mensaje,
+                modelo = resultado.Modelo,
+                detalle = resultado.Exitoso ? UiTexts.PdaRegistroCompletadoDetalle : null
+            });
         }
-
-        if (!result.Success)
+        finally
         {
-            ModelState.AddModelError(string.Empty, result.Message);
-            return View(model);
+            _candado.Liberar();
         }
-
-        SetFlash(SuccessMessages.RegistroCreado);
-        return RedirectToAction(nameof(Index));
     }
 
     [HttpPost]

@@ -12,6 +12,7 @@ public sealed class CrearUsuarioRequest
     public string? Email { get; set; }
     public RolUsuario Rol { get; set; }
     public Guid? DispositivoId { get; set; }
+    public Guid? GrupoId { get; set; }
 }
 
 public sealed class ActualizarUsuarioRequest

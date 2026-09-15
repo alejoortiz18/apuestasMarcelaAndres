@@ -10,6 +10,17 @@ public sealed class CrearDispositivoRequest
     public string? NumeroSerie { get; set; }
 }
 
+/// <summary>
+/// Alta de un PDA desde el registro guiado del administrador: el equipo se identifica por su
+/// número de serie y el sistema es quien genera el código, sin que nadie lo escriba.
+/// </summary>
+public sealed class RegistrarPdaAutomaticoRequest
+{
+    public string NumeroSerie { get; set; } = string.Empty;
+    public string? Modelo { get; set; }
+    public TipoDispositivo Tipo { get; set; }
+}
+
 public sealed class ActualizarDispositivoRequest
 {
     public string? Modelo { get; set; }

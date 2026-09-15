@@ -1,6 +1,8 @@
 using NewRich.Admin.Constants;
 using NewRich.Admin.Filters;
+using NewRich.Admin.Hubs;
 using NewRich.Admin.Services;
+using NewRich.Admin.Services.Pda;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,6 +33,15 @@ builder.Services.AddHttpClient<IAdminApiClient, AdminApiClient>(client =>
 });
 builder.Services.AddSingleton<IAdminSessionService, AdminSessionService>();
 
+// Registro guiado de PDA: adb corre en este mismo computador, que es donde el administrador
+// conecta el dispositivo por USB.
+builder.Services.Configure<OpcionesRegistroPda>(builder.Configuration.GetSection(OpcionesRegistroPda.Seccion));
+builder.Services.AddSingleton<IAdb, AdbProceso>();
+builder.Services.AddSingleton<IApkPda, ApkPdaEnDisco>();
+builder.Services.AddSingleton<CandadoRegistroPda>();
+builder.Services.AddScoped<IRegistroPdaService, RegistroPdaService>();
+builder.Services.AddSignalR();
+
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
@@ -44,6 +55,7 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapStaticAssets();
+app.MapHub<RegistroPdaHub>(UiTexts.HubRegistroPda);
 app.MapControllerRoute(
         name: "default",
         pattern: "{controller=Inicio}/{action=Index}/{id?}")

@@ -61,6 +61,22 @@ public sealed class UsuarioService : IUsuarioService
             return Result<UsuarioResponse>.Fail(UsuarioMessages.DocumentoDuplicado, 409);
         }
 
+        if (request.Rol == RolUsuario.Vendedor && !request.GrupoId.HasValue)
+        {
+            return Result<UsuarioResponse>.Fail(UsuarioMessages.GrupoRequeridoParaVendedor);
+        }
+
+        if (request.Rol != RolUsuario.Vendedor && request.GrupoId.HasValue)
+        {
+            return Result<UsuarioResponse>.Fail(UsuarioMessages.SoloVendedoresPertenecenGrupos);
+        }
+
+        if (request.GrupoId.HasValue &&
+            !await _db.Grupos.AnyAsync(g => g.GrupoId == request.GrupoId.Value, cancellationToken))
+        {
+            return Result<UsuarioResponse>.Fail(UsuarioMessages.GrupoNoEncontrado, 404);
+        }
+
         var temporal = GenerarPasswordTemporal();
         var hashed = _hasher.Hash(temporal);
         var usuario = new Usuario
@@ -86,6 +102,15 @@ public sealed class UsuarioService : IUsuarioService
         if (rol is not null)
         {
             _db.UsuariosRoles.Add(new UsuarioRol { UsuarioId = usuario.UsuarioId, RolId = rol.RolId });
+        }
+
+        if (request.GrupoId.HasValue)
+        {
+            _db.UsuariosGrupos.Add(new UsuarioGrupo
+            {
+                UsuarioId = usuario.UsuarioId,
+                GrupoId = request.GrupoId.Value
+            });
         }
 
         if (request.DispositivoId.HasValue)

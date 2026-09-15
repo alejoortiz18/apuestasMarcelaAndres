@@ -80,6 +80,7 @@ public static class UiTexts
     public const string ModuloNoDisponible = "Este módulo todavía no está disponible en la API. Quedará activo cuando se implementen las funcionalidades correspondientes.";
     public const string SoloAdministrador = "Solo un usuario administrador puede ingresar a esta aplicación.";
     public const string ApiNoDisponible = "No fue posible conectar con el servidor central. Verifique que la API esté en ejecución.";
+    public const string ApiRespuestaSinContrato = "El servidor central respondió HTTP {0} sin un contrato válido. Verifique que la API esté actualizada.";
     public const string SesionExpiradaVista = "La sesión expiró. Debe autenticarse nuevamente.";
 
     public const string NavResumen = "Resumen";
@@ -161,7 +162,9 @@ public static class UiTexts
     public const string PdaAvisoOrden = "Orden recomendado: registra primero el PDA sin asociarlo. Luego crea el usuario y asocia un PDA disponible.";
     public const string RegistrarPda = "Registrar PDA";
     public const string BuscarPda = "Buscar PDA";
-    public const string PlaceholderPda = "Código o usuario";
+    public const string TodosLosPda = "Todos los PDA";
+    public const string PdaSinRegistros = "Todavía no hay PDA registrados. Usa Registrar PDA para agregar el primero.";
+    public const string PdaSinCoincidencias = "Ningún PDA registrado coincide con los filtros aplicados.";
     public const string CodigoDispositivo = "Identificador del dispositivo";
     public const string TipoDispositivo = "Tipo";
     public const string Modelo = "Modelo";
@@ -175,6 +178,58 @@ public static class UiTexts
     public const string Conexion = "Conexión";
     public const string Desconectado = "Desconectado";
     public const string SeleccionePda = "Selecciona al menos un PDA para continuar.";
+
+    public const string HubRegistroPda = "/hubs/registro-pda";
+    public const string RegistroPdaTitulo = "Registrar PDA";
+    public const string RegistroPdaSub = "Prepare el dispositivo, conéctelo por USB y el sistema hace el resto.";
+    public const string RegistroPdaPasoPreparar = "Preparar el dispositivo";
+    public const string RegistroPdaPasoPrepararAyuda = "Siga estos pasos en el PDA antes de continuar.";
+    public const string RegistroPdaInstruccion1 = "Ingresar a Configuración y luego a Acerca del teléfono.";
+    public const string RegistroPdaInstruccion2 = "Pulsar 7 veces Número de compilación hasta activar el modo desarrollador.";
+    public const string RegistroPdaInstruccion3 = "Regresar a Configuración y entrar a Sistema.";
+    public const string RegistroPdaInstruccion4 = "Ingresar a Opciones para desarrolladores.";
+    public const string RegistroPdaInstruccion5 = "Activar Opciones para desarrolladores.";
+    public const string RegistroPdaInstruccion6 = "Activar Depuración USB.";
+    public const string RegistroPdaInstruccion7 = "Conectar el PDA al computador mediante USB.";
+    public const string RegistroPdaInstruccion8 = "Si el PDA pregunta Permitir depuración USB, seleccionar Permitir.";
+    public const string RegistroPdaTipo = "Tipo de usuario que va a utilizar el dispositivo";
+    public const string RegistroPdaTipoAyuda = "Debe coincidir con el perfil del usuario que asociará después. Un PDA de vendedor no permite iniciar sesión a un observador.";
+    public const string RegistroPdaContinuar = "Continuar";
+    public const string RegistroPdaVerificando = "Validando la configuración del dispositivo...";
+    public const string RegistroPdaPasoInstalar = "Instalación y registro";
+    public const string RegistroPdaReintentar = "Volver a intentar";
+    public const string RegistroPdaAvanceAria = "Avance del registro del PDA";
+    public const string RegistroPdaBitacora = "Estado del proceso";
+    public const string RegistroPdaModeloDetectado = "Dispositivo detectado: {0}";
+    public const string RegistroPdaNoCerrar = "No desconecte el PDA mientras el proceso esté en curso.";
+    public const string Aceptar = "Aceptar";
+
+    public const string PdaListoParaRegistrar = "Dispositivo detectado y listo para registrar.";
+    public const string PdaProgresoDetectando = "Detectando dispositivo...";
+    public const string PdaProgresoConectado = "Dispositivo conectado.";
+    public const string PdaProgresoValidando = "Validando configuración...";
+    public const string PdaProgresoGenerando = "Generando identificación...";
+    public const string PdaProgresoRegistrando = "Registrando dispositivo...";
+    public const string PdaProgresoInstalando = "Instalando aplicación...";
+    public const string PdaProgresoVerificando = "Verificando instalación...";
+    public const string PdaProgresoFinalizando = "Finalizando registro...";
+    public const string PdaRegistroCompletado = "PDA registrado correctamente.";
+    public const string PdaRegistroCompletadoDetalle = "La aplicación fue instalada y el dispositivo quedó asociado al sistema. Puede desconectar el PDA de forma segura.";
+    public const string PdaRegistroSiguientePaso = "Para habilitar la venta, cree el usuario y asócielo a este PDA desde el listado.";
+
+    public const string PdaSinDispositivoConectado = "No se detectó ningún PDA conectado. Revise el cable USB y vuelva a intentarlo.";
+    public const string PdaSinAutorizacionUsb = "El PDA está conectado pero no autorizó la depuración USB. En el dispositivo seleccione Permitir y vuelva a intentarlo.";
+    public const string PdaVariosDispositivos = "Hay más de un dispositivo conectado. Deje conectado solo el PDA que va a registrar.";
+    public const string PdaDispositivoNoDisponible = "El PDA está conectado pero no responde. Desconéctelo, vuelva a conectarlo y reintente.";
+    public const string PdaAdbNoDisponible = "No fue posible comunicarse con el servicio de dispositivos del computador. Revise la ruta configurada en RegistroPda:RutaAdb.";
+    public const string PdaAdbSinRespuesta = "El dispositivo no respondió a tiempo. Verifique la conexión USB y vuelva a intentarlo.";
+    public const string PdaSinAplicacionDisponible = "No se encontró la aplicación para instalar. Revise la ruta configurada en RegistroPda:RutaApk.";
+    public const string PdaFalloValidacion = "No fue posible leer la configuración del dispositivo. Verifique que la depuración USB siga autorizada.";
+    public const string PdaFalloGrabarIdentidad = "No fue posible guardar la identificación en el dispositivo.";
+    public const string PdaFalloInstalacion = "No fue posible instalar la aplicación en el dispositivo.";
+    public const string PdaInstalacionNoVerificada = "La aplicación no quedó instalada en el dispositivo.";
+    public const string PdaRegistroEnCurso = "Ya hay un registro de PDA en curso. Espere a que termine.";
+    public const string PdaErrorComunicacion = "No fue posible completar la operación. Actualice la página e intente de nuevo.";
 
     public const string LoteriasKicker = "Catálogo y operación";
     public const string LoteriasTitulo = "Loterías vendidas";

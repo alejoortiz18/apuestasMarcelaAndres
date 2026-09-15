@@ -62,8 +62,14 @@ public sealed class UsuariosController : AdminControllerBase
     [HttpGet]
     public async Task<IActionResult> Crear(CancellationToken cancellationToken)
     {
+        var model = await BuildForm(new UsuarioFormViewModel(), cancellationToken);
+        if (EsPeticionAjax())
+        {
+            return PartialView("_FormModal", model);
+        }
+
         SetNav("usuarios", UiTexts.CrearUsuario);
-        return View("Form", await BuildForm(new UsuarioFormViewModel(), cancellationToken));
+        return View("Form", model);
     }
 
     [HttpPost]
@@ -71,9 +77,10 @@ public sealed class UsuariosController : AdminControllerBase
     public async Task<IActionResult> Crear(UsuarioFormViewModel model, CancellationToken cancellationToken)
     {
         SetNav("usuarios", UiTexts.CrearUsuario);
+        ValidarGrupo(model);
         if (!ModelState.IsValid)
         {
-            return View("Form", await BuildForm(model, cancellationToken));
+            return await FormularioCrear(model, cancellationToken);
         }
 
         var result = await _api.CrearUsuarioAsync(new CrearUsuarioRequest
@@ -85,10 +92,11 @@ public sealed class UsuariosController : AdminControllerBase
             Celular = model.Celular,
             Email = model.Email,
             Rol = model.Rol,
-            DispositivoId = model.DispositivoId
+            DispositivoId = model.DispositivoId,
+            GrupoId = model.GrupoId
         }, cancellationToken);
 
-        var unauthorized = RedirectIfUnauthorized(result);
+        var unauthorized = SalidaNoAutorizada(result);
         if (unauthorized is not null)
         {
             return unauthorized;
@@ -97,11 +105,13 @@ public sealed class UsuariosController : AdminControllerBase
         if (!result.Success)
         {
             ModelState.AddModelError(string.Empty, result.Message);
-            return View("Form", await BuildForm(model, cancellationToken));
+            return await FormularioCrear(model, cancellationToken);
         }
 
         SetFlash(result.Message);
-        return RedirectToAction(nameof(Index));
+        return EsPeticionAjax()
+            ? Json(new { redirect = Url.Action(nameof(Index)) })
+            : RedirectToAction(nameof(Index));
     }
 
     [HttpGet]
@@ -297,9 +307,49 @@ public sealed class UsuariosController : AdminControllerBase
 
     private async Task<UsuarioFormViewModel> BuildForm(UsuarioFormViewModel model, CancellationToken cancellationToken)
     {
-        var dispositivos = await _api.ListarDispositivosAsync(cancellationToken);
-        model.Dispositivos = dispositivos.Data ?? [];
+        var dispositivosTask = _api.ListarDispositivosAsync(cancellationToken);
+        var gruposTask = _api.ListarGruposAsync(cancellationToken);
+        await Task.WhenAll(dispositivosTask, gruposTask);
+        model.Dispositivos = dispositivosTask.Result.Data ?? [];
+        model.Grupos = gruposTask.Result.Data ?? [];
         return model;
+    }
+
+    /// <summary>El formulario de creación vive en un modal, salvo que se abra la página directa.</summary>
+    private async Task<IActionResult> FormularioCrear(UsuarioFormViewModel model, CancellationToken cancellationToken)
+    {
+        var formulario = await BuildForm(model, cancellationToken);
+        return EsPeticionAjax()
+            ? PartialView("_FormModal", formulario)
+            : View("Form", formulario);
+    }
+
+    /// <summary>Desde el modal la expiración de sesión se resuelve navegando, no reemplazando el contenido.</summary>
+    private IActionResult? SalidaNoAutorizada<T>(ApiCallResult<T> result)
+    {
+        if (RedirectIfUnauthorized(result) is not RedirectToActionResult redirect)
+        {
+            return null;
+        }
+
+        return EsPeticionAjax()
+            ? Json(new { redirect = Url.Action(redirect.ActionName, redirect.ControllerName, redirect.RouteValues) })
+            : redirect;
+    }
+
+    /// <summary>Un vendedor siempre pertenece a un grupo; los demás perfiles no se agrupan.</summary>
+    private void ValidarGrupo(UsuarioFormViewModel model)
+    {
+        if (model.Rol == RolUsuario.Vendedor && !model.GrupoId.HasValue)
+        {
+            ModelState.AddModelError(nameof(model.GrupoId), UsuarioMessages.GrupoRequeridoParaVendedor);
+            return;
+        }
+
+        if (model.Rol != RolUsuario.Vendedor && model.GrupoId.HasValue)
+        {
+            model.GrupoId = null;
+        }
     }
 
     private static bool Contains(string? value, string term) =>

@@ -1,36 +1,98 @@
 @using NewRich.Admin.Constants
 @using NewRich.Domain.Enums
-@model NewRich.Admin.Models.DispositivoFormViewModel
+@{
+    ViewData["Title"] = UiTexts.RegistroPdaTitulo;
+}
 <div class="heading">
     <div>
         <div class="eyebrow">@UiTexts.PdaKicker</div>
-        <h1>@UiTexts.RegistrarPda</h1>
-        <p>@UiTexts.PdaAvisoOrden</p>
+        <h1>@UiTexts.RegistroPdaTitulo</h1>
+        <p>@UiTexts.RegistroPdaSub</p>
     </div>
+    <a class="secondary" asp-action="Index">@UiTexts.Cancelar</a>
 </div>
-<div class="panel">
-    <div asp-validation-summary="ModelOnly" class="notice error"></div>
-    <form method="post">
-        <div class="field">
-            <label asp-for="CodigoDispositivo"></label>
-            <input asp-for="CodigoDispositivo" />
-            <span asp-validation-for="CodigoDispositivo"></span>
+
+<div class="registro-pda"
+     data-registro-pda
+     data-url-verificar="@Url.Action("Verificar")"
+     data-url-registrar="@Url.Action("Registrar")"
+     data-hub="@UiTexts.HubRegistroPda"
+     data-texto-verificando="@UiTexts.RegistroPdaVerificando"
+     data-texto-modelo="@UiTexts.RegistroPdaModeloDetectado"
+     data-texto-error="@UiTexts.PdaErrorComunicacion">
+    @Html.AntiForgeryToken()
+
+    <section class="panel" data-paso="preparar">
+        <div class="panel-head">
+            <div>
+                <h2>@UiTexts.RegistroPdaPasoPreparar</h2>
+                <p class="panel-sub">@UiTexts.RegistroPdaPasoPrepararAyuda</p>
+            </div>
         </div>
+        <ol class="registro-pasos">
+            <li>@UiTexts.RegistroPdaInstruccion1</li>
+            <li>@UiTexts.RegistroPdaInstruccion2</li>
+            <li>@UiTexts.RegistroPdaInstruccion3</li>
+            <li>@UiTexts.RegistroPdaInstruccion4</li>
+            <li>@UiTexts.RegistroPdaInstruccion5</li>
+            <li>@UiTexts.RegistroPdaInstruccion6</li>
+            <li>@UiTexts.RegistroPdaInstruccion7</li>
+            <li>@UiTexts.RegistroPdaInstruccion8</li>
+        </ol>
         <div class="field">
-            <label asp-for="Tipo"></label>
-            <select asp-for="Tipo" class="searchable" asp-items="Html.GetEnumSelectList<TipoDispositivo>()"></select>
+            <label for="tipoDispositivo">@UiTexts.RegistroPdaTipo</label>
+            <select id="tipoDispositivo" class="searchable" data-tipo
+                    asp-items="Html.GetEnumSelectList<TipoDispositivo>()"></select>
+            <span class="field-help">@UiTexts.RegistroPdaTipoAyuda</span>
         </div>
-        <div class="field">
-            <label asp-for="Modelo"></label>
-            <input asp-for="Modelo" />
-        </div>
-        <div class="field">
-            <label asp-for="NumeroSerie"></label>
-            <input asp-for="NumeroSerie" />
-        </div>
+        <div class="notice error hidden" role="alert" data-verificacion-error hidden></div>
+        <div class="notice hidden" role="status" aria-live="polite" data-verificacion-estado hidden></div>
         <div class="text-center-actions">
-            <button class="primary" type="submit">@UiTexts.Guardar</button>
+            <button class="primary" type="button" data-continuar>@UiTexts.RegistroPdaContinuar</button>
             <a class="secondary" asp-action="Index">@UiTexts.Cancelar</a>
         </div>
-    </form>
+    </section>
+
+    <section class="panel hidden" data-paso="instalar" hidden>
+        <div class="panel-head">
+            <div>
+                <h2>@UiTexts.RegistroPdaPasoInstalar</h2>
+                <p class="panel-sub" data-modelo>@UiTexts.RegistroPdaNoCerrar</p>
+            </div>
+        </div>
+        <div class="registro-progreso">
+            <div class="registro-barra"
+                 role="progressbar"
+                 aria-label="@UiTexts.RegistroPdaAvanceAria"
+                 aria-valuemin="0"
+                 aria-valuemax="100"
+                 aria-valuenow="0"
+                 data-barra>
+                <span data-barra-relleno></span>
+            </div>
+            <strong class="registro-porcentaje" data-porcentaje>0%</strong>
+        </div>
+        <h3 class="registro-bitacora-titulo">@UiTexts.RegistroPdaBitacora</h3>
+        <ol class="registro-bitacora" role="status" aria-live="polite" data-bitacora></ol>
+        <div class="notice error hidden" role="alert" data-registro-error hidden></div>
+        <div class="text-center-actions hidden" data-acciones-error hidden>
+            <button class="primary" type="button" data-reintentar>@UiTexts.RegistroPdaReintentar</button>
+            <a class="secondary" asp-action="Index">@UiTexts.Cancelar</a>
+        </div>
+    </section>
 </div>
+
+<div id="registroPdaDialog" class="dialog-back hidden" role="dialog" aria-modal="true" aria-labelledby="registroPdaDialogTitulo" hidden>
+    <div class="dialog">
+        <h2 id="registroPdaDialogTitulo">@UiTexts.PdaRegistroCompletado</h2>
+        <p>@UiTexts.PdaRegistroCompletadoDetalle</p>
+        <p class="panel-sub">@UiTexts.PdaRegistroSiguientePaso</p>
+        <div class="dialog-actions">
+            <a class="primary" asp-action="Index">@UiTexts.Aceptar</a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/registro-pda.js" asp-append-version="true"></script>
+}

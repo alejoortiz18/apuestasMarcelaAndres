@@ -438,11 +438,75 @@
     usuarioPanel.innerHTML = await response.text();
     usuarioDialog.classList.remove("hidden");
     usuarioDialog.removeAttribute("hidden");
+    prepararUsuario();
+  }
+
+  function prepararUsuario() {
+    if (!usuarioPanel) {
+      return;
+    }
+    usuarioPanel.querySelectorAll("select.searchable").forEach(enhanceSelect);
     const closeBtn = usuarioPanel.querySelector("[data-close-usuario]");
     if (closeBtn) {
       closeBtn.addEventListener("click", closeUsuario);
-      closeBtn.focus();
     }
+    const form = usuarioPanel.querySelector("[data-usuario-form]");
+    if (!form) {
+      if (closeBtn) {
+        closeBtn.focus();
+      }
+      return;
+    }
+    bindUsuarioGrupo(form);
+    form.addEventListener("submit", function (event) {
+      event.preventDefault();
+      enviarUsuario(form).catch(function () {
+        window.location.reload();
+      });
+    });
+    const primero = form.querySelector("input:not([type=hidden])");
+    if (primero) {
+      primero.focus();
+    }
+  }
+
+  // El grupo solo aplica al perfil vendedor; el resto de perfiles no pertenece a grupos.
+  function bindUsuarioGrupo(form) {
+    const rol = form.querySelector("[data-usuario-rol]");
+    const grupo = form.querySelector("[data-usuario-grupo]");
+    if (!rol || !grupo) {
+      return;
+    }
+    const rolConGrupo = grupo.getAttribute("data-usuario-grupo");
+    function sincronizar() {
+      grupo.hidden = rol.value !== rolConGrupo;
+    }
+    rol.addEventListener("change", sincronizar);
+    sincronizar();
+  }
+
+  async function enviarUsuario(form) {
+    const boton = form.querySelector("button[type=submit]");
+    if (boton) {
+      boton.disabled = true;
+    }
+    const response = await fetch(form.getAttribute("action") || window.location.href, {
+      method: "POST",
+      headers: { "X-Requested-With": "XMLHttpRequest" },
+      body: new FormData(form)
+    });
+    if (!response.ok) {
+      window.location.reload();
+      return;
+    }
+    const tipo = response.headers.get("content-type") || "";
+    if (tipo.indexOf("application/json") >= 0) {
+      const data = await response.json();
+      window.location.href = data.redirect || window.location.href;
+      return;
+    }
+    usuarioPanel.innerHTML = await response.text();
+    prepararUsuario();
   }
 
   document.addEventListener("click", function (event) {

@@ -27,7 +27,7 @@ public static class MauiProgram
 #endif
 
         builder.Services.AddSingleton<SesionPda>();
-        PdaConexion.CodigoDispositivo = PdaConexion.CodigoDe(DeviceInfo.Current.Model);
+        PdaConexion.CodigoDispositivo = PdaConexion.Resolver(CodigoProvisionado(), DeviceInfo.Current.Model);
         builder.Services.AddSingleton<ApiOpciones>(_ => new ApiOpciones
         {
             BaseUrl = PdaConexion.BaseUrl(DeviceInfo.Current.DeviceType == DeviceType.Virtual)
@@ -72,5 +72,27 @@ public static class MauiProgram
         builder.Services.AddTransient<ObservadorShell>();
 
         return builder.Build();
+    }
+
+    /// <summary>
+    /// Identidad que el registro de PDA del administrador dejó grabada en el equipo. Vive fuera de
+    /// la app para que sobreviva a una reinstalación o al borrado de datos.
+    /// </summary>
+    private static string? CodigoProvisionado()
+    {
+#if ANDROID
+        try
+        {
+            return global::Android.Provider.Settings.Global.GetString(
+                global::Android.App.Application.Context!.ContentResolver,
+                PdaConexion.ClaveCodigoProvisionado);
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+#else
+        return null;
+#endif
     }
 }

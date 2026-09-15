@@ -12,6 +12,7 @@ public static class UsuarioMessages
     public const string NoPuedeEliminarUltimoAdministrador = "No es posible eliminar el último usuario administrador activo.";
     public const string NoPuedeEliminarseASiMismo = "Un usuario no puede eliminar su propia cuenta.";
     public const string SoloVendedoresPertenecenGrupos = "Solo los usuarios con perfil Vendedor pueden pertenecer a un grupo.";
+    public const string GrupoRequeridoParaVendedor = "Selecciona el grupo al que pertenece el vendedor.";
 
     public const string GrupoNoEncontrado = "El grupo no existe.";
     public const string GrupoNombreDuplicado = "Ya existe un grupo con ese nombre.";

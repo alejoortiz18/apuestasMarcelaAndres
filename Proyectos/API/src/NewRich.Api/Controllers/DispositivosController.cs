@@ -29,6 +29,13 @@ public sealed class DispositivosController : ApiControllerBase
     }
 
     [Authorize(Roles = "Administrador")]
+    [HttpPost("automatico")]
+    public async Task<IActionResult> RegistrarAutomatico([FromBody] RegistrarPdaAutomaticoRequest request, CancellationToken cancellationToken)
+    {
+        return From(await _dispositivoService.RegistrarAutomaticoAsync(request, cancellationToken));
+    }
+
+    [Authorize(Roles = "Administrador")]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Actualizar(Guid id, [FromBody] ActualizarDispositivoRequest request, CancellationToken cancellationToken)
     {

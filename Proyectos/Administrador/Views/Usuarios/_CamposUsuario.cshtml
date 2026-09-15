@@ -1,0 +1,64 @@
+@using NewRich.Admin.Constants
+@using NewRich.Domain.Enums
+@model NewRich.Admin.Models.UsuarioFormViewModel
+<div class="field">
+    <label asp-for="NombreCompleto"></label>
+    <input asp-for="NombreCompleto" />
+    <span asp-validation-for="NombreCompleto"></span>
+</div>
+<div class="field">
+    <label asp-for="Usuario"></label>
+    <input asp-for="Usuario" readonly="@(Model.UsuarioId.HasValue)" />
+    <span asp-validation-for="Usuario"></span>
+</div>
+<div class="field">
+    <label asp-for="Alias"></label>
+    <input asp-for="Alias" />
+</div>
+<div class="field">
+    <label asp-for="Documento"></label>
+    <input asp-for="Documento" />
+</div>
+<div class="field">
+    <label asp-for="Celular"></label>
+    <input asp-for="Celular" />
+</div>
+<div class="field">
+    <label asp-for="Email"></label>
+    <input asp-for="Email" />
+</div>
+<div class="field">
+    <label asp-for="Rol"></label>
+    <select asp-for="Rol" class="searchable" asp-items="Html.GetEnumSelectList<RolUsuario>()" data-usuario-rol></select>
+</div>
+@if (!Model.UsuarioId.HasValue)
+{
+    <div class="field" data-usuario-grupo="@((int)RolUsuario.Vendedor)" hidden="@(Model.Rol != RolUsuario.Vendedor)">
+        <label asp-for="GrupoId"></label>
+        <select asp-for="GrupoId" class="searchable">
+            <option value="">@UiTexts.Seleccionar</option>
+            @foreach (var grupo in Model.Grupos)
+            {
+                <option value="@grupo.GrupoId">@grupo.Nombre</option>
+            }
+        </select>
+        <span asp-validation-for="GrupoId"></span>
+    </div>
+}
+@if (Model.UsuarioId.HasValue)
+{
+    <div class="field">
+        <label asp-for="Estado"></label>
+        <select asp-for="Estado" class="searchable" asp-items="Html.GetEnumSelectList<EstadoUsuario>()"></select>
+    </div>
+}
+<div class="field">
+    <label asp-for="DispositivoId"></label>
+    <select asp-for="DispositivoId" class="searchable">
+        <option value="">@UiTexts.SinAsociar</option>
+        @foreach (var d in Model.Dispositivos)
+        {
+            <option value="@d.DispositivoId">@d.CodigoDispositivo</option>
+        }
+    </select>
+</div>

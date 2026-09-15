@@ -72,7 +72,12 @@ public sealed class UsuarioFormViewModel
     [Display(Name = UiTexts.PdaAsociado)]
     public Guid? DispositivoId { get; set; }
 
+    [Display(Name = UiTexts.Grupo)]
+    public Guid? GrupoId { get; set; }
+
     public IReadOnlyList<DispositivoResponse> Dispositivos { get; set; } = [];
+
+    public IReadOnlyList<GrupoResponse> Grupos { get; set; } = [];
 }
 
 public sealed class DispositivosIndexViewModel
@@ -81,27 +86,12 @@ public sealed class DispositivosIndexViewModel
     public int? Estado { get; init; }
     public PagedViewModel<DispositivoResponse> Pagina { get; init; } = new();
     public IReadOnlyList<UsuarioResponse> Usuarios { get; init; } = [];
+    public IReadOnlyList<string> CodigosRegistrados { get; init; } = [];
 }
 
 public sealed class EliminarDispositivosViewModel
 {
     public IReadOnlyList<DispositivoResponse> Items { get; init; } = [];
-}
-
-public sealed class DispositivoFormViewModel
-{
-    [Display(Name = UiTexts.CodigoDispositivo)]
-    [Required(ErrorMessage = ValidationMessages.CodigoDispositivoRequerido)]
-    public string CodigoDispositivo { get; set; } = string.Empty;
-
-    [Display(Name = UiTexts.TipoDispositivo)]
-    public TipoDispositivo Tipo { get; set; } = TipoDispositivo.Vendedor;
-
-    [Display(Name = UiTexts.Modelo)]
-    public string? Modelo { get; set; }
-
-    [Display(Name = UiTexts.NumeroSerie)]
-    public string? NumeroSerie { get; set; }
 }
 
 public sealed class LoteriasIndexViewModel

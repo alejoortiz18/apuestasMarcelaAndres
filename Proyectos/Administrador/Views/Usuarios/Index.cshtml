@@ -8,7 +8,10 @@
         <h1>@UiTexts.UsuariosTitulo</h1>
         <p>@UiTexts.UsuariosSub</p>
     </div>
-    <a class="primary" asp-action="Crear">@UiTexts.CrearUsuario</a>
+    <a class="primary"
+       asp-action="Crear"
+       data-usuario-modal
+       data-usuario-url="@Url.Action("Crear")">@UiTexts.CrearUsuario</a>
 </div>
 <div class="panel">
     <form class="toolbar" method="get">

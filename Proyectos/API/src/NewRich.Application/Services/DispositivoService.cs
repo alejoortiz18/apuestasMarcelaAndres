@@ -70,6 +70,64 @@ public sealed class DispositivoService : IDispositivoService
         return Result<DispositivoResponse>.Created(Map(dispositivo, false, 0), SuccessMessages.RegistroCreado);
     }
 
+    public async Task<Result<DispositivoResponse>> RegistrarAutomaticoAsync(RegistrarPdaAutomaticoRequest request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.NumeroSerie))
+        {
+            return Result<DispositivoResponse>.Fail(ValidationMessages.NumeroSerieRequerido);
+        }
+
+        var serie = request.NumeroSerie.Trim();
+        var existente = await _db.Dispositivos
+            .Include(d => d.DispositivosUsuarios)
+            .ThenInclude(x => x.Usuario)
+            .FirstOrDefaultAsync(d => d.NumeroSerie == serie, cancellationToken);
+
+        // Repetir el registro del mismo aparato no le cambia la identidad: el código ya está
+        // grabado en el equipo y los movimientos anteriores siguen apuntando a él.
+        if (existente is not null)
+        {
+            existente.Tipo = request.Tipo;
+            existente.Estado = EstadoGeneral.Activo;
+            if (!string.IsNullOrWhiteSpace(request.Modelo))
+            {
+                existente.Modelo = request.Modelo;
+            }
+
+            await _db.SaveChangesAsync(cancellationToken);
+            return Result<DispositivoResponse>.Ok(Map(existente, false, 0), SuccessMessages.RegistroActualizado);
+        }
+
+        var dispositivo = new Dispositivo
+        {
+            DispositivoId = Guid.NewGuid(),
+            CodigoDispositivo = await GenerarCodigoAsync(cancellationToken),
+            Tipo = request.Tipo,
+            Estado = EstadoGeneral.Activo,
+            Modelo = request.Modelo,
+            NumeroSerie = serie,
+            CapacidadCodigosOffline = 3000,
+            FechaRegistro = _clock.UtcNow
+        };
+
+        _db.Dispositivos.Add(dispositivo);
+        await _db.SaveChangesAsync(cancellationToken);
+        return Result<DispositivoResponse>.Created(Map(dispositivo, false, 0), SuccessMessages.RegistroCreado);
+    }
+
+    /// <summary>Código corto y propio de cada equipo, dentro del largo que admite la columna.</summary>
+    private async Task<string> GenerarCodigoAsync(CancellationToken cancellationToken)
+    {
+        while (true)
+        {
+            var candidato = "PDA-" + Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
+            if (!await _db.Dispositivos.AnyAsync(d => d.CodigoDispositivo == candidato, cancellationToken))
+            {
+                return candidato;
+            }
+        }
+    }
+
     public async Task<Result<DispositivoResponse>> ActualizarAsync(Guid dispositivoId, ActualizarDispositivoRequest request, CancellationToken cancellationToken)
     {
         var dispositivo = await _db.Dispositivos

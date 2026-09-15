@@ -1,0 +1,12 @@
+@using NewRich.Admin.Constants
+@model NewRich.Admin.Models.UsuarioFormViewModel
+<h2 id="usuarioDialogTitle">@UiTexts.CrearUsuario</h2>
+<div asp-validation-summary="ModelOnly" class="notice error"></div>
+<form method="post" asp-action="Crear" data-usuario-form>
+    @Html.AntiForgeryToken()
+    <partial name="_CamposUsuario" model="Model" />
+    <div class="dialog-actions">
+        <button class="primary" type="submit">@UiTexts.Guardar</button>
+        <button type="button" class="secondary" data-close-usuario>@UiTexts.Cancelar</button>
+    </div>
+</form>

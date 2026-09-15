@@ -1,13 +1,21 @@
 using NewRich.Application.Contracts.Auth;
+using NewRich.Constants;
 
 namespace NewRich.Pda.Core.Api;
 
 public static class PdaConexion
 {
     public const string CodigoDispositivoPredeterminado = "CEL-RMX3710";
+
+    /// <summary>Ajuste global donde el registro del administrador deja la identidad del equipo.</summary>
+    public const string ClaveCodigoProvisionado = ProvisionPda.ClaveCodigoDispositivo;
+
+    /// <summary>Tope de la columna CodigoDispositivo en la base.</summary>
+    public const int LargoMaximoCodigo = ProvisionPda.LargoMaximoCodigo;
+
     public static string CodigoDispositivo { get; set; } = CodigoDispositivoPredeterminado;
     public const string UrlEmulador = "http://10.0.2.2:5295/";
-    public const string UrlRedLocal = "http://192.168.1.19:5295/";
+    public const string UrlRedLocal = "http://192.168.1.119:5295/";
     public const string UrlPuenteUsb = "http://127.0.0.1:5295/";
     public const string RutaHubChat = "/hubs/chat";
 
@@ -34,5 +42,29 @@ public static class PdaConexion
         }
 
         return "CEL-" + limpio.ToUpperInvariant();
+    }
+
+    /// <summary>
+    /// Identidad del equipo. La graba el registro de PDA del administrador y es propia de cada
+    /// aparato, así que dos equipos del mismo modelo no comparten código. Si el equipo todavía no
+    /// fue registrado se conserva el código derivado del modelo para no dejar la app sin identidad.
+    /// </summary>
+    public static string Resolver(string? codigoProvisionado, string? modelo) =>
+        Normalizar(codigoProvisionado) ?? CodigoDe(modelo);
+
+    public static string? Normalizar(string? codigo)
+    {
+        if (string.IsNullOrWhiteSpace(codigo))
+        {
+            return null;
+        }
+
+        var limpio = codigo.Trim().ToUpperInvariant();
+        if (limpio == "NULL" || limpio.Length > LargoMaximoCodigo)
+        {
+            return null;
+        }
+
+        return limpio.All(c => char.IsLetterOrDigit(c) || c == '-') ? limpio : null;
     }
 }

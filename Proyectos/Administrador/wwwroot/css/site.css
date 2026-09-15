@@ -1686,6 +1686,7 @@ a[data-offline-associate][hidden] { display: none; }
 .dialog.dialog-codigo,
 .dialog.dialog-usuario { width: min(520px, 100%); }
 .dialog.dialog-codigo { width: min(640px, 100%); max-height: min(90vh, 900px); overflow: auto; }
+.dialog.dialog-usuario { max-height: min(90vh, 900px); overflow: auto; }
 .codigo-dialog-titulo {
   display: flex;
   flex-wrap: wrap;
@@ -1722,7 +1723,7 @@ a[data-offline-associate][hidden] { display: none; }
 .dialog .receipt { margin: 12px 0 18px; }
 .dialog h2 { font-size: 17px; margin: 0 0 8px; }
 .dialog p { margin: 0 0 18px; color: var(--ink); font-size: 13px; line-height: 1.45; }
-.dialog-actions { display: flex; justify-content: flex-end; }
+.dialog-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
 
 .prize-steps { display: grid; gap: 7px; margin: 16px 0 22px; }
 .prize-step { display: flex; align-items: center; gap: 9px; font-size: 12px; }
@@ -1747,6 +1748,63 @@ a[data-offline-associate][hidden] { display: none; }
   margin-bottom: 14px;
 }
 .lote-meta .stat strong { font-size: 18px; letter-spacing: -0.4px; }
+
+.registro-pda { max-width: 760px; }
+.registro-pasos {
+  margin: 0 0 18px;
+  padding-left: 22px;
+  display: grid;
+  gap: 10px;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.registro-pasos li::marker { color: var(--gold); font-weight: 800; }
+.registro-progreso {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.registro-barra {
+  flex: 1;
+  height: 12px;
+  border-radius: 99px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+.registro-barra > span {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--gold), var(--gold2));
+  transition: width 240ms ease;
+}
+.registro-porcentaje {
+  min-width: 52px;
+  text-align: right;
+  font-size: 18px;
+  letter-spacing: -0.4px;
+}
+.registro-bitacora-titulo { font-size: 13px; margin: 0 0 10px; }
+.registro-bitacora {
+  margin: 0 0 16px;
+  padding-left: 22px;
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.registro-bitacora li::marker { color: var(--gold); }
+.registro-bitacora li:last-child { color: var(--ink); font-weight: 600; }
+
+@media (max-width: 560px) {
+  .registro-progreso { flex-wrap: wrap; }
+  .registro-porcentaje { text-align: left; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }

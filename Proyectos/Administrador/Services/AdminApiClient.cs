@@ -38,7 +38,7 @@ public interface IAdminApiClient
     Task<ApiCallResult<UsuarioResponse>> DesbloquearUsuarioAsync(Guid id, CancellationToken cancellationToken);
 
     Task<ApiCallResult<List<DispositivoResponse>>> ListarDispositivosAsync(CancellationToken cancellationToken);
-    Task<ApiCallResult<DispositivoResponse>> CrearDispositivoAsync(CrearDispositivoRequest request, CancellationToken cancellationToken);
+    Task<ApiCallResult<DispositivoResponse>> RegistrarDispositivoAutomaticoAsync(RegistrarPdaAutomaticoRequest request, CancellationToken cancellationToken);
     Task<ApiCallResult<DispositivoResponse>> ActualizarDispositivoAsync(Guid id, ActualizarDispositivoRequest request, CancellationToken cancellationToken);
     Task<ApiCallResult<DispositivoResponse>> AsociarDispositivoAsync(Guid dispositivoId, Guid usuarioId, CancellationToken cancellationToken);
     Task<ApiCallResult<DispositivoResponse>> DesasociarDispositivoAsync(Guid dispositivoId, Guid usuarioId, CancellationToken cancellationToken);
@@ -149,8 +149,8 @@ public sealed class AdminApiClient : IAdminApiClient
     public Task<ApiCallResult<List<DispositivoResponse>>> ListarDispositivosAsync(CancellationToken cancellationToken) =>
         SendAsync<List<DispositivoResponse>>(HttpMethod.Get, "api/Dispositivos", null, true, cancellationToken);
 
-    public Task<ApiCallResult<DispositivoResponse>> CrearDispositivoAsync(CrearDispositivoRequest request, CancellationToken cancellationToken) =>
-        SendAsync<DispositivoResponse>(HttpMethod.Post, "api/Dispositivos", request, true, cancellationToken);
+    public Task<ApiCallResult<DispositivoResponse>> RegistrarDispositivoAutomaticoAsync(RegistrarPdaAutomaticoRequest request, CancellationToken cancellationToken) =>
+        SendAsync<DispositivoResponse>(HttpMethod.Post, "api/Dispositivos/automatico", request, true, cancellationToken);
 
     public Task<ApiCallResult<DispositivoResponse>> ActualizarDispositivoAsync(Guid id, ActualizarDispositivoRequest request, CancellationToken cancellationToken) =>
         SendAsync<DispositivoResponse>(HttpMethod.Put, $"api/Dispositivos/{id}", request, true, cancellationToken);
@@ -446,10 +446,12 @@ public sealed class AdminApiClient : IAdminApiClient
             }
 
             using var response = await _http.SendAsync(request, cancellationToken);
+            // Un cuerpo vacio significa que el servidor si respondio, por ejemplo con 404 o 405 cuando
+            // le falta la ruta. Culpar a la conexion en ese caso manda a revisar el lugar equivocado.
             var json = await response.Content.ReadAsStringAsync(cancellationToken);
             if (string.IsNullOrWhiteSpace(json))
             {
-                return ApiCallResult<T>.Fail(UiTexts.ApiNoDisponible, (int)response.StatusCode, response.StatusCode == HttpStatusCode.Unauthorized);
+                return SinContrato<T>(response);
             }
 
             ApiEnvelope<T>? envelope;
@@ -459,18 +461,12 @@ public sealed class AdminApiClient : IAdminApiClient
             }
             catch (JsonException)
             {
-                return ApiCallResult<T>.Fail(
-                    $"La API respondió HTTP {(int)response.StatusCode} sin un contrato válido.",
-                    (int)response.StatusCode,
-                    response.StatusCode == HttpStatusCode.Unauthorized);
+                return SinContrato<T>(response);
             }
 
             if (envelope is null)
             {
-                return ApiCallResult<T>.Fail(
-                    $"La API respondió HTTP {(int)response.StatusCode} sin un contrato válido.",
-                    (int)response.StatusCode,
-                    response.StatusCode == HttpStatusCode.Unauthorized);
+                return SinContrato<T>(response);
             }
 
             if (!envelope.Success)
@@ -492,6 +488,12 @@ public sealed class AdminApiClient : IAdminApiClient
             return ApiCallResult<T>.Fail(UiTexts.ApiNoDisponible, 0);
         }
     }
+
+    private static ApiCallResult<T> SinContrato<T>(HttpResponseMessage response) =>
+        ApiCallResult<T>.Fail(
+            string.Format(UiTexts.ApiRespuestaSinContrato, (int)response.StatusCode),
+            (int)response.StatusCode,
+            response.StatusCode == HttpStatusCode.Unauthorized);
 
     private static string BuildQuery(params (string Key, string? Value)[] pairs)
     {

@@ -14,7 +14,13 @@
     <form class="toolbar pda-toolbar" method="get">
         <div class="field">
             <label for="q">@UiTexts.BuscarPda</label>
-            <input id="q" name="q" value="@Model.Busqueda" placeholder="@UiTexts.PlaceholderPda" />
+            <select id="q" name="q" class="searchable">
+                <option value="">@UiTexts.TodosLosPda</option>
+                @foreach (var codigo in Model.CodigosRegistrados)
+                {
+                    <option value="@codigo" @(string.Equals(Model.Busqueda, codigo, StringComparison.OrdinalIgnoreCase) ? "selected" : null)>@codigo</option>
+                }
+            </select>
         </div>
         <div class="field">
             <label for="estado">@UiTexts.Estado</label>
@@ -40,7 +46,7 @@
 <div class="panel">
     @if (!Model.Pagina.Items.Any())
     {
-        <div class="empty">@UiTexts.Vacio</div>
+        <div class="empty">@(Model.CodigosRegistrados.Any() ? UiTexts.PdaSinCoincidencias : UiTexts.PdaSinRegistros)</div>
     }
     else
     {
