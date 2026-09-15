@@ -7,6 +7,7 @@ using NewRich.Maui.Services;
 using NewRich.Maui.Views;
 using NewRich.Pda.Core;
 using NewRich.Pda.Core.Api;
+using NewRich.Shared.Results;
 
 namespace NewRich.Maui.Views.Vendedor;
 
@@ -298,13 +299,45 @@ public sealed class ValidarTicketPage : ContentPage
         }
     }
 
+    private Result<ConsultaTicketResponse>? _consultaPrevia;
+    private string? _errorConsultaPrevia;
+
     private async Task EscanearCamaraAsync()
     {
         try
         {
-            var leido = await _camaraQr.EscanearAsync();
-            var codigo = LecturaTicket.CodigoParaPegar(leido, null);
-            if (string.IsNullOrWhiteSpace(codigo))
+            _consultaPrevia = null;
+            _errorConsultaPrevia = null;
+            string? ticketConsultado = null;
+
+            var leido = await _camaraQr.EscanearAsync(async codigoLeido =>
+            {
+                var codigo = LecturaTicket.CodigoParaPegar(codigoLeido, null);
+                if (!string.IsNullOrWhiteSpace(codigo))
+                {
+                    ticketConsultado = codigo;
+                    try
+                    {
+                        var respuesta = await _api.ConsultarTicketAsync(new ConsultaTicketRequest
+                        {
+                            TicketCode = codigo
+                        }, CancellationToken.None);
+                        _consultaPrevia = respuesta;
+                    }
+                    catch (Exception)
+                    {
+                        _errorConsultaPrevia = PdaTexts.SinConexionServidor;
+                    }
+                }
+            });
+
+            if (string.IsNullOrWhiteSpace(leido))
+            {
+                return;
+            }
+
+            var ticket = LecturaTicket.CodigoParaPegar(leido, null);
+            if (string.IsNullOrWhiteSpace(ticket))
             {
                 await MostrarErrorAsync(PdaTexts.CodigoNoLeido, true);
                 return;
@@ -312,14 +345,52 @@ public sealed class ValidarTicketPage : ContentPage
 
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
-                PegarLectura(codigo);
-                await ValidarAsync(codigo, desdeQr: true, errorEnPopup: true);
+                PegarLectura(ticket);
+                if (ticket == ticketConsultado && (_consultaPrevia is not null || _errorConsultaPrevia is not null))
+                {
+                    await AplicarConsultaPreviaAsync(ticket);
+                }
+                else
+                {
+                    await ValidarAsync(ticket, desdeQr: true, errorEnPopup: true);
+                }
             });
         }
         catch (Exception)
         {
             await MostrarErrorAsync(PdaTexts.CodigoNoLeido, true);
         }
+    }
+
+    private async Task AplicarConsultaPreviaAsync(string ticket)
+    {
+        _reportar.IsVisible = false;
+        _recibo.IsVisible = false;
+        _cuerpoRecibo.Children.Clear();
+        _aviso.Text = string.Empty;
+        _codigo.Text = string.Empty;
+
+        if (!string.IsNullOrWhiteSpace(_errorConsultaPrevia))
+        {
+            _ticketConsultado = string.Empty;
+            await MostrarErrorAsync(_errorConsultaPrevia, true);
+            return;
+        }
+
+        var consulta = _consultaPrevia;
+        if (consulta is null || !consulta.IsSuccess || consulta.Data is null)
+        {
+            _ticketConsultado = string.Empty;
+            var mensaje = string.IsNullOrWhiteSpace(consulta?.Message)
+                ? PremioMessages.TicketNoEncontrado
+                : consulta.Message;
+            await MostrarErrorAsync(mensaje, true);
+            return;
+        }
+
+        _ticketConsultado = ticket;
+        PintarRecibo(TicketConsultaVista.De(consulta.Data));
+        _aviso.Text = string.Empty;
     }
 
     private async Task LeerFotoTomadaAsync()

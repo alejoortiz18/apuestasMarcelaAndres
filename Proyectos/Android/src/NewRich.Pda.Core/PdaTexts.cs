@@ -65,7 +65,10 @@ public static class PdaTexts
     public const string ValidarConImagenAyuda = "Toma o sube una foto del QR del ticket.";
     public const string TomarFotoQr = "Tomar foto";
     public const string SubirFotoQr = "Subir foto";
-    public const string LeyendoQr = "Leyendo QR";
+    public const string LeyendoQr =
+        "El QR está siendo procesado. No retire la cámara del QR hasta recibir el mensaje.";
+    public const string CamaraQrProcesando = LeyendoQr;
+    public const string LeyendoCodigo = "Leyendo código....";
     public const string LeyendoQrFoto = "Leyendo el QR de la foto...";
     public const string QrNoEncontradoEnFoto = "No se encontró un QR en la imagen. Toma o sube otra foto más nítida.";
     public const string OtraFormaDeValidar = "Elegir otra forma";
@@ -139,7 +142,7 @@ public static class PdaTexts
     public const string TicketCode = "Código del ticket";
     public const string ReportarCaso = "Reportar caso";
     public const string LeerQr = "Leer QR";
-    public const string ValidandoQr = "Validando QR";
+    public const string ValidandoQr = CamaraQrProcesando;
     public const string LeerCodigoBarras = "Leer código de barras";
     public const string EsperandoLector = "Apunta la cámara al QR del ticket. Al leerlo se consulta en el servidor.";
     public const string CodigoNoLeido = "No se recibió un código. Vuelve a leerlo con el lector o escríbelo.";
@@ -237,7 +240,7 @@ public static class PdaTexts
     public const string ObservadorTomarFotoQr = "Tomar foto del QR";
     public const string ObservadorSubirFotoQr = "Subir foto del QR";
     public const string ObservadorLeyendoQr = "Leyendo el QR...";
-    public const string ObservadorCamaraLeyendo = "Leyendo QR";
+    public const string ObservadorCamaraLeyendo = CamaraQrProcesando;
     public const string ObservadorConsultandoTicket = "Consultando el ticket...";
     public const string ObservadorQrNoLeido = "No se leyó el QR. Apunta de nuevo o toma una foto más nítida.";
     public const string ObservadorCamaraNoDisponible = "No se pudo abrir la cámara. Revisa el permiso o toma una foto del QR.";

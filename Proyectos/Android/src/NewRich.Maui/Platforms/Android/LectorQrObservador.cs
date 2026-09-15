@@ -7,9 +7,11 @@ namespace NewRich.Maui.Platforms.Android;
 internal static class LectorQrObservador
 {
     private static TaskCompletionSource<string?>? _pendiente;
+    public static Func<string, Task>? AlDetectarCodigoAsync { get; set; }
 
-    public static Task<string?> EscanearAsync()
+    public static Task<string?> EscanearAsync(Func<string, Task>? alDetectarCodigoAsync = null)
     {
+        AlDetectarCodigoAsync = alDetectarCodigoAsync;
         var actividad = Platform.CurrentActivity;
         if (actividad is null)
         {
@@ -45,6 +47,7 @@ internal static class LectorQrObservador
             codigo = string.Empty;
         }
 
+        AlDetectarCodigoAsync = null;
         _pendiente?.TrySetResult(codigo);
         _pendiente = null;
     }

@@ -14,23 +14,23 @@ namespace NewRich.Maui.Platforms.Android;
     Theme = "@android:style/Theme.Black.NoTitleBar.Fullscreen",
     ScreenOrientation = ScreenOrientation.Portrait,
     Exported = false)]
-public sealed class LectorQrObservadorActividad : Activity, Camera.IPreviewCallback, ISurfaceHolderCallback
+public sealed class LectorQrObservadorActividad : Activity, Camera.IPreviewCallback, ISurfaceHolderCallback, Camera.IAutoFocusCallback
 {
     public const int Peticion = 4731;
 
-    private const int PixelesMinimos = 200_000;
-    private const int PixelesMaximos = 800_000;
-    private const int FramesQueSeSaltan = 3;
+    private const int PixelesMinimos = 150_000;
 
     private FrameLayout? _raiz;
     private SurfaceView? _vista;
+    private FrameLayout? _panelProceso;
     private Camera? _camara;
     private ISurfaceHolder? _holder;
     private byte[]? _bufferCamara;
-    private byte[]? _frame;
+    private byte[]? _bufferCamara2;
     private volatile bool _listo;
     private volatile bool _cerrado;
     private bool _vistaAjustada;
+    private bool _enfoqueManual;
     private int _ancho;
     private int _alto;
     private int _ocupado;
@@ -70,26 +70,53 @@ public sealed class LectorQrObservadorActividad : Activity, Camera.IPreviewCallb
         };
         _raiz.AddView(cancelar, paramsBoton);
 
-        var aviso = new TextView(this)
-        {
-            Text = PdaTexts.ObservadorCamaraLeyendo,
-            TextSize = 18,
-            Gravity = GravityFlags.Center
-        };
-        aviso.SetTextColor(global::Android.Graphics.Color.White);
-        aviso.SetPadding(24, 16, 24, 16);
-        aviso.SetBackgroundColor(global::Android.Graphics.Color.Argb(180, 0, 0, 0));
-        var paramsAviso = new FrameLayout.LayoutParams(
+        _panelProceso = CrearCapaProceso();
+        _raiz.AddView(_panelProceso, new FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MatchParent,
+            ViewGroup.LayoutParams.MatchParent));
+        _raiz.Click += (_, _) => Enfocar();
+        _raiz.Clickable = true;
+        SetContentView(_raiz);
+    }
+
+    /// <summary>Tarjeta blanca centrada con spinner, igual que en el escáner del vendedor.</summary>
+    private FrameLayout CrearCapaProceso()
+    {
+        var capa = new FrameLayout(this) { Visibility = ViewStates.Gone };
+        capa.SetBackgroundColor(global::Android.Graphics.Color.Argb(120, 0, 0, 0));
+        capa.Clickable = true;
+
+        var tarjeta = new LinearLayout(this) { Orientation = Orientation.Horizontal };
+        tarjeta.SetGravity(GravityFlags.CenterVertical);
+        tarjeta.SetPadding(48, 44, 60, 44);
+        var fondo = new global::Android.Graphics.Drawables.GradientDrawable();
+        fondo.SetColor(global::Android.Graphics.Color.White);
+        fondo.SetCornerRadius(40f);
+        tarjeta.Background = fondo;
+
+        tarjeta.AddView(
+            new global::Android.Widget.ProgressBar(this) { Indeterminate = true },
+            new LinearLayout.LayoutParams(64, 64) { RightMargin = 28 });
+
+        var texto = new TextView(this)
+        {
+            Text = PdaTexts.LeyendoCodigo,
+            TextSize = 18
+        };
+        texto.SetTextColor(global::Android.Graphics.Color.Argb(255, 17, 24, 39));
+        tarjeta.AddView(texto, new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WrapContent,
+            ViewGroup.LayoutParams.WrapContent));
+
+        capa.AddView(tarjeta, new FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.WrapContent,
             ViewGroup.LayoutParams.WrapContent)
         {
-            Gravity = GravityFlags.Top | GravityFlags.CenterHorizontal,
-            TopMargin = 36,
-            LeftMargin = 24,
-            RightMargin = 24
-        };
-        _raiz.AddView(aviso, paramsAviso);
-        SetContentView(_raiz);
+            Gravity = GravityFlags.Center,
+            LeftMargin = 32,
+            RightMargin = 32
+        });
+        return capa;
     }
 
     public void SurfaceCreated(ISurfaceHolder holder)
@@ -130,7 +157,7 @@ public sealed class LectorQrObservadorActividad : Activity, Camera.IPreviewCallb
             return;
         }
 
-        if (Interlocked.Increment(ref _salto) % FramesQueSeSaltan != 0)
+        if (Interlocked.Increment(ref _salto) % CamaraQrLectura.SaltoDeCuadros != 0)
         {
             Reencolar(camera, data);
             return;
@@ -144,27 +171,31 @@ public sealed class LectorQrObservadorActividad : Activity, Camera.IPreviewCallb
 
         var ancho = _ancho;
         var alto = _alto;
-        var frame = _frame;
         var tamano = ObservadorLectorQrMlKit.TamanoNv21(ancho, alto);
-        if (frame is null || frame.Length < tamano || data.Length < tamano)
+        if (data.Length < tamano)
         {
             Interlocked.Exchange(ref _ocupado, 0);
             Reencolar(camera, data);
             return;
         }
 
-        // Se copia el frame y el buffer de la cámara se devuelve enseguida: así no se
-        // asigna memoria por cada cuadro, que era lo que terminaba matando el proceso.
-        Buffer.BlockCopy(data, 0, frame, 0, tamano);
+        // Copia exclusiva de esta lectura; el buffer de la cámara vuelve a la cola enseguida.
+        var copia = new byte[tamano];
+        Buffer.BlockCopy(data, 0, copia, 0, tamano);
         Reencolar(camera, data);
         _ = Task.Run(async () =>
         {
             try
             {
-                var codigo = await ObservadorLectorQrMlKit.DesdeNv21Async(frame, ancho, alto).ConfigureAwait(false);
+                string? codigo = null;
+                if (CamaraQrLectura.UsarMlKitEnVistaPrevia && !ObservadorLectorQrMlKit.Inutilizable)
+                {
+                    codigo = await ObservadorLectorQrMlKit.DesdeNv21Async(copia, ancho, alto).ConfigureAwait(false);
+                }
+
                 if (string.IsNullOrWhiteSpace(codigo))
                 {
-                    codigo = ObservadorLecturaQr.DesdeNv21(frame, ancho, alto);
+                    codigo = ObservadorLecturaQr.DesdeNv21(copia, ancho, alto);
                 }
 
                 if (string.IsNullOrWhiteSpace(codigo) || _cerrado || _listo)
@@ -175,7 +206,32 @@ public sealed class LectorQrObservadorActividad : Activity, Camera.IPreviewCallb
                 _listo = true;
                 if (!IsFinishing && !IsDestroyed)
                 {
-                    RunOnUiThread(() => Cerrar(codigo));
+                    RunOnUiThread(async () =>
+                    {
+                        if (_panelProceso is not null)
+                        {
+                            _panelProceso.Visibility = ViewStates.Visible;
+                            _panelProceso.BringToFront();
+                        }
+
+                        await Task.Delay(80);
+
+                        if (LectorQrObservador.AlDetectarCodigoAsync is not null)
+                        {
+                            try
+                            {
+                                await LectorQrObservador.AlDetectarCodigoAsync(codigo);
+                            }
+                            catch (Exception ex)
+                            {
+                                global::Android.Util.Log.Error(
+                                    ObservadorLectorQrMlKit.Etiqueta,
+                                    $"error callback observador: {ex.Message}");
+                            }
+                        }
+
+                        Cerrar(codigo);
+                    });
                 }
             }
             catch (Exception ex)
@@ -246,36 +302,25 @@ public sealed class LectorQrObservadorActividad : Activity, Camera.IPreviewCallb
             var preview = TamanoPreview(parametros);
             parametros.SetPreviewSize(preview.Width, preview.Height);
             parametros.PreviewFormat = global::Android.Graphics.ImageFormatType.Nv21;
-            var focos = parametros.SupportedFocusModes;
-            if (focos is not null && focos.Contains(Camera.Parameters.FocusModeContinuousPicture))
-            {
-                parametros.FocusMode = Camera.Parameters.FocusModeContinuousPicture;
-            }
-            else if (focos is not null && focos.Contains(Camera.Parameters.FocusModeContinuousVideo))
-            {
-                parametros.FocusMode = Camera.Parameters.FocusModeContinuousVideo;
-            }
-            else if (focos is not null && focos.Contains(Camera.Parameters.FocusModeAuto))
-            {
-                parametros.FocusMode = Camera.Parameters.FocusModeAuto;
-            }
-
+            AjustarEnfoque(parametros);
             _camara.SetParameters(parametros);
-            _camara.SetDisplayOrientation(90);
+            _camara.SetDisplayOrientation(CamaraQrLectura.RotacionSensorGrados);
             _ancho = preview.Width;
             _alto = preview.Height;
             AjustarVista(preview.Width, preview.Height);
             _camara.SetPreviewDisplay(holder);
 
             var tamano = ObservadorLectorQrMlKit.TamanoNv21(preview.Width, preview.Height);
-            _frame = new byte[tamano];
             _bufferCamara = new byte[tamano];
+            _bufferCamara2 = new byte[tamano];
             _camara.SetPreviewCallbackWithBuffer(this);
             _camara.AddCallbackBuffer(_bufferCamara);
+            _camara.AddCallbackBuffer(_bufferCamara2);
             _camara.StartPreview();
+            Enfocar();
             global::Android.Util.Log.Info(
                 ObservadorLectorQrMlKit.Etiqueta,
-                $"camara: preview {preview.Width}x{preview.Height}");
+                $"camara: preview {preview.Width}x{preview.Height} manual={_enfoqueManual}");
         }
         catch (Exception ex)
         {
@@ -283,6 +328,61 @@ public sealed class LectorQrObservadorActividad : Activity, Camera.IPreviewCallb
                 ObservadorLectorQrMlKit.Etiqueta,
                 $"camara abrir: {ex.GetType().Name} {ex.Message}");
             SoltarCamara();
+        }
+    }
+
+    public void OnAutoFocus(bool success, Camera? camera)
+    {
+    }
+
+    private void AjustarEnfoque(Camera.Parameters parametros)
+    {
+        _enfoqueManual = false;
+        var focos = parametros.SupportedFocusModes;
+        if (focos is null || focos.Count == 0)
+        {
+            return;
+        }
+
+        if (focos.Contains(Camera.Parameters.FocusModeContinuousPicture))
+        {
+            parametros.FocusMode = Camera.Parameters.FocusModeContinuousPicture;
+            return;
+        }
+
+        if (focos.Contains(Camera.Parameters.FocusModeContinuousVideo))
+        {
+            parametros.FocusMode = Camera.Parameters.FocusModeContinuousVideo;
+            return;
+        }
+
+        if (focos.Contains(Camera.Parameters.FocusModeMacro))
+        {
+            parametros.FocusMode = Camera.Parameters.FocusModeMacro;
+            _enfoqueManual = true;
+            return;
+        }
+
+        if (focos.Contains(Camera.Parameters.FocusModeAuto))
+        {
+            parametros.FocusMode = Camera.Parameters.FocusModeAuto;
+            _enfoqueManual = true;
+        }
+    }
+
+    private void Enfocar()
+    {
+        if (!_enfoqueManual || _camara is null || _cerrado || _listo)
+        {
+            return;
+        }
+
+        try
+        {
+            _camara.AutoFocus(this);
+        }
+        catch (Exception)
+        {
         }
     }
 
@@ -307,19 +407,23 @@ public sealed class LectorQrObservadorActividad : Activity, Camera.IPreviewCallb
         _vistaAjustada = true;
     }
 
+    /// <summary>Vista previa cercana al objetivo: cuadros chicos se decodifican rápido.</summary>
     private static Camera.Size TamanoPreview(Camera.Parameters parametros)
     {
         Camera.Size? elegido = null;
+        var menorDif = long.MaxValue;
         foreach (var size in parametros.SupportedPreviewSizes ?? [])
         {
-            var pixeles = size.Width * size.Height;
-            if (pixeles < PixelesMinimos || pixeles > PixelesMaximos)
+            var pixeles = (long)size.Width * size.Height;
+            if (pixeles < PixelesMinimos)
             {
                 continue;
             }
 
-            if (elegido is null || pixeles > elegido.Width * elegido.Height)
+            var dif = Math.Abs(pixeles - CamaraQrLectura.PixelesPreviewObjetivo);
+            if (dif < menorDif)
             {
+                menorDif = dif;
                 elegido = size;
             }
         }
@@ -341,6 +445,7 @@ public sealed class LectorQrObservadorActividad : Activity, Camera.IPreviewCallb
 
         _camara = null;
         _bufferCamara = null;
+        _bufferCamara2 = null;
     }
 
     private void Cerrar(string? codigo)

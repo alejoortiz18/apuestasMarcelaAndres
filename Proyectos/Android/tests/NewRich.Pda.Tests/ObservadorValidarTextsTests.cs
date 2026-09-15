@@ -14,7 +14,7 @@ public sealed class ObservadorValidarTextsTests
         PdaTexts.ObservadorTomarFotoQr.Should().Be("Tomar foto del QR");
         PdaTexts.ObservadorSubirFotoQr.Should().Be("Subir foto del QR");
         PdaTexts.ObservadorLeyendoQr.Should().Be("Leyendo el QR...");
-        PdaTexts.ObservadorCamaraLeyendo.Should().Be("Leyendo QR");
+        PdaTexts.ObservadorCamaraLeyendo.Should().Be(PdaTexts.CamaraQrProcesando);
         PdaTexts.ObservadorConsultandoTicket.Should().Be("Consultando el ticket...");
         PdaTexts.ObservadorQrNoLeido.Should().Be("No se leyó el QR. Apunta de nuevo o toma una foto más nítida.");
         PdaTexts.ObservadorCamaraNoDisponible.Should().Be("No se pudo abrir la cámara. Revisa el permiso o toma una foto del QR.");

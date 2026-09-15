@@ -18,7 +18,27 @@ internal static class VendedorLectorQrMlKit
 
     public static bool Inutilizable => _inutilizable;
 
-    public static async Task<string?> DesdeNv21Async(byte[] nv21, int ancho, int alto)
+    public static void Calentar()
+    {
+        if (_inutilizable)
+        {
+            return;
+        }
+
+        try
+        {
+            _ = Lector();
+        }
+        catch (Exception ex)
+        {
+            Fallo("calentar", ex);
+        }
+    }
+
+    public static async Task<string?> DesdeNv21Async(byte[] nv21, int ancho, int alto) =>
+        await DesdeNv21Async(nv21, ancho, alto, CamaraQrLectura.RotacionSensorGrados).ConfigureAwait(false);
+
+    public static async Task<string?> DesdeNv21Async(byte[] nv21, int ancho, int alto, int rotacionGrados)
     {
         if (_inutilizable || nv21 is null || nv21.Length == 0 || ancho <= 0 || alto <= 0)
         {
@@ -31,7 +51,7 @@ internal static class VendedorLectorQrMlKit
                 nv21,
                 ancho,
                 alto,
-                0,
+                rotacionGrados,
                 (int)global::Android.Graphics.ImageFormatType.Nv21);
             return await LeerAsync(entrada).ConfigureAwait(false);
         }
@@ -91,18 +111,32 @@ internal static class VendedorLectorQrMlKit
     {
         try
         {
-            var lector = Lector();
-            var resultado = await lector.Process(entrada).AsAsync<Java.Lang.Object>().ConfigureAwait(false);
-            return Primero(resultado);
+            // Se escucha la tarea de ML Kit en vez de bloquear el hilo: si no responde a tiempo
+            // se deja de esperar y la cámara sigue analizando cuadros. La copia NV21 es de esta
+            // lectura, así que abandonarla no deja al nativo leyendo memoria reutilizada.
+            var fuente = new TaskCompletionSource<Java.Lang.Object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var escucha = new EscuchaMlKit(fuente, Etiqueta);
+            var tarea = Lector().Process(entrada);
+            tarea.AddOnSuccessListener(escucha);
+            tarea.AddOnFailureListener(escucha);
+
+            var lectura = fuente.Task;
+            var terminada = await Task.WhenAny(lectura, Task.Delay(CamaraQrLectura.MsTimeoutMlKit))
+                .ConfigureAwait(false);
+            if (!ReferenceEquals(terminada, lectura))
+            {
+                global::Android.Util.Log.Warn(Etiqueta, "ml kit: la lectura no respondió a tiempo");
+                return null;
+            }
+
+            var texto = Primero(await lectura.ConfigureAwait(false));
+            entrada.Dispose();
+            return texto;
         }
         catch (Exception ex)
         {
             Fallo("proceso", ex);
             return null;
-        }
-        finally
-        {
-            entrada.Dispose();
         }
     }
 
@@ -128,7 +162,7 @@ internal static class VendedorLectorQrMlKit
             }
 
             using var codigo = elemento.JavaCast<Barcode>();
-            var texto = codigo?.RawValue;
+            var texto = codigo?.RawValue ?? codigo?.DisplayValue;
             if (!string.IsNullOrWhiteSpace(texto))
             {
                 return texto;

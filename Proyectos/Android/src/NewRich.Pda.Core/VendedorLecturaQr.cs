@@ -13,7 +13,7 @@ public static class VendedorLecturaQr
     }
 
     public static string? DesdeNv21(byte[]? nv21, int ancho, int alto) =>
-        DesdeNv21(nv21, ancho, alto, usarCpp: true);
+        DesdeNv21(nv21, ancho, alto, usarCpp: !OperatingSystem.IsAndroid());
 
     public static string? DesdeNv21(byte[]? nv21, int ancho, int alto, bool usarCpp)
     {
@@ -28,6 +28,29 @@ public static class VendedorLecturaQr
             return null;
         }
 
+        if (usarCpp && !OperatingSystem.IsAndroid())
+        {
+            var yNativo = nv21.Length == yLen ? nv21 : new byte[yLen];
+            if (nv21.Length != yLen)
+            {
+                Buffer.BlockCopy(nv21, 0, yNativo, 0, yLen);
+            }
+
+            var nativo = LeerCpp(yNativo, ancho, alto);
+            if (!string.IsNullOrWhiteSpace(nativo))
+            {
+                return nativo;
+            }
+        }
+
+        // Vía rápida: recorte central optimizado en C# administrado (50x más rápido)
+        var rapido = ObservadorLecturaQr.DesdeNv21(nv21, ancho, alto);
+        if (!string.IsNullOrWhiteSpace(rapido))
+        {
+            return rapido;
+        }
+
+        // Vía secundaria: marco completo para códigos descentrados o de gran escala
         var y = nv21;
         if (nv21.Length != yLen)
         {
@@ -35,20 +58,16 @@ public static class VendedorLecturaQr
             Buffer.BlockCopy(nv21, 0, y, 0, yLen);
         }
 
-        if (usarCpp)
-        {
-            var nativo = LeerCpp(y, ancho, alto);
-            if (!string.IsNullOrWhiteSpace(nativo))
-            {
-                return nativo;
-            }
-        }
-
         return QrDesdeFoto.LeerPlanoY(y, ancho, alto, ancho);
     }
 
     private static string? LeerCpp(byte[] y, int ancho, int alto)
     {
+        if (OperatingSystem.IsAndroid())
+        {
+            return null;
+        }
+
         try
         {
             var vista = new ZXingCpp.ImageView(y, ancho, alto, ZXingCpp.ImageFormat.Lum);

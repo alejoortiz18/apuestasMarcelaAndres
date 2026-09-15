@@ -18,12 +18,12 @@ public sealed class ValidarTicketTextsTests
         PdaTexts.ValidarConImagenAyuda.Should().Be("Toma o sube una foto del QR del ticket.");
         PdaTexts.TomarFotoQr.Should().Be("Tomar foto");
         PdaTexts.SubirFotoQr.Should().Be("Subir foto");
-        PdaTexts.LeyendoQr.Should().Be("Leyendo QR");
+        PdaTexts.LeyendoQr.Should().Be(PdaTexts.CamaraQrProcesando);
         PdaTexts.LeyendoQrFoto.Should().Be("Leyendo el QR de la foto...");
         PdaTexts.QrNoEncontradoEnFoto.Should().Be("No se encontró un QR en la imagen. Toma o sube otra foto más nítida.");
         PdaTexts.OtraFormaDeValidar.Should().Be("Elegir otra forma");
         PdaTexts.Consultar.Should().Be("Consultar");
-        PdaTexts.ValidandoQr.Should().Be("Validando QR");
+        PdaTexts.ValidandoQr.Should().Be(PdaTexts.CamaraQrProcesando);
         PdaTexts.EsperandoLector.Should().Be("Apunta la cámara al QR del ticket. Al leerlo se consulta en el servidor.");
         PdaTexts.LecturaDelScanner.Should().Be("Si el lector del equipo deja un código, aparece aquí.");
         PdaTexts.LeerQr.Should().Be("Leer QR");

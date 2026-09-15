@@ -16,7 +16,6 @@ internal static class ObservadorLectorQrMlKit
 {
     public const string Etiqueta = "NewRichQrObs";
 
-    private const int MsFrame = 2500;
     private const int MsFoto = 12000;
 
     private static readonly object Candado = new();
@@ -43,9 +42,9 @@ internal static class ObservadorLectorQrMlKit
                 nv21,
                 ancho,
                 alto,
-                0,
+                CamaraQrLectura.RotacionSensorGrados,
                 (int)ImageFormatType.Nv21);
-            return await LeerAsync(entrada, MsFrame).ConfigureAwait(false);
+            return await LeerAsync(entrada, CamaraQrLectura.MsTimeoutMlKit).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -105,11 +104,16 @@ internal static class ObservadorLectorQrMlKit
     {
         try
         {
-            var lectura = Lector().Process(entrada).AsAsync<Java.Lang.Object>();
+            var fuente = new TaskCompletionSource<Java.Lang.Object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var escucha = new EscuchaMlKit(fuente, Etiqueta);
+            var tarea = Lector().Process(entrada);
+            tarea.AddOnSuccessListener(escucha);
+            tarea.AddOnFailureListener(escucha);
+
+            var lectura = fuente.Task;
             var terminada = await Task.WhenAny(lectura, Task.Delay(ms)).ConfigureAwait(false);
             if (!ReferenceEquals(terminada, lectura))
             {
-                // No se libera la entrada: ML Kit puede seguir leyéndola.
                 global::Android.Util.Log.Warn(Etiqueta, "ml kit: la lectura no respondió a tiempo");
                 return null;
             }
@@ -147,7 +151,7 @@ internal static class ObservadorLectorQrMlKit
             }
 
             using var codigo = elemento.JavaCast<Barcode>();
-            var texto = codigo?.RawValue;
+            var texto = codigo?.RawValue ?? codigo?.DisplayValue;
             if (!string.IsNullOrWhiteSpace(texto))
             {
                 return texto;

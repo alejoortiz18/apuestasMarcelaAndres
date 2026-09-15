@@ -132,6 +132,9 @@ public static class ObservadorLecturaQr
 
         try
         {
+            // El QR se decodifica en cualquier orientación: basta recortar el centro y,
+            // si no aparece, revisar el cuadro completo. Nada de pasadas profundas aquí,
+            // que en el PDA cuestan segundos y dejan la cámara sin analizar cuadros.
             var lado = Math.Min(ancho, alto);
             var centro = Reducir(nv21, ancho, (ancho - lado) / 2, (alto - lado) / 2, lado, lado, Paso(lado, lado));
             var codigo = Decodificar(centro.Luz, centro.Ancho, centro.Alto, profundo: false);

@@ -3,6 +3,7 @@ using NewRich.Maui.Services;
 using NewRich.Maui.Views;
 using NewRich.Pda.Core;
 using NewRich.Pda.Core.Api;
+using NewRich.Shared.Results;
 
 namespace NewRich.Maui.Views.Observador;
 
@@ -62,6 +63,9 @@ public sealed class ObservadorValidarPage : ContentPage
         };
     }
 
+    private Result<ConsultaTicketResponse>? _consultaPrevia;
+    private string? _errorConsultaPrevia;
+
     private async Task LeerCamaraAsync()
     {
         if (_ocupado)
@@ -70,9 +74,33 @@ public sealed class ObservadorValidarPage : ContentPage
         }
 
         _ocupado = true;
+        _consultaPrevia = null;
+        _errorConsultaPrevia = null;
+        string? ticketConsultado = null;
+
         try
         {
-            var codigo = await _camara.EscanearAsync();
+            var codigo = await _camara.EscanearAsync(async codigoLeido =>
+            {
+                var limpio = codigoLeido.Trim();
+                if (ObservadorConsultaTicket.ListoParaConsultar(limpio))
+                {
+                    ticketConsultado = limpio;
+                    try
+                    {
+                        var respuesta = await _api.ConsultarTicketObservadorAsync(new ConsultaTicketRequest
+                        {
+                            TicketCode = limpio
+                        }, CancellationToken.None);
+                        _consultaPrevia = respuesta;
+                    }
+                    catch (Exception)
+                    {
+                        _errorConsultaPrevia = PdaTexts.SinConexionServidor;
+                    }
+                }
+            });
+
             if (codigo is null)
             {
                 await this.AvisoAsync(
@@ -82,12 +110,20 @@ public sealed class ObservadorValidarPage : ContentPage
                 return;
             }
 
-            if (codigo.Trim().Length == 0)
+            var texto = codigo.Trim();
+            if (texto.Length == 0)
             {
                 return;
             }
 
-            await ConsultarAsync(codigo.Trim());
+            if (texto == ticketConsultado && (_consultaPrevia is not null || _errorConsultaPrevia is not null))
+            {
+                await AplicarConsultaPreviaAsync(texto);
+            }
+            else
+            {
+                await ConsultarAsync(texto);
+            }
         }
         catch (Exception)
         {
@@ -100,6 +136,31 @@ public sealed class ObservadorValidarPage : ContentPage
         {
             _ocupado = false;
         }
+    }
+
+    private async Task AplicarConsultaPreviaAsync(string codigo)
+    {
+        _recibo.Children.Clear();
+        if (!string.IsNullOrWhiteSpace(_errorConsultaPrevia))
+        {
+            await this.AvisoAsync(
+                PdaTexts.ObservadorValidarTitulo,
+                _errorConsultaPrevia,
+                PdaTexts.Cerrar);
+            return;
+        }
+
+        var consulta = _consultaPrevia;
+        if (consulta is null || !consulta.IsSuccess || consulta.Data is null)
+        {
+            await this.AvisoAsync(
+                PdaTexts.ObservadorValidarTitulo,
+                string.IsNullOrWhiteSpace(consulta?.Message) ? PdaTexts.ObservadorQrNoLeido : consulta?.Message ?? PdaTexts.ObservadorQrNoLeido,
+                PdaTexts.Cerrar);
+            return;
+        }
+
+        _recibo.Children.Add(ReciboConsultaVista.Crear(TicketConsultaVista.De(consulta.Data)));
     }
 
     private async Task LeerFotoAsync()

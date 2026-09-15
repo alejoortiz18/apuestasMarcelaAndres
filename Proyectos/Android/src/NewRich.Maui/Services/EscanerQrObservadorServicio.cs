@@ -2,7 +2,7 @@ namespace NewRich.Maui.Services;
 
 public sealed class EscanerQrObservadorServicio : IEscanerQrObservador
 {
-    public async Task<string?> EscanearAsync()
+    public async Task<string?> EscanearAsync(Func<string, Task>? alDetectarCodigoAsync = null)
     {
         var permiso = await Permissions.RequestAsync<Permissions.Camera>();
         if (permiso != PermissionStatus.Granted)
@@ -11,7 +11,7 @@ public sealed class EscanerQrObservadorServicio : IEscanerQrObservador
         }
 
 #if ANDROID
-        return await Platforms.Android.LectorQrObservador.EscanearAsync();
+        return await Platforms.Android.LectorQrObservador.EscanearAsync(alDetectarCodigoAsync);
 #else
         return null;
 #endif

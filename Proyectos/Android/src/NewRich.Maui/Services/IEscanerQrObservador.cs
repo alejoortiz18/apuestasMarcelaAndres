@@ -2,7 +2,7 @@ namespace NewRich.Maui.Services;
 
 public interface IEscanerQrObservador
 {
-    Task<string?> EscanearAsync();
+    Task<string?> EscanearAsync(Func<string, Task>? alDetectarCodigoAsync = null);
 }
 
 public interface ILectorQrFotoObservador
