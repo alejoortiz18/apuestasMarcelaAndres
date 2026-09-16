@@ -32,6 +32,7 @@ public sealed class ValidarTicketPage : ContentPage
     private string _ticketConsultado = string.Empty;
     private bool _escuchando;
     private bool _validando;
+    private bool _reportando;
     private bool _modoQr;
     private bool _esperandoEscaner;
     private bool _escribiendoLectura;
@@ -628,6 +629,14 @@ public sealed class ValidarTicketPage : ContentPage
 
     private async Task ReportarAsync()
     {
+        if (_reportando)
+        {
+            return;
+        }
+
+        _reportando = true;
+        _reportar.IsEnabled = false;
+        _cargando.Mostrar(PdaTexts.ReportandoCaso);
         try
         {
             var ticket = string.IsNullOrWhiteSpace(_ticketConsultado)
@@ -647,6 +656,12 @@ public sealed class ValidarTicketPage : ContentPage
         {
             _aviso.Text = PdaTexts.SinConexionServidor;
             _aviso.TextColor = Ui.Danger;
+        }
+        finally
+        {
+            _cargando.Ocultar();
+            _reportar.IsEnabled = true;
+            _reportando = false;
         }
     }
 

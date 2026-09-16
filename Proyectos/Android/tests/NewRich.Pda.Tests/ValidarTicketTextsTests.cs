@@ -29,5 +29,6 @@ public sealed class ValidarTicketTextsTests
         PdaTexts.LeerQr.Should().Be("Leer QR");
         PdaTexts.CodigoNoLeido.Should().Be("No se recibió un código. Vuelve a leerlo con el lector o escríbelo.");
         PdaTexts.ReportarCaso.Should().Be("Reportar caso");
+        PdaTexts.ReportandoCaso.Should().Be("Reportando caso...");
     }
 }

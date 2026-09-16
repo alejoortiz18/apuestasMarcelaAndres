@@ -281,7 +281,7 @@ public sealed class PremioServiceTests
     }
 
     [Fact]
-    public async Task RegistrarEntregaAsync_guarda_datos_tres_fotos_y_marca_premio_entregado()
+    public async Task RegistrarEntregaAsync_guarda_datos_cuatro_fotos_y_marca_premio_entregado()
     {
         var (sut, db) = CreateSut();
         var caso = await CasoAsignadoAsync(sut, db);
@@ -295,7 +295,7 @@ public sealed class PremioServiceTests
         result.Data.ApellidoGanador.Should().Be("Pérez");
         result.Data.ValorTotalGanado.Should().Be(250000);
         db.EntregasGanadores.Should().ContainSingle();
-        db.EvidenciasGanador.Should().HaveCount(3);
+        db.EvidenciasGanador.Should().HaveCount(4);
         db.CasosGanadores.Single().Estado.Should().Be(EstadoCasoGanador.Registrado);
         db.Boletos.Single().EstadoBoleto.Should().Be(EstadoBoleto.PremioEntregado);
         db.Boletos.Single().EstadoDelPremio.Should().Be(EstadoDelPremio.PremioEntregado);
@@ -303,17 +303,88 @@ public sealed class PremioServiceTests
     }
 
     [Fact]
-    public async Task RegistrarEntregaAsync_rechaza_si_faltan_fotos()
+    public async Task RegistrarEntregaAsync_guarda_la_cedula_por_el_frente_y_por_el_reverso()
+    {
+        var (sut, db) = CreateSut();
+        var caso = await CasoAsignadoAsync(sut, db);
+
+        await sut.RegistrarEntregaAsync(caso.CasoId, caso.ObservadorId, EntregaCompleta(), CancellationToken.None);
+
+        db.EvidenciasGanador.Select(e => e.TipoEvidencia).Should().BeEquivalentTo(new[]
+        {
+            TipoEvidencia.TicketConQR,
+            TipoEvidencia.GanadorConTicket,
+            TipoEvidencia.CedulaIdentidad,
+            TipoEvidencia.CedulaReverso
+        });
+    }
+
+    [Theory]
+    [InlineData("FotoTicketConQr")]
+    [InlineData("FotoGanadorConTicket")]
+    [InlineData("FotoCedulaFrente")]
+    [InlineData("FotoCedulaReverso")]
+    public async Task RegistrarEntregaAsync_rechaza_si_faltan_fotos(string propiedad)
     {
         var (sut, db) = CreateSut();
         var caso = await CasoAsignadoAsync(sut, db);
         var request = EntregaCompleta();
-        request.FotoCedula = null;
+        typeof(RegistrarEntregaPremioRequest).GetProperty(propiedad)!.SetValue(request, null);
 
         var result = await sut.RegistrarEntregaAsync(caso.CasoId, caso.ObservadorId, request, CancellationToken.None);
 
         result.IsSuccess.Should().BeFalse();
-        result.Message.Should().Be(PremioMessages.TresFotosObligatorias);
+        result.Message.Should().Be(PremioMessages.FotosObligatorias);
+    }
+
+    [Fact]
+    public async Task RegistrarEntregaAsync_acepta_la_foto_aunque_pese_mas_de_cinco_megabytes()
+    {
+        var (sut, db) = CreateSut();
+        var caso = await CasoAsignadoAsync(sut, db);
+        var request = EntregaCompleta();
+        request.FotoCedulaFrente = new EvidenciaFotoRequest
+        {
+            NombreArchivo = "cedula.jpg",
+            ContenidoBase64 = Convert.ToBase64String(new byte[(5 * 1024 * 1024) + 1])
+        };
+
+        var result = await sut.RegistrarEntregaAsync(caso.CasoId, caso.ObservadorId, request, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        db.EvidenciasGanador.Should().HaveCount(4);
+    }
+
+    [Fact]
+    public async Task RegistrarEntregaAsync_avisa_cuando_la_foto_no_se_puede_leer()
+    {
+        var (sut, db) = CreateSut();
+        var caso = await CasoAsignadoAsync(sut, db);
+        var request = EntregaCompleta();
+        request.FotoCedulaReverso = new EvidenciaFotoRequest
+        {
+            NombreArchivo = "cedula.jpg",
+            ContenidoBase64 = "esto no es base64 %%%"
+        };
+
+        var result = await sut.RegistrarEntregaAsync(caso.CasoId, caso.ObservadorId, request, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Message.Should().Be(PremioMessages.FotoIlegible);
+    }
+
+    [Fact]
+    public async Task RegistrarEntregaAsync_avisa_cuando_el_formato_no_se_admite()
+    {
+        var (sut, db) = CreateSut();
+        var caso = await CasoAsignadoAsync(sut, db);
+        var request = EntregaCompleta();
+        request.FotoCedulaReverso = Foto("cedula.pdf");
+
+        var result = await sut.RegistrarEntregaAsync(caso.CasoId, caso.ObservadorId, request, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Message.Should().Be(PremioMessages.FotoFormatoNoAdmitido);
     }
 
     [Fact]
@@ -331,8 +402,9 @@ public sealed class PremioServiceTests
         detalle.PersonaQueEntrega.Should().Be(escenario.Observador.NombreCompleto);
         detalle.NombreVendedorEntrega.Should().Be(escenario.Vendedor.NombreCompleto);
         detalle.FechaEntrega.Should().NotBeNull();
-        detalle.Evidencias.Should().HaveCount(3);
+        detalle.Evidencias.Should().HaveCount(4);
         detalle.Evidencias.Select(e => e.Tipo).Should().Contain("Ticket con QR");
+        detalle.Evidencias.Select(e => e.Tipo).Should().Contain(PremioMessages.EvidenciaCedulaReverso);
         detalle.Resultados.Should().ContainSingle(r => r.Loteria == "Cundinamarca" && r.Numero == "1234" && r.NumeroGanador == "1234" && r.Gano);
         detalle.FechaJuego.Should().NotBeNull();
     }
@@ -426,7 +498,8 @@ public sealed class PremioServiceTests
         ValorTotalGanado = 250000,
         FotoTicketConQr = Foto("ticket.jpg"),
         FotoGanadorConTicket = Foto("ganador.jpg"),
-        FotoCedula = Foto("cedula.jpg")
+        FotoCedulaFrente = Foto("cedula-frente.jpg"),
+        FotoCedulaReverso = Foto("cedula-reverso.jpg")
     };
 
     private static EvidenciaFotoRequest Foto(string nombre) => new()

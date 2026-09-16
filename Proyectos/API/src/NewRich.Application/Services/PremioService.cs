@@ -4,6 +4,7 @@ using NewRich.Application.Chat;
 using NewRich.Application.Contracts.Boletos;
 using NewRich.Application.Contracts.Chat;
 using NewRich.Application.Contracts.Premios;
+using NewRich.Application.Premios;
 using NewRich.Constants;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
@@ -174,6 +175,7 @@ public sealed class PremioService : IPremioService
     {
         TipoEvidencia.TicketConQR => PremioMessages.EvidenciaTicketConQr,
         TipoEvidencia.GanadorConTicket => PremioMessages.EvidenciaGanadorConTicket,
+        TipoEvidencia.CedulaReverso => PremioMessages.EvidenciaCedulaReverso,
         _ => PremioMessages.EvidenciaCedula
     };
 
@@ -438,9 +440,12 @@ public sealed class PremioService : IPremioService
             return Result<CasoGanadorResponse>.Fail(PremioMessages.DatosEntregaIncompletos);
         }
 
-        if (request.FotoTicketConQr is null || request.FotoGanadorConTicket is null || request.FotoCedula is null)
+        if (request.FotoTicketConQr is null
+            || request.FotoGanadorConTicket is null
+            || request.FotoCedulaFrente is null
+            || request.FotoCedulaReverso is null)
         {
-            return Result<CasoGanadorResponse>.Fail(PremioMessages.TresFotosObligatorias);
+            return Result<CasoGanadorResponse>.Fail(PremioMessages.FotosObligatorias);
         }
 
         var fotoTicket = await GuardarEvidenciaAsync(request.FotoTicketConQr, cancellationToken);
@@ -455,10 +460,16 @@ public sealed class PremioService : IPremioService
             return Result<CasoGanadorResponse>.Fail(fotoGanador.Message);
         }
 
-        var fotoCedula = await GuardarEvidenciaAsync(request.FotoCedula, cancellationToken);
-        if (!fotoCedula.IsSuccess)
+        var fotoCedulaFrente = await GuardarEvidenciaAsync(request.FotoCedulaFrente, cancellationToken);
+        if (!fotoCedulaFrente.IsSuccess)
         {
-            return Result<CasoGanadorResponse>.Fail(fotoCedula.Message);
+            return Result<CasoGanadorResponse>.Fail(fotoCedulaFrente.Message);
+        }
+
+        var fotoCedulaReverso = await GuardarEvidenciaAsync(request.FotoCedulaReverso, cancellationToken);
+        if (!fotoCedulaReverso.IsSuccess)
+        {
+            return Result<CasoGanadorResponse>.Fail(fotoCedulaReverso.Message);
         }
 
         var ahora = _clock.UtcNow;
@@ -499,7 +510,15 @@ public sealed class PremioService : IPremioService
             EvidenciaId = Guid.NewGuid(),
             EntregaId = entrega.EntregaId,
             TipoEvidencia = TipoEvidencia.CedulaIdentidad,
-            RutaImagen = fotoCedula.Data!.Ruta,
+            RutaImagen = fotoCedulaFrente.Data!.Ruta,
+            FechaCaptura = ahora
+        });
+        entrega.Evidencias.Add(new EvidenciaGanador
+        {
+            EvidenciaId = Guid.NewGuid(),
+            EntregaId = entrega.EntregaId,
+            TipoEvidencia = TipoEvidencia.CedulaReverso,
+            RutaImagen = fotoCedulaReverso.Data!.Ruta,
             FechaCaptura = ahora
         });
 
@@ -528,34 +547,14 @@ public sealed class PremioService : IPremioService
 
     private async Task<Result<FotoGuardada>> GuardarEvidenciaAsync(EvidenciaFotoRequest request, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(request.ContenidoBase64))
+        var lectura = FotoEvidencia.Leer(request.NombreArchivo, request.ContenidoBase64);
+        if (!lectura.IsSuccess)
         {
-            return Result<FotoGuardada>.Fail(PremioMessages.TresFotosObligatorias);
-        }
-
-        byte[] bytes;
-        try
-        {
-            bytes = Convert.FromBase64String(request.ContenidoBase64);
-        }
-        catch (FormatException)
-        {
-            return Result<FotoGuardada>.Fail(PremioMessages.FotoQrInvalida);
+            return Result<FotoGuardada>.Fail(lectura.Message);
         }
 
         var nombre = ChatAdjunto.NombreSeguro(request.NombreArchivo);
-        if (!ChatAdjunto.EsImagen(nombre))
-        {
-            return Result<FotoGuardada>.Fail(PremioMessages.FotoQrInvalida);
-        }
-
-        var validacion = ChatAdjunto.Validar(nombre, bytes);
-        if (!validacion.IsSuccess)
-        {
-            return Result<FotoGuardada>.Fail(PremioMessages.FotoQrInvalida);
-        }
-
-        await using var stream = new MemoryStream(bytes);
+        await using var stream = new MemoryStream(lectura.Data!);
         var ruta = await _files.SaveAsync(stream, nombre, cancellationToken);
         return Result<FotoGuardada>.Ok(new FotoGuardada(ruta, nombre), SuccessMessages.OperacionExitosa);
     }
@@ -615,29 +614,14 @@ public sealed class PremioService : IPremioService
                 : Result<FotoGuardada?>.Ok(null, SuccessMessages.OperacionExitosa);
         }
 
-        byte[] bytes;
-        try
+        var lectura = FotoEvidencia.Leer(request.NombreArchivo, request.ContenidoBase64);
+        if (!lectura.IsSuccess)
         {
-            bytes = Convert.FromBase64String(request.ContenidoBase64 ?? string.Empty);
-        }
-        catch (FormatException)
-        {
-            return Result<FotoGuardada?>.Fail(PremioMessages.FotoQrInvalida);
+            return Result<FotoGuardada?>.Fail(lectura.Message);
         }
 
         var nombre = ChatAdjunto.NombreSeguro(request.NombreArchivo);
-        if (!ChatAdjunto.EsImagen(nombre))
-        {
-            return Result<FotoGuardada?>.Fail(PremioMessages.FotoQrInvalida);
-        }
-
-        var validacion = ChatAdjunto.Validar(nombre, bytes);
-        if (!validacion.IsSuccess)
-        {
-            return Result<FotoGuardada?>.Fail(PremioMessages.FotoQrInvalida);
-        }
-
-        await using var stream = new MemoryStream(bytes);
+        await using var stream = new MemoryStream(lectura.Data!);
         var ruta = await _files.SaveAsync(stream, nombre, cancellationToken);
         return Result<FotoGuardada?>.Ok(new FotoGuardada(ruta, nombre), SuccessMessages.OperacionExitosa);
     }

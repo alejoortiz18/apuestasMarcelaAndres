@@ -13,7 +13,8 @@ public static class EntregaPremioFormulario
         string? valor,
         bool fotoTicket,
         bool fotoGanador,
-        bool fotoCedula)
+        bool fotoCedulaFrente,
+        bool fotoCedulaReverso)
     {
         if (string.IsNullOrWhiteSpace(nombre)
             || string.IsNullOrWhiteSpace(apellido)
@@ -29,59 +30,25 @@ public static class EntregaPremioFormulario
             return false;
         }
 
-        return fotoTicket && fotoGanador && fotoCedula;
+        return fotoTicket && fotoGanador && fotoCedulaFrente && fotoCedulaReverso;
     }
 
-    public static string? Pendiente(
-        string? nombre,
-        string? apellido,
-        string? contacto,
-        string? lugar,
-        string? valor,
-        bool fotoTicket,
-        bool fotoGanador,
-        bool fotoCedula)
+    /// <summary>Estado que acompaña a cada par de botones de captura.</summary>
+    public static string EtiquetaFoto(string? archivo) =>
+        string.IsNullOrWhiteSpace(archivo)
+            ? PdaTexts.FotoPendiente
+            : $"{PdaTexts.FotoCargada} {archivo.Trim()}";
+
+    /// <summary>Listado de las fotos ya cargadas que se muestra encima del botón de registro.</summary>
+    public static string ResumenFotosCargadas(params (string Titulo, string? Archivo)[] fotos)
     {
-        if (string.IsNullOrWhiteSpace(nombre))
-        {
-            return PdaTexts.NombreGanador;
-        }
+        var cargadas = fotos
+            .Where(f => !string.IsNullOrWhiteSpace(f.Archivo))
+            .Select(f => $"{f.Titulo}: {f.Archivo!.Trim()}")
+            .ToList();
 
-        if (string.IsNullOrWhiteSpace(apellido))
-        {
-            return PdaTexts.ApellidoGanador;
-        }
-
-        if (string.IsNullOrWhiteSpace(contacto))
-        {
-            return PdaTexts.NumeroContacto;
-        }
-
-        if (string.IsNullOrWhiteSpace(lugar))
-        {
-            return PdaTexts.LugarGano;
-        }
-
-        if (string.IsNullOrWhiteSpace(valor) || !decimal.TryParse(valor.Trim(), out var monto) || monto <= 0)
-        {
-            return PdaTexts.ValorTotalGanado;
-        }
-
-        if (!fotoTicket)
-        {
-            return PdaTexts.FotoTicketConQr;
-        }
-
-        if (!fotoGanador)
-        {
-            return PdaTexts.FotoGanadorConTicket;
-        }
-
-        if (!fotoCedula)
-        {
-            return PdaTexts.FotoCedula;
-        }
-
-        return null;
+        return cargadas.Count == 0
+            ? string.Empty
+            : string.Join(Environment.NewLine, cargadas.Prepend(PdaTexts.FotosCargadas));
     }
 }

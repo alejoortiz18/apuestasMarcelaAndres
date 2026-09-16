@@ -12,6 +12,9 @@ using NewRich.Shared;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Las evidencias de los premios viajan como fotos sin comprimir tomadas por el celular.
+builder.WebHost.ConfigureKestrel(opciones => opciones.Limits.MaxRequestBodySize = 300L * 1024 * 1024);
+
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddScoped<INotificacionTiempoReal, SignalRNotificacionTiempoReal>();

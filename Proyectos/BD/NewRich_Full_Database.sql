@@ -623,15 +623,29 @@ BEGIN
     CREATE TABLE dbo.EvidenciasGanador (
         EvidenciaId     UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
         EntregaId       UNIQUEIDENTIFIER NOT NULL,
-        TipoEvidencia   NVARCHAR(30)     NOT NULL, -- TicketConQR, GanadorConTicket, CedulaIdentidad
+        TipoEvidencia   NVARCHAR(30)     NOT NULL, -- TicketConQR, GanadorConTicket, CedulaIdentidad (frente), CedulaReverso
         RutaImagen      NVARCHAR(500)    NOT NULL,
         FechaCaptura    DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
         CONSTRAINT PK_EvidenciasGanador PRIMARY KEY (EvidenciaId),
         CONSTRAINT FK_EvidenciasGanador_Entregas FOREIGN KEY (EntregaId) REFERENCES dbo.EntregasGanadores(EntregaId),
-        CONSTRAINT CK_EvidenciasGanador_Tipo CHECK (TipoEvidencia IN ('TicketConQR', 'GanadorConTicket', 'CedulaIdentidad'))
+        CONSTRAINT CK_EvidenciasGanador_Tipo CHECK (TipoEvidencia IN ('TicketConQR', 'GanadorConTicket', 'CedulaIdentidad', 'CedulaReverso'))
     );
     CREATE INDEX IX_EvidenciasGanador_EntregaId ON dbo.EvidenciasGanador(EntregaId);
     PRINT 'Tabla EvidenciasGanador creada.';
+END
+GO
+
+/* 8.3.1. La cedula se fotografia por el frente y por el reverso */
+IF EXISTS (
+    SELECT 1 FROM sys.check_constraints
+    WHERE name = N'CK_EvidenciasGanador_Tipo'
+      AND definition NOT LIKE N'%CedulaReverso%')
+BEGIN
+    ALTER TABLE dbo.EvidenciasGanador DROP CONSTRAINT CK_EvidenciasGanador_Tipo;
+    ALTER TABLE dbo.EvidenciasGanador
+        ADD CONSTRAINT CK_EvidenciasGanador_Tipo
+        CHECK (TipoEvidencia IN ('TicketConQR', 'GanadorConTicket', 'CedulaIdentidad', 'CedulaReverso'));
+    PRINT 'CK_EvidenciasGanador_Tipo ahora admite CedulaReverso.';
 END
 GO
 

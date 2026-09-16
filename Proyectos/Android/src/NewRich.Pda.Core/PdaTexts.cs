@@ -141,6 +141,7 @@ public static class PdaTexts
     public const string ModoSincronizacion = "Modo de sincronización";
     public const string TicketCode = "Código del ticket";
     public const string ReportarCaso = "Reportar caso";
+    public const string ReportandoCaso = "Reportando caso...";
     public const string LeerQr = "Leer QR";
     public const string ValidandoQr = CamaraQrProcesando;
     public const string LeerCodigoBarras = "Leer código de barras";
@@ -270,10 +271,13 @@ public static class PdaTexts
     public const string PersonaQueEntrega = "Persona que entrega el premio";
     public const string FotoTicketConQr = "Foto del ticket con QR";
     public const string FotoGanadorConTicket = "Foto del ganador con el ticket";
-    public const string FotoCedula = "Foto de la cédula";
+    public const string FotoCedulaFrente = "Foto de la cédula por el frente";
+    public const string FotoCedulaReverso = "Foto de la cédula por el reverso";
     public const string TomarFoto = "Tomar foto";
     public const string ElegirGaleria = "Galería";
-    public const string FotoCargada = "Foto lista";
+    public const string FotoPendiente = "Pendiente";
+    public const string FotoCargada = "Cargada:";
+    public const string FotosCargadas = "Fotos cargadas:";
     public const string FaltaCompletar = "Falta completar:";
     public const string CancelarBoletoConfirma = "Se perderán los juegos agregados en este boleto. ¿Deseas continuar?";
     public const string ArranqueEslogan = "Cargando un futuro más brillante...";

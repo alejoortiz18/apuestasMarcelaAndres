@@ -29,7 +29,8 @@ public sealed class RegistrarEntregaPremioRequest
     public decimal ValorTotalGanado { get; set; }
     public EvidenciaFotoRequest? FotoTicketConQr { get; set; }
     public EvidenciaFotoRequest? FotoGanadorConTicket { get; set; }
-    public EvidenciaFotoRequest? FotoCedula { get; set; }
+    public EvidenciaFotoRequest? FotoCedulaFrente { get; set; }
+    public EvidenciaFotoRequest? FotoCedulaReverso { get; set; }
 }
 
 public sealed class CasoGanadorResponse

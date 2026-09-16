@@ -19,13 +19,15 @@ public sealed class RegistroEntregaPage : ContentPage
     private readonly Label _entrega;
     private readonly Label _estadoFotoTicket = EstadoFoto();
     private readonly Label _estadoFotoGanador = EstadoFoto();
-    private readonly Label _estadoFotoCedula = EstadoFoto();
-    private readonly Label _pendiente = new() { FontSize = 12, TextColor = Ui.Warn };
+    private readonly Label _estadoFotoCedulaFrente = EstadoFoto();
+    private readonly Label _estadoFotoCedulaReverso = EstadoFoto();
+    private readonly Label _pendiente = new() { FontSize = 12, TextColor = Ui.Green };
     private readonly Label _aviso = new() { FontSize = 12, TextColor = Ui.Danger };
     private readonly Button _registrar;
     private EvidenciaFotoRequest? _fotoTicket;
     private EvidenciaFotoRequest? _fotoGanador;
-    private EvidenciaFotoRequest? _fotoCedula;
+    private EvidenciaFotoRequest? _fotoCedulaFrente;
+    private EvidenciaFotoRequest? _fotoCedulaReverso;
     private bool _enviando;
 
     public RegistroEntregaPage(NewRichApiClient api, SesionPda sesion, CasoGanadorResponse caso)
@@ -93,9 +95,12 @@ public sealed class RegistroEntregaPage : ContentPage
                     BloqueFoto(PdaTexts.FotoGanadorConTicket, _estadoFotoGanador,
                         () => CapturarAsync(f => _fotoGanador = f, _estadoFotoGanador, true),
                         () => CapturarAsync(f => _fotoGanador = f, _estadoFotoGanador, false)),
-                    BloqueFoto(PdaTexts.FotoCedula, _estadoFotoCedula,
-                        () => CapturarAsync(f => _fotoCedula = f, _estadoFotoCedula, true),
-                        () => CapturarAsync(f => _fotoCedula = f, _estadoFotoCedula, false)),
+                    BloqueFoto(PdaTexts.FotoCedulaFrente, _estadoFotoCedulaFrente,
+                        () => CapturarAsync(f => _fotoCedulaFrente = f, _estadoFotoCedulaFrente, true),
+                        () => CapturarAsync(f => _fotoCedulaFrente = f, _estadoFotoCedulaFrente, false)),
+                    BloqueFoto(PdaTexts.FotoCedulaReverso, _estadoFotoCedulaReverso,
+                        () => CapturarAsync(f => _fotoCedulaReverso = f, _estadoFotoCedulaReverso, true),
+                        () => CapturarAsync(f => _fotoCedulaReverso = f, _estadoFotoCedulaReverso, false)),
                     _pendiente,
                     _aviso,
                     _registrar
@@ -146,12 +151,13 @@ public sealed class RegistroEntregaPage : ContentPage
             await using var stream = await archivo.OpenReadAsync();
             using var buffer = new MemoryStream();
             await stream.CopyToAsync(buffer);
+            var nombre = FotoCapturada.Nombre(archivo.FileName);
             asignar(new EvidenciaFotoRequest
             {
-                NombreArchivo = string.IsNullOrWhiteSpace(archivo.FileName) ? "evidencia.jpg" : archivo.FileName,
+                NombreArchivo = nombre,
                 ContenidoBase64 = Convert.ToBase64String(buffer.ToArray())
             });
-            estado.Text = PdaTexts.FotoCargada;
+            estado.Text = EntregaPremioFormulario.EtiquetaFoto(nombre);
             estado.TextColor = Ui.Green;
             ActualizarEstadoBoton();
         }
@@ -187,7 +193,8 @@ public sealed class RegistroEntregaPage : ContentPage
                 ValorTotalGanado = monto,
                 FotoTicketConQr = _fotoTicket,
                 FotoGanadorConTicket = _fotoGanador,
-                FotoCedula = _fotoCedula
+                FotoCedulaFrente = _fotoCedulaFrente,
+                FotoCedulaReverso = _fotoCedulaReverso
             }, CancellationToken.None);
 
             if (!resultado.IsSuccess)
@@ -230,7 +237,8 @@ public sealed class RegistroEntregaPage : ContentPage
         var evidencias = new List<(string, byte[])>();
         Agregar(evidencias, PdaTexts.FotoTicketConQr, _fotoTicket);
         Agregar(evidencias, PdaTexts.FotoGanadorConTicket, _fotoGanador);
-        Agregar(evidencias, PdaTexts.FotoCedula, _fotoCedula);
+        Agregar(evidencias, PdaTexts.FotoCedulaFrente, _fotoCedulaFrente);
+        Agregar(evidencias, PdaTexts.FotoCedulaReverso, _fotoCedulaReverso);
 
         var actual = this;
         await Navigation.PushAsync(new ComprobanteEntregaPage(datos, evidencias));
@@ -257,19 +265,15 @@ public sealed class RegistroEntregaPage : ContentPage
             _valor.Text,
             _fotoTicket is not null,
             _fotoGanador is not null,
-            _fotoCedula is not null);
+            _fotoCedulaFrente is not null,
+            _fotoCedulaReverso is not null);
         _registrar.IsEnabled = completo && !_enviando;
         _registrar.Opacity = completo ? 1 : 0.45;
-        var pendiente = EntregaPremioFormulario.Pendiente(
-            _nombre.Text,
-            _apellido.Text,
-            _contacto.Text,
-            _lugar.Text,
-            _valor.Text,
-            _fotoTicket is not null,
-            _fotoGanador is not null,
-            _fotoCedula is not null);
-        _pendiente.Text = pendiente is null ? string.Empty : $"{PdaTexts.FaltaCompletar} {pendiente}";
+        _pendiente.Text = EntregaPremioFormulario.ResumenFotosCargadas(
+            (PdaTexts.FotoTicketConQr, _fotoTicket?.NombreArchivo),
+            (PdaTexts.FotoGanadorConTicket, _fotoGanador?.NombreArchivo),
+            (PdaTexts.FotoCedulaFrente, _fotoCedulaFrente?.NombreArchivo),
+            (PdaTexts.FotoCedulaReverso, _fotoCedulaReverso?.NombreArchivo));
     }
 
     private static View BloqueFoto(string titulo, Label estado, Func<Task> tomar, Func<Task> galeria)
@@ -317,7 +321,7 @@ public sealed class RegistroEntregaPage : ContentPage
 
     private static Label EstadoFoto() => new()
     {
-        Text = "Pendiente",
+        Text = PdaTexts.FotoPendiente,
         FontSize = 12,
         TextColor = Ui.Muted
     };
