@@ -184,7 +184,7 @@ public sealed class KpiPage : ContentPage
             Children =
             {
                 Mini(PdaTexts.ConsultaVentas, tablero.Ventas.ToString(), 0),
-                Mini(PdaTexts.KpiTicketPromedio, FormatoDinero.Pesos(tablero.TicketPromedio), 1),
+                Mini(PdaTexts.KpiValorMasAltoApostado, FormatoDinero.Pesos(tablero.ValorMasAltoApostado), 1),
                 Mini(PdaTexts.KpiPicoDelPeriodo, tablero.Pico, 2)
             }
         });

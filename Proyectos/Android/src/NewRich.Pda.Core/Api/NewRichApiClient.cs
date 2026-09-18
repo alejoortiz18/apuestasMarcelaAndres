@@ -72,10 +72,7 @@ public sealed class NewRichApiClient
                 _opciones.BaseUrl = url;
                 using var request = Crear(HttpMethod.Get, "swagger/v1/swagger.json", null, null);
                 using var response = await _http.SendAsync(request, ct);
-                if (response.IsSuccessStatusCode)
-                {
-                    return Result.Ok(SuccessMessages.OperacionExitosa);
-                }
+                return Result.Ok(SuccessMessages.OperacionExitosa);
             }
             catch (HttpRequestException)
             {

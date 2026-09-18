@@ -70,7 +70,7 @@ public sealed class VentaService : IVentaService
         try
         {
             VentaResponse? respuesta = null;
-            var avisos = new List<(IReadOnlyList<Guid> Destinatarios, string Tipo, string Mensaje)>();
+            var avisos = new List<(IReadOnlyList<Guid> Destinatarios, string Tipo, string Mensaje, Guid VentaId, Guid JuegoId)>();
             await _db.ExecuteInTransactionAsync(async ct =>
         {
             var vendedor = await _db.Usuarios.FirstAsync(u => u.UsuarioId == vendedorId, ct);
@@ -165,13 +165,13 @@ public sealed class VentaService : IVentaService
                 var repeticiones = await _db.Juegos.CountAsync(j => j.Numero == linea.Numero && j.Boleto!.FechaCreacion.Date == _clock.UtcNow.Date, ct);
                 if (repeticiones + 1 >= alertaRepeticion)
                 {
-                    avisos.Add((admins, NotificacionMessages.TipoRepeticionNumero, string.Format(VentaMessages.AlertaRepeticionNumero, linea.Numero)));
+                    avisos.Add((admins, NotificacionMessages.TipoRepeticionNumero, string.Format(VentaMessages.AlertaRepeticionNumero, linea.Numero), venta.VentaId, juego.JuegoId));
                 }
 
                 var totalJugada = TotalesApuesta.TotalJuego(linea.Valor, loterias.Count);
                 if (totalJugada >= alertaValor)
                 {
-                    avisos.Add((admins, "ValorAlto", string.Format(VentaMessages.AlertaValorAlto, totalJugada.ToString("N0", CultureInfo.GetCultureInfo("es-CO")))));
+                    avisos.Add((admins, NotificacionMessages.TipoValorAlto, string.Format(VentaMessages.AlertaValorAlto, totalJugada.ToString("N0", CultureInfo.GetCultureInfo("es-CO"))), venta.VentaId, juego.JuegoId));
                 }
             }
 
@@ -216,7 +216,7 @@ public sealed class VentaService : IVentaService
 
             foreach (var aviso in avisos)
             {
-                await _notificaciones.CrearParaAsync(aviso.Destinatarios, aviso.Tipo, aviso.Mensaje, cancellationToken);
+                await _notificaciones.CrearParaAsync(aviso.Destinatarios, aviso.Tipo, aviso.Mensaje, cancellationToken, aviso.VentaId, aviso.JuegoId);
             }
 
             return Result<VentaResponse>.Created(respuesta!, SuccessMessages.VentaConfirmada);

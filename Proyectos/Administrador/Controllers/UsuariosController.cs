@@ -62,7 +62,7 @@ public sealed class UsuariosController : AdminControllerBase
     [HttpGet]
     public async Task<IActionResult> Crear(CancellationToken cancellationToken)
     {
-        var model = await BuildForm(new UsuarioFormViewModel(), cancellationToken);
+        var model = await BuildForm(new UsuarioFormViewModel(), cancellationToken, soloDisponibles: true);
         if (EsPeticionAjax())
         {
             return PartialView("_FormModal", model);
@@ -305,12 +305,17 @@ public sealed class UsuariosController : AdminControllerBase
         return RedirectToAction(nameof(Index));
     }
 
-    private async Task<UsuarioFormViewModel> BuildForm(UsuarioFormViewModel model, CancellationToken cancellationToken)
+    private async Task<UsuarioFormViewModel> BuildForm(
+        UsuarioFormViewModel model,
+        CancellationToken cancellationToken,
+        bool soloDisponibles = false)
     {
         var dispositivosTask = _api.ListarDispositivosAsync(cancellationToken);
         var gruposTask = _api.ListarGruposAsync(cancellationToken);
         await Task.WhenAll(dispositivosTask, gruposTask);
-        model.Dispositivos = dispositivosTask.Result.Data ?? [];
+        model.Dispositivos = (dispositivosTask.Result.Data ?? [])
+            .Where(d => !soloDisponibles || !d.UsuarioAsociadoId.HasValue)
+            .ToList();
         model.Grupos = gruposTask.Result.Data ?? [];
         return model;
     }
@@ -318,7 +323,7 @@ public sealed class UsuariosController : AdminControllerBase
     /// <summary>El formulario de creación vive en un modal, salvo que se abra la página directa.</summary>
     private async Task<IActionResult> FormularioCrear(UsuarioFormViewModel model, CancellationToken cancellationToken)
     {
-        var formulario = await BuildForm(model, cancellationToken);
+        var formulario = await BuildForm(model, cancellationToken, soloDisponibles: true);
         return EsPeticionAjax()
             ? PartialView("_FormModal", formulario)
             : View("Form", formulario);

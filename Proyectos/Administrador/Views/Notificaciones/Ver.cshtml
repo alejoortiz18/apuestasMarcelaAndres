@@ -26,6 +26,22 @@
         }
     </div>
 </div>
+@if (Model.DetalleVenta is not null)
+{
+    <div class="panel">
+        <div class="panel-head">
+            <div>
+                <h2>@UiTexts.DetalleVenta</h2>
+            </div>
+        </div>
+        <div class="receipt">
+            <div class="receipt-row"><span>@UiTexts.NumeroJugado</span><strong>@Model.DetalleVenta.Numero</strong></div>
+            <div class="receipt-row"><span>@UiTexts.Loteria</span><strong>@Model.DetalleVenta.Loteria</strong></div>
+            <div class="receipt-row"><span>@UiTexts.Valor</span><strong>@Model.DetalleVenta.Valor.ToString("N0")</strong></div>
+            <div class="receipt-row"><span>@UiTexts.Vendedor</span><strong>@Model.DetalleVenta.Vendedor</strong></div>
+        </div>
+    </div>
+}
 @if (!string.IsNullOrWhiteSpace(numero))
 {
     <div class="panel">

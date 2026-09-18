@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using NewRich.Admin.Constants;
 using NewRich.Admin.Models;
 using NewRich.Admin.Services;
+using NewRich.Application.Contracts.Boletos;
 using NewRich.Application.Contracts.Resultados;
 using NewRich.Constants.Messages;
 
@@ -28,6 +29,24 @@ public sealed class ResultadosController : AdminControllerBase
             return unauthorized;
         }
 
+        var resultados = (resultadosTask.Result.Data ?? []).ToList();
+        foreach (var resultado in resultados)
+        {
+            var ganadores = await _api.FiltrarBoletosAsync(new FiltroBoletosRequest
+            {
+                Estado = "Ganador",
+                Numero = resultado.Numero,
+                LoteriaId = resultado.LoteriaId,
+                FechaInicial = resultado.FechaJuego.ToDateTime(TimeOnly.MinValue),
+                FechaFinal = resultado.FechaJuego.ToDateTime(TimeOnly.MaxValue)
+            }, cancellationToken);
+
+            if (ganadores.Success)
+            {
+                resultado.CantidadGanadores = ganadores.Data?.Count ?? 0;
+            }
+        }
+
         ViewBag.Fecha = fecha?.ToString("yyyy-MM-dd");
         ViewBag.LoteriaId = loteriaId;
         return View(new ResultadosIndexViewModel
@@ -35,7 +54,47 @@ public sealed class ResultadosController : AdminControllerBase
             Fecha = fecha,
             LoteriaId = loteriaId,
             Loterias = loteriasTask.Result.Data ?? [],
-            Pagina = PagingHelper.Paginate(resultadosTask.Result.Data ?? [], page, pageSize)
+            Pagina = PagingHelper.Paginate(resultados, page, pageSize)
+        });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Ganadores(Guid numeroGanadorId, CancellationToken cancellationToken = default)
+    {
+        SetNav("resultados", UiTexts.NavResultados);
+        var resultados = await _api.ListarResultadosAsync(null, null, cancellationToken);
+        var unauthorized = RedirectIfUnauthorized(resultados);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
+        var resultado = resultados.Data?.FirstOrDefault(r => r.NumeroGanadorId == numeroGanadorId);
+        if (resultado is null)
+        {
+            SetFlash("No se encontró el resultado seleccionado.", false);
+            return RedirectToAction(nameof(Index));
+        }
+
+        var ganadores = await _api.FiltrarBoletosAsync(new FiltroBoletosRequest
+        {
+            Estado = "Ganador",
+            Numero = resultado.Numero,
+            LoteriaId = resultado.LoteriaId,
+            FechaInicial = resultado.FechaJuego.ToDateTime(TimeOnly.MinValue),
+            FechaFinal = resultado.FechaJuego.ToDateTime(TimeOnly.MaxValue)
+        }, cancellationToken);
+
+        var unauthorizedGanadores = RedirectIfUnauthorized(ganadores);
+        if (unauthorizedGanadores is not null)
+        {
+            return unauthorizedGanadores;
+        }
+
+        return View(new ResultadoGanadoresViewModel
+        {
+            Resultado = resultado,
+            Ganadores = ganadores.Data ?? []
         });
     }
 

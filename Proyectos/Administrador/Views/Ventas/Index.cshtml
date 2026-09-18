@@ -73,8 +73,12 @@
                 <tbody>
                 @foreach (var row in Model.Pagina.Items)
                 {
-                    var flags = string.Equals(row.Estado, "Ganador", StringComparison.OrdinalIgnoreCase) ? "ganador" : "";
-                    <tr tabindex="0" data-row-id="@row.BoletoId" data-flags="@flags">
+                    var flags = string.Equals(row.Estado, "Ganador", StringComparison.OrdinalIgnoreCase)
+                        ? "ganador"
+                        : string.Equals(row.Estado, "Premio entregado", StringComparison.OrdinalIgnoreCase)
+                            ? "premio-entregado"
+                            : "";
+                    <tr tabindex="0" data-row-id="@row.BoletoId" data-flags="@flags" class="@flags">
                         <td class="col-check">
                             <input class="row-check" type="checkbox" value="@row.BoletoId" aria-label="@UiTexts.SeleccionarFila @row.CodigoPublico" />
                         </td>

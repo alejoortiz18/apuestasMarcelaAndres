@@ -170,7 +170,7 @@ internal static class KpiPdf
                     col.Spacing(8);
                     col.Item().Text($"{UiTexts.CorteDeInformacion}: {kpi.Corte:dd/MM/yyyy HH:mm} · {UiTexts.FuenteSql}");
                     col.Item().Text($"{UiTexts.IngresosRegistrados}: {kpi.Ingresos.ToString("C0", cultura)} · {UiTexts.VentasConfirmadas}: {kpi.VentasConfirmadas}");
-                    col.Item().Text($"{UiTexts.TicketPromedio}: {kpi.TicketPromedio.ToString("C0", cultura)} · {UiTexts.BoletosGanadores}: {kpi.BoletosGanadores}");
+                    col.Item().Text($"{UiTexts.NumeroMasJugado}: {kpi.NumeroMasJugado ?? "—"} · {UiTexts.ValorMasAltoApostado}: {kpi.ValorMasAltoApostado.ToString("C0", cultura)} · {UiTexts.BoletosGanadores}: {kpi.BoletosGanadores}");
                     col.Item().Text($"{UiTexts.PersonasTotales}: {kpi.PersonasTotales} · {UiTexts.Vendedor}: {kpi.Vendedores} · {UiTexts.Observador}: {kpi.Observadores}");
                     col.Item().Text($"{UiTexts.ValorEntregado}: {kpi.ValorPremiosEntregados.ToString("C0", cultura)} · {UiTexts.CasosAbiertos}: {kpi.CasosAbiertos}");
                     col.Item().Text($"{UiTexts.PdasConectados}: {kpi.PdasConectados} / {kpi.PdasTotales} · {UiTexts.AlertasActivas}: {kpi.AlertasActivas}");

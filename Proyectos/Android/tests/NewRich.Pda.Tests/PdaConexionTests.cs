@@ -31,7 +31,7 @@ public sealed class PdaConexionTests
         PdaConexion.UrlRedLocal.Should().NotContain("10.0.2.2");
         PdaConexion.UrlRedLocal.Should().Contain(":5295");
         // IP del PC que publica la API en la red del local.
-        PdaConexion.UrlRedLocal.Should().Be("http://192.168.20.31:5295/");
+        PdaConexion.UrlRedLocal.Should().Be("http://192.168.1.19:5295/");
     }
 
     [Fact]
@@ -44,8 +44,8 @@ public sealed class PdaConexionTests
     public void Dispositivo_fisico_prueba_primero_el_puente_usb_y_luego_la_red_local()
     {
         PdaConexion.UrlsPara(emulador: false).Should().Equal(
-            PdaConexion.UrlPuenteUsb,
-            PdaConexion.UrlRedLocal);
+            PdaConexion.UrlRedLocal,
+            PdaConexion.UrlPuenteUsb);
     }
 
     [Fact]

@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
+using System.Text.RegularExpressions;
 using NewRich.Application.Abstractions;
 using NewRich.Application.Contracts.Notificaciones;
 using NewRich.Constants.Messages;
@@ -66,7 +68,81 @@ public sealed class NotificacionService : INotificacionService
             detalle.TotalApostado = detalle.Apuestas.Sum(a => a.Valor);
         }
 
+        if (item.Tipo == NotificacionMessages.TipoValorAlto)
+        {
+            detalle.DetalleVenta = item.JuegoId.HasValue
+                ? await ObtenerDetalleVentaAltoAsync(item.JuegoId.Value, cancellationToken)
+                : await BuscarDetalleVentaAltoHistoricoAsync(item.Mensaje, item.FechaCreacion, cancellationToken);
+        }
+
         return Result<NotificacionDetalleResponse>.Ok(detalle, SuccessMessages.OperacionExitosa);
+    }
+
+    private async Task<DetalleVentaAltoResponse?> ObtenerDetalleVentaAltoAsync(Guid juegoId, CancellationToken cancellationToken)
+    {
+        var juego = await _db.Juegos
+            .AsNoTracking()
+            .Where(j => j.JuegoId == juegoId)
+            .Select(j => new
+            {
+                j.Numero,
+                j.Valor,
+                Loterias = j.JuegoLoterias.Select(jl => jl.Loteria!.Nombre).ToList(),
+                Vendedor = j.Boleto!.Venta!.Usuario!.Alias ?? j.Boleto.Venta.Usuario.NombreCompleto
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return juego is null
+            ? null
+            : new DetalleVentaAltoResponse
+            {
+                Numero = juego.Numero,
+                Loteria = string.Join(", ", juego.Loterias),
+                Valor = juego.Valor,
+                Vendedor = juego.Vendedor
+            };
+    }
+
+    private async Task<DetalleVentaAltoResponse?> BuscarDetalleVentaAltoHistoricoAsync(
+        string mensaje,
+        DateTime fechaAviso,
+        CancellationToken cancellationToken)
+    {
+        var valorTexto = Regex.Match(mensaje, @"valor alto:\s*([\d.]+)", RegexOptions.IgnoreCase).Groups[1].Value;
+        if (!decimal.TryParse(valorTexto.Replace(".", string.Empty), NumberStyles.Number, CultureInfo.InvariantCulture, out var valorAlto))
+        {
+            return null;
+        }
+
+        var inicio = fechaAviso.Date;
+        var fin = inicio.AddDays(1);
+        var candidatas = await _db.Juegos
+            .AsNoTracking()
+            .Where(j => j.Boleto!.Venta!.FechaVenta >= inicio && j.Boleto.Venta.FechaVenta < fin)
+            .Select(j => new
+            {
+                j.Numero,
+                j.Valor,
+                FechaVenta = j.Boleto!.Venta!.FechaVenta,
+                Loterias = j.JuegoLoterias.Select(jl => jl.Loteria!.Nombre).ToList(),
+                Vendedor = j.Boleto.Venta.Usuario!.Alias ?? j.Boleto.Venta.Usuario.NombreCompleto
+            })
+            .ToListAsync(cancellationToken);
+
+        var candidata = candidatas
+            .Where(j => j.Valor * j.Loterias.Count == valorAlto)
+            .OrderBy(j => Math.Abs((j.FechaVenta - fechaAviso).Ticks))
+            .FirstOrDefault();
+
+        return candidata is null
+            ? null
+            : new DetalleVentaAltoResponse
+            {
+                Numero = candidata.Numero,
+                Loteria = string.Join(", ", candidata.Loterias),
+                Valor = candidata.Valor,
+                Vendedor = candidata.Vendedor
+            };
     }
 
     /// <summary>Apuestas del número en el mismo día del aviso, una fila por lotería.</summary>
@@ -107,7 +183,10 @@ public sealed class NotificacionService : INotificacionService
             .ToList();
     }
 
-    public async Task CrearParaAsync(IReadOnlyCollection<Guid> usuarioIds, string tipo, string mensaje, CancellationToken cancellationToken)
+    public Task CrearParaAsync(IReadOnlyCollection<Guid> usuarioIds, string tipo, string mensaje, CancellationToken cancellationToken) =>
+        CrearParaAsync(usuarioIds, tipo, mensaje, cancellationToken, null, null);
+
+    public async Task CrearParaAsync(IReadOnlyCollection<Guid> usuarioIds, string tipo, string mensaje, CancellationToken cancellationToken, Guid? ventaId, Guid? juegoId)
     {
         if (usuarioIds.Count == 0)
         {
@@ -124,7 +203,9 @@ public sealed class NotificacionService : INotificacionService
                 UsuarioId = usuarioId,
                 Tipo = tipo,
                 Mensaje = mensaje,
-                FechaCreacion = ahora
+                FechaCreacion = ahora,
+                VentaId = ventaId,
+                JuegoId = juegoId
             };
             _db.Notificaciones.Add(item);
             creadas.Add(item);

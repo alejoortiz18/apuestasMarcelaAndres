@@ -97,6 +97,54 @@
 
   document.querySelectorAll("select.searchable").forEach(enhanceSelect);
 
+  document.querySelectorAll("table[data-kpi-sort-table]").forEach(function (table) {
+    const headers = Array.from(table.querySelectorAll("thead th"));
+    const body = table.querySelector("tbody");
+    if (!body) {
+      return;
+    }
+
+    headers.forEach(function (header, index) {
+      const button = header.querySelector("[data-kpi-sort]");
+      if (!button) {
+        return;
+      }
+
+      button.addEventListener("click", function () {
+        const ascending = button.getAttribute("aria-sort") !== "ascending";
+        headers.forEach(function (item) {
+          item.removeAttribute("aria-sort");
+          const itemButton = item.querySelector("[data-kpi-sort]");
+          if (itemButton) {
+            const arrow = itemButton.querySelector("span");
+            if (arrow) {
+              arrow.textContent = "↕";
+            }
+          }
+        });
+
+        button.setAttribute("aria-sort", ascending ? "ascending" : "descending");
+        const arrow = button.querySelector("span");
+        if (arrow) {
+          arrow.textContent = ascending ? "↑" : "↓";
+        }
+
+        const type = button.getAttribute("data-kpi-sort");
+        const rows = Array.from(body.querySelectorAll("tr"));
+        rows.sort(function (left, right) {
+          const leftValue = left.cells[index]?.textContent.trim() || "";
+          const rightValue = right.cells[index]?.textContent.trim() || "";
+          const comparison = type === "number"
+            ? (parseFloat(leftValue.replace(/[^\d,-]/g, "").replace(/\./g, "").replace(",", ".")) || 0)
+              - (parseFloat(rightValue.replace(/[^\d,-]/g, "").replace(/\./g, "").replace(",", ".")) || 0)
+            : leftValue.localeCompare(rightValue, "es", { sensitivity: "base" });
+          return ascending ? comparison : -comparison;
+        });
+        rows.forEach(function (row) { body.appendChild(row); });
+      });
+    });
+  });
+
   document.querySelectorAll("form[data-offline-generate]").forEach(function (form) {
     const usuario = form.querySelector("[data-offline-usuario]");
     const pdaField = form.querySelector("[data-offline-pda]");

@@ -119,10 +119,15 @@ else
                     <strong>@kpi.VentasConfirmadas.ToString("N0", cultura)</strong>
                     <em>@string.Format(UiTexts.VentasPorDiaEtiqueta, kpi.VentasPorDia.ToString("N1", cultura))</em>
                 </div>
-                <div class="metric@(Alerta(kpi.VariacionTicket) ? " alert" : null)">
-                    <small>@UiTexts.TicketPromedio</small>
-                    <strong>@Dinero(kpi.TicketPromedio)</strong>
-                    @if (kpi.VariacionTicket.HasValue) { <em>@Variacion(kpi.VariacionTicket)</em> }
+                <div class="metric">
+                    <small>@UiTexts.NumeroMasJugado</small>
+                    <strong>@(kpi.NumeroMasJugado ?? "—")</strong>
+                    <em>@UiTexts.SinComparacion</em>
+                </div>
+                <div class="metric">
+                    <small>@UiTexts.ValorMasAltoApostado</small>
+                    <strong>@Dinero(kpi.ValorMasAltoApostado)</strong>
+                    <em>@UiTexts.SinComparacion</em>
                 </div>
                 <div class="metric">
                     <small>@UiTexts.BoletosGanadores</small>
@@ -162,13 +167,13 @@ else
                     else
                     {
                         <div class="kpi-table-wrap">
-                            <table class="kpi-table">
+                            <table class="kpi-table" data-kpi-sort-table>
                                 <thead>
                                 <tr>
-                                    <th>@UiTexts.Vendedor</th>
-                                    <th>@UiTexts.Grupo</th>
-                                    <th>@UiTexts.Ventas</th>
-                                    <th>@UiTexts.Total</th>
+                                    <th><button class="kpi-sort" type="button" data-kpi-sort="text" aria-label="Ordenar por @UiTexts.Vendedor">@UiTexts.Vendedor <span aria-hidden="true">↕</span></button></th>
+                                    <th><button class="kpi-sort" type="button" data-kpi-sort="text" aria-label="Ordenar por @UiTexts.Grupo">@UiTexts.Grupo <span aria-hidden="true">↕</span></button></th>
+                                    <th><button class="kpi-sort" type="button" data-kpi-sort="number" aria-label="Ordenar por @UiTexts.Ventas">@UiTexts.Ventas <span aria-hidden="true">↕</span></button></th>
+                                    <th><button class="kpi-sort" type="button" data-kpi-sort="number" aria-label="Ordenar por @UiTexts.Total">@UiTexts.Total <span aria-hidden="true">↕</span></button></th>
                                 </tr>
                                 </thead>
                                 <tbody>

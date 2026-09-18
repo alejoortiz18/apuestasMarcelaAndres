@@ -58,7 +58,7 @@
         <option value="">@UiTexts.SinAsociar</option>
         @foreach (var d in Model.Dispositivos)
         {
-            <option value="@d.DispositivoId">@d.CodigoDispositivo</option>
+            <option value="@d.DispositivoId">@d.CodigoDispositivo · @(string.IsNullOrWhiteSpace(d.Sistema) ? "Sistema no informado" : d.Sistema)</option>
         }
     </select>
 </div>

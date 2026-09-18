@@ -4,6 +4,7 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using NewRich.Admin.Constants;
 using NewRich.Admin.Services;
+using NewRich.Application.Contracts.Resultados;
 
 namespace NewRich.Admin.Tests;
 
@@ -58,6 +59,19 @@ public sealed class RespuestasDeLaApiTests
 
         resultado.Success.Should().BeTrue();
         resultado.Data.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void Un_resultado_expone_su_cantidad_de_ganadores()
+    {
+        var resultado = new ResultadoResponse
+        {
+            CantidadGanadores = 2,
+            Numero = "1234"
+        };
+
+        resultado.CantidadGanadores.Should().Be(2);
+        resultado.TieneGanadores.Should().BeTrue();
     }
 
     private static AdminApiClient CrearCliente(HttpResponseMessage respuesta) =>

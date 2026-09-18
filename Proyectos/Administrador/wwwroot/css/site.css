@@ -681,6 +681,12 @@ table { width: 100%; border-collapse: collapse; min-width: 640px; }
 th, td { text-align: left; padding: 13px 10px; border-bottom: 1px solid #efe6d6; font-size: 12px; }
 th { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
 tbody tr:hover, tbody tr:focus-within { background: #f8f1dc; outline: 2px solid #e8c56b; outline-offset: -2px; }
+tbody tr.ganador,
+tbody tr.ganador:hover,
+tbody tr.ganador:focus-within { background: #a3f1ad; }
+tbody tr.premio-entregado,
+tbody tr.premio-entregado:hover,
+tbody tr.premio-entregado:focus-within { background: #2b72ab47; }
 tbody tr.selected,
 tbody tr.selected:hover,
 tbody tr.selected:focus-within { background: #efe6c8; outline: 2px solid var(--gold); outline-offset: -2px; }
@@ -1456,6 +1462,9 @@ a[data-offline-associate][hidden] { display: none; }
 .kpi-table { width: 100%; border-collapse: collapse; min-width: 0; }
 .kpi-table th, .kpi-table td { padding: 10px 7px; border-bottom: 1px solid #efe6d6; text-align: left; font-size: 11px; }
 .kpi-table th { font-size: 9px; color: var(--muted); text-transform: uppercase; }
+.kpi-sort { display: inline-flex; align-items: center; gap: 5px; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; font-weight: 700; cursor: pointer; }
+.kpi-sort span { color: var(--muted); font-size: 13px; }
+.kpi-sort:hover, .kpi-sort:focus-visible { color: var(--green); }
 .kpi-note { padding: 11px; background: var(--paper); border-radius: 8px; color: var(--muted); font-size: 11px; margin-top: 15px; }
 .kpi-table-wrap { overflow: auto; }
 .metric-grid-2 { grid-template-columns: 1fr 1fr; }

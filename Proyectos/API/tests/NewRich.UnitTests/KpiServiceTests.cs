@@ -143,6 +143,25 @@ public sealed class KpiServiceTests
         result.Data.Resultados.Should().ContainSingle(r => r.Numero == "1234" && r.Loteria == "Medellin");
     }
 
+    [Fact]
+    public async Task ConsultarAsync_calcula_numero_mas_jugado_y_valor_individual_mas_alto()
+    {
+        var (sut, db) = CreateSut();
+        var vendedor = await AgregarUsuarioAsync(db, "Camila Rojas", RolUsuario.Vendedor);
+        await AgregarVentaConJuegoAsync(db, vendedor, "1234", 1000, "Bogota");
+        await AgregarVentaConJuegoAsync(db, vendedor, "1234", 5000, "Cali");
+        await AgregarVentaConJuegoAsync(db, vendedor, "9999", 15000, "Medellin");
+
+        var result = await sut.ConsultarAsync(new KpiRequest
+        {
+            FechaInicial = new DateTime(2026, 8, 1),
+            FechaFinal = new DateTime(2026, 8, 30)
+        }, CancellationToken.None);
+
+        result.Data!.NumeroMasJugado.Should().Be("1234");
+        result.Data.ValorMasAltoApostado.Should().Be(15000);
+    }
+
     private static (KpiService Sut, NewRichDbContext Db) CreateSut()
     {
         var options = new DbContextOptionsBuilder<NewRichDbContext>()
@@ -194,6 +213,60 @@ public sealed class KpiServiceTests
             Total = total,
             TipoApuesta = TipoApuesta.COMBINADO
         });
+        await db.SaveChangesAsync();
+    }
+
+    private static async Task AgregarVentaConJuegoAsync(
+        NewRichDbContext db,
+        Usuario vendedor,
+        string numero,
+        decimal valor,
+        string nombreLoteria)
+    {
+        var loteria = new Loteria
+        {
+            LoteriaId = Guid.NewGuid(),
+            Nombre = nombreLoteria,
+            Estado = EstadoGeneral.Activo,
+            FechaCreacion = DateTime.UtcNow
+        };
+        var venta = new Venta
+        {
+            VentaId = Guid.NewGuid(),
+            UsuarioId = vendedor.UsuarioId,
+            Usuario = vendedor,
+            FechaVenta = new DateTime(2026, 8, 10, 12, 0, 0, DateTimeKind.Utc),
+            Total = valor,
+            TipoApuesta = TipoApuesta.COMBINADO
+        };
+        var boleto = new Boleto
+        {
+            BoletoId = Guid.NewGuid(),
+            VentaId = venta.VentaId,
+            Venta = venta,
+            FechaCreacion = venta.FechaVenta,
+            EstadoBoleto = EstadoBoleto.Jugado,
+            VigenciaDias = 30
+        };
+        var juego = new Juego
+        {
+            JuegoId = Guid.NewGuid(),
+            BoletoId = boleto.BoletoId,
+            Boleto = boleto,
+            Numero = numero,
+            Valor = valor,
+            TipoJuego = TipoJuego.COMBINADA
+        };
+        juego.JuegoLoterias.Add(new JuegoLoteria
+        {
+            JuegoId = juego.JuegoId,
+            LoteriaId = loteria.LoteriaId,
+            Loteria = loteria
+        });
+        boleto.Juegos.Add(juego);
+        venta.Boletos.Add(boleto);
+        db.Loterias.Add(loteria);
+        db.Ventas.Add(venta);
         await db.SaveChangesAsync();
     }
 

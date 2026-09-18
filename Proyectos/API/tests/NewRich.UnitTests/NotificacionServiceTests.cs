@@ -106,6 +106,55 @@ public sealed class NotificacionServiceTests
     }
 
     [Fact]
+    public async Task ObtenerAsync_de_valor_alto_devuelve_la_linea_que_genero_la_alerta()
+    {
+        var (sut, db) = CreateSut();
+        var ana = await AgregarUsuarioAsync(db, "Ana Admin");
+        var aviso = await AgregarNotificacionAsync(
+            db,
+            ana.UsuarioId,
+            "ValorAlto",
+            "Se registró una apuesta con valor alto: 10.800.",
+            leida: false,
+            Ahora);
+        await AgregarJugadaAsync(db, "1234", 10800, Ahora, ["Bogotá"]);
+        var juego = db.Juegos.Single(j => j.Numero == "1234");
+        aviso.JuegoId = juego.JuegoId;
+        aviso.VentaId = juego.Boleto!.VentaId;
+        await db.SaveChangesAsync();
+
+        var result = await sut.ObtenerAsync(aviso.NotificacionId, ana.UsuarioId, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.DetalleVenta.Should().NotBeNull();
+        var venta = result.Data.DetalleVenta!;
+        venta.Numero.Should().Be("1234");
+        venta.Loteria.Should().Be("Bogotá");
+        venta.Valor.Should().Be(10800);
+        venta.Vendedor.Should().Be("Vendedor 1234");
+    }
+
+    [Fact]
+    public async Task ObtenerAsync_de_valor_alto_historico_sin_referencia_recupera_la_linea()
+    {
+        var (sut, db) = CreateSut();
+        var ana = await AgregarUsuarioAsync(db, "Ana Admin");
+        var aviso = await AgregarNotificacionAsync(
+            db,
+            ana.UsuarioId,
+            "ValorAlto",
+            "Se registró una apuesta con valor alto: 10.800.",
+            leida: false,
+            Ahora);
+        await AgregarJugadaAsync(db, "1234", 10800, Ahora, ["Bogotá"]);
+
+        var result = await sut.ObtenerAsync(aviso.NotificacionId, ana.UsuarioId, CancellationToken.None);
+
+        result.Data!.DetalleVenta!.Numero.Should().Be("1234");
+        result.Data.DetalleVenta.Loteria.Should().Be("Bogotá");
+    }
+
+    [Fact]
     public async Task CrearParaAsync_guarda_y_avisa_en_tiempo_real_a_cada_destinatario()
     {
         var tiempoReal = new TiempoRealFake();

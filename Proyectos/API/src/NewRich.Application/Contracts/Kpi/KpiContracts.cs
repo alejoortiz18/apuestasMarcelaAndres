@@ -57,8 +57,8 @@ public sealed class KpiResponse
     public decimal? VariacionIngresos { get; set; }
     public int VentasConfirmadas { get; set; }
     public decimal VentasPorDia { get; set; }
-    public decimal TicketPromedio { get; set; }
-    public decimal? VariacionTicket { get; set; }
+    public string? NumeroMasJugado { get; set; }
+    public decimal ValorMasAltoApostado { get; set; }
     public int Boletos { get; set; }
     public int BoletosGanadores { get; set; }
     public decimal PorcentajeGanadores { get; set; }

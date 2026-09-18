@@ -1,0 +1,4 @@
+1. no permitir reimprimir el ticket. a cambio de eso, el sistema
+debe solicitar generar reporte en caso que el ticket salga con problemas
+y solicitar observaciones como campo principal,
+el sistema envía el ticket a un chat nuevo llamado soprote técnico

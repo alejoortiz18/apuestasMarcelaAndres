@@ -321,7 +321,8 @@ public static class UiTexts
     public const string General = "General";
     public const string IngresosRegistrados = "Ingresos registrados";
     public const string VentasConfirmadas = "Ventas confirmadas";
-    public const string TicketPromedio = "Ticket promedio";
+    public const string NumeroMasJugado = "Número más jugado";
+    public const string ValorMasAltoApostado = "Valor más alto apostado";
     public const string BoletosGanadores = "Boletos ganadores";
     public const string IngresosPorGrupo = "Ingresos por grupo";
     public const string IngresosPorPersona = "Ingresos por persona";
@@ -386,6 +387,7 @@ public static class UiTexts
     public const string Pendiente = "Pendiente";
     public const string Leida = "Leída";
     public const string NumeroRepetido = "Número con repeticiones";
+    public const string DetalleVenta = "Detalle de la venta";
     public const string HistoricoDelNumero = "Histórico del número {0}";
     public const string HistoricoDelNumeroSub = "Apuestas registradas para este número el {0}, con su lotería y valor.";
     public const string SinApuestasDelNumero = "No hay apuestas registradas para este número en la fecha del aviso.";

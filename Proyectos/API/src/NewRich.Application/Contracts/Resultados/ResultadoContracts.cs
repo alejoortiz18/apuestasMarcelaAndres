@@ -14,4 +14,6 @@ public sealed class ResultadoResponse
     public string Loteria { get; set; } = string.Empty;
     public DateOnly FechaJuego { get; set; }
     public string Numero { get; set; } = string.Empty;
+    public int CantidadGanadores { get; set; }
+    public bool TieneGanadores => CantidadGanadores > 0;
 }

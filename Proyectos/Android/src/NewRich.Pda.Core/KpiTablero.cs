@@ -12,7 +12,7 @@ public sealed record KpiTablero(
     bool VariacionPositiva,
     decimal Ingresos,
     int Ventas,
-    decimal TicketPromedio,
+    decimal ValorMasAltoApostado,
     string Pico,
     IReadOnlyList<KpiPuntoDia> Serie,
     IReadOnlyList<KpiBarraVendedor> Ranking)
@@ -58,7 +58,7 @@ public sealed record KpiTablero(
             variacion >= 0,
             kpi.Ingresos,
             kpi.VentasConfirmadas,
-            kpi.TicketPromedio,
+            kpi.ValorMasAltoApostado,
             picoTexto,
             serie,
             ranking);

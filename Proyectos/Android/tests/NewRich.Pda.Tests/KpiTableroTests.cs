@@ -14,7 +14,7 @@ public sealed class KpiTableroTests
             Ingresos = 3000,
             VariacionIngresos = 50,
             VentasConfirmadas = 3,
-            TicketPromedio = 1000,
+            ValorMasAltoApostado = 1000,
             VentasPorDiaDetalle =
             [
                 new KpiVentaDiaResponse { Fecha = new DateOnly(2026, 9, 10), Ventas = 1, Total = 1000 },

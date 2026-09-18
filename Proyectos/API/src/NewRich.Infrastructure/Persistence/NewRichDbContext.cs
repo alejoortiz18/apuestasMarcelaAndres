@@ -233,6 +233,8 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
         {
             e.ToTable("Notificaciones");
             e.HasKey(x => x.NotificacionId);
+            e.Property(x => x.VentaId).IsRequired(false);
+            e.Property(x => x.JuegoId).IsRequired(false);
             e.HasOne(x => x.Usuario).WithMany().HasForeignKey(x => x.UsuarioId);
         });
 

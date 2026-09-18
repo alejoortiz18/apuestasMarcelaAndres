@@ -1,0 +1,55 @@
+@using System.Globalization
+@using NewRich.Admin.Constants
+@model NewRich.Admin.Models.ResultadoGanadoresViewModel
+@{
+    var cultura = CultureInfo.GetCultureInfo("es-CO");
+}
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.ResultadosKicker</div>
+        <h1>Boletos ganadores</h1>
+        <p>Resultado de @Model.Resultado.Loteria para el @Model.Resultado.FechaJuego.ToString("dd/MM/yyyy") con el número @Model.Resultado.Numero.</p>
+    </div>
+    <a class="secondary" asp-action="Index">@UiTexts.VolverAlListado</a>
+</div>
+
+<div class="panel">
+    @if (!Model.Ganadores.Any())
+    {
+        <div class="empty">@UiTexts.Vacio</div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table data-table-select="ganadores-resultados">
+                <thead>
+                <tr>
+                    <th class="col-check"><span class="visually-hidden">@UiTexts.SeleccionarFila</span></th>
+                    <th>@UiTexts.CodigoBoleto</th>
+                    <th>@UiTexts.Vendedor</th>
+                    <th>@UiTexts.FechaYHora</th>
+                    <th>@UiTexts.Total</th>
+                    <th>@UiTexts.Acciones</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var ganador in Model.Ganadores)
+                {
+                    <tr tabindex="0" data-row-id="@ganador.BoletoId">
+                        <td class="col-check">
+                            <input class="row-check" type="checkbox" value="@ganador.BoletoId" aria-label="@UiTexts.SeleccionarFila @ganador.CodigoPublico" />
+                        </td>
+                        <td><strong>@ganador.CodigoPublico</strong></td>
+                        <td>@ganador.Vendedor</td>
+                        <td>@ganador.Fecha.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>@ganador.Total.ToString("C0", cultura)</td>
+                        <td>
+                            <a class="secondary" asp-controller="Ventas" asp-action="Tirilla" asp-route-id="@ganador.BoletoId">@UiTexts.Ver</a>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

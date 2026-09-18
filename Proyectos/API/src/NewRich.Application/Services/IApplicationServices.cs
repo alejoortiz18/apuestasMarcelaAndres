@@ -104,6 +104,8 @@ public interface INotificacionService
     Task<Result<NotificacionesResponse>> ListarAsync(Guid usuarioId, CancellationToken cancellationToken);
     Task<Result<NotificacionDetalleResponse>> ObtenerAsync(Guid notificacionId, Guid usuarioId, CancellationToken cancellationToken);
     Task CrearParaAsync(IReadOnlyCollection<Guid> usuarioIds, string tipo, string mensaje, CancellationToken cancellationToken);
+    Task CrearParaAsync(IReadOnlyCollection<Guid> usuarioIds, string tipo, string mensaje, CancellationToken cancellationToken, Guid? ventaId, Guid? juegoId) =>
+        CrearParaAsync(usuarioIds, tipo, mensaje, cancellationToken);
     Task<Result> MarcarLeidasAsync(Guid usuarioId, CancellationToken cancellationToken);
 }
 

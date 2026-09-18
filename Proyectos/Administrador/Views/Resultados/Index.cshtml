@@ -52,6 +52,7 @@
                     <th>@UiTexts.Fecha</th>
                     <th>@UiTexts.Loteria</th>
                     <th>@UiTexts.NumeroGanador</th>
+                    <th>Cantidad de ganadores</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -64,6 +65,19 @@
                         <td>@r.FechaJuego.ToString("dd/MM/yyyy")</td>
                         <td>@r.Loteria</td>
                         <td><strong>@r.Numero</strong></td>
+                        <td>
+                            @if (r.TieneGanadores)
+                            {
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span>@r.CantidadGanadores</span>
+                                    <a class="secondary" asp-action="Ganadores" asp-route-numeroGanadorId="@r.NumeroGanadorId">Ver</a>
+                                </div>
+                            }
+                            else
+                            {
+                                <span>0</span>
+                            }
+                        </td>
                     </tr>
                 }
                 </tbody>

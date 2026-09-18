@@ -150,6 +150,12 @@ public sealed class ResultadosIndexViewModel
     public IReadOnlyList<LoteriaResponse> Loterias { get; init; } = [];
 }
 
+public sealed class ResultadoGanadoresViewModel
+{
+    public ResultadoResponse Resultado { get; init; } = new();
+    public IReadOnlyList<BoletoListaResponse> Ganadores { get; init; } = [];
+}
+
 public sealed class ResultadoFormViewModel
 {
     [Display(Name = UiTexts.Loteria)]

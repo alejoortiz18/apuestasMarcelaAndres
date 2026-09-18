@@ -72,9 +72,15 @@ public sealed class KpiService : IKpiService
 
         var ingresos = ventas.Sum(v => v.Total);
         var ingresosPrevios = ventasPrevias.Sum(v => v.Total);
-        var ticket = ventas.Count == 0 ? 0 : ingresos / ventas.Count;
-        var ticketPrevio = ventasPrevias.Length == 0 ? 0 : ingresosPrevios / ventasPrevias.Length;
         var boletos = ventas.SelectMany(v => v.Boletos).ToList();
+        var juegos = boletos.SelectMany(b => b.Juegos).ToList();
+        var numeroMasJugado = juegos
+            .GroupBy(j => j.Numero.Trim())
+            .OrderByDescending(g => g.Count())
+            .ThenBy(g => g.Key)
+            .Select(g => g.Key)
+            .FirstOrDefault();
+        var valorMasAltoApostado = juegos.Count == 0 ? 0 : juegos.Max(j => j.Valor);
         var ganadores = boletos.Count(b =>
             b.EstadoBoleto is EstadoBoleto.Ganador or EstadoBoleto.PremioEntregado or EstadoBoleto.PagadoCobrado);
 
@@ -202,12 +208,12 @@ public sealed class KpiService : IKpiService
             VariacionIngresos = request.CompararAnterior ? Variacion(ingresos, ingresosPrevios) : null,
             VentasConfirmadas = ventas.Count,
             VentasPorDia = Math.Round((decimal)ventas.Count / dias, 1),
-            TicketPromedio = Math.Round(ticket, 0),
-            VariacionTicket = request.CompararAnterior ? Variacion(ticket, ticketPrevio) : null,
+            NumeroMasJugado = numeroMasJugado,
+            ValorMasAltoApostado = valorMasAltoApostado,
             Boletos = boletos.Count,
             BoletosGanadores = ganadores,
             PorcentajeGanadores = boletos.Count == 0 ? 0 : Math.Round((decimal)ganadores * 100 / boletos.Count, 1),
-            NumerosJugados = boletos.SelectMany(b => b.Juegos).Select(j => j.Numero.Trim()).Distinct().Count(),
+            NumerosJugados = juegos.Select(j => j.Numero.Trim()).Distinct().Count(),
             NumerosGanadores = resultados.Count,
             IngresosPorGrupo = barras,
             IngresosPorVendedor = porVendedor,

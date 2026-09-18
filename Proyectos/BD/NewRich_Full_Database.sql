@@ -467,6 +467,12 @@ BEGIN
 END
 GO
 
+IF COL_LENGTH(N'dbo.Notificaciones', N'VentaId') IS NULL
+    ALTER TABLE dbo.Notificaciones ADD VentaId UNIQUEIDENTIFIER NULL;
+IF COL_LENGTH(N'dbo.Notificaciones', N'JuegoId') IS NULL
+    ALTER TABLE dbo.Notificaciones ADD JuegoId UNIQUEIDENTIFIER NULL;
+GO
+
 /* 6.4. Sincronizaciones */
 IF OBJECT_ID(N'dbo.Sincronizaciones', N'U') IS NULL
 BEGIN
