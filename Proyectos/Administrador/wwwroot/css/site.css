@@ -1029,7 +1029,7 @@ a[data-offline-associate][hidden] { display: none; }
   overflow-wrap: anywhere;
   font: 12px/1.45 monospace;
 }
-.receipt-footer { margin: 0; }
+.receipt-footer { margin: 0; font-size: 11px; }
 .receipt-qr {
   display: block;
   width: min(128px, 100%);

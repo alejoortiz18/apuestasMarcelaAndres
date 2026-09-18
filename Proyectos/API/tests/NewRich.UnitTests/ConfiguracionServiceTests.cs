@@ -23,7 +23,8 @@ public sealed class ConfiguracionServiceTests
         var result = await sut.ObtenerOperativaAsync(CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
-        result.Data!.HoraCierre.Should().Be("20:00:00");
+        result.Data!.HoraApertura.Should().Be("10:00:00");
+        result.Data.HoraCierre.Should().Be("20:00:00");
         result.Data.VigenciaPremiosDias.Should().Be(30);
         result.Data.MaxJuegosCombinado.Should().Be(1);
         result.Data.MaxLineasIndividual.Should().Be(6);
@@ -34,7 +35,7 @@ public sealed class ConfiguracionServiceTests
         result.Data.LeyendaTirilla.Should().Be(TirillaCuerpo.CuerpoDefecto);
         result.Data.LeyendaTirilla.Should().Contain("{vigenciaDias}");
         result.Data.LeyendaTirilla.Should().NotContain("GRACIAS POR SU COMPRA");
-        db.Configuraciones.Should().HaveCount(7);
+        db.Configuraciones.Should().HaveCount(8);
         db.ConfiguracionesTipoApuesta.Should().Contain(t => t.TipoApuesta == "COMBINADO" && t.Maximo == 1);
         db.ConfiguracionesTipoApuesta.Should().Contain(t => t.TipoApuesta == "INDIVIDUAL" && t.Maximo == 6);
     }
@@ -73,6 +74,7 @@ public sealed class ConfiguracionServiceTests
 
         var result = await sut.GuardarOperativaAsync(new GuardarConfiguracionOperativaRequest
         {
+            HoraApertura = "10:00 AM",
             HoraCierre = "18:45",
             VigenciaPremiosDias = 15,
             MaxJuegosCombinado = 2,
@@ -85,7 +87,8 @@ public sealed class ConfiguracionServiceTests
         }, CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
-        result.Data!.HoraCierre.Should().Be("18:45:00");
+        result.Data!.HoraApertura.Should().Be("10:00:00");
+        result.Data.HoraCierre.Should().Be("18:45:00");
         result.Data.VigenciaPremiosDias.Should().Be(15);
         result.Data.MaxJuegosCombinado.Should().Be(2);
         result.Data.MaxLineasIndividual.Should().Be(5);
@@ -158,6 +161,20 @@ public sealed class ConfiguracionServiceTests
     }
 
     [Fact]
+    public async Task GuardarOperativaAsync_rechaza_apertura_y_cierre_iguales()
+    {
+        var (sut, _) = CreateSut();
+        await sut.ObtenerOperativaAsync(CancellationToken.None);
+
+        var result = await sut.GuardarOperativaAsync(
+            RequestValida() with { HoraApertura = "10:00 AM", HoraCierre = "10:00 AM" },
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Message.Should().Be(ConfiguracionMessages.HorasOperacionIguales);
+    }
+
+    [Fact]
     public async Task GuardarOperativaAsync_rechaza_capacidad_fuera_de_rango()
     {
         var (sut, _) = CreateSut();
@@ -171,7 +188,8 @@ public sealed class ConfiguracionServiceTests
 
     private static GuardarConfiguracionOperativaRequest RequestValida() => new()
     {
-        HoraCierre = "20:00",
+        HoraApertura = "10:00 AM",
+        HoraCierre = "8:00 PM",
         VigenciaPremiosDias = 30,
         MaxJuegosCombinado = 1,
         MaxLineasIndividual = 6,

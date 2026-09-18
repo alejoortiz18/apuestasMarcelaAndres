@@ -39,8 +39,10 @@ public interface IAndroidPdaService
     Task<Result<TirillaResponse>> TirillaMobAsync(Guid boletoId, CancellationToken cancellationToken);
     Task<Result<ConversacionResponse>> IniciarChatMobAsync(Guid iniciadorId, IniciarChatRequest request, CancellationToken cancellationToken);
     Task<Result<IReadOnlyList<ConversacionResponse>>> ListarChatMobAsync(Guid usuarioId, CancellationToken cancellationToken);
+    Task<Result<IReadOnlyList<ConversacionResponse>>> ListarChatTecnicoMobAsync(Guid usuarioId, CancellationToken cancellationToken);
     Task<Result<ConversacionDetalleResponse>> ObtenerChatMobAsync(Guid conversacionId, Guid usuarioId, CancellationToken cancellationToken);
     Task<Result<MensajeResponse>> EnviarChatMobAsync(Guid conversacionId, Guid emisorId, EnviarMensajeRequest request, CancellationToken cancellationToken);
+    Task<Result<MensajeResponse>> ReportarVentaTecnicoMobAsync(Guid vendedorId, ReporteTecnicoRequest request, CancellationToken cancellationToken);
     Task<Result<DescargaAdjuntoResponse>> DescargarAdjuntoMobAsync(Guid adjuntoId, Guid usuarioId, CancellationToken cancellationToken);
     Task<Result<IReadOnlyList<CodigoOfflineAndroidResponse>>> DescargarOfflineMobAsync(Guid usuarioId, Guid? dispositivoId, CancellationToken cancellationToken);
 }
@@ -189,13 +191,19 @@ public sealed class AndroidPdaService : IAndroidPdaService
         _chat.IniciarAsync(iniciadorId, request, cancellationToken);
 
     public Task<Result<IReadOnlyList<ConversacionResponse>>> ListarChatMobAsync(Guid usuarioId, CancellationToken cancellationToken) =>
-        _chat.ListarAsync(usuarioId, cancellationToken);
+        _chat.ListarAsync(usuarioId, TipoConversacion.AtencionCliente, cancellationToken);
+
+    public Task<Result<IReadOnlyList<ConversacionResponse>>> ListarChatTecnicoMobAsync(Guid usuarioId, CancellationToken cancellationToken) =>
+        _chat.ListarAsync(usuarioId, TipoConversacion.SoporteTecnico, cancellationToken);
 
     public Task<Result<ConversacionDetalleResponse>> ObtenerChatMobAsync(Guid conversacionId, Guid usuarioId, CancellationToken cancellationToken) =>
         _chat.ObtenerAsync(conversacionId, usuarioId, cancellationToken);
 
     public Task<Result<MensajeResponse>> EnviarChatMobAsync(Guid conversacionId, Guid emisorId, EnviarMensajeRequest request, CancellationToken cancellationToken) =>
         _chat.EnviarAsync(conversacionId, emisorId, request, cancellationToken);
+
+    public Task<Result<MensajeResponse>> ReportarVentaTecnicoMobAsync(Guid vendedorId, ReporteTecnicoRequest request, CancellationToken cancellationToken) =>
+        _chat.ReportarVentaTecnicoAsync(vendedorId, request, cancellationToken);
 
     public Task<Result<DescargaAdjuntoResponse>> DescargarAdjuntoMobAsync(Guid adjuntoId, Guid usuarioId, CancellationToken cancellationToken) =>
         _chat.DescargarAdjuntoAsync(adjuntoId, usuarioId, cancellationToken);

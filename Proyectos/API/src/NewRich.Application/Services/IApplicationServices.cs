@@ -14,6 +14,7 @@ using NewRich.Application.Contracts.Premios;
 using NewRich.Application.Contracts.Resultados;
 using NewRich.Application.Contracts.Usuarios;
 using NewRich.Application.Contracts.Ventas;
+using NewRich.Domain.Enums;
 using NewRich.Shared.Results;
 
 namespace NewRich.Application.Services;
@@ -101,7 +102,7 @@ public interface IValidacionBoletoService
 public interface INotificacionService
 {
     Task<Result<NotificacionesResponse>> ListarAsync(Guid usuarioId, CancellationToken cancellationToken);
-    Task<Result<NotificacionItemResponse>> ObtenerAsync(Guid notificacionId, Guid usuarioId, CancellationToken cancellationToken);
+    Task<Result<NotificacionDetalleResponse>> ObtenerAsync(Guid notificacionId, Guid usuarioId, CancellationToken cancellationToken);
     Task CrearParaAsync(IReadOnlyCollection<Guid> usuarioIds, string tipo, string mensaje, CancellationToken cancellationToken);
     Task<Result> MarcarLeidasAsync(Guid usuarioId, CancellationToken cancellationToken);
 }
@@ -119,9 +120,10 @@ public interface IConsultaService
 public interface IChatService
 {
     Task<Result<ConversacionResponse>> IniciarAsync(Guid iniciadorId, IniciarChatRequest request, CancellationToken cancellationToken);
-    Task<Result<IReadOnlyList<ConversacionResponse>>> ListarAsync(Guid usuarioId, CancellationToken cancellationToken);
+    Task<Result<IReadOnlyList<ConversacionResponse>>> ListarAsync(Guid usuarioId, TipoConversacion tipo, CancellationToken cancellationToken);
     Task<Result<ConversacionDetalleResponse>> ObtenerAsync(Guid conversacionId, Guid usuarioId, CancellationToken cancellationToken);
     Task<Result<MensajeResponse>> EnviarAsync(Guid conversacionId, Guid emisorId, EnviarMensajeRequest request, CancellationToken cancellationToken);
+    Task<Result<MensajeResponse>> ReportarVentaTecnicoAsync(Guid vendedorId, ReporteTecnicoRequest request, CancellationToken cancellationToken);
     Task<Result> CerrarAsync(Guid conversacionId, Guid administradorId, CancellationToken cancellationToken);
     Task<Result<DescargaAdjuntoResponse>> DescargarAdjuntoAsync(Guid adjuntoId, Guid usuarioId, CancellationToken cancellationToken);
 }

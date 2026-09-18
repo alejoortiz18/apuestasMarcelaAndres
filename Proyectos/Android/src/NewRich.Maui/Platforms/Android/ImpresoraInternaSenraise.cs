@@ -89,7 +89,7 @@ internal static class ImpresoraInternaSenraise
                 impresora.Intentar(() => impresora.NextLine(1));
             }
 
-            impresora.Intentar(() => impresora.SetTextSize(ImpresionTirilla.TamanoLetra));
+            impresora.Intentar(() => impresora.SetTextSize(ImpresionTirilla.TamanoLetraLeyenda));
 
             var pie = string.IsNullOrWhiteSpace(cuerpo.Despues)
                 ? ImpresionTirilla.ParaImpresora(string.Empty)

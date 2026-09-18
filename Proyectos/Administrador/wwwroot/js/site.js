@@ -832,8 +832,14 @@ function iniciarNotificacionesEnVivo() {
         .build();
       conexion.on("nuevaNotificacion", function (aviso) {
         const tipo = aviso.tipo || aviso.Tipo || "";
-        const enSoporte = document.body.getAttribute("data-nav") === "soporte";
-        if (tipo === "ChatSoporte" && enSoporte) {
+        const enSoporte = document.body.getAttribute("data-nav") === "soporte"
+          || document.body.getAttribute("data-nav") === "soporte-tecnico";
+        if ((tipo === "ChatSoporte" || tipo === "ChatSoporteTecnico") && enSoporte) {
+          // En Soporte el toast se omite: el chat vivo va por ChatHub.
+          // Si el hub de chat falló, recargar muestra el mensaje persistido.
+          if (!document.documentElement.getAttribute("data-chat-vivo-ok")) {
+            window.location.reload();
+          }
           return;
         }
         actualizarCampana(aviso);

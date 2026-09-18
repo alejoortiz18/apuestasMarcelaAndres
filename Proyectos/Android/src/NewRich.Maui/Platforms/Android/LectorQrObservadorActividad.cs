@@ -18,8 +18,6 @@ public sealed class LectorQrObservadorActividad : Activity, Camera.IPreviewCallb
 {
     public const int Peticion = 4731;
 
-    private const int PixelesMinimos = 150_000;
-
     private FrameLayout? _raiz;
     private SurfaceView? _vista;
     private FrameLayout? _panelProceso;
@@ -27,6 +25,8 @@ public sealed class LectorQrObservadorActividad : Activity, Camera.IPreviewCallb
     private ISurfaceHolder? _holder;
     private byte[]? _bufferCamara;
     private byte[]? _bufferCamara2;
+    private byte[]? _copiaLectura;
+    private Handler? _reloj;
     private volatile bool _listo;
     private volatile bool _cerrado;
     private bool _vistaAjustada;
@@ -77,6 +77,7 @@ public sealed class LectorQrObservadorActividad : Activity, Camera.IPreviewCallb
         _raiz.Click += (_, _) => Enfocar();
         _raiz.Clickable = true;
         SetContentView(_raiz);
+        _ = Task.Run(ObservadorLectorQrMlKit.Calentar);
     }
 
     /// <summary>Tarjeta blanca centrada con spinner, igual que en el escáner del vendedor.</summary>
@@ -100,10 +101,11 @@ public sealed class LectorQrObservadorActividad : Activity, Camera.IPreviewCallb
 
         var texto = new TextView(this)
         {
-            Text = PdaTexts.LeyendoCodigo,
-            TextSize = 18
+            Text = PdaTexts.ObservadorCamaraLeyendo,
+            TextSize = 17
         };
         texto.SetTextColor(global::Android.Graphics.Color.Argb(255, 17, 24, 39));
+        texto.SetMaxWidth((int)(Resources!.DisplayMetrics!.WidthPixels * 0.62));
         tarjeta.AddView(texto, new LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.WrapContent,
             ViewGroup.LayoutParams.WrapContent));
@@ -179,8 +181,17 @@ public sealed class LectorQrObservadorActividad : Activity, Camera.IPreviewCallb
             return;
         }
 
-        // Copia exclusiva de esta lectura; el buffer de la cámara vuelve a la cola enseguida.
-        var copia = new byte[tamano];
+        // Copia aparte del buffer de la cámara, que vuelve a la cola enseguida. El arreglo se
+        // reutiliza porque solo hay una lectura a la vez: pedir 1.4 MB por cuadro dejaba sin
+        // memoria a los equipos chicos.
+        var copia = _copiaLectura;
+        if (copia is null || copia.Length != tamano)
+        {
+            Interlocked.Exchange(ref _ocupado, 0);
+            Reencolar(camera, data);
+            return;
+        }
+
         Buffer.BlockCopy(data, 0, copia, 0, tamano);
         Reencolar(camera, data);
         _ = Task.Run(async () =>
@@ -188,12 +199,16 @@ public sealed class LectorQrObservadorActividad : Activity, Camera.IPreviewCallb
             try
             {
                 string? codigo = null;
-                if (CamaraQrLectura.UsarMlKitEnVistaPrevia && !ObservadorLectorQrMlKit.Inutilizable)
+                var mlKitUsable = CamaraQrLectura.UsarMlKitEnVistaPrevia && !ObservadorLectorQrMlKit.Inutilizable;
+                if (mlKitUsable)
                 {
                     codigo = await ObservadorLectorQrMlKit.DesdeNv21Async(copia, ancho, alto).ConfigureAwait(false);
                 }
 
-                if (string.IsNullOrWhiteSpace(codigo))
+                // El respaldo administrado (ZXing) es varias veces más lento que ML Kit en
+                // hardware modesto: correrlo en cada cuadro tumba los cuadros por segundo.
+                // Solo se usa si ML Kit no está disponible en este dispositivo.
+                if (string.IsNullOrWhiteSpace(codigo) && !mlKitUsable)
                 {
                     codigo = ObservadorLecturaQr.DesdeNv21(copia, ancho, alto);
                 }
@@ -208,13 +223,16 @@ public sealed class LectorQrObservadorActividad : Activity, Camera.IPreviewCallb
                 {
                     RunOnUiThread(async () =>
                     {
+                        // Primero el aviso y luego la consulta: el spinner alcanza a pintarse
+                        // antes de que la validación bloquee esta pantalla.
+                        DetenerAnalisis();
                         if (_panelProceso is not null)
                         {
                             _panelProceso.Visibility = ViewStates.Visible;
                             _panelProceso.BringToFront();
                         }
 
-                        await Task.Delay(80);
+                        await Task.Delay(120);
 
                         if (LectorQrObservador.AlDetectarCodigoAsync is not null)
                         {
@@ -245,6 +263,18 @@ public sealed class LectorQrObservadorActividad : Activity, Camera.IPreviewCallb
                 Interlocked.Exchange(ref _ocupado, 0);
             }
         });
+    }
+
+    /// <summary>Ya se leyó el código: la cámara deja de entregar cuadros mientras se valida.</summary>
+    private void DetenerAnalisis()
+    {
+        try
+        {
+            _camara?.SetPreviewCallbackWithBuffer(null);
+        }
+        catch (Exception)
+        {
+        }
     }
 
     private void Reencolar(Camera? camera, byte[] data)
@@ -305,22 +335,27 @@ public sealed class LectorQrObservadorActividad : Activity, Camera.IPreviewCallb
             AjustarEnfoque(parametros);
             _camara.SetParameters(parametros);
             _camara.SetDisplayOrientation(CamaraQrLectura.RotacionSensorGrados);
-            _ancho = preview.Width;
-            _alto = preview.Height;
-            AjustarVista(preview.Width, preview.Height);
+            // Lo que quedó aplicado, no lo pedido: si la cámara ajusta el tamaño, el buffer
+            // debe seguirla o cada cuadro llega con menos bytes de los esperados.
+            var usado = _camara.GetParameters()?.PreviewSize ?? preview;
+            _ancho = usado.Width;
+            _alto = usado.Height;
+            AjustarVista(_ancho, _alto);
             _camara.SetPreviewDisplay(holder);
 
-            var tamano = ObservadorLectorQrMlKit.TamanoNv21(preview.Width, preview.Height);
+            var tamano = ObservadorLectorQrMlKit.TamanoNv21(_ancho, _alto);
             _bufferCamara = new byte[tamano];
             _bufferCamara2 = new byte[tamano];
+            _copiaLectura = new byte[tamano];
             _camara.SetPreviewCallbackWithBuffer(this);
             _camara.AddCallbackBuffer(_bufferCamara);
             _camara.AddCallbackBuffer(_bufferCamara2);
             _camara.StartPreview();
             Enfocar();
+            ProgramarEnfoque();
             global::Android.Util.Log.Info(
                 ObservadorLectorQrMlKit.Etiqueta,
-                $"camara: preview {preview.Width}x{preview.Height} manual={_enfoqueManual}");
+                $"camara: preview {_ancho}x{_alto} manual={_enfoqueManual}");
         }
         catch (Exception ex)
         {
@@ -386,6 +421,27 @@ public sealed class LectorQrObservadorActividad : Activity, Camera.IPreviewCallb
         }
     }
 
+    /// <summary>
+    /// La tirilla queda quieta frente al lente, así que el enfoque automático no se vuelve a
+    /// disparar solo: se pide de nuevo cada cierto tiempo mientras se busca el QR.
+    /// </summary>
+    private void ProgramarEnfoque()
+    {
+        if (!_enfoqueManual || _cerrado || _listo)
+        {
+            return;
+        }
+
+        _reloj ??= new Handler(Looper.MainLooper!);
+        _reloj.PostDelayed(
+            () =>
+            {
+                Enfocar();
+                ProgramarEnfoque();
+            },
+            CamaraQrLectura.MsEntreEnfoques);
+    }
+
     private void AjustarVista(int previewAncho, int previewAlto)
     {
         if (_vistaAjustada || _vista is null || previewAncho <= 0 || previewAlto <= 0)
@@ -407,28 +463,28 @@ public sealed class LectorQrObservadorActividad : Activity, Camera.IPreviewCallb
         _vistaAjustada = true;
     }
 
-    /// <summary>Vista previa cercana al objetivo: cuadros chicos se decodifican rápido.</summary>
+    /// <summary>
+    /// Vista previa grande: el QR de la tirilla es denso y con pocos píxeles por módulo el
+    /// decodificador nunca lo resuelve, aunque en pantalla se vea bien.
+    /// </summary>
     private static Camera.Size TamanoPreview(Camera.Parameters parametros)
     {
-        Camera.Size? elegido = null;
-        var menorDif = long.MaxValue;
-        foreach (var size in parametros.SupportedPreviewSizes ?? [])
+        var tamanos = parametros.SupportedPreviewSizes ?? [];
+        var elegida = CamaraQrLectura.MejorPreview(tamanos.Select(t => (t.Width, t.Height)));
+        if (elegida.Ancho <= 0)
         {
-            var pixeles = (long)size.Width * size.Height;
-            if (pixeles < PixelesMinimos)
-            {
-                continue;
-            }
+            return parametros.PreviewSize;
+        }
 
-            var dif = Math.Abs(pixeles - CamaraQrLectura.PixelesPreviewObjetivo);
-            if (dif < menorDif)
+        foreach (var size in tamanos)
+        {
+            if (size.Width == elegida.Ancho && size.Height == elegida.Alto)
             {
-                menorDif = dif;
-                elegido = size;
+                return size;
             }
         }
 
-        return elegido ?? parametros.PreviewSize;
+        return parametros.PreviewSize;
     }
 
     private void SoltarCamara()
@@ -446,6 +502,7 @@ public sealed class LectorQrObservadorActividad : Activity, Camera.IPreviewCallb
         _camara = null;
         _bufferCamara = null;
         _bufferCamara2 = null;
+        _copiaLectura = null;
     }
 
     private void Cerrar(string? codigo)

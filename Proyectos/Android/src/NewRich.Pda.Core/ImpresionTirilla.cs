@@ -13,6 +13,7 @@ public static class ImpresionTirilla
     }
 
     public const float TamanoLetra = 28f;
+    public const float TamanoLetraLeyenda = 27f;
     public const int ModuloQr = 5;
     public const int ModuloQrOffline = 3;
     public const int AnchoQrPuntos = 360;

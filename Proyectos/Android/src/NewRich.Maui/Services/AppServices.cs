@@ -1,3 +1,4 @@
+using NewRich.Application.Contracts.Chat;
 using NewRich.Domain.Enums;
 using NewRich.Maui.Data;
 using NewRich.Pda.Core;
@@ -38,7 +39,7 @@ public sealed class SincronizacionOfflineServicio
         bool debeCambiarPassword,
         CancellationToken cancellationToken)
     {
-        if (!DescargaCodigosOffline.SincronizarEnSilencio(conectado, rol, debeCambiarPassword))
+        if (!conectado)
         {
             return;
         }
@@ -46,26 +47,32 @@ public sealed class SincronizacionOfflineServicio
         await _candado.WaitAsync(cancellationToken);
         try
         {
-            var resultado = await _api.DescargarOfflineAsync(cancellationToken);
-            if (resultado.IsSuccess)
+            if (DescargaCodigosOffline.SincronizarEnSilencio(conectado, rol, debeCambiarPassword))
             {
-                var guardar = DescargaCodigosOffline.ParaGuardar(resultado.Data);
-                if (guardar.Count > 0)
+                var resultado = await _api.DescargarOfflineAsync(cancellationToken);
+                if (resultado.IsSuccess)
                 {
-                    await _offline.GuardarDescargaAsync(guardar);
+                    var guardar = DescargaCodigosOffline.ParaGuardar(resultado.Data);
+                    if (guardar.Count > 0)
+                    {
+                        await _offline.GuardarDescargaAsync(guardar);
+                    }
+                }
+
+                var pendientes = await _offline.VentasPendientesAsync();
+                if (pendientes.Count > 0)
+                {
+                    var sync = await _api.SincronizarVentasOfflineAsync(pendientes, cancellationToken);
+                    if (sync.IsSuccess && sync.Data is not null)
+                    {
+                        await _offline.MarcarSincronizadasAsync(sync.Data.Sincronizados);
+                    }
                 }
             }
 
-            var pendientes = await _offline.VentasPendientesAsync();
-            if (pendientes.Count == 0)
+            if (ReporteTecnicoRegla.DebeEnviarPendientes(conectado, rol, debeCambiarPassword))
             {
-                return;
-            }
-
-            var sync = await _api.SincronizarVentasOfflineAsync(pendientes, cancellationToken);
-            if (sync.IsSuccess && sync.Data is not null)
-            {
-                await _offline.MarcarSincronizadasAsync(sync.Data.Sincronizados);
+                await EnviarReportesPendientesAsync(cancellationToken);
             }
         }
         catch (HttpRequestException)
@@ -81,6 +88,45 @@ public sealed class SincronizacionOfflineServicio
         {
             _candado.Release();
         }
+    }
+
+    public async Task<bool> EnviarReportesPendientesAsync(CancellationToken cancellationToken)
+    {
+        var reportes = await _offline.ReportesTecnicosPendientesAsync();
+        var ok = true;
+        foreach (var reporte in reportes)
+        {
+            if (!File.Exists(reporte.RutaPdf))
+            {
+                ok = false;
+                continue;
+            }
+
+            var bytes = await File.ReadAllBytesAsync(reporte.RutaPdf, cancellationToken);
+            var envio = await _api.ReportarTecnicoAsync(new ReporteTecnicoRequest
+            {
+                Observacion = reporte.Observacion,
+                CodigoTicket = reporte.CodigoTicket,
+                NombreArchivo = reporte.NombreArchivo,
+                ContenidoBase64 = Convert.ToBase64String(bytes)
+            }, cancellationToken);
+            if (!envio.IsSuccess)
+            {
+                ok = false;
+                continue;
+            }
+
+            await _offline.MarcarReporteTecnicoEnviadoAsync(reporte.Id);
+            try
+            {
+                File.Delete(reporte.RutaPdf);
+            }
+            catch (IOException)
+            {
+            }
+        }
+
+        return ok;
     }
 }
 

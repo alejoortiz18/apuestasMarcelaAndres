@@ -23,9 +23,17 @@ public sealed class ChatController : ApiControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> Listar(CancellationToken cancellationToken)
+    public async Task<IActionResult> Listar([FromQuery] string? tipo, CancellationToken cancellationToken)
     {
-        return From(await _chatService.ListarAsync(UsuarioId, cancellationToken));
+        var canal = ResolverTipo(tipo);
+        return From(await _chatService.ListarAsync(UsuarioId, canal, cancellationToken));
+    }
+
+    [HttpPost("reporte-tecnico")]
+    [Authorize(Roles = "Vendedor")]
+    public async Task<IActionResult> ReportarTecnico([FromBody] ReporteTecnicoRequest request, CancellationToken cancellationToken)
+    {
+        return From(await _chatService.ReportarVentaTecnicoAsync(UsuarioId, request, cancellationToken));
     }
 
     [HttpGet("{id:guid}")]
@@ -57,5 +65,16 @@ public sealed class ChatController : ApiControllerBase
         }
 
         return File(result.Data.Contenido, ChatAdjunto.TipoMime(result.Data.NombreArchivo), result.Data.NombreArchivo);
+    }
+
+    private static NewRich.Domain.Enums.TipoConversacion ResolverTipo(string? tipo)
+    {
+        if (string.Equals(tipo, nameof(NewRich.Domain.Enums.TipoConversacion.SoporteTecnico), StringComparison.OrdinalIgnoreCase)
+            || string.Equals(tipo, "SoporteTecnico", StringComparison.OrdinalIgnoreCase))
+        {
+            return NewRich.Domain.Enums.TipoConversacion.SoporteTecnico;
+        }
+
+        return NewRich.Domain.Enums.TipoConversacion.AtencionCliente;
     }
 }

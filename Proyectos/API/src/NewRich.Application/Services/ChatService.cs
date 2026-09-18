@@ -5,6 +5,7 @@ using NewRich.Application.Contracts.Chat;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
 using NewRich.Domain.Enums;
+using NewRich.Domain.Services;
 using NewRich.Shared.Results;
 
 namespace NewRich.Application.Services;
@@ -96,7 +97,8 @@ public sealed class ChatService : IChatService
             UsuarioIniciadorId = iniciadorId,
             UsuarioDestinoId = destinoId,
             FechaInicio = _clock.UtcNow,
-            Estado = EstadoConversacion.Abierta
+            Estado = EstadoConversacion.Abierta,
+            Tipo = TipoConversacion.AtencionCliente
         };
         var contenido = cuerpo.Data!;
         var mensaje = new Mensaje
@@ -116,7 +118,10 @@ public sealed class ChatService : IChatService
         return Result<ConversacionResponse>.Created(Map(conversacion), SuccessMessages.ConversacionIniciada);
     }
 
-    public async Task<Result<IReadOnlyList<ConversacionResponse>>> ListarAsync(Guid usuarioId, CancellationToken cancellationToken)
+    public async Task<Result<IReadOnlyList<ConversacionResponse>>> ListarAsync(
+        Guid usuarioId,
+        TipoConversacion tipo,
+        CancellationToken cancellationToken)
     {
         var actor = await _db.Usuarios.FirstOrDefaultAsync(u => u.UsuarioId == usuarioId, cancellationToken);
         var consulta = _db.Conversaciones
@@ -126,6 +131,7 @@ public sealed class ChatService : IChatService
             .ThenInclude(m => m.Adjuntos)
             .Include(c => c.Mensajes)
             .ThenInclude(m => m.UsuarioEmisor)
+            .Where(c => c.Tipo == tipo)
             .AsQueryable();
         if (actor is null || actor.Rol != RolUsuario.Administrador)
         {
@@ -186,6 +192,17 @@ public sealed class ChatService : IChatService
             return Result<MensajeResponse>.Fail(ChatMessages.NoParticipaEnConversacion, 403);
         }
 
+        var emisor = await _db.Usuarios.FirstOrDefaultAsync(u => u.UsuarioId == emisorId, cancellationToken);
+        if (emisor is null)
+        {
+            return Result<MensajeResponse>.Fail(UsuarioMessages.UsuarioNoEncontrado, 404);
+        }
+
+        if (conversacion.Tipo == TipoConversacion.SoporteTecnico && emisor.Rol != RolUsuario.Administrador)
+        {
+            return Result<MensajeResponse>.Fail(ChatMessages.SoporteTecnicoSoloLectura, 403);
+        }
+
         var cuerpo = ResolverCuerpo(request.Texto, request.NombreArchivo, request.ContenidoBase64);
         if (!cuerpo.IsSuccess)
         {
@@ -205,10 +222,104 @@ public sealed class ChatService : IChatService
 
         _db.Mensajes.Add(mensaje);
         await _db.SaveChangesAsync(cancellationToken);
-        var emisor = await _db.Usuarios.FirstOrDefaultAsync(u => u.UsuarioId == emisorId, cancellationToken);
         mensaje.UsuarioEmisor = emisor;
         await PublicarAsync(conversacion, mensaje, cancellationToken);
         return Result<MensajeResponse>.Ok(MapMensaje(mensaje), SuccessMessages.MensajeEnviado);
+    }
+
+    public async Task<Result<MensajeResponse>> ReportarVentaTecnicoAsync(
+        Guid vendedorId,
+        ReporteTecnicoRequest request,
+        CancellationToken cancellationToken)
+    {
+        var observacion = request.Observacion?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(observacion))
+        {
+            return Result<MensajeResponse>.Fail(ChatMessages.ObservacionReporteRequerida);
+        }
+
+        if (string.IsNullOrWhiteSpace(request.NombreArchivo) || string.IsNullOrWhiteSpace(request.ContenidoBase64))
+        {
+            return Result<MensajeResponse>.Fail(ChatMessages.PdfReporteRequerido);
+        }
+
+        var vendedor = await _db.Usuarios.FirstOrDefaultAsync(u => u.UsuarioId == vendedorId, cancellationToken);
+        if (vendedor is null)
+        {
+            return Result<MensajeResponse>.Fail(UsuarioMessages.UsuarioNoEncontrado, 404);
+        }
+
+        if (vendedor.Rol != RolUsuario.Vendedor)
+        {
+            return Result<MensajeResponse>.Fail(ChatMessages.SoporteTecnicoSoloLectura, 403);
+        }
+
+        var admin = await _db.Usuarios.FirstOrDefaultAsync(
+            u => u.Rol == RolUsuario.Administrador && u.Estado == EstadoUsuario.Activo,
+            cancellationToken);
+        if (admin is null)
+        {
+            return Result<MensajeResponse>.Fail(ChatMessages.AdministradorNoDisponible);
+        }
+
+        var conversacion = await _db.Conversaciones
+            .FirstOrDefaultAsync(
+                c => c.Tipo == TipoConversacion.SoporteTecnico
+                     && c.Estado == EstadoConversacion.Abierta
+                     && (c.UsuarioIniciadorId == vendedorId || c.UsuarioDestinoId == vendedorId),
+                cancellationToken);
+
+        if (conversacion is null)
+        {
+            conversacion = new Conversacion
+            {
+                ConversacionId = Guid.NewGuid(),
+                UsuarioIniciadorId = vendedorId,
+                UsuarioDestinoId = admin.UsuarioId,
+                FechaInicio = _clock.UtcNow,
+                Estado = EstadoConversacion.Abierta,
+                Tipo = TipoConversacion.SoporteTecnico
+            };
+            _db.Conversaciones.Add(conversacion);
+        }
+
+        string texto;
+        try
+        {
+            texto = TextoReporteTecnico.Armar(
+                _clock.LocalNow,
+                vendedor.NombreCompleto,
+                request.CodigoTicket,
+                observacion);
+        }
+        catch (ArgumentException)
+        {
+            return Result<MensajeResponse>.Fail(ChatMessages.ObservacionReporteRequerida);
+        }
+
+        var cuerpo = ResolverCuerpo(texto, request.NombreArchivo, request.ContenidoBase64);
+        if (!cuerpo.IsSuccess)
+        {
+            return Result<MensajeResponse>.Fail(cuerpo.Message);
+        }
+
+        var contenido = cuerpo.Data!;
+        var mensaje = new Mensaje
+        {
+            MensajeId = Guid.NewGuid(),
+            ConversacionId = conversacion.ConversacionId,
+            UsuarioEmisorId = vendedorId,
+            Texto = contenido.Texto,
+            FechaEnvio = _clock.UtcNow,
+            Permanente = true
+        };
+        await AdjuntarSiHayAsync(mensaje, contenido, cancellationToken);
+        _db.Mensajes.Add(mensaje);
+
+        await _db.SaveChangesAsync(cancellationToken);
+        mensaje.UsuarioEmisor = vendedor;
+        await PublicarAsync(conversacion, mensaje, cancellationToken, ChatMessages.TipoAvisoSoporteTecnico, ChatMessages.AvisoMensajeSoporteTecnico);
+        return Result<MensajeResponse>.Ok(MapMensaje(mensaje), ChatMessages.SuccessReporteTecnico);
     }
 
     public async Task<Result> CerrarAsync(Guid conversacionId, Guid administradorId, CancellationToken cancellationToken)
@@ -317,7 +428,12 @@ public sealed class ChatService : IChatService
         });
     }
 
-    private async Task PublicarAsync(Conversacion conversacion, Mensaje mensaje, CancellationToken cancellationToken)
+    private async Task PublicarAsync(
+        Conversacion conversacion,
+        Mensaje mensaje,
+        CancellationToken cancellationToken,
+        string? tipoAviso = null,
+        string? plantillaAviso = null)
     {
         var aviso = new MensajeChatEnVivoResponse
         {
@@ -343,10 +459,17 @@ public sealed class ChatService : IChatService
             return;
         }
 
+        var tipo = tipoAviso ?? (conversacion.Tipo == TipoConversacion.SoporteTecnico
+            ? ChatMessages.TipoAvisoSoporteTecnico
+            : ChatMessages.TipoAvisoSoporte);
+        var plantilla = plantillaAviso ?? (conversacion.Tipo == TipoConversacion.SoporteTecnico
+            ? ChatMessages.AvisoMensajeSoporteTecnico
+            : ChatMessages.AvisoMensajeSoporte);
+
         await _notificaciones.CrearParaAsync(
             administradores.Where(id => id != emisor.UsuarioId).ToList(),
-            ChatMessages.TipoAvisoSoporte,
-            string.Format(ChatMessages.AvisoMensajeSoporte, emisor.NombreCompleto),
+            tipo,
+            string.Format(plantilla, emisor.NombreCompleto),
             cancellationToken);
     }
 
@@ -374,6 +497,7 @@ public sealed class ChatService : IChatService
             RolIniciador = c.UsuarioIniciador?.Rol.ToString() ?? string.Empty,
             RolDestino = c.UsuarioDestino?.Rol.ToString() ?? string.Empty,
             Estado = c.Estado.ToString(),
+            Tipo = c.Tipo.ToString(),
             FechaInicio = c.FechaInicio,
             FechaCierre = c.FechaCierre,
             UltimoTexto = string.IsNullOrWhiteSpace(ultimo?.Texto)

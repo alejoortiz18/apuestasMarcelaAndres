@@ -4,6 +4,7 @@ using NewRich.Application.Contracts.Configuracion;
 using NewRich.Constants;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
+using NewRich.Domain.Services;
 using NewRich.Shared.Results;
 
 namespace NewRich.Application.Services;
@@ -12,6 +13,7 @@ public sealed class ConfiguracionService : IConfiguracionService
 {
     private static readonly (string Clave, string Valor)[] ClavesDefecto =
     [
+        (ConfiguracionClaves.HoraApertura, "10:00:00"),
         (ConfiguracionClaves.HoraCierre, "20:00:00"),
         (ConfiguracionClaves.VigenciaPremiosDias, "30"),
         (ConfiguracionClaves.AlertaRepeticionNumero, "10"),
@@ -74,6 +76,7 @@ public sealed class ConfiguracionService : IConfiguracionService
         var individual = await _db.ConfiguracionesTipoApuesta.FirstAsync(x => x.TipoApuesta == ConfiguracionClaves.TipoIndividual, cancellationToken);
         return Result<ConfiguracionOperativaResponse>.Ok(new ConfiguracionOperativaResponse
         {
+            HoraApertura = mapa[ConfiguracionClaves.HoraApertura],
             HoraCierre = mapa[ConfiguracionClaves.HoraCierre],
             VigenciaPremiosDias = Entero(mapa[ConfiguracionClaves.VigenciaPremiosDias], 30),
             MaxJuegosCombinado = combinado.Maximo,
@@ -88,9 +91,19 @@ public sealed class ConfiguracionService : IConfiguracionService
 
     public async Task<Result<ConfiguracionOperativaResponse>> GuardarOperativaAsync(GuardarConfiguracionOperativaRequest request, CancellationToken cancellationToken)
     {
-        if (!TimeSpan.TryParse(request.HoraCierre, out var hora))
+        if (!Hora12.TryParse(request.HoraApertura, out var apertura))
+        {
+            return Result<ConfiguracionOperativaResponse>.Fail(ConfiguracionMessages.HoraAperturaInvalida);
+        }
+
+        if (!Hora12.TryParse(request.HoraCierre, out var cierre))
         {
             return Result<ConfiguracionOperativaResponse>.Fail(ConfiguracionMessages.HoraCierreInvalida);
+        }
+
+        if (!HorarioOperacion.SonDistintas(apertura, cierre))
+        {
+            return Result<ConfiguracionOperativaResponse>.Fail(ConfiguracionMessages.HorasOperacionIguales);
         }
 
         if (request.VigenciaPremiosDias <= 0)
@@ -141,7 +154,8 @@ public sealed class ConfiguracionService : IConfiguracionService
             : ConfiguracionClaves.ModoManual;
 
         await AsegurarValoresAsync(cancellationToken);
-        await GuardarClaveAsync(ConfiguracionClaves.HoraCierre, hora.ToString(@"hh\:mm\:ss"), cancellationToken);
+        await GuardarClaveAsync(ConfiguracionClaves.HoraApertura, apertura.ToString(@"hh\:mm\:ss"), cancellationToken);
+        await GuardarClaveAsync(ConfiguracionClaves.HoraCierre, cierre.ToString(@"hh\:mm\:ss"), cancellationToken);
         await GuardarClaveAsync(ConfiguracionClaves.VigenciaPremiosDias, request.VigenciaPremiosDias.ToString(), cancellationToken);
         await GuardarClaveAsync(ConfiguracionClaves.AlertaRepeticionNumero, request.AlertaRepeticionNumero.ToString(), cancellationToken);
         await GuardarClaveAsync(ConfiguracionClaves.AlertaValorMinimo, request.AlertaValorMinimo.ToString(), cancellationToken);
@@ -217,6 +231,7 @@ public sealed class ConfiguracionService : IConfiguracionService
 
     private static GuardarConfiguracionOperativaRequest ToRequest(ConfiguracionOperativaResponse actual) => new()
     {
+        HoraApertura = actual.HoraApertura,
         HoraCierre = actual.HoraCierre,
         VigenciaPremiosDias = actual.VigenciaPremiosDias,
         MaxJuegosCombinado = actual.MaxJuegosCombinado,
@@ -233,6 +248,7 @@ public sealed class ConfiguracionService : IConfiguracionService
         var request = ToRequest(actual);
         return clave switch
         {
+            ConfiguracionClaves.HoraApertura => request with { HoraApertura = valor },
             ConfiguracionClaves.HoraCierre => request with { HoraCierre = valor },
             ConfiguracionClaves.VigenciaPremiosDias when int.TryParse(valor, out var vigencia) => request with { VigenciaPremiosDias = vigencia },
             ConfiguracionClaves.AlertaRepeticionNumero when int.TryParse(valor, out var repeticion) => request with { AlertaRepeticionNumero = repeticion },

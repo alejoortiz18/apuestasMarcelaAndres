@@ -1,8 +1,9 @@
 @using NewRich.Admin.Constants
 @using NewRich.Admin.Services
-@model NewRich.Application.Contracts.Notificaciones.NotificacionItemResponse
+@model NewRich.Application.Contracts.Notificaciones.NotificacionDetalleResponse
 @{
     var estado = Model.Leida ? UiTexts.Leida : UiTexts.Pendiente;
+    var numero = Model.NumeroRepetido;
 }
 <div class="heading">
     <div>
@@ -18,5 +19,55 @@
         <div class="receipt-row"><span>@UiTexts.Mensaje</span><strong>@Model.Mensaje</strong></div>
         <div class="receipt-row"><span>@UiTexts.Fecha</span><strong>@Model.FechaCreacion.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</strong></div>
         <div class="receipt-row"><span>@UiTexts.Estado</span><strong><span class="pill @EstadoUi.Pill(estado)">@estado</span></strong></div>
+        @if (!string.IsNullOrWhiteSpace(numero))
+        {
+            <div class="receipt-rule">----------------</div>
+            <div class="receipt-row"><span>@UiTexts.NumeroRepetido</span><strong>@numero</strong></div>
+        }
     </div>
 </div>
+@if (!string.IsNullOrWhiteSpace(numero))
+{
+    <div class="panel">
+        <div class="panel-head">
+            <div>
+                <h2>@string.Format(UiTexts.HistoricoDelNumero, numero)</h2>
+                <div class="panel-sub">@string.Format(UiTexts.HistoricoDelNumeroSub, Model.FechaCreacion.ToLocalTime().ToString("dd/MM/yyyy"))</div>
+            </div>
+        </div>
+        @if (!Model.Apuestas.Any())
+        {
+            <div class="empty">@UiTexts.SinApuestasDelNumero</div>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>@UiTexts.FechaYHora</th>
+                        <th>@UiTexts.Loteria</th>
+                        <th class="col-num">@UiTexts.Valor</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var apuesta in Model.Apuestas)
+                    {
+                        <tr>
+                            <td>@apuesta.Fecha.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>@apuesta.Loteria</td>
+                            <td class="col-num">@apuesta.Valor.ToString("N0")</td>
+                        </tr>
+                    }
+                    </tbody>
+                    <tfoot>
+                    <tr>
+                        <th colspan="2">@UiTexts.TotalApostadoNumero</th>
+                        <th class="col-num">@Model.TotalApostado.ToString("N0")</th>
+                    </tr>
+                    </tfoot>
+                </table>
+            </div>
+        }
+    </div>
+}

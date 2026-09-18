@@ -10,6 +10,7 @@ public class Conversacion
     public DateTime FechaInicio { get; set; }
     public DateTime? FechaCierre { get; set; }
     public EstadoConversacion Estado { get; set; } = EstadoConversacion.Abierta;
+    public TipoConversacion Tipo { get; set; } = TipoConversacion.AtencionCliente;
     public Usuario? UsuarioIniciador { get; set; }
     public Usuario? UsuarioDestino { get; set; }
     public ICollection<Mensaje> Mensajes { get; set; } = new List<Mensaje>();

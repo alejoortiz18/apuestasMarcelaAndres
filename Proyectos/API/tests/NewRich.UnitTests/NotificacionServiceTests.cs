@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using NewRich.Application.Services;
+using NewRich.Constants;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
 using NewRich.Domain.Enums;
@@ -59,6 +60,49 @@ public sealed class NotificacionServiceTests
         result.StatusCode.Should().Be(404);
         result.Message.Should().Be(NotificacionMessages.NotificacionNoEncontrada);
         db.Notificaciones.Single().Leida.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ObtenerAsync_de_repeticion_devuelve_el_numero_y_las_apuestas_del_dia_por_loteria()
+    {
+        var (sut, db) = CreateSut();
+        var ana = await AgregarUsuarioAsync(db, "Ana Admin");
+        var aviso = await AgregarNotificacionAsync(
+            db,
+            ana.UsuarioId,
+            NotificacionMessages.TipoRepeticionNumero,
+            "El número 2684 superó el umbral de repeticiones configurado.",
+            leida: false,
+            Ahora);
+        await AgregarJugadaAsync(db, "2684", 1500, Ahora.AddHours(-2), ["Armenia", "Cundinamarca"]);
+        await AgregarJugadaAsync(db, "2684", 2000, Ahora.AddMinutes(-30), ["Armenia"]);
+        await AgregarJugadaAsync(db, "2684", 900, Ahora.AddDays(-1), ["Armenia"]);
+        await AgregarJugadaAsync(db, "1111", 5000, Ahora.AddMinutes(-10), ["Armenia"]);
+
+        var result = await sut.ObtenerAsync(aviso.NotificacionId, ana.UsuarioId, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        var detalle = result.Data!;
+        detalle.NumeroRepetido.Should().Be("2684");
+        detalle.Apuestas.Should().HaveCount(3);
+        detalle.Apuestas.Select(a => a.Loteria).Should().Contain("Cundinamarca");
+        detalle.Apuestas.Should().OnlyContain(a => a.Fecha.Date == Ahora.Date);
+        detalle.TotalApostado.Should().Be(5000);
+    }
+
+    [Fact]
+    public async Task ObtenerAsync_de_otro_tipo_no_incluye_historico_de_numero()
+    {
+        var (sut, db) = CreateSut();
+        var ana = await AgregarUsuarioAsync(db, "Ana Admin");
+        var aviso = await AgregarNotificacionAsync(db, ana.UsuarioId, "CasoGanador", "Ticket 1234 reportado", leida: false, Ahora);
+        await AgregarJugadaAsync(db, "1234", 1000, Ahora, ["Armenia"]);
+
+        var result = await sut.ObtenerAsync(aviso.NotificacionId, ana.UsuarioId, CancellationToken.None);
+
+        result.Data!.NumeroRepetido.Should().BeNull();
+        result.Data.Apuestas.Should().BeEmpty();
+        result.Data.TotalApostado.Should().Be(0);
     }
 
     [Fact]
@@ -146,5 +190,68 @@ public sealed class NotificacionServiceTests
         db.Notificaciones.Add(item);
         await db.SaveChangesAsync();
         return item;
+    }
+
+    private static async Task AgregarJugadaAsync(
+        NewRichDbContext db,
+        string numero,
+        decimal valor,
+        DateTime fecha,
+        IReadOnlyList<string> loterias)
+    {
+        var vendedor = await AgregarUsuarioAsync(db, "Vendedor " + numero);
+        var venta = new Venta
+        {
+            VentaId = Guid.NewGuid(),
+            UsuarioId = vendedor.UsuarioId,
+            FechaVenta = fecha,
+            Total = valor,
+            TipoApuesta = TipoApuesta.COMBINADO
+        };
+        var boleto = new Boleto
+        {
+            BoletoId = Guid.NewGuid(),
+            VentaId = venta.VentaId,
+            CodigoPublico = Random.Shared.Next(0, 10_000_000).ToString("D7"),
+            ClaveValidacionHash = "h",
+            EstadoBoleto = EstadoBoleto.Jugado,
+            FechaCreacion = fecha,
+            VigenciaDias = 30
+        };
+        var juego = new Juego
+        {
+            JuegoId = Guid.NewGuid(),
+            BoletoId = boleto.BoletoId,
+            Numero = numero,
+            Valor = valor,
+            TipoJuego = TipoJuego.COMBINADA
+        };
+        foreach (var nombre in loterias)
+        {
+            var loteria = db.Loterias.FirstOrDefault(l => l.Nombre == nombre);
+            if (loteria is null)
+            {
+                loteria = new Loteria
+                {
+                    LoteriaId = Guid.NewGuid(),
+                    Nombre = nombre,
+                    Estado = EstadoGeneral.Activo,
+                    FechaCreacion = Ahora
+                };
+                db.Loterias.Add(loteria);
+            }
+
+            juego.JuegoLoterias.Add(new JuegoLoteria
+            {
+                JuegoId = juego.JuegoId,
+                LoteriaId = loteria.LoteriaId,
+                Loteria = loteria
+            });
+        }
+
+        boleto.Juegos.Add(juego);
+        db.Ventas.Add(venta);
+        db.Boletos.Add(boleto);
+        await db.SaveChangesAsync();
     }
 }

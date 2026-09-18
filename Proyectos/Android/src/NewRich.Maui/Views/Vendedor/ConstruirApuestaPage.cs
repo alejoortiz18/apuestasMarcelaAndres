@@ -2,6 +2,7 @@ using NewRich.Application.Contracts.Loterias;
 using NewRich.Application.Services;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Enums;
+using NewRich.Domain.Services;
 using NewRich.Pda.Core;
 using NewRich.Pda.Core.Api;
 using NewRich.Pda.Core.Auth;
@@ -59,6 +60,19 @@ public sealed class ConstruirApuestaPage : ContentPage
     private void Render()
     {
         var draft = _sesion.Borrador;
+        _sesion.HorarioCerrado = HorarioPda.EstaFuera(
+            _sesion.Limites,
+            ZonaHorariaColombia.ALocal(DateTime.UtcNow));
+        if (!HorarioPda.PuedeContinuarVentaActiva(_sesion.HorarioCerrado, draft is not null))
+        {
+            Content = new VerticalStackLayout
+            {
+                Padding = 16,
+                Children = { Ui.Banner($"{PdaTexts.JuegosCerrados} {PdaTexts.JuegosCerradosVenta}", Ui.DangerBg, Ui.Danger) }
+            };
+            return;
+        }
+
         if (draft is null)
         {
             Content = new Label { Text = PdaTexts.TipoApuestaAyuda, Padding = 16 };

@@ -2,6 +2,7 @@ namespace NewRich.Constants;
 
 public static class ConfiguracionClaves
 {
+    public const string HoraApertura = "HoraApertura";
     public const string HoraCierre = "HoraCierre";
     public const string VigenciaPremiosDias = "VigenciaPremiosDias";
     public const string AlertaRepeticionNumero = "AlertaRepeticionNumero";

@@ -25,7 +25,7 @@ public sealed class ChatServiceTests
         var camila = await AgregarUsuarioAsync(db, "Camila Rojas", RolUsuario.Vendedor);
         await AgregarConversacionAsync(db, camila, admin, "Necesito confirmar la impresion");
 
-        var result = await sut.ListarAsync(admin.UsuarioId, CancellationToken.None);
+        var result = await sut.ListarAsync(admin.UsuarioId, TipoConversacion.AtencionCliente, CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
         var fila = result.Data.Should().ContainSingle().Subject;
@@ -45,7 +45,7 @@ public sealed class ChatServiceTests
         var camila = await AgregarUsuarioAsync(db, "Camila Rojas", RolUsuario.Vendedor);
         await AgregarConversacionAsync(db, camila, luis, "Hola Luis");
 
-        var result = await sut.ListarAsync(ana.UsuarioId, CancellationToken.None);
+        var result = await sut.ListarAsync(ana.UsuarioId, TipoConversacion.AtencionCliente, CancellationToken.None);
 
         result.Data.Should().ContainSingle(c => c.UltimoTexto == "Hola Luis");
     }
@@ -60,7 +60,7 @@ public sealed class ChatServiceTests
         await AgregarConversacionAsync(db, camila, admin, "De Camila");
         await AgregarConversacionAsync(db, jorge, admin, "De Jorge");
 
-        var result = await sut.ListarAsync(camila.UsuarioId, CancellationToken.None);
+        var result = await sut.ListarAsync(camila.UsuarioId, TipoConversacion.AtencionCliente, CancellationToken.None);
 
         result.Data.Should().ContainSingle(c => c.UltimoTexto == "De Camila");
     }
@@ -289,6 +289,73 @@ public sealed class ChatServiceTests
         ChatAdjunto.EsPdf(result.Data.NombreArchivo).Should().BeTrue();
     }
 
+    [Fact]
+    public async Task ReportarVentaTecnicoAsync_crea_hilo_unico_por_vendedor_con_pdf()
+    {
+        var (sut, db) = CreateSut();
+        await AgregarUsuarioAsync(db, "Ana Admin", RolUsuario.Administrador);
+        var camila = await AgregarUsuarioAsync(db, "Camila Rojas", RolUsuario.Vendedor);
+
+        var primero = await sut.ReportarVentaTecnicoAsync(camila.UsuarioId, new ReporteTecnicoRequest
+        {
+            Observacion = "No imprimió bien",
+            CodigoTicket = "ABC1234",
+            NombreArchivo = "ABC1234.pdf",
+            ContenidoBase64 = Convert.ToBase64String("%PDF-reporte"u8.ToArray())
+        }, CancellationToken.None);
+        var segundo = await sut.ReportarVentaTecnicoAsync(camila.UsuarioId, new ReporteTecnicoRequest
+        {
+            Observacion = "Segundo reporte",
+            CodigoTicket = "XYZ9876",
+            NombreArchivo = "XYZ9876.pdf",
+            ContenidoBase64 = Convert.ToBase64String("%PDF-otro"u8.ToArray())
+        }, CancellationToken.None);
+
+        primero.IsSuccess.Should().BeTrue();
+        segundo.IsSuccess.Should().BeTrue();
+        db.Conversaciones.Should().ContainSingle(c => c.Tipo == TipoConversacion.SoporteTecnico);
+        var convId = db.Conversaciones.Single(c => c.Tipo == TipoConversacion.SoporteTecnico).ConversacionId;
+        var detalle = await sut.ObtenerAsync(convId, camila.UsuarioId, CancellationToken.None);
+        detalle.Data!.Mensajes.Should().HaveCount(2);
+        detalle.Data.Mensajes[0].Texto.Should().Contain("Observación: No imprimió bien");
+        detalle.Data.Mensajes[0].NombreArchivo.Should().Be("ABC1234.pdf");
+        detalle.Data.Mensajes[1].Texto.Should().Contain("Ticket: XYZ9876");
+    }
+
+    [Fact]
+    public async Task EnviarAsync_vendedor_no_escribe_en_soporte_tecnico()
+    {
+        var (sut, db) = CreateSut();
+        var ana = await AgregarUsuarioAsync(db, "Ana Admin", RolUsuario.Administrador);
+        var camila = await AgregarUsuarioAsync(db, "Camila Rojas", RolUsuario.Vendedor);
+        var conv = await AgregarConversacionAsync(db, camila, ana, "Reporte", TipoConversacion.SoporteTecnico);
+
+        var result = await sut.EnviarAsync(conv.ConversacionId, camila.UsuarioId, new EnviarMensajeRequest
+        {
+            Texto = "intento libre"
+        }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Message.Should().Be(ChatMessages.SoporteTecnicoSoloLectura);
+    }
+
+    [Fact]
+    public async Task ListarAsync_filtra_por_tipo()
+    {
+        var (sut, db) = CreateSut();
+        var ana = await AgregarUsuarioAsync(db, "Ana Admin", RolUsuario.Administrador);
+        var camila = await AgregarUsuarioAsync(db, "Camila Rojas", RolUsuario.Vendedor);
+        await AgregarConversacionAsync(db, camila, ana, "Atencion", TipoConversacion.AtencionCliente);
+        await AgregarConversacionAsync(db, camila, ana, "Tecnico", TipoConversacion.SoporteTecnico);
+
+        var atencion = await sut.ListarAsync(ana.UsuarioId, TipoConversacion.AtencionCliente, CancellationToken.None);
+        var tecnico = await sut.ListarAsync(ana.UsuarioId, TipoConversacion.SoporteTecnico, CancellationToken.None);
+
+        atencion.Data.Should().ContainSingle(c => c.UltimoTexto == "Atencion");
+        tecnico.Data.Should().ContainSingle(c => c.UltimoTexto == "Tecnico");
+        tecnico.Data![0].Tipo.Should().Be(nameof(TipoConversacion.SoporteTecnico));
+    }
+
     private static (ChatService Sut, NewRichDbContext Db) CreateSut(
         ChatVivoFake? chatVivo = null,
         NotificacionesFake? notificaciones = null)
@@ -326,7 +393,7 @@ public sealed class ChatServiceTests
         public Task<Result<NotificacionesResponse>> ListarAsync(Guid usuarioId, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
-        public Task<Result<NotificacionItemResponse>> ObtenerAsync(Guid notificacionId, Guid usuarioId, CancellationToken cancellationToken) =>
+        public Task<Result<NotificacionDetalleResponse>> ObtenerAsync(Guid notificacionId, Guid usuarioId, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
         public Task CrearParaAsync(IReadOnlyCollection<Guid> usuarioIds, string tipo, string mensaje, CancellationToken cancellationToken)
@@ -357,7 +424,12 @@ public sealed class ChatServiceTests
         return usuario;
     }
 
-    private static async Task<Conversacion> AgregarConversacionAsync(NewRichDbContext db, Usuario iniciador, Usuario destino, string texto)
+    private static async Task<Conversacion> AgregarConversacionAsync(
+        NewRichDbContext db,
+        Usuario iniciador,
+        Usuario destino,
+        string texto,
+        TipoConversacion tipo = TipoConversacion.AtencionCliente)
     {
         var conversacion = new Conversacion
         {
@@ -367,7 +439,8 @@ public sealed class ChatServiceTests
             UsuarioIniciador = iniciador,
             UsuarioDestino = destino,
             FechaInicio = Ahora,
-            Estado = EstadoConversacion.Abierta
+            Estado = EstadoConversacion.Abierta,
+            Tipo = tipo
         };
         conversacion.Mensajes.Add(new Mensaje
         {

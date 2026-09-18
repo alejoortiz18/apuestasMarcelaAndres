@@ -101,6 +101,12 @@ public static class UiTexts
     public const string NavKpi = "KPI";
     public const string NavNotificaciones = "Notificaciones";
     public const string NavSoporte = "Soporte";
+    public const string NavAtencionCliente = "Atención al cliente";
+    public const string NavSoporteTecnico = "Soporte técnico";
+    public const string SoporteTecnicoKicker = "Reportes de venta";
+    public const string SoporteTecnicoTitulo = "Soporte técnico";
+    public const string SoporteTecnicoSub = "Tirillas reportadas por los vendedores con su observación.";
+    public const string SoporteTecnicoSinInicio = "Los reportes llegan desde el PDA al generar un reporte de venta.";
     public const string NavConfiguracion = "Configuración";
 
     public const string ResumenKicker = "Control operativo";
@@ -379,6 +385,11 @@ public static class UiTexts
     public const string Fecha = "Fecha";
     public const string Pendiente = "Pendiente";
     public const string Leida = "Leída";
+    public const string NumeroRepetido = "Número con repeticiones";
+    public const string HistoricoDelNumero = "Histórico del número {0}";
+    public const string HistoricoDelNumeroSub = "Apuestas registradas para este número el {0}, con su lotería y valor.";
+    public const string SinApuestasDelNumero = "No hay apuestas registradas para este número en la fecha del aviso.";
+    public const string TotalApostadoNumero = "Total apostado al número";
     public const string Detalle = "Detalle";
 
     public const string SoporteKicker = "Atención directa";
@@ -418,8 +429,10 @@ public static class UiTexts
     public const string ConfigApuestas = "Límites de apuesta";
     public const string ConfigAlertas = "Alertas de jugada";
     public const string ConfigOffline = "Códigos offline";
+    public const string HoraAperturaPda = "Hora de apertura del PDA";
+    public const string HoraAperturaPdaAyuda = "Desde esta hora el PDA puede vender. No puede ser igual a la hora de cierre.";
     public const string HoraCierrePda = "Hora de cierre o desconexión del PDA";
-    public const string HoraCierrePdaAyuda = "A esta hora el PDA deja de vender y se desconecta.";
+    public const string HoraCierrePdaAyuda = "A esta hora el PDA deja de iniciar ventas nuevas. No puede ser igual a la hora de apertura.";
     public const string VigenciaPremioDias = "Vigencia del premio en días";
     public const string MaxJuegosCombinado = "Juegos máximos en modo combinado";
     public const string MaxLineasIndividual = "Líneas máximas en modo individual";

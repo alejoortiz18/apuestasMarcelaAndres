@@ -1,4 +1,5 @@
 using NewRich.Domain.Enums;
+using NewRich.Domain.Services;
 using NewRich.Pda.Core;
 using NewRich.Pda.Core.Auth;
 using NewRich.Pda.Core.Ventas;
@@ -22,7 +23,10 @@ public sealed class TipoApuestaPage : ContentPage
     protected override void OnAppearing()
     {
         base.OnAppearing();
-        if (_sesion.HorarioCerrado)
+        _sesion.HorarioCerrado = HorarioPda.EstaFuera(
+            _sesion.Limites,
+            ZonaHorariaColombia.ALocal(DateTime.UtcNow));
+        if (!HorarioPda.PuedeIniciarJuegoNuevo(_sesion.HorarioCerrado))
         {
             Content = new VerticalStackLayout
             {

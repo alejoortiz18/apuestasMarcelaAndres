@@ -498,10 +498,12 @@ BEGIN
         FechaInicio         DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
         FechaCierre         DATETIME2        NULL,
         Estado              NVARCHAR(20)     NOT NULL DEFAULT 'Abierta', -- Abierta, Cerrada
+        Tipo                NVARCHAR(30)     NOT NULL DEFAULT 'AtencionCliente', -- AtencionCliente, SoporteTecnico
         CONSTRAINT PK_Conversaciones PRIMARY KEY (ConversacionId),
         CONSTRAINT FK_Conversaciones_Iniciador FOREIGN KEY (UsuarioIniciadorId) REFERENCES dbo.Usuarios(UsuarioId),
         CONSTRAINT FK_Conversaciones_Destino FOREIGN KEY (UsuarioDestinoId) REFERENCES dbo.Usuarios(UsuarioId),
-        CONSTRAINT CK_Conversaciones_Estado CHECK (Estado IN ('Abierta', 'Cerrada'))
+        CONSTRAINT CK_Conversaciones_Estado CHECK (Estado IN ('Abierta', 'Cerrada')),
+        CONSTRAINT CK_Conversaciones_Tipo CHECK (Tipo IN ('AtencionCliente', 'SoporteTecnico'))
     );
     CREATE INDEX IX_Conversaciones_Iniciador ON dbo.Conversaciones(UsuarioIniciadorId);
     CREATE INDEX IX_Conversaciones_Destino ON dbo.Conversaciones(UsuarioDestinoId);
@@ -1337,6 +1339,9 @@ PRINT 'Datos maestros de EstadosBoleto insertados.';
 /* 10.3. Configuraciones */
 IF NOT EXISTS (SELECT 1 FROM dbo.Configuraciones WHERE Clave = 'HoraCierre')
     INSERT INTO dbo.Configuraciones (Clave, Valor) VALUES ('HoraCierre', '20:00:00');
+
+IF NOT EXISTS (SELECT 1 FROM dbo.Configuraciones WHERE Clave = 'HoraApertura')
+    INSERT INTO dbo.Configuraciones (Clave, Valor) VALUES ('HoraApertura', '10:00:00');
 IF NOT EXISTS (SELECT 1 FROM dbo.Configuraciones WHERE Clave = 'VigenciaPremiosDias')
     INSERT INTO dbo.Configuraciones (Clave, Valor) VALUES ('VigenciaPremiosDias', '30');
 IF NOT EXISTS (SELECT 1 FROM dbo.Configuraciones WHERE Clave = 'AlertaRepeticionNumero')

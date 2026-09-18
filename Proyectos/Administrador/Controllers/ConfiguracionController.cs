@@ -7,6 +7,7 @@ using NewRich.Application.Contracts.Loterias;
 using NewRich.Application.Services;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Enums;
+using NewRich.Domain.Services;
 
 namespace NewRich.Admin.Controllers;
 
@@ -53,25 +54,21 @@ public sealed class ConfiguracionController : AdminControllerBase
     public async Task<IActionResult> Guardar([Bind(Prefix = "Form")] ConfiguracionOperativaFormViewModel form, CancellationToken cancellationToken)
     {
         SetNav("configuracion", UiTexts.NavConfiguracion);
+        ValidarHorarioOperativo(form);
+        if (HorarioIgual(form))
+        {
+            SetAvisoModal(ConfiguracionMessages.HorasOperacionIguales);
+            return await VistaConfiguracionAsync(form, cancellationToken);
+        }
+
         if (!ModelState.IsValid)
         {
-            var loterias = await _api.ListarLoteriasAsync(cancellationToken);
-            var unauthorized = RedirectIfUnauthorized(loterias);
-            if (unauthorized is not null)
-            {
-                return unauthorized;
-            }
-
-            return View("Index", new ConfiguracionIndexViewModel
-            {
-                Form = form,
-                Pagina = PagingHelper.Paginate(loterias.Data ?? [], 1, 5),
-                DiasVenta = MapDias(loterias.Data ?? [])
-            });
+            return await VistaConfiguracionAsync(form, cancellationToken);
         }
 
         var result = await _api.GuardarConfiguracionOperativaAsync(new GuardarConfiguracionOperativaRequest
         {
+            HoraApertura = form.HoraApertura,
             HoraCierre = form.HoraCierre,
             VigenciaPremiosDias = form.VigenciaPremiosDias,
             MaxJuegosCombinado = form.MaxJuegosCombinado,
@@ -88,7 +85,21 @@ public sealed class ConfiguracionController : AdminControllerBase
             return denied;
         }
 
-        SetFlash(result.Success ? SuccessMessages.RegistroActualizado : result.Message, result.Success);
+        if (!result.Success)
+        {
+            if (string.Equals(result.Message, ConfiguracionMessages.HorasOperacionIguales, StringComparison.Ordinal))
+            {
+                SetAvisoModal(ConfiguracionMessages.HorasOperacionIguales);
+            }
+            else
+            {
+                ModelState.AddModelError(string.Empty, result.Message);
+            }
+
+            return await VistaConfiguracionAsync(form, cancellationToken);
+        }
+
+        SetFlash(SuccessMessages.RegistroActualizado);
         return RedirectToAction(nameof(Index));
     }
 
@@ -251,15 +262,10 @@ public sealed class ConfiguracionController : AdminControllerBase
             return new ConfiguracionOperativaFormViewModel();
         }
 
-        var hora = data.HoraCierre;
-        if (TimeSpan.TryParse(hora, out var span))
-        {
-            hora = span.ToString(@"hh\:mm");
-        }
-
         return new ConfiguracionOperativaFormViewModel
         {
-            HoraCierre = hora,
+            HoraApertura = FormatoHoraInput(data.HoraApertura, "10:00"),
+            HoraCierre = FormatoHoraInput(data.HoraCierre, "20:00"),
             VigenciaPremiosDias = data.VigenciaPremiosDias,
             MaxJuegosCombinado = data.MaxJuegosCombinado,
             MaxLineasIndividual = data.MaxLineasIndividual,
@@ -271,6 +277,54 @@ public sealed class ConfiguracionController : AdminControllerBase
                 ? TirillaCuerpo.CuerpoDefecto
                 : data.LeyendaTirilla
         };
+    }
+
+    /// <summary>El input type=time espera HH:mm.</summary>
+    private static string FormatoHoraInput(string? valor, string defecto)
+    {
+        if (Hora12.TryParse(valor, out var span))
+        {
+            return span.ToString(@"hh\:mm");
+        }
+
+        return defecto;
+    }
+
+    private void ValidarHorarioOperativo(ConfiguracionOperativaFormViewModel form)
+    {
+        if (!Hora12.TryParse(form.HoraApertura, out _))
+        {
+            ModelState.AddModelError("Form.HoraApertura", ConfiguracionMessages.HoraAperturaInvalida);
+        }
+
+        if (!Hora12.TryParse(form.HoraCierre, out _))
+        {
+            ModelState.AddModelError("Form.HoraCierre", ConfiguracionMessages.HoraCierreInvalida);
+        }
+    }
+
+    private static bool HorarioIgual(ConfiguracionOperativaFormViewModel form) =>
+        Hora12.TryParse(form.HoraApertura, out var apertura)
+        && Hora12.TryParse(form.HoraCierre, out var cierre)
+        && !HorarioOperacion.SonDistintas(apertura, cierre);
+
+    private async Task<IActionResult> VistaConfiguracionAsync(
+        ConfiguracionOperativaFormViewModel form,
+        CancellationToken cancellationToken)
+    {
+        var loterias = await _api.ListarLoteriasAsync(cancellationToken);
+        var unauthorized = RedirectIfUnauthorized(loterias);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
+        return View("Index", new ConfiguracionIndexViewModel
+        {
+            Form = form,
+            Pagina = PagingHelper.Paginate(loterias.Data ?? [], 1, 5),
+            DiasVenta = MapDias(loterias.Data ?? [])
+        });
     }
 
     private static List<DiasLoteriaFormItem> MapDias(IReadOnlyList<LoteriaResponse> loterias) =>

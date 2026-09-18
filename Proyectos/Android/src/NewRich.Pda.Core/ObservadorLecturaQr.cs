@@ -288,7 +288,10 @@ public static class ObservadorLecturaQr
             Options = new DecodingOptions
             {
                 PossibleFormats = [BarcodeFormat.QR_CODE],
-                TryHarder = true,
+                // TryHarder agrega pasadas de binarización/rotación caras (cientos de ms).
+                // En vivo (profundo=false) esto se llama en cada cuadro de cámara: si es
+                // costoso, el PDA cae a ~1 cuadro/seg y casi nunca alcanza a leer el QR.
+                TryHarder = profundo,
                 TryInverted = profundo,
                 PureBarcode = false
             }

@@ -3,7 +3,9 @@ namespace NewRich.Constants.Messages;
 public static class ConfiguracionMessages
 {
     public const string ConfiguracionNoEncontrada = "La configuración solicitada no existe.";
-    public const string HoraCierreInvalida = "La hora de cierre no tiene un formato válido. Use HH:mm.";
+    public const string HoraAperturaInvalida = "La hora de apertura no tiene un formato válido.";
+    public const string HoraCierreInvalida = "La hora de cierre no tiene un formato válido.";
+    public const string HorasOperacionIguales = "La hora de apertura y la hora de cierre no pueden ser iguales.";
     public const string VigenciaInvalida = "La vigencia de premios debe ser un número entero mayor que cero.";
     public const string EnteroInvalido = "El valor debe ser un número entero mayor que cero.";
     public const string LineasIndividualInvalidas = "El máximo de líneas individuales debe estar entre 1 y 6.";

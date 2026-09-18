@@ -35,7 +35,17 @@ public static class HubNotificacionesUrl
         {
             baseUrl = new UriBuilder(uri) { Host = "localhost" }.Uri.GetLeftPart(UriPartial.Authority).TrimEnd('/');
         }
+        else if (!string.IsNullOrWhiteSpace(hostNavegador)
+                 && EsHostLoopback(uri.Host)
+                 && CorsOrigenes.EsHostPrivado(hostNavegador)
+                 && !EsHostLoopback(hostNavegador))
+        {
+            baseUrl = new UriBuilder(uri) { Host = hostNavegador }.Uri.GetLeftPart(UriPartial.Authority).TrimEnd('/');
+        }
 
         return baseUrl + rutaHub;
     }
+
+    private static bool EsHostLoopback(string host) =>
+        host.Equals("localhost", StringComparison.OrdinalIgnoreCase) || host == "127.0.0.1";
 }

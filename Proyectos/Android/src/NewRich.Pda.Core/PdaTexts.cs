@@ -32,7 +32,7 @@ public static class PdaTexts
     public const string Vender = "Vender";
     public const string Validar = "Validar";
     public const string Historico = "Histórico";
-    public const string Soporte = "Soporte";
+    public const string Soporte = "Atención al cliente";
     public const string Mas = "Más";
     public const string MasOpciones = "Más opciones";
     public const string JuegoNuevo = "Juego nuevo";
@@ -118,6 +118,18 @@ public static class PdaTexts
     public const string BoletoGenerado = "Boleto generado";
     public const string TicketVendido = "Ticket vendido";
     public const string ImprimirTirilla = "Imprimir tirilla";
+    public const string GenerarReporte = "Generar reporte";
+    public const string DetalleReporte = "Detalle del reporte";
+    public const string DetalleReporteObligatorio = "El detalle del reporte es obligatorio.";
+    public const string EnviarReporte = "Enviar";
+    public const string CancelarReporte = "Cancelar";
+    public const string AtencionCliente = "Atención al cliente";
+    public const string SoporteTecnico = "Soporte técnico";
+    public const string SoporteTecnicoAyuda = "Reportes de venta (solo lectura)";
+    public const string SoporteTecnicoVacio = "Aún no hay reportes de soporte técnico.";
+    public const string ReporteEnviado = "Reporte enviado a soporte técnico.";
+    public const string ReporteEncolado = "Enviado, esperando conexión";
+
     public const string GenerarPdf = "Generar PDF";
     public const string GenerandoPdf = "Generando PDF, un momento";
     public const string VolverInicio = "Volver al inicio";

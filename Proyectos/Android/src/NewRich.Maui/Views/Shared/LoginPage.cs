@@ -1,5 +1,6 @@
 using Microsoft.Maui.Controls.Shapes;
 using NewRich.Constants.Messages;
+using NewRich.Domain.Services;
 using NewRich.Pda.Core;
 using NewRich.Pda.Core.Api;
 using NewRich.Pda.Core.Auth;
@@ -286,6 +287,12 @@ public sealed class LoginPage : ContentPage
                 Limites = _sesion.Limites,
                 CodigoDispositivo = _sesion.CodigoDispositivo
             });
+            await _local.GuardarCredencialAsync(
+                CredencialLocal.Crear(_usuario.Text?.Trim() ?? string.Empty, _password.Text ?? string.Empty));
+
+            _sesion.HorarioCerrado = HorarioPda.EstaFuera(
+                _sesion.Limites,
+                ZonaHorariaColombia.ALocal(DateTime.UtcNow));
 
             var shell = NavegacionPorRol.Para(resultado.Data.Rol);
             if (!shell.IsSuccess)
@@ -328,16 +335,22 @@ public sealed class LoginPage : ContentPage
 
     private async Task<bool> EntrarConSesionLocalAsync()
     {
-        var token = await _tokens.ObtenerAsync();
-        var cache = await _local.SesionAsync();
-        if (string.IsNullOrWhiteSpace(token) || cache?.Usuario is null)
+        var usuario = _usuario.Text?.Trim() ?? string.Empty;
+        var password = _password.Text ?? string.Empty;
+        var credencial = await _local.CredencialAsync();
+        if (credencial is not null && !CredencialLocal.Coincide(credencial, usuario, password))
+        {
+            _error.Text = AuthPantalla.Mensaje(AuthMessages.CredencialesInvalidas);
+            return true;
+        }
+
+        if (!CredencialLocal.Coincide(credencial, usuario, password))
         {
             return false;
         }
 
-        var escrito = _usuario.Text?.Trim() ?? string.Empty;
-        if (!string.IsNullOrWhiteSpace(escrito)
-            && !string.Equals(escrito, cache.Usuario.NombreUsuario, StringComparison.OrdinalIgnoreCase))
+        var cache = await _local.SesionAsync();
+        if (cache?.Usuario is null)
         {
             return false;
         }
@@ -353,11 +366,20 @@ public sealed class LoginPage : ContentPage
             return false;
         }
 
+        var ahora = ZonaHorariaColombia.ALocal(DateTime.UtcNow);
+        if (cache.Usuario.Rol == NewRich.Domain.Enums.RolUsuario.Vendedor
+            && HorarioPda.EstaFuera(cache.Limites, ahora))
+        {
+            _error.Text = PdaTexts.JuegosCerrados;
+            return true;
+        }
+
         _sesion.Usuario = cache.Usuario;
         _sesion.Limites = cache.Limites;
         _sesion.CodigoDispositivo = string.IsNullOrWhiteSpace(cache.CodigoDispositivo)
             ? PdaConexion.CodigoDispositivo
             : cache.CodigoDispositivo;
+        _sesion.HorarioCerrado = HorarioPda.EstaFuera(cache.Limites, ahora);
         if (shell.Data == ShellPda.Vendedor)
         {
             _nav.IrAVendedor();

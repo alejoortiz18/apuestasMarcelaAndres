@@ -64,6 +64,7 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
         var tipoJuego = new EnumToStringConverter<TipoJuego>();
         var estadoCodigoOffline = new EnumToStringConverter<EstadoCodigoOffline>();
         var estadoConversacion = new EnumToStringConverter<EstadoConversacion>();
+        var tipoConversacion = new EnumToStringConverter<TipoConversacion>();
         var estadoCasoGanador = new EnumToStringConverter<EstadoCasoGanador>();
         var estadoPremio = new EnumToStringConverter<EstadoDelPremio>();
         var tipoEvidencia = new EnumToStringConverter<TipoEvidencia>();
@@ -258,6 +259,7 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
             e.ToTable("Conversaciones");
             e.HasKey(x => x.ConversacionId);
             e.Property(x => x.Estado).HasConversion(estadoConversacion).HasMaxLength(20);
+            e.Property(x => x.Tipo).HasConversion(tipoConversacion).HasMaxLength(30);
             e.HasOne(x => x.UsuarioIniciador).WithMany().HasForeignKey(x => x.UsuarioIniciadorId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.UsuarioDestino).WithMany().HasForeignKey(x => x.UsuarioDestinoId).OnDelete(DeleteBehavior.Restrict);
         });

@@ -19,12 +19,53 @@ internal static class ObservadorLectorQrMlKit
     private const int MsFoto = 12000;
 
     private static readonly object Candado = new();
+
+    /// <summary>Una sola lectura nativa a la vez: varias en paralelo se hacen cola y se agotan.</summary>
+    private static readonly SemaphoreSlim Turno = new(1, 1);
+
     private static IBarcodeScanner? _lector;
     private static bool _inutilizable;
+    private static int _tiemposAgotados;
 
     public static bool Inutilizable => _inutilizable;
 
-    public static async Task<string?> DesdeNv21Async(byte[] nv21, int ancho, int alto)
+    /// <summary>
+    /// Deja el lector listo y comprueba con un QR conocido que el equipo sí puede decodificar.
+    /// </summary>
+    public static void Calentar()
+    {
+        if (_inutilizable)
+        {
+            return;
+        }
+
+        try
+        {
+            _ = Lector();
+            var cuadro = QrAutoPrueba.Nv21();
+            if (cuadro.Ancho <= 0)
+            {
+                return;
+            }
+
+            var reloj = System.Diagnostics.Stopwatch.StartNew();
+            var texto = LeerNv21Async(cuadro.Datos, cuadro.Ancho, cuadro.Alto, 0)
+                .GetAwaiter()
+                .GetResult();
+            global::Android.Util.Log.Info(
+                Etiqueta,
+                $"ml kit autoprueba: leido={texto == QrAutoPrueba.Contenido} ms={reloj.ElapsedMilliseconds}");
+        }
+        catch (Exception ex)
+        {
+            Fallo("calentar", ex);
+        }
+    }
+
+    public static Task<string?> DesdeNv21Async(byte[] nv21, int ancho, int alto) =>
+        LeerNv21Async(nv21, ancho, alto, CamaraQrLectura.RotacionSensorGrados);
+
+    private static async Task<string?> LeerNv21Async(byte[] nv21, int ancho, int alto, int rotacionGrados)
     {
         if (_inutilizable || nv21 is null || ancho <= 0 || alto <= 0)
         {
@@ -42,7 +83,7 @@ internal static class ObservadorLectorQrMlKit
                 nv21,
                 ancho,
                 alto,
-                CamaraQrLectura.RotacionSensorGrados,
+                rotacionGrados,
                 (int)ImageFormatType.Nv21);
             return await LeerAsync(entrada, CamaraQrLectura.MsTimeoutMlKit).ConfigureAwait(false);
         }
@@ -102,6 +143,13 @@ internal static class ObservadorLectorQrMlKit
 
     private static async Task<string?> LeerAsync(InputImage entrada, int ms)
     {
+        if (!await Turno.WaitAsync(ms).ConfigureAwait(false))
+        {
+            global::Android.Util.Log.Warn(Etiqueta, "ml kit: lectura anterior sin terminar, se salta el cuadro");
+            return null;
+        }
+
+        var liberar = true;
         try
         {
             var fuente = new TaskCompletionSource<Java.Lang.Object?>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -114,10 +162,24 @@ internal static class ObservadorLectorQrMlKit
             var terminada = await Task.WhenAny(lectura, Task.Delay(ms)).ConfigureAwait(false);
             if (!ReferenceEquals(terminada, lectura))
             {
-                global::Android.Util.Log.Warn(Etiqueta, "ml kit: la lectura no respondió a tiempo");
+                // El turno se devuelve cuando el nativo termine de verdad: si se devuelve ya,
+                // el cuadro siguiente arranca otra lectura encima y todas se agotan.
+                liberar = false;
+                _ = lectura.ContinueWith(_ => Turno.Release(), TaskScheduler.Default);
+                var seguidos = Interlocked.Increment(ref _tiemposAgotados);
+                global::Android.Util.Log.Warn(
+                    Etiqueta,
+                    $"ml kit: la lectura no respondió a tiempo ({seguidos} seguidas)");
+                if (CamaraQrLectura.ApagarMlKit(seguidos))
+                {
+                    _inutilizable = true;
+                    global::Android.Util.Log.Error(Etiqueta, "ml kit no responde, se usará el lector interno");
+                }
+
                 return null;
             }
 
+            Interlocked.Exchange(ref _tiemposAgotados, 0);
             var texto = Primero(await lectura.ConfigureAwait(false));
             entrada.Dispose();
             return texto;
@@ -126,6 +188,13 @@ internal static class ObservadorLectorQrMlKit
         {
             Fallo("proceso", ex);
             return null;
+        }
+        finally
+        {
+            if (liberar)
+            {
+                Turno.Release();
+            }
         }
     }
 

@@ -3,6 +3,7 @@ using NewRich.Application.Abstractions;
 using NewRich.Application.Contracts.Notificaciones;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
+using NewRich.Domain.Services;
 using NewRich.Shared.Results;
 
 namespace NewRich.Application.Services;
@@ -34,13 +35,13 @@ public sealed class NotificacionService : INotificacionService
         }, SuccessMessages.OperacionExitosa);
     }
 
-    public async Task<Result<NotificacionItemResponse>> ObtenerAsync(Guid notificacionId, Guid usuarioId, CancellationToken cancellationToken)
+    public async Task<Result<NotificacionDetalleResponse>> ObtenerAsync(Guid notificacionId, Guid usuarioId, CancellationToken cancellationToken)
     {
         var item = await _db.Notificaciones
             .FirstOrDefaultAsync(n => n.NotificacionId == notificacionId && n.UsuarioId == usuarioId, cancellationToken);
         if (item is null)
         {
-            return Result<NotificacionItemResponse>.Fail(NotificacionMessages.NotificacionNoEncontrada, 404);
+            return Result<NotificacionDetalleResponse>.Fail(NotificacionMessages.NotificacionNoEncontrada, 404);
         }
 
         if (!item.Leida)
@@ -49,7 +50,61 @@ public sealed class NotificacionService : INotificacionService
             await _db.SaveChangesAsync(cancellationToken);
         }
 
-        return Result<NotificacionItemResponse>.Ok(Mapear(item), SuccessMessages.OperacionExitosa);
+        var detalle = new NotificacionDetalleResponse
+        {
+            NotificacionId = item.NotificacionId,
+            Tipo = item.Tipo,
+            Mensaje = item.Mensaje,
+            Leida = item.Leida,
+            FechaCreacion = item.FechaCreacion
+        };
+
+        if (item.Tipo == NotificacionMessages.TipoRepeticionNumero)
+        {
+            detalle.NumeroRepetido = NumeroRepetidoNotificacion.Extraer(item.Mensaje);
+            detalle.Apuestas = await ApuestasDelNumeroAsync(detalle.NumeroRepetido, item.FechaCreacion, cancellationToken);
+            detalle.TotalApostado = detalle.Apuestas.Sum(a => a.Valor);
+        }
+
+        return Result<NotificacionDetalleResponse>.Ok(detalle, SuccessMessages.OperacionExitosa);
+    }
+
+    /// <summary>Apuestas del número en el mismo día del aviso, una fila por lotería.</summary>
+    private async Task<IReadOnlyList<ApuestaNumeroResponse>> ApuestasDelNumeroAsync(
+        string? numero,
+        DateTime fechaAviso,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(numero))
+        {
+            return [];
+        }
+
+        var inicio = fechaAviso.Date;
+        var fin = inicio.AddDays(1);
+        var jugadas = await _db.Juegos
+            .AsNoTracking()
+            .Where(j => j.Numero == numero && j.Boleto!.FechaCreacion >= inicio && j.Boleto.FechaCreacion < fin)
+            .Select(j => new
+            {
+                Fecha = j.Boleto!.Venta != null
+                    ? j.Boleto.Venta.FechaVenta
+                    : j.Boleto.FechaCreacion,
+                j.Valor,
+                Loterias = j.JuegoLoterias.Select(jl => jl.Loteria!.Nombre).ToList()
+            })
+            .ToListAsync(cancellationToken);
+
+        return jugadas
+            .SelectMany(j => j.Loterias.Select(loteria => new ApuestaNumeroResponse
+            {
+                Fecha = j.Fecha,
+                Loteria = loteria,
+                Valor = j.Valor
+            }))
+            .OrderByDescending(a => a.Fecha)
+            .ThenBy(a => a.Loteria)
+            .ToList();
     }
 
     public async Task CrearParaAsync(IReadOnlyCollection<Guid> usuarioIds, string tipo, string mensaje, CancellationToken cancellationToken)

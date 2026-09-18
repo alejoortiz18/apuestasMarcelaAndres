@@ -26,8 +26,10 @@ public sealed class EscanerQrVendedorActividad : Activity, Camera.IPreviewCallba
     private ISurfaceHolder? _holder;
     private byte[]? _bufferCamara;
     private byte[]? _bufferCamara2;
-    private bool _listo;
-    private bool _cerrado;
+    private byte[]? _copiaLectura;
+    private Handler? _reloj;
+    private volatile bool _listo;
+    private volatile bool _cerrado;
     private bool _vistaAjustada;
     private bool _enfoqueManual;
     private bool _tamanoRegistrado;
@@ -113,10 +115,11 @@ public sealed class EscanerQrVendedorActividad : Activity, Camera.IPreviewCallba
 
         var texto = new TextView(this)
         {
-            Text = PdaTexts.LeyendoCodigo,
-            TextSize = 18
+            Text = PdaTexts.CamaraQrProcesando,
+            TextSize = 17
         };
         texto.SetTextColor(global::Android.Graphics.Color.Argb(255, 17, 24, 39));
+        texto.SetMaxWidth((int)(Resources!.DisplayMetrics!.WidthPixels * 0.62));
         tarjeta.AddView(texto, new LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.WrapContent,
             ViewGroup.LayoutParams.WrapContent));
@@ -141,6 +144,18 @@ public sealed class EscanerQrVendedorActividad : Activity, Camera.IPreviewCallba
 
         _capaProceso.Visibility = ViewStates.Visible;
         _capaProceso.BringToFront();
+    }
+
+    /// <summary>Ya se leyó el código: la cámara deja de entregar cuadros mientras se valida.</summary>
+    private void DetenerAnalisis()
+    {
+        try
+        {
+            _camara?.SetPreviewCallbackWithBuffer(null);
+        }
+        catch (Exception)
+        {
+        }
     }
 
     public void SurfaceCreated(ISurfaceHolder holder)
@@ -209,9 +224,17 @@ public sealed class EscanerQrVendedorActividad : Activity, Camera.IPreviewCallba
             return;
         }
 
-        // Copia exclusiva de esta lectura: el buffer de la cámara vuelve a la cola enseguida
-        // y ML Kit nunca termina leyendo memoria que ya se reutilizó.
-        var cuadro = new byte[tamano];
+        // Copia aparte del buffer de la cámara, que vuelve a la cola enseguida. El arreglo se
+        // reutiliza porque solo hay una lectura a la vez: pedir 1.4 MB por cuadro dejaba sin
+        // memoria a los equipos chicos.
+        var cuadro = _copiaLectura;
+        if (cuadro is null || cuadro.Length != tamano)
+        {
+            Interlocked.Exchange(ref _ocupado, 0);
+            Reencolar(camera, data);
+            return;
+        }
+
         Buffer.BlockCopy(data, 0, cuadro, 0, tamano);
         Reencolar(camera, data);
         var turno = Interlocked.Increment(ref _procesados);
@@ -222,7 +245,8 @@ public sealed class EscanerQrVendedorActividad : Activity, Camera.IPreviewCallba
                 var reloj = System.Diagnostics.Stopwatch.StartNew();
                 string? codigo = null;
                 var msMlKit = 0L;
-                if (CamaraQrLectura.UsarMlKitEnVistaPrevia && !VendedorLectorQrMlKit.Inutilizable)
+                var mlKitUsable = CamaraQrLectura.UsarMlKitEnVistaPrevia && !VendedorLectorQrMlKit.Inutilizable;
+                if (mlKitUsable)
                 {
                     codigo = await VendedorLectorQrMlKit
                         .DesdeNv21Async(cuadro, ancho, alto, CamaraQrLectura.RotacionSensorGrados)
@@ -230,14 +254,20 @@ public sealed class EscanerQrVendedorActividad : Activity, Camera.IPreviewCallba
                     msMlKit = reloj.ElapsedMilliseconds;
                 }
 
-                if (string.IsNullOrWhiteSpace(codigo))
+                // El respaldo administrado (ZXing) es varias veces más lento que ML Kit en este
+                // hardware (cientos de ms por cuadro): correrlo siempre, en cada cuadro, tumbaba
+                // los cuadros por segundo a ~1.3 y casi no daba chances de leer el QR. Solo se usa
+                // si ML Kit no está disponible en este dispositivo (nativo no cargó, etc.).
+                var msAntesFallback = reloj.ElapsedMilliseconds;
+                if (string.IsNullOrWhiteSpace(codigo) && !mlKitUsable)
                 {
                     codigo = ObservadorLecturaQr.DesdeNv21(cuadro, ancho, alto);
                 }
 
+                var msFallback = reloj.ElapsedMilliseconds - msAntesFallback;
                 if (turno % 4 == 0 || !string.IsNullOrWhiteSpace(codigo))
                 {
-                    Registro($"cuadro #{turno} mlkit={msMlKit}ms total={reloj.ElapsedMilliseconds}ms leido={!string.IsNullOrWhiteSpace(codigo)}");
+                    Registro($"cuadro #{turno} mlkit={msMlKit}ms zxing={msFallback}ms total={reloj.ElapsedMilliseconds}ms leido={!string.IsNullOrWhiteSpace(codigo)}");
                 }
 
                 if (string.IsNullOrWhiteSpace(codigo) || _cerrado || _listo)
@@ -249,8 +279,11 @@ public sealed class EscanerQrVendedorActividad : Activity, Camera.IPreviewCallba
                 Registro($"codigo leido, largo={codigo!.Length}");
                 RunOnUiThread(async () =>
                 {
+                    // Primero el aviso y luego la consulta: el spinner alcanza a pintarse antes
+                    // de que la validación bloquee esta pantalla.
+                    DetenerAnalisis();
                     MostrarLeyendoCodigo();
-                    await Task.Delay(60);
+                    await Task.Delay(120);
 
                     if (EscanerQrNativo.AlDetectarCodigoAsync is not null)
                     {
@@ -355,11 +388,13 @@ public sealed class EscanerQrVendedorActividad : Activity, Camera.IPreviewCallba
             var tamano = TamanoNv21(_ancho, _alto);
             _bufferCamara = new byte[tamano];
             _bufferCamara2 = new byte[tamano];
+            _copiaLectura = new byte[tamano];
             _camara.SetPreviewCallbackWithBuffer(this);
             _camara.AddCallbackBuffer(_bufferCamara);
             _camara.AddCallbackBuffer(_bufferCamara2);
             _camara.StartPreview();
             Enfocar();
+            ProgramarEnfoque();
         }
         catch (Exception ex)
         {
@@ -423,6 +458,27 @@ public sealed class EscanerQrVendedorActividad : Activity, Camera.IPreviewCallba
         }
     }
 
+    /// <summary>
+    /// La tirilla queda quieta frente al lente, así que el enfoque automático no se vuelve a
+    /// disparar solo: se pide de nuevo cada cierto tiempo mientras se busca el QR.
+    /// </summary>
+    private void ProgramarEnfoque()
+    {
+        if (!_enfoqueManual || _cerrado || _listo)
+        {
+            return;
+        }
+
+        _reloj ??= new Handler(Looper.MainLooper!);
+        _reloj.PostDelayed(
+            () =>
+            {
+                Enfocar();
+                ProgramarEnfoque();
+            },
+            CamaraQrLectura.MsEntreEnfoques);
+    }
+
     private void AjustarVista(int previewAncho, int previewAlto)
     {
         if (_vistaAjustada || _vista is null || previewAncho <= 0 || previewAlto <= 0)
@@ -444,29 +500,28 @@ public sealed class EscanerQrVendedorActividad : Activity, Camera.IPreviewCallba
         _vistaAjustada = true;
     }
 
-    /// <summary>Vista previa lo más cercana posible al objetivo: cuadros chicos se decodifican rápido.</summary>
+    /// <summary>
+    /// Vista previa grande: el QR de la tirilla es denso y con pocos píxeles por módulo el
+    /// decodificador nunca lo resuelve, aunque en pantalla se vea bien.
+    /// </summary>
     private static Camera.Size TamanoPreview(Camera.Parameters parametros)
     {
         var tamanos = parametros.SupportedPreviewSizes ?? [];
-        Camera.Size? elegido = null;
-        var menorDif = long.MaxValue;
+        var elegida = CamaraQrLectura.MejorPreview(tamanos.Select(t => (t.Width, t.Height)));
+        if (elegida.Ancho <= 0)
+        {
+            return parametros.PreviewSize;
+        }
+
         foreach (var size in tamanos)
         {
-            var pixeles = (long)size.Width * size.Height;
-            if (pixeles < 150_000)
+            if (size.Width == elegida.Ancho && size.Height == elegida.Alto)
             {
-                continue;
-            }
-
-            var dif = Math.Abs(pixeles - CamaraQrLectura.PixelesPreviewObjetivo);
-            if (dif < menorDif)
-            {
-                menorDif = dif;
-                elegido = size;
+                return size;
             }
         }
 
-        return elegido ?? parametros.PreviewSize;
+        return parametros.PreviewSize;
     }
 
     private static int TamanoNv21(int ancho, int alto) => (ancho * alto * 3) / 2;
@@ -486,6 +541,7 @@ public sealed class EscanerQrVendedorActividad : Activity, Camera.IPreviewCallba
         _camara = null;
         _bufferCamara = null;
         _bufferCamara2 = null;
+        _copiaLectura = null;
     }
 
     private void Cerrar(string? codigo)

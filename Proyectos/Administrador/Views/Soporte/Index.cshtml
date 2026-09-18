@@ -6,17 +6,21 @@
     var yoTexto = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
     _ = Guid.TryParse(yoTexto, out var yo);
     var abierta = string.Equals(Model.Detalle?.Conversacion.Estado, "Abierta", StringComparison.Ordinal);
+    var esTecnico = string.Equals(ViewData["Canal"] as string, "tecnico", StringComparison.Ordinal);
+    var controladorChat = esTecnico ? "SoporteTecnico" : "Soporte";
 }
 <div class="page-soporte">
 <div class="heading">
     <div>
-        <div class="eyebrow">@UiTexts.SoporteKicker</div>
-        <h1>@UiTexts.SoporteTitulo</h1>
-        <p>@UiTexts.SoporteSub</p>
+        <div class="eyebrow">@(esTecnico ? UiTexts.SoporteTecnicoKicker : UiTexts.SoporteKicker)</div>
+        <h1>@(esTecnico ? UiTexts.SoporteTecnicoTitulo : UiTexts.SoporteTitulo)</h1>
+        <p>@(esTecnico ? UiTexts.SoporteTecnicoSub : UiTexts.SoporteSub)</p>
     </div>
 </div>
+@if (!esTecnico)
+{
 <div class="panel chat-start">
-    <form asp-action="Iniciar" method="post" class="toolbar" enctype="multipart/form-data">
+    <form asp-controller="Soporte" asp-action="Iniciar" method="post" class="toolbar" enctype="multipart/form-data">
         <div class="field">
             <label for="destinoId">@UiTexts.Destinatario</label>
             <select id="destinoId" name="destinoId" class="searchable">
@@ -50,11 +54,18 @@
         <button class="primary" type="submit">@UiTexts.IniciarConversacion</button>
     </form>
 </div>
-<div class="chat-shell" data-chat-vivo data-yo="@yo" data-conversacion="@(Model.ConversacionId?.ToString() ?? "")" data-evento="mensajeChat" data-adjunto-plantilla="@Url.Action("Adjunto", new { id = Guid.Empty })">
+}
+else
+{
+<div class="panel chat-start">
+    <p>@UiTexts.SoporteTecnicoSinInicio</p>
+</div>
+}
+<div class="chat-shell" data-chat-vivo data-yo="@yo" data-conversacion="@(Model.ConversacionId?.ToString() ?? "")" data-evento="mensajeChat" data-adjunto-plantilla="@Url.Action("Adjunto", controladorChat, new { id = Guid.Empty })">
     <aside class="chat-list">
         <div class="chat-list-head">
             <h2>@UiTexts.Conversaciones</h2>
-            <form method="get" class="chat-search-form" data-submit-on-change>
+            <form method="get" asp-controller="@controladorChat" asp-action="Index" class="chat-search-form" data-submit-on-change>
                 <label class="sr-only" for="q">@UiTexts.BuscarChat</label>
                 <input id="q" name="q" class="chat-search" value="@Model.Busqueda" placeholder="@UiTexts.BuscarChat" />
                 @if (Model.ConversacionId.HasValue)
@@ -62,7 +73,7 @@
                     <input type="hidden" name="id" value="@Model.ConversacionId" />
                 }
                 <button class="secondary" type="submit">@UiTexts.Buscar</button>
-                <a class="secondary" asp-action="Index">@UiTexts.LimpiarFiltros</a>
+                <a class="secondary" asp-controller="@controladorChat" asp-action="Index">@UiTexts.LimpiarFiltros</a>
             </form>
         </div>
         @if (!Model.Conversaciones.Any())
@@ -82,6 +93,7 @@
                 <a class="chat-item @(activa ? "active" : null) @(pendiente ? null : "is-closed")"
                    data-chat-item="@c.ConversacionId"
                    role="listitem"
+                   asp-controller="@controladorChat"
                    asp-action="Index"
                    asp-route-id="@c.ConversacionId"
                    asp-route-q="@Model.Busqueda">
@@ -135,7 +147,7 @@
                     <span class="pill @EstadoUi.Pill(conv.Estado)">@conv.Estado</span>
                     @if (abierta)
                     {
-                        <form asp-action="Cerrar" asp-route-id="@conv.ConversacionId" method="post">
+                        <form asp-controller="@controladorChat" asp-action="Cerrar" asp-route-id="@conv.ConversacionId" method="post">
                             <button class="secondary" type="submit">@UiTexts.MarcarAtendida</button>
                         </form>
                     }
@@ -159,7 +171,7 @@
                             @if (m.AdjuntoId is Guid adjuntoId)
                             {
                                 var nombre = m.NombreArchivo ?? UiTexts.VerArchivo;
-                                var href = Url.Action("Adjunto", new { id = adjuntoId });
+                                var href = Url.Action("Adjunto", controladorChat, new { id = adjuntoId });
                                 if (ChatAdjunto.EsImagen(m.NombreArchivo))
                                 {
                                     <a class="chat-file" href="@href" target="_blank" rel="noopener">
@@ -179,7 +191,7 @@
             </div>
             @if (abierta)
             {
-                <form class="chat-compose" asp-action="Enviar" asp-route-id="@conv.ConversacionId" method="post" enctype="multipart/form-data">
+                <form class="chat-compose" asp-controller="@controladorChat" asp-action="Enviar" asp-route-id="@conv.ConversacionId" method="post" enctype="multipart/form-data">
                     <div class="chat-attach" data-chat-adjunto>
                         <input id="archivoMensaje" class="sr-only" name="archivo" type="file" accept=".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf" data-chat-archivo />
                         <label class="chat-attach-btn" for="archivoMensaje" title="@UiTexts.AdjuntarArchivo">

@@ -70,10 +70,10 @@ public interface IAdminApiClient
 
     Task<ApiCallResult<KpiResponse>> ConsultarKpiAsync(KpiRequest request, CancellationToken cancellationToken);
     Task<ApiCallResult<NotificacionesResponse>> ListarNotificacionesAsync(CancellationToken cancellationToken);
-    Task<ApiCallResult<NotificacionItemResponse>> ObtenerNotificacionAsync(Guid id, CancellationToken cancellationToken);
+    Task<ApiCallResult<NotificacionDetalleResponse>> ObtenerNotificacionAsync(Guid id, CancellationToken cancellationToken);
     Task<ApiCallResult<object>> MarcarNotificacionesLeidasAsync(CancellationToken cancellationToken);
 
-    Task<ApiCallResult<List<ConversacionResponse>>> ListarConversacionesAsync(CancellationToken cancellationToken);
+    Task<ApiCallResult<List<ConversacionResponse>>> ListarConversacionesAsync(CancellationToken cancellationToken, string? tipo = null);
     Task<ApiCallResult<ConversacionDetalleResponse>> ObtenerConversacionAsync(Guid id, CancellationToken cancellationToken);
     Task<ApiCallResult<ConversacionResponse>> IniciarConversacionAsync(IniciarChatRequest request, CancellationToken cancellationToken);
     Task<ApiCallResult<MensajeResponse>> EnviarMensajeAsync(Guid conversacionId, EnviarMensajeRequest request, CancellationToken cancellationToken);
@@ -279,14 +279,17 @@ public sealed class AdminApiClient : IAdminApiClient
     public Task<ApiCallResult<NotificacionesResponse>> ListarNotificacionesAsync(CancellationToken cancellationToken) =>
         SendAsync<NotificacionesResponse>(HttpMethod.Get, "api/Notificaciones", null, true, cancellationToken);
 
-    public Task<ApiCallResult<NotificacionItemResponse>> ObtenerNotificacionAsync(Guid id, CancellationToken cancellationToken) =>
-        SendAsync<NotificacionItemResponse>(HttpMethod.Get, $"api/Notificaciones/{id}", null, true, cancellationToken);
+    public Task<ApiCallResult<NotificacionDetalleResponse>> ObtenerNotificacionAsync(Guid id, CancellationToken cancellationToken) =>
+        SendAsync<NotificacionDetalleResponse>(HttpMethod.Get, $"api/Notificaciones/{id}", null, true, cancellationToken);
 
     public Task<ApiCallResult<object>> MarcarNotificacionesLeidasAsync(CancellationToken cancellationToken) =>
         SendAsync<object>(HttpMethod.Post, "api/Notificaciones/marcar-leidas", null, true, cancellationToken);
 
-    public Task<ApiCallResult<List<ConversacionResponse>>> ListarConversacionesAsync(CancellationToken cancellationToken) =>
-        SendAsync<List<ConversacionResponse>>(HttpMethod.Get, "api/Chat", null, true, cancellationToken);
+    public Task<ApiCallResult<List<ConversacionResponse>>> ListarConversacionesAsync(CancellationToken cancellationToken, string? tipo = null)
+    {
+        var ruta = string.IsNullOrWhiteSpace(tipo) ? "api/Chat" : $"api/Chat?tipo={Uri.EscapeDataString(tipo)}";
+        return SendAsync<List<ConversacionResponse>>(HttpMethod.Get, ruta, null, true, cancellationToken);
+    }
 
     public Task<ApiCallResult<ConversacionDetalleResponse>> ObtenerConversacionAsync(Guid id, CancellationToken cancellationToken) =>
         SendAsync<ConversacionDetalleResponse>(HttpMethod.Get, $"api/Chat/{id}", null, true, cancellationToken);

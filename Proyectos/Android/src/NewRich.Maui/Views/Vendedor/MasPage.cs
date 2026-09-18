@@ -40,6 +40,7 @@ public sealed class MasPage : ContentPage
             Spacing = 10,
             Children =
             {
+                Item(PdaTexts.SoporteTecnico, PdaTexts.SoporteTecnicoAyuda, () => Navigation.PushAsync(services.GetRequiredService<SoporteTecnicoPage>())),
                 Item(PdaTexts.ResultadosTitulo, PdaTexts.ResultadosSoloLectura, () => Navigation.PushAsync(services.GetRequiredService<ResultadosPage>())),
                 Item(PdaTexts.ValidarTicket, PdaTexts.ValidarTicketAyudaCorta, () => Navigation.PushAsync(services.GetRequiredService<ValidarTicketPage>())),
                 Item(PdaTexts.ConfiguracionSync, PdaTexts.ConfiguracionSyncAyuda, () => Navigation.PushAsync(services.GetRequiredService<ConfiguracionPage>())),

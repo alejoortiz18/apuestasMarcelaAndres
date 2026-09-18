@@ -13,8 +13,13 @@ internal static class VendedorLectorQrMlKit
     public const string Etiqueta = "NewRichQr";
 
     private static readonly object Candado = new();
+
+    /// <summary>Una sola lectura nativa a la vez: varias en paralelo se hacen cola y se agotan.</summary>
+    private static readonly SemaphoreSlim Turno = new(1, 1);
+
     private static IBarcodeScanner? _lector;
     private static bool _inutilizable;
+    private static int _tiemposAgotados;
 
     public static bool Inutilizable => _inutilizable;
 
@@ -28,11 +33,33 @@ internal static class VendedorLectorQrMlKit
         try
         {
             _ = Lector();
+            AutoPrueba();
         }
         catch (Exception ex)
         {
             Fallo("calentar", ex);
         }
+    }
+
+    /// <summary>
+    /// Le pasa al lector un QR conocido armado en la app. Si esto lee, el lector del equipo
+    /// sirve y lo que falla es el encuadre o el enfoque; si no lee, el problema es el lector.
+    /// </summary>
+    private static void AutoPrueba()
+    {
+        var cuadro = QrAutoPrueba.Nv21();
+        if (cuadro.Ancho <= 0)
+        {
+            return;
+        }
+
+        var reloj = System.Diagnostics.Stopwatch.StartNew();
+        var texto = DesdeNv21Async(cuadro.Datos, cuadro.Ancho, cuadro.Alto, 0)
+            .GetAwaiter()
+            .GetResult();
+        global::Android.Util.Log.Info(
+            Etiqueta,
+            $"ml kit autoprueba: leido={texto == QrAutoPrueba.Contenido} ms={reloj.ElapsedMilliseconds}");
     }
 
     public static async Task<string?> DesdeNv21Async(byte[] nv21, int ancho, int alto) =>
@@ -109,6 +136,13 @@ internal static class VendedorLectorQrMlKit
 
     private static async Task<string?> LeerAsync(InputImage entrada)
     {
+        if (!await Turno.WaitAsync(CamaraQrLectura.MsTimeoutMlKit).ConfigureAwait(false))
+        {
+            global::Android.Util.Log.Warn(Etiqueta, "ml kit: lectura anterior sin terminar, se salta el cuadro");
+            return null;
+        }
+
+        var liberar = true;
         try
         {
             // Se escucha la tarea de ML Kit en vez de bloquear el hilo: si no responde a tiempo
@@ -125,10 +159,15 @@ internal static class VendedorLectorQrMlKit
                 .ConfigureAwait(false);
             if (!ReferenceEquals(terminada, lectura))
             {
-                global::Android.Util.Log.Warn(Etiqueta, "ml kit: la lectura no respondió a tiempo");
+                // El turno se devuelve cuando el nativo termine de verdad: si se devuelve ya,
+                // el cuadro siguiente arranca otra lectura encima y todas se agotan.
+                liberar = false;
+                _ = lectura.ContinueWith(_ => Turno.Release(), TaskScheduler.Default);
+                Agotado();
                 return null;
             }
 
+            Interlocked.Exchange(ref _tiemposAgotados, 0);
             var texto = Primero(await lectura.ConfigureAwait(false));
             entrada.Dispose();
             return texto;
@@ -137,6 +176,26 @@ internal static class VendedorLectorQrMlKit
         {
             Fallo("proceso", ex);
             return null;
+        }
+        finally
+        {
+            if (liberar)
+            {
+                Turno.Release();
+            }
+        }
+    }
+
+    private static void Agotado()
+    {
+        var seguidos = Interlocked.Increment(ref _tiemposAgotados);
+        global::Android.Util.Log.Warn(
+            Etiqueta,
+            $"ml kit: la lectura no respondió a tiempo ({seguidos} seguidas)");
+        if (CamaraQrLectura.ApagarMlKit(seguidos))
+        {
+            _inutilizable = true;
+            global::Android.Util.Log.Error(Etiqueta, "ml kit no responde, se usará el lector interno");
         }
     }
 

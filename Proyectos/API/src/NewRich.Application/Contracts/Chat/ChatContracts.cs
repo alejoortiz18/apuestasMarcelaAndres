@@ -25,6 +25,7 @@ public sealed class ConversacionResponse
     public string RolIniciador { get; set; } = string.Empty;
     public string RolDestino { get; set; } = string.Empty;
     public string Estado { get; set; } = string.Empty;
+    public string Tipo { get; set; } = string.Empty;
     public DateTime FechaInicio { get; set; }
     public DateTime? FechaCierre { get; set; }
     public string UltimoTexto { get; set; } = string.Empty;
@@ -58,4 +59,12 @@ public sealed class DescargaAdjuntoResponse
 {
     public string NombreArchivo { get; set; } = string.Empty;
     public Stream Contenido { get; set; } = Stream.Null;
+}
+
+public sealed class ReporteTecnicoRequest
+{
+    public string Observacion { get; set; } = string.Empty;
+    public string CodigoTicket { get; set; } = string.Empty;
+    public string NombreArchivo { get; set; } = string.Empty;
+    public string ContenidoBase64 { get; set; } = string.Empty;
 }

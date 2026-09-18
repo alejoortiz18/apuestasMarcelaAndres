@@ -90,6 +90,11 @@ public sealed class NotificacionesController : AdminControllerBase
             return RedirectToAction("Index", "Soporte");
         }
 
+        if (string.Equals(result.Data.Tipo, ChatMessages.TipoAvisoSoporteTecnico, StringComparison.Ordinal))
+        {
+            return RedirectToAction("Index", "SoporteTecnico");
+        }
+
         return View(result.Data);
     }
 

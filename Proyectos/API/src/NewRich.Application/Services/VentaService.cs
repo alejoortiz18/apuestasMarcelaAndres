@@ -64,10 +64,8 @@ public sealed class VentaService : IVentaService
             return Result<VentaResponse>.Fail(VentaMessages.MaximoLineasExcedido);
         }
 
-        if (await EstaFueraDeHorario(cancellationToken))
-        {
-            return Result<VentaResponse>.Fail(VentaMessages.VentaFueraDeHorario, 403);
-        }
+        // El horario lo controla el PDA al iniciar un juego nuevo. Aquí se permite
+        // confirmar una venta ya comenzada aunque ya haya pasado la hora de cierre.
 
         try
         {
@@ -167,7 +165,7 @@ public sealed class VentaService : IVentaService
                 var repeticiones = await _db.Juegos.CountAsync(j => j.Numero == linea.Numero && j.Boleto!.FechaCreacion.Date == _clock.UtcNow.Date, ct);
                 if (repeticiones + 1 >= alertaRepeticion)
                 {
-                    avisos.Add((admins, "RepeticionNumero", string.Format(VentaMessages.AlertaRepeticionNumero, linea.Numero)));
+                    avisos.Add((admins, NotificacionMessages.TipoRepeticionNumero, string.Format(VentaMessages.AlertaRepeticionNumero, linea.Numero)));
                 }
 
                 var totalJugada = TotalesApuesta.TotalJuego(linea.Valor, loterias.Count);
@@ -331,17 +329,6 @@ public sealed class VentaService : IVentaService
         }
 
         throw new InvalidOperationException(VentaMessages.CodigoPublicoNoGenerado);
-    }
-
-    private async Task<bool> EstaFueraDeHorario(CancellationToken cancellationToken)
-    {
-        var hora = await _db.Configuraciones.FirstOrDefaultAsync(c => c.Clave == "HoraCierre", cancellationToken);
-        if (hora is null || !TimeSpan.TryParse(hora.Valor, out var cierre))
-        {
-            return false;
-        }
-
-        return _clock.LocalNow.TimeOfDay > cierre;
     }
 
     private async Task<int> ObtenerVigencia(CancellationToken cancellationToken)

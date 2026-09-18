@@ -2,6 +2,8 @@ using System.Text.Json;
 using NewRich.Application.Contracts.Android;
 using NewRich.Application.Contracts.Configuracion;
 using NewRich.Application.Contracts.Loterias;
+using NewRich.Pda.Core;
+using NewRich.Pda.Core.Auth;
 using SQLite;
 
 namespace NewRich.Maui.Data;
@@ -24,6 +26,26 @@ public sealed class VentaOfflineLocal
     public string QrJson { get; set; } = string.Empty;
 
     public bool Sincronizada { get; set; }
+
+    public string FechaLocal { get; set; } = string.Empty;
+}
+
+public sealed class ReporteTecnicoLocal
+{
+    [PrimaryKey]
+    public string Id { get; set; } = string.Empty;
+
+    public string Observacion { get; set; } = string.Empty;
+
+    public string CodigoTicket { get; set; } = string.Empty;
+
+    public string NombreArchivo { get; set; } = string.Empty;
+
+    public string RutaPdf { get; set; } = string.Empty;
+
+    public bool Enviado { get; set; }
+
+    public string Estado { get; set; } = string.Empty;
 
     public string FechaLocal { get; set; } = string.Empty;
 }
@@ -68,6 +90,7 @@ public sealed class LocalDatabase
             _db = new SQLiteAsyncConnection(_ruta);
             await _db.CreateTableAsync<CodigoOfflineLocal>();
             await _db.CreateTableAsync<VentaOfflineLocal>();
+            await _db.CreateTableAsync<ReporteTecnicoLocal>();
             await _db.CreateTableAsync<DatoLocal>();
         }
         finally
@@ -168,6 +191,50 @@ public sealed class LocalDatabase
         }
     }
 
+    public async Task GuardarReporteTecnicoAsync(ReporteTecnicoLocal reporte)
+    {
+        var db = await ConexionAsync();
+        var existente = await db.FindAsync<ReporteTecnicoLocal>(reporte.Id);
+        if (existente is null)
+        {
+            await db.InsertAsync(reporte);
+            return;
+        }
+
+        await db.UpdateAsync(reporte);
+    }
+
+    public async Task<IReadOnlyList<ReporteTecnicoLocal>> ReportesTecnicosPendientesAsync()
+    {
+        var db = await ConexionAsync();
+        return await db.Table<ReporteTecnicoLocal>()
+            .Where(r => !r.Enviado)
+            .OrderBy(r => r.FechaLocal)
+            .ToListAsync();
+    }
+
+    public async Task<IReadOnlyList<ReporteTecnicoLocal>> ReportesTecnicosAsync()
+    {
+        var db = await ConexionAsync();
+        return await db.Table<ReporteTecnicoLocal>()
+            .OrderByDescending(r => r.FechaLocal)
+            .ToListAsync();
+    }
+
+    public async Task MarcarReporteTecnicoEnviadoAsync(string id)
+    {
+        var db = await ConexionAsync();
+        var fila = await db.FindAsync<ReporteTecnicoLocal>(id);
+        if (fila is null)
+        {
+            return;
+        }
+
+        fila.Enviado = true;
+        fila.Estado = EstadoReporteTecnico.Enviado;
+        await db.UpdateAsync(fila);
+    }
+
     public async Task GuardarLoteriasAsync(IReadOnlyList<LoteriaResponse> loterias) =>
         await GuardarJsonAsync("loterias", loterias);
 
@@ -182,6 +249,12 @@ public sealed class LocalDatabase
 
     public async Task<SesionLocal?> SesionAsync() =>
         await LeerJsonAsync<SesionLocal>("sesion");
+
+    public async Task GuardarCredencialAsync(CredencialLocalRegistro credencial) =>
+        await GuardarJsonAsync("credencial", credencial);
+
+    public async Task<CredencialLocalRegistro?> CredencialAsync() =>
+        await LeerJsonAsync<CredencialLocalRegistro>("credencial");
 
     private async Task GuardarJsonAsync<T>(string clave, T valor)
     {

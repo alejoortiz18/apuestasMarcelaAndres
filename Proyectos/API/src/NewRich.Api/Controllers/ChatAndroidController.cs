@@ -28,6 +28,18 @@ public sealed class ChatAndroidController : ApiControllerBase
         return From(await _pda.ListarChatMobAsync(UsuarioId, cancellationToken));
     }
 
+    [HttpGet("ListarTecnicoMob")]
+    public async Task<IActionResult> ListarTecnicoMob(CancellationToken cancellationToken)
+    {
+        return From(await _pda.ListarChatTecnicoMobAsync(UsuarioId, cancellationToken));
+    }
+
+    [HttpPost("ReporteTecnicoMob")]
+    public async Task<IActionResult> ReporteTecnicoMob([FromBody] ReporteTecnicoRequest request, CancellationToken cancellationToken)
+    {
+        return From(await _pda.ReportarVentaTecnicoMobAsync(UsuarioId, request, cancellationToken));
+    }
+
     [HttpGet("ObtenerMob/{id:guid}")]
     public async Task<IActionResult> ObtenerMob(Guid id, CancellationToken cancellationToken)
     {

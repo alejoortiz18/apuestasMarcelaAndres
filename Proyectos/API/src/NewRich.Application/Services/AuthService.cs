@@ -5,6 +5,7 @@ using NewRich.Application.Contracts.Auth;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
 using NewRich.Domain.Enums;
+using NewRich.Domain.Services;
 using NewRich.Shared.Results;
 
 namespace NewRich.Application.Services;
@@ -236,12 +237,15 @@ public sealed class AuthService : IAuthService
 
     private async Task<bool> EstaFueraDeHorario(CancellationToken cancellationToken)
     {
-        var hora = await _db.Configuraciones.FirstOrDefaultAsync(c => c.Clave == "HoraCierre", cancellationToken);
-        if (hora is null || !TimeSpan.TryParse(hora.Valor, out var cierre))
+        var aperturaCfg = await _db.Configuraciones.FirstOrDefaultAsync(c => c.Clave == "HoraApertura", cancellationToken);
+        var cierreCfg = await _db.Configuraciones.FirstOrDefaultAsync(c => c.Clave == "HoraCierre", cancellationToken);
+        if (aperturaCfg is null || cierreCfg is null
+            || !TimeSpan.TryParse(aperturaCfg.Valor, out var apertura)
+            || !TimeSpan.TryParse(cierreCfg.Valor, out var cierre))
         {
             return false;
         }
 
-        return _clock.LocalNow.TimeOfDay > cierre;
+        return HorarioOperacion.EstaFuera(_clock.LocalNow.TimeOfDay, apertura, cierre);
     }
 }

@@ -265,11 +265,17 @@ public sealed class NewRichApiClient
     public Task<Result<IReadOnlyList<ConversacionResponse>>> ChatsAsync(CancellationToken ct) =>
         Enviar<IReadOnlyList<ConversacionResponse>>(HttpMethod.Get, "api/ChatAndroid/ListarMob", null, ct);
 
+    public Task<Result<IReadOnlyList<ConversacionResponse>>> ChatsTecnicosAsync(CancellationToken ct) =>
+        Enviar<IReadOnlyList<ConversacionResponse>>(HttpMethod.Get, "api/ChatAndroid/ListarTecnicoMob", null, ct);
+
     public Task<Result<ConversacionDetalleResponse>> ChatAsync(Guid id, CancellationToken ct) =>
         Enviar<ConversacionDetalleResponse>(HttpMethod.Get, $"api/ChatAndroid/ObtenerMob/{id}", null, ct);
 
     public Task<Result<MensajeResponse>> EnviarMensajeAsync(Guid id, EnviarMensajeRequest request, CancellationToken ct) =>
         Enviar<MensajeResponse>(HttpMethod.Post, $"api/ChatAndroid/EnviarMob/{id}", request, ct);
+
+    public Task<Result<MensajeResponse>> ReportarTecnicoAsync(ReporteTecnicoRequest request, CancellationToken ct) =>
+        Enviar<MensajeResponse>(HttpMethod.Post, "api/ChatAndroid/ReporteTecnicoMob", request, ct);
 
     public async Task<Result<AdjuntoDescargado>> DescargarAdjuntoAsync(Guid id, CancellationToken ct)
     {

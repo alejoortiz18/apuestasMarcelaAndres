@@ -32,6 +32,7 @@ public sealed class ImpresionTirillaTests
     public void La_letra_es_grande_y_el_modulo_del_qr_en_linea_no_se_reduce()
     {
         ImpresionTirilla.TamanoLetra.Should().Be(28f);
+        ImpresionTirilla.TamanoLetraLeyenda.Should().Be(27f);
         ImpresionTirilla.ModuloQr.Should().Be(5);
         ImpresionTirilla.ModuloQrPara("1.8f2c1a6e4b094d739e215a7c0b8d3f14.nonce.cipher.tag").Should().Be(5);
     }

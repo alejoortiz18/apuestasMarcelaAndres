@@ -1,6 +1,7 @@
 using NewRich.Application.Contracts.Chat;
 using NewRich.Application.Services;
 using NewRich.Domain.Enums;
+using NewRich.Maui.Data;
 using NewRich.Maui.Services;
 using NewRich.Maui.Views;
 using NewRich.Pda.Core;
@@ -16,12 +17,16 @@ public sealed class TirillaVendidaPage : ContentPage
     private readonly IPrinterService _printer;
     private readonly IPdfService _pdf;
     private readonly SincronizacionOfflineServicio _sincronizacion;
+    private readonly LocalDatabase _offline;
     private readonly ILectorCodigoBarrasServicio _lector;
     private bool _evidenciaEnviada;
     private bool _capturaOk;
     private bool _impresionAutomaticaHecha;
     private bool _escuchandoLector;
     private Label? _avisoImpresion;
+    private Label? _estadoReporte;
+    private VerticalStackLayout? _formularioReporte;
+    private Entry? _detalleReporte;
     private readonly CargandoOverlay _cargando = new();
 
     public TirillaVendidaPage(
@@ -30,6 +35,7 @@ public sealed class TirillaVendidaPage : ContentPage
         IPrinterService printer,
         IPdfService pdf,
         SincronizacionOfflineServicio sincronizacion,
+        LocalDatabase offline,
         ILectorCodigoBarrasServicio lector)
     {
         _api = api;
@@ -37,6 +43,7 @@ public sealed class TirillaVendidaPage : ContentPage
         _printer = printer;
         _pdf = pdf;
         _sincronizacion = sincronizacion;
+        _offline = offline;
         _lector = lector;
         Title = PdaTexts.TicketVendido;
         BackgroundColor = Ui.Paper;
@@ -90,14 +97,54 @@ public sealed class TirillaVendidaPage : ContentPage
             cerrar.IsEnabled = false;
         }
 
-        var imprimir = Ui.Primario(PdaTexts.ImprimirTirilla);
-        imprimir.Clicked += async (_, _) => await ImprimirAsync(tirilla);
+        _estadoReporte = new Label
+        {
+            Text = string.Empty,
+            TextColor = Ui.Muted,
+            FontSize = 13,
+            IsVisible = false
+        };
+
+        _detalleReporte = new Entry
+        {
+            Placeholder = PdaTexts.DetalleReporte,
+            BackgroundColor = Colors.White,
+            TextColor = Ui.Ink,
+            FontSize = 15,
+            HeightRequest = 44
+        };
+        var enviarReporte = Ui.Primario(PdaTexts.EnviarReporte);
+        enviarReporte.Clicked += async (_, _) => await EnviarReporteAsync(tirilla);
+        var cancelarReporte = Ui.Secundario(PdaTexts.CancelarReporte);
+        cancelarReporte.Clicked += (_, _) => MostrarFormularioReporte(false);
+        _formularioReporte = new VerticalStackLayout
+        {
+            Spacing = 8,
+            IsVisible = false,
+            Children =
+            {
+                new Label
+                {
+                    Text = PdaTexts.DetalleReporte,
+                    FontAttributes = FontAttributes.Bold,
+                    TextColor = Ui.Ink
+                },
+                _detalleReporte,
+                enviarReporte,
+                cancelarReporte
+            }
+        };
+
+        var generarReporte = Ui.Primario(PdaTexts.GenerarReporte);
+        generarReporte.Clicked += (_, _) => MostrarFormularioReporte(true);
 
         var pdf = Ui.Secundario(PdaTexts.GenerarPdf);
         pdf.Clicked += async (_, _) => await GenerarPdfAsync(tirilla);
 
         cuerpo.Add(cerrar);
-        cuerpo.Add(imprimir);
+        cuerpo.Add(generarReporte);
+        cuerpo.Add(_formularioReporte);
+        cuerpo.Add(_estadoReporte);
         cuerpo.Add(pdf);
 
         if (tirilla.Offline)
@@ -211,11 +258,7 @@ public sealed class TirillaVendidaPage : ContentPage
         recuadro.Add(Regla());
         recuadro.Add(new Label
         {
-            Text = string.IsNullOrWhiteSpace(tirilla.LeyendaCompleta)
-                ? TirillaCuerpo.LeyendaDeRespuesta(tirilla.VigenciaDias, null)
-                : tirilla.LeyendaCompleta,
-            FontFamily = "OpenSansRegular",
-            FontSize = 12,
+            FontSize = 11,
             TextColor = Ui.Ink
         });
         recuadro.Add(Regla());
@@ -310,6 +353,110 @@ public sealed class TirillaVendidaPage : ContentPage
 
     protected override bool OnBackButtonPressed() =>
         _sesion.Tirilla?.Offline == true && !_evidenciaEnviada || base.OnBackButtonPressed();
+
+    private void MostrarFormularioReporte(bool visible)
+    {
+        if (_formularioReporte is null || _detalleReporte is null)
+        {
+            return;
+        }
+
+        _formularioReporte.IsVisible = visible;
+        if (visible)
+        {
+            _detalleReporte.Focus();
+        }
+        else
+        {
+            _detalleReporte.Text = string.Empty;
+        }
+    }
+
+    private async Task EnviarReporteAsync(TirillaVenta tirilla)
+    {
+        var detalle = _detalleReporte?.Text;
+        var error = ReporteTecnicoRegla.ValidarObservacion(detalle);
+        if (error is not null)
+        {
+            MostrarAviso(error);
+            return;
+        }
+
+        MostrarAviso(string.Empty);
+        _cargando.Mostrar(PdaTexts.GenerarReporte);
+        try
+        {
+            var pdf = TirillaPdf.Generar(tirilla.ARespuesta());
+            var nombre = $"{tirilla.CodigoImpreso}.pdf";
+            var request = new ReporteTecnicoRequest
+            {
+                Observacion = detalle!.Trim(),
+                CodigoTicket = tirilla.CodigoImpreso,
+                NombreArchivo = nombre,
+                ContenidoBase64 = Convert.ToBase64String(pdf)
+            };
+
+            var envio = await _api.ReportarTecnicoAsync(request, CancellationToken.None);
+            if (envio.IsSuccess)
+            {
+                MostrarEstadoReporte(EstadoReporteTecnico.Enviado);
+                MostrarFormularioReporte(false);
+                return;
+            }
+
+            await EncolarReporteLocalAsync(tirilla, detalle.Trim(), pdf, nombre);
+            MostrarEstadoReporte(EstadoReporteTecnico.EsperandoConexion);
+            MostrarFormularioReporte(false);
+        }
+        catch (Exception)
+        {
+            try
+            {
+                var pdf = TirillaPdf.Generar(tirilla.ARespuesta());
+                await EncolarReporteLocalAsync(tirilla, detalle!.Trim(), pdf, $"{tirilla.CodigoImpreso}.pdf");
+                MostrarEstadoReporte(EstadoReporteTecnico.EsperandoConexion);
+                MostrarFormularioReporte(false);
+            }
+            catch (Exception)
+            {
+                MostrarAviso(PdaTexts.SinConexionServidor);
+            }
+        }
+        finally
+        {
+            _cargando.Ocultar();
+        }
+    }
+
+    private async Task EncolarReporteLocalAsync(TirillaVenta tirilla, string observacion, byte[] pdf, string nombre)
+    {
+        await _offline.AsegurarAsync();
+        var id = Guid.NewGuid().ToString("N");
+        var ruta = Path.Combine(FileSystem.AppDataDirectory, $"reporte-tecnico-{id}.pdf");
+        await File.WriteAllBytesAsync(ruta, pdf);
+        await _offline.GuardarReporteTecnicoAsync(new ReporteTecnicoLocal
+        {
+            Id = id,
+            Observacion = observacion,
+            CodigoTicket = tirilla.CodigoImpreso,
+            NombreArchivo = nombre,
+            RutaPdf = ruta,
+            Enviado = false,
+            Estado = EstadoReporteTecnico.EsperandoConexion,
+            FechaLocal = DateTime.Now.ToString("O")
+        });
+    }
+
+    private void MostrarEstadoReporte(string estado)
+    {
+        if (_estadoReporte is null)
+        {
+            return;
+        }
+
+        _estadoReporte.Text = estado;
+        _estadoReporte.IsVisible = !string.IsNullOrWhiteSpace(estado);
+    }
 
     private async Task ImprimirAsync(TirillaVenta tirilla)
     {

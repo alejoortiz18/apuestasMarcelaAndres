@@ -98,7 +98,7 @@ public static class TirillaDocumentoPdf
                     }
 
                     col.Item().Text(Regla);
-                    col.Item().Text(leyenda);
+                    col.Item().Text(leyenda).FontSize(8);
                     col.Item().Text(Regla);
                 });
             });

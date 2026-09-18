@@ -245,6 +245,10 @@ public sealed class DiasLoteriaFormItem
 
 public sealed class ConfiguracionOperativaFormViewModel
 {
+    [Display(Name = UiTexts.HoraAperturaPda)]
+    [Required(ErrorMessage = ValidationMessages.CampoRequerido)]
+    public string HoraApertura { get; set; } = "10:00";
+
     [Display(Name = UiTexts.HoraCierrePda)]
     [Required(ErrorMessage = ValidationMessages.CampoRequerido)]
     public string HoraCierre { get; set; } = "20:00";

@@ -16,8 +16,14 @@
         <section class="kpi-section">
             <h2>@UiTexts.ConfigHorarioPremios</h2>
             <div class="field">
+                <label asp-for="Form.HoraApertura"></label>
+                <input asp-for="Form.HoraApertura" type="time" step="60" />
+                <span class="field-help">@UiTexts.HoraAperturaPdaAyuda</span>
+                <span asp-validation-for="Form.HoraApertura"></span>
+            </div>
+            <div class="field">
                 <label asp-for="Form.HoraCierre"></label>
-                <input asp-for="Form.HoraCierre" type="time" />
+                <input asp-for="Form.HoraCierre" type="time" step="60" />
                 <span class="field-help">@UiTexts.HoraCierrePdaAyuda</span>
                 <span asp-validation-for="Form.HoraCierre"></span>
             </div>

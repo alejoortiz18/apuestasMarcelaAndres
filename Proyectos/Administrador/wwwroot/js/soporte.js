@@ -124,9 +124,24 @@
     caja.scrollTop = caja.scrollHeight;
   }
 
+  function buscarItem(conversacionId) {
+    const id = String(conversacionId || "").toLowerCase();
+    if (!id) {
+      return null;
+    }
+    const items = document.querySelectorAll("[data-chat-item]");
+    for (let i = 0; i < items.length; i++) {
+      const valor = (items[i].getAttribute("data-chat-item") || "").toLowerCase();
+      if (valor === id) {
+        return items[i];
+      }
+    }
+    return null;
+  }
+
   function actualizarLista(conversacionId, texto) {
     const lista = document.querySelector("[data-chat-lista]");
-    const item = document.querySelector('[data-chat-item="' + conversacionId + '"]');
+    const item = buscarItem(conversacionId);
     if (!lista || !item) {
       window.location.reload();
       return;
@@ -161,7 +176,7 @@
         .withAutomaticReconnect()
         .build();
       conexion.on(evento, function (aviso) {
-        const conversacionId = aviso.conversacionId || aviso.ConversacionId;
+        const conversacionId = String(aviso.conversacionId || aviso.ConversacionId || "");
         const mensaje = aviso.mensaje || aviso.Mensaje;
         if (!conversacionId || !mensaje) {
           return;
@@ -172,8 +187,17 @@
           agregarBurbuja(mensaje);
         }
       });
+      conexion.onreconnected(function () {
+        document.documentElement.setAttribute("data-chat-vivo-ok", "1");
+      });
+      conexion.onclose(function () {
+        document.documentElement.removeAttribute("data-chat-vivo-ok");
+      });
       function arrancar() {
-        return conexion.start().catch(function () {
+        return conexion.start().then(function () {
+          document.documentElement.setAttribute("data-chat-vivo-ok", "1");
+        }).catch(function () {
+          document.documentElement.removeAttribute("data-chat-vivo-ok");
           window.setTimeout(arrancar, 4000);
         });
       }

@@ -19,8 +19,8 @@ public sealed class SoporteController : AdminControllerBase
 
     public async Task<IActionResult> Index(Guid? id, string? q, CancellationToken cancellationToken)
     {
-        SetNav("soporte", UiTexts.NavSoporte);
-        var conversacionesTask = _api.ListarConversacionesAsync(cancellationToken);
+        SetNav("soporte", UiTexts.NavAtencionCliente);
+        var conversacionesTask = _api.ListarConversacionesAsync(cancellationToken, "AtencionCliente");
         var usuariosTask = _api.ListarUsuariosAsync(cancellationToken);
         await Task.WhenAll(conversacionesTask, usuariosTask);
         var unauthorized = RedirectIfUnauthorized(conversacionesTask.Result) ?? RedirectIfUnauthorized(usuariosTask.Result);

@@ -26,6 +26,15 @@ public sealed class ClaimsUsuarioTests
     }
 
     [Fact]
+    public void HubUrl_usa_la_ip_lan_del_navegador_cuando_la_api_apunta_a_localhost()
+    {
+        HubNotificacionesUrl.Resolver("http://localhost:5295/", "192.168.1.119", "/hubs/chat")
+            .Should().Be("http://192.168.1.119:5295/hubs/chat");
+        HubNotificacionesUrl.Resolver("http://127.0.0.1:5295/", "10.0.0.8", "/hubs/notificaciones")
+            .Should().Be("http://10.0.0.8:5295/hubs/notificaciones");
+    }
+
+    [Fact]
     public void HubRutas_acepta_token_de_notificaciones_y_de_chat_sin_mezclarlos()
     {
         HubRutas.AceptaTokenPorQuery("/hubs/notificaciones").Should().BeTrue();

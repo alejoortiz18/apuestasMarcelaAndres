@@ -190,15 +190,73 @@ public sealed class UsuarioService : IUsuarioService
 
         await _db.ExecuteInTransactionAsync(async ct =>
         {
+            var casosIds = await _db.CasosGanadores
+                .Where(c => c.VendedorQueReporto == usuarioId
+                    || c.AdminQueValido == usuarioId
+                    || c.AdminQueAsigno == usuarioId
+                    || c.ObservadorAsignado == usuarioId)
+                .Select(c => c.CasoId)
+                .ToListAsync(ct);
+
+            var entregasCasos = await _db.EntregasGanadores
+                .Where(e => casosIds.Contains(e.CasoId) || e.PersonaQueEntrega == usuarioId)
+                .Select(e => e.EntregaId)
+                .ToListAsync(ct);
+
+            _db.EvidenciasGanador.RemoveRange(
+                await _db.EvidenciasGanador.Where(e => entregasCasos.Contains(e.EntregaId)).ToListAsync(ct));
+            _db.EntregasGanadores.RemoveRange(
+                await _db.EntregasGanadores.Where(e => entregasCasos.Contains(e.EntregaId)).ToListAsync(ct));
+            _db.CasosGanadores.RemoveRange(
+                await _db.CasosGanadores.Where(c => casosIds.Contains(c.CasoId)).ToListAsync(ct));
+
+            var conversacionIds = await _db.Conversaciones
+                .Where(c => c.UsuarioIniciadorId == usuarioId || c.UsuarioDestinoId == usuarioId)
+                .Select(c => c.ConversacionId)
+                .ToListAsync(ct);
+            var mensajeIds = await _db.Mensajes
+                .Where(m => conversacionIds.Contains(m.ConversacionId) || m.UsuarioEmisorId == usuarioId)
+                .Select(m => m.MensajeId)
+                .ToListAsync(ct);
+
+            _db.AdjuntosChat.RemoveRange(
+                await _db.AdjuntosChat.Where(a => mensajeIds.Contains(a.MensajeId)).ToListAsync(ct));
+            _db.Mensajes.RemoveRange(
+                await _db.Mensajes.Where(m => mensajeIds.Contains(m.MensajeId)).ToListAsync(ct));
+            _db.Conversaciones.RemoveRange(
+                await _db.Conversaciones.Where(c => conversacionIds.Contains(c.ConversacionId)).ToListAsync(ct));
+
             var ventas = await _db.Ventas.Where(v => v.UsuarioId == usuarioId).Select(v => v.VentaId).ToListAsync(ct);
             var boletos = await _db.Boletos.Where(b => ventas.Contains(b.VentaId)).Select(b => b.BoletoId).ToListAsync(ct);
-            var juegos = await _db.Juegos.Where(j => boletos.Contains(j.BoletoId)).Select(j => j.JuegoId).ToListAsync(ct);
+            var casosPorBoleto = await _db.CasosGanadores
+                .Where(c => boletos.Contains(c.BoletoId) && !casosIds.Contains(c.CasoId))
+                .Select(c => c.CasoId)
+                .ToListAsync(ct);
+            if (casosPorBoleto.Count > 0)
+            {
+                var entregasBoleto = await _db.EntregasGanadores
+                    .Where(e => casosPorBoleto.Contains(e.CasoId))
+                    .Select(e => e.EntregaId)
+                    .ToListAsync(ct);
+                _db.EvidenciasGanador.RemoveRange(
+                    await _db.EvidenciasGanador.Where(e => entregasBoleto.Contains(e.EntregaId)).ToListAsync(ct));
+                _db.EntregasGanadores.RemoveRange(
+                    await _db.EntregasGanadores.Where(e => entregasBoleto.Contains(e.EntregaId)).ToListAsync(ct));
+                _db.CasosGanadores.RemoveRange(
+                    await _db.CasosGanadores.Where(c => casosPorBoleto.Contains(c.CasoId)).ToListAsync(ct));
+            }
 
+            var juegos = await _db.Juegos.Where(j => boletos.Contains(j.BoletoId)).Select(j => j.JuegoId).ToListAsync(ct);
             _db.JuegoLoterias.RemoveRange(await _db.JuegoLoterias.Where(x => juegos.Contains(x.JuegoId)).ToListAsync(ct));
             _db.Juegos.RemoveRange(await _db.Juegos.Where(x => juegos.Contains(x.JuegoId)).ToListAsync(ct));
             _db.ClavesValidacionBoleto.RemoveRange(await _db.ClavesValidacionBoleto.Where(x => boletos.Contains(x.BoletoId)).ToListAsync(ct));
             _db.Boletos.RemoveRange(await _db.Boletos.Where(x => boletos.Contains(x.BoletoId)).ToListAsync(ct));
             _db.Ventas.RemoveRange(await _db.Ventas.Where(x => ventas.Contains(x.VentaId)).ToListAsync(ct));
+
+            _db.CodigosPreventaOffline.RemoveRange(
+                await _db.CodigosPreventaOffline
+                    .Where(c => c.UsuarioId == usuarioId || c.AdminQueRegistro == usuarioId)
+                    .ToListAsync(ct));
             _db.Sesiones.RemoveRange(await _db.Sesiones.Where(x => x.UsuarioId == usuarioId).ToListAsync(ct));
             _db.IntentosFallidos.RemoveRange(await _db.IntentosFallidos.Where(x => x.UsuarioId == usuarioId).ToListAsync(ct));
             _db.DispositivosUsuarios.RemoveRange(await _db.DispositivosUsuarios.Where(x => x.UsuarioId == usuarioId).ToListAsync(ct));

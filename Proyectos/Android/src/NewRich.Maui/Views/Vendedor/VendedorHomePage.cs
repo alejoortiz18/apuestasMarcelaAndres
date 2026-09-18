@@ -1,4 +1,5 @@
 using NewRich.Application.Contracts.Ventas;
+using NewRich.Domain.Services;
 using NewRich.Pda.Core;
 using NewRich.Pda.Core.Api;
 using NewRich.Pda.Core.Auth;
@@ -141,9 +142,13 @@ public sealed class VendedorHomePage : ContentPage
             }
         }
         var offline = await _offline.ContarDisponiblesAsync();
+        _sesion.HorarioCerrado = HorarioPda.EstaFuera(
+            _sesion.Limites,
+            ZonaHorariaColombia.ALocal(DateTime.UtcNow));
         _estado.Text = Ui.EstadoLinea(_sesion.CodigoDispositivo, conectado, _sesion.HorarioCerrado, offline);
         _codigos.Text = offline.ToString();
-        _juegoNuevo.IsEnabled = !_sesion.HorarioCerrado && (conectado || offline > 0);
+        _juegoNuevo.IsEnabled = HorarioPda.PuedeIniciarJuegoNuevo(_sesion.HorarioCerrado)
+            && (conectado || offline > 0);
         _banners.Children.Clear();
         if (!conectado)
         {

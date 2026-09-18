@@ -111,6 +111,23 @@ public sealed class ObservadorLecturaQrTests
     }
 
     [Fact]
+    public void Lee_rapido_un_frame_de_camara_para_no_tumbar_los_cuadros_por_segundo()
+    {
+        // TryHarder en ZXing agrega pasadas de binarización/rotación costosas. En vivo esto
+        // se llama en cada cuadro; si tarda cientos de ms el PDA cae a ~1 cuadro/seg y casi
+        // nunca alcanza a leer el QR. Debe resolver un cuadro típico de cámara en pocos ms.
+        var contenido = "NR3.RAPIDO99";
+        var nv21 = Nv21(Lienzo(Escalar(QrImagen.Png(contenido), 520), 640, 480, 0));
+
+        var reloj = System.Diagnostics.Stopwatch.StartNew();
+        var leido = ObservadorLecturaQr.DesdeNv21(nv21.Datos, nv21.Ancho, nv21.Alto);
+        reloj.Stop();
+
+        leido.Should().Be(contenido);
+        reloj.ElapsedMilliseconds.Should().BeLessThan(150);
+    }
+
+    [Fact]
     public void Devuelve_nulo_si_no_hay_qr()
     {
         ObservadorLecturaQr.DesdeFoto([1, 2, 3]).Should().BeNull();

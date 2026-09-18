@@ -14,6 +14,7 @@ public sealed class ActualizarConfiguracionRequest
 
 public sealed class ConfiguracionOperativaResponse
 {
+    public string HoraApertura { get; set; } = "10:00:00";
     public string HoraCierre { get; set; } = "20:00:00";
     public int VigenciaPremiosDias { get; set; } = 30;
     public int MaxJuegosCombinado { get; set; } = 1;
@@ -27,6 +28,7 @@ public sealed class ConfiguracionOperativaResponse
 
 public sealed record GuardarConfiguracionOperativaRequest
 {
+    public string HoraApertura { get; init; } = string.Empty;
     public string HoraCierre { get; init; } = string.Empty;
     public int VigenciaPremiosDias { get; init; }
     public int MaxJuegosCombinado { get; init; }

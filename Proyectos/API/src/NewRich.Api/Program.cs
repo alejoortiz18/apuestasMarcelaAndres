@@ -79,12 +79,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 builder.Services.AddAuthorization();
-var origenes = CorsOrigenes.ConLoopback(builder.Configuration.GetSection("Cors:Origenes").Get<string[]>() ?? ["http://localhost:5274"]);
+var origenesCors = builder.Configuration.GetSection("Cors:Origenes").Get<string[]>() ?? ["http://localhost:5274"];
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("Admin", policy =>
     {
-        policy.WithOrigins(origenes)
+        policy.SetIsOriginAllowed(origen => CorsOrigenes.EsPermitido(origen, origenesCors))
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
