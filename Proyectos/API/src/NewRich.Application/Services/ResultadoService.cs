@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using NewRich.Application.Abstractions;
+using NewRich.Application.Contracts.Boletos;
 using NewRich.Application.Contracts.Resultados;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
@@ -140,8 +141,78 @@ public sealed class ResultadoService : IResultadoService
         }
 
         var items = await query.OrderByDescending(n => n.FechaJuego).ToListAsync(cancellationToken);
-        return Result<IReadOnlyList<ResultadoResponse>>.Ok(items.Select(Map).ToList(), SuccessMessages.OperacionExitosa);
+        var desfase = FechaJuegoBoleto.Desfase(_clock.UtcNow, _clock.LocalNow);
+        var resultado = new List<ResultadoResponse>(items.Count);
+        foreach (var item in items)
+        {
+            var mapped = Map(item);
+            mapped.CantidadGanadores = await ContarGanadoresAsync(item, desfase, cancellationToken);
+            resultado.Add(mapped);
+        }
+
+        return Result<IReadOnlyList<ResultadoResponse>>.Ok(resultado, SuccessMessages.OperacionExitosa);
     }
+
+    public async Task<Result<IReadOnlyList<BoletoListaResponse>>> ListarGanadoresAsync(
+        Guid numeroGanadorId,
+        CancellationToken cancellationToken)
+    {
+        var resultado = await _db.NumerosGanadores
+            .Include(n => n.Loteria)
+            .FirstOrDefaultAsync(n => n.NumeroGanadorId == numeroGanadorId, cancellationToken);
+        if (resultado is null)
+        {
+            return Result<IReadOnlyList<BoletoListaResponse>>.Fail(BoletoMessages.ResultadoNoEncontrado, 404);
+        }
+
+        var desfase = FechaJuegoBoleto.Desfase(_clock.UtcNow, _clock.LocalNow);
+        var boletos = await QueryGanadores(resultado, desfase)
+            .Include(b => b.Venta)
+            .ThenInclude(v => v!.Usuario)
+            .OrderByDescending(b => b.Venta!.FechaVenta)
+            .ToListAsync(cancellationToken);
+
+        var lista = boletos.Select(b => new BoletoListaResponse
+        {
+            BoletoId = b.BoletoId,
+            CodigoPublico = b.CodigoPublico,
+            Vendedor = b.Venta?.Usuario?.Alias ?? b.Venta?.Usuario?.NombreCompleto ?? string.Empty,
+            Fecha = b.Venta?.FechaVenta ?? b.FechaCreacion,
+            Total = b.Venta?.Total ?? 0m,
+            Estado = EstadoVisualGanador(b.EstadoBoleto)
+        }).ToList();
+
+        return Result<IReadOnlyList<BoletoListaResponse>>.Ok(lista, SuccessMessages.OperacionExitosa);
+    }
+
+    /// <summary>
+    /// Cuenta los boletos que acertaron ese número en esa lotería el día del sorteo,
+    /// aunque el premio ya esté pagado o entregado.
+    /// </summary>
+    private Task<int> ContarGanadoresAsync(NumeroGanador resultado, TimeSpan desfase, CancellationToken cancellationToken) =>
+        QueryGanadores(resultado, desfase).CountAsync(cancellationToken);
+
+    private IQueryable<Boleto> QueryGanadores(NumeroGanador resultado, TimeSpan desfase)
+    {
+        var fechaJuego = DateOnly.FromDateTime(resultado.FechaJuego);
+        var (desdeUtc, hastaUtc) = FechaJuegoBoleto.Ventana(fechaJuego, desfase);
+        return _db.Boletos
+            .Where(b => b.Venta != null
+                        && b.Venta.FechaVenta >= desdeUtc
+                        && b.Venta.FechaVenta < hastaUtc)
+            .Where(b => b.EstadoBoleto == EstadoBoleto.Ganador
+                        || b.EstadoBoleto == EstadoBoleto.PagadoCobrado
+                        || b.EstadoBoleto == EstadoBoleto.PremioEntregado)
+            .Where(b => b.Juegos.Any(j => j.Numero == resultado.Numero
+                                          && j.JuegoLoterias.Any(l => l.LoteriaId == resultado.LoteriaId)));
+    }
+
+    private static string EstadoVisualGanador(EstadoBoleto estado) => estado switch
+    {
+        EstadoBoleto.PagadoCobrado => BoletoMessages.BoletoPagado,
+        EstadoBoleto.PremioEntregado => BoletoMessages.BoletoPremioEntregado,
+        _ => BoletoMessages.BoletoGanador
+    };
 
     private static ResultadoResponse Map(NumeroGanador n) => new()
     {

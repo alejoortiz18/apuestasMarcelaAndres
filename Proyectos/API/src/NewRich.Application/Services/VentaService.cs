@@ -210,6 +210,7 @@ public sealed class VentaService : IVentaService
                 FechaVenta = venta.FechaVenta,
                 Total = venta.Total,
                 EstadoBoleto = BoletoMessages.BoletoJugado,
+                TipoApuesta = venta.TipoApuesta,
                 Juegos = boleto.Juegos.Select(MapJuego).ToList()
             };
         }, cancellationToken);
@@ -278,6 +279,11 @@ public sealed class VentaService : IVentaService
             query = query.Where(v => v.Boletos.Any(b => b.Juegos.Any(j => j.JuegoLoterias.Any(l => l.LoteriaId == request.LoteriaId))));
         }
 
+        if (request.TipoApuesta.HasValue)
+        {
+            query = query.Where(v => v.TipoApuesta == request.TipoApuesta.Value);
+        }
+
         var ventas = await query.OrderByDescending(v => v.FechaVenta).ToListAsync(cancellationToken);
         var result = new List<VentaResponse>();
         foreach (var venta in ventas)
@@ -304,6 +310,7 @@ public sealed class VentaService : IVentaService
             FechaVenta = venta.FechaVenta,
             Total = venta.Total,
             EstadoBoleto = boleto.EstadoBoleto.ToString(),
+            TipoApuesta = venta.TipoApuesta,
             Juegos = boleto.Juegos.Select(MapJuego).ToList()
         };
     }

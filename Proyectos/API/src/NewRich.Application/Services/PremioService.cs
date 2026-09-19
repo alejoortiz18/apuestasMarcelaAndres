@@ -42,7 +42,7 @@ public sealed class PremioService : IPremioService
     public async Task<Result<IReadOnlyList<CasoGanadorResponse>>> ListarAsync(CancellationToken cancellationToken)
     {
         var casos = await Query().OrderByDescending(c => c.FechaReporte).ToListAsync(cancellationToken);
-        return Result<IReadOnlyList<CasoGanadorResponse>>.Ok(casos.Select(Map).ToList(), SuccessMessages.OperacionExitosa);
+        return Result<IReadOnlyList<CasoGanadorResponse>>.Ok(casos.Select(MapConEntrega).ToList(), SuccessMessages.OperacionExitosa);
     }
 
     public async Task<Result<IReadOnlyList<CasoGanadorResponse>>> ListarAsignadosAsync(Guid observadorId, CancellationToken cancellationToken)
@@ -52,7 +52,7 @@ public sealed class PremioService : IPremioService
                 && (c.Estado == EstadoCasoGanador.Asignado || c.Estado == EstadoCasoGanador.EnProceso))
             .OrderByDescending(c => c.FechaAsignacion ?? c.FechaReporte)
             .ToListAsync(cancellationToken);
-        return Result<IReadOnlyList<CasoGanadorResponse>>.Ok(casos.Select(Map).ToList(), SuccessMessages.OperacionExitosa);
+        return Result<IReadOnlyList<CasoGanadorResponse>>.Ok(casos.Select(MapConEntrega).ToList(), SuccessMessages.OperacionExitosa);
     }
 
     public async Task<Result<CasoGanadorResponse>> ObtenerAsync(Guid casoId, CancellationToken cancellationToken)
@@ -569,7 +569,17 @@ public sealed class PremioService : IPremioService
             .ThenInclude(v => v!.Usuario)
             .Include(c => c.VendedorQueReportoNavigation)
             .Include(c => c.ObservadorAsignadoNavigation)
-            .Include(c => c.EntregaGanador);
+            .Include(c => c.EntregaGanador)
+            .ThenInclude(e => e!.Evidencias)
+            .Include(c => c.EntregaGanador)
+            .ThenInclude(e => e!.PersonaQueEntregaNavigation);
+
+    private static CasoGanadorResponse MapConEntrega(CasoGanador caso)
+    {
+        var detalle = Map(caso);
+        AgregarDetalleEntrega(caso, detalle);
+        return detalle;
+    }
 
     private static CasoGanadorResponse Map(CasoGanador caso)
     {

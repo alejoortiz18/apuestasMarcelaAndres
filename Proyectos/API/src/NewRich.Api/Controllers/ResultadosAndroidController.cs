@@ -19,4 +19,11 @@ public sealed class ResultadosAndroidController : ApiControllerBase
     {
         return From(await _pda.ResultadosMobAsync(fecha, loteriaId, cancellationToken));
     }
+
+    [Authorize(Roles = "Administrador,Observador")]
+    [HttpGet("GanadoresMob/{numeroGanadorId:guid}")]
+    public async Task<IActionResult> GanadoresMob(Guid numeroGanadorId, CancellationToken cancellationToken)
+    {
+        return From(await _pda.GanadoresResultadoMobAsync(numeroGanadorId, cancellationToken));
+    }
 }

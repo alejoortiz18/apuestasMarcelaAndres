@@ -22,6 +22,7 @@ public sealed class ConsultaVentasRequest
     public DateTime? FechaFinal { get; set; }
     public string? Numero { get; set; }
     public Guid? LoteriaId { get; set; }
+    public TipoApuesta? TipoApuesta { get; set; }
 }
 
 public sealed class JuegoResponse
@@ -45,5 +46,6 @@ public sealed class VentaResponse
     public DateTime FechaVenta { get; set; }
     public decimal Total { get; set; }
     public string EstadoBoleto { get; set; } = string.Empty;
+    public TipoApuesta TipoApuesta { get; set; }
     public IReadOnlyList<JuegoResponse> Juegos { get; set; } = [];
 }

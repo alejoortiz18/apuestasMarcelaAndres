@@ -131,6 +131,11 @@ public sealed class NewRichApiClient
             q.Add($"vendedorId={request.VendedorId}");
         }
 
+        if (request.TipoApuesta.HasValue)
+        {
+            q.Add($"tipoApuesta={request.TipoApuesta.Value}");
+        }
+
         var url = q.Count == 0 ? "api/VentasAndroid/ConsultarMob" : "api/VentasAndroid/ConsultarMob?" + string.Join("&", q);
         return Enviar<IReadOnlyList<VentaResponse>>(HttpMethod.Get, url, null, ct);
     }
@@ -151,6 +156,9 @@ public sealed class NewRichApiClient
         var url = q.Count == 0 ? "api/ResultadosAndroid/ListarMob" : "api/ResultadosAndroid/ListarMob?" + string.Join("&", q);
         return Enviar<IReadOnlyList<ResultadoResponse>>(HttpMethod.Get, url, null, ct);
     }
+
+    public Task<Result<IReadOnlyList<BoletoListaResponse>>> GanadoresResultadoAsync(Guid numeroGanadorId, CancellationToken ct) =>
+        Enviar<IReadOnlyList<BoletoListaResponse>>(HttpMethod.Get, $"api/ResultadosAndroid/GanadoresMob/{numeroGanadorId}", null, ct);
 
     public Task<Result<IReadOnlyList<UsuarioResponse>>> UsuariosAsync(CancellationToken ct) =>
         Enviar<IReadOnlyList<UsuarioResponse>>(HttpMethod.Get, "api/Usuarios", null, ct);
@@ -274,10 +282,16 @@ public sealed class NewRichApiClient
     public Task<Result<MensajeResponse>> ReportarTecnicoAsync(ReporteTecnicoRequest request, CancellationToken ct) =>
         Enviar<MensajeResponse>(HttpMethod.Post, "api/ChatAndroid/ReporteTecnicoMob", request, ct);
 
-    public async Task<Result<AdjuntoDescargado>> DescargarAdjuntoAsync(Guid id, CancellationToken ct)
+    public Task<Result<AdjuntoDescargado>> DescargarAdjuntoAsync(Guid id, CancellationToken ct) =>
+        DescargarArchivoAsync($"api/ChatAndroid/DescargarAdjuntoMob/{id}", ct);
+
+    public Task<Result<AdjuntoDescargado>> DescargarEvidenciaPremioAsync(Guid casoId, Guid evidenciaId, CancellationToken ct) =>
+        DescargarArchivoAsync($"api/PremiosAndroid/EvidenciaMob/{casoId}/{evidenciaId}", ct);
+
+    private async Task<Result<AdjuntoDescargado>> DescargarArchivoAsync(string ruta, CancellationToken ct)
     {
         var token = await _tokens.ObtenerAsync();
-        using var request = Crear(HttpMethod.Get, $"api/ChatAndroid/DescargarAdjuntoMob/{id}", null, token);
+        using var request = Crear(HttpMethod.Get, ruta, null, token);
         try
         {
             using var response = await _http.SendAsync(request, ct);

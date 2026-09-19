@@ -1416,7 +1416,7 @@ IF NOT EXISTS (SELECT 1 FROM dbo.Usuarios WHERE Usuario = 'admin')
 BEGIN
     INSERT INTO dbo.Usuarios (NombreCompleto, Usuario, Alias, Email, PasswordHash, PasswordSalt, Rol, Estado, EstadoValidado, EstadoBloqueado, IntentosFallidos)
     VALUES (N'Administrador Principal', 'admin', 'Admin', 'admin@newrich.com',
-            '367C4B2DB148D69B17F617E3CDE3194D4A7D383F03B5C30736CEE7C3E0F80556',  -- PasswordHash de "Admin123!" (PBKDF2 SHA256, 100k iteraciones)
+            'B1769FD4E8CEEFF151050B151FB68D25545922DD8F36A0B0E22E7903314C1FAD',  -- PasswordHash de "Admin123" (PBKDF2 SHA256, 100k iteraciones)
             'D6B428E0B2EE341BE3405E98080A0E2D',  -- Salt
             'Administrador', 'Activo', 1, 0, 0);
 
@@ -1426,7 +1426,7 @@ BEGIN
 
     INSERT INTO dbo.UsuariosRoles (UsuarioId, RolId) VALUES (@AdminUserId, @AdminRoleId);
 
-    PRINT 'Usuario administrador inicial creado. Usuario: admin / Password temporal: Admin123!';
+    PRINT 'Usuario administrador inicial creado. Usuario: admin / Password temporal: Admin123';
 END
 GO
 

@@ -85,6 +85,7 @@ public interface IResultadoService
 {
     Task<Result<ResultadoResponse>> RegistrarAsync(RegistrarResultadoRequest request, CancellationToken cancellationToken);
     Task<Result<IReadOnlyList<ResultadoResponse>>> ListarAsync(DateOnly? fecha, Guid? loteriaId, CancellationToken cancellationToken);
+    Task<Result<IReadOnlyList<BoletoListaResponse>>> ListarGanadoresAsync(Guid numeroGanadorId, CancellationToken cancellationToken);
 
     /// <summary>Vuelve a resolver todos los boletos contra los números ganadores ya publicados.</summary>
     Task<Result<int>> RecalcularAsync(CancellationToken cancellationToken);

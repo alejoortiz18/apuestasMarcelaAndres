@@ -62,4 +62,17 @@ public sealed class PremiosAndroidController : ApiControllerBase
 
         return File(result.Data.Contenido, ChatAdjunto.TipoMime(result.Data.NombreArchivo), result.Data.NombreArchivo);
     }
+
+    [Authorize(Roles = "Administrador,Observador")]
+    [HttpGet("EvidenciaMob/{id:guid}/{evidenciaId:guid}")]
+    public async Task<IActionResult> EvidenciaMob(Guid id, Guid evidenciaId, CancellationToken cancellationToken)
+    {
+        var result = await _pda.ObtenerEvidenciaPremioMobAsync(id, evidenciaId, cancellationToken);
+        if (!result.IsSuccess || result.Data is null)
+        {
+            return From(result);
+        }
+
+        return File(result.Data.Contenido, ChatAdjunto.TipoMime(result.Data.NombreArchivo), result.Data.NombreArchivo);
+    }
 }

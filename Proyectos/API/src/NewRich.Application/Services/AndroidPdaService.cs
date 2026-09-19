@@ -27,8 +27,10 @@ public interface IAndroidPdaService
     Task<Result<VentaResponse>> ConfirmarVentaMobAsync(Guid vendedorId, Guid? dispositivoId, ConfirmarVentaRequest request, string? idempotencyKey, CancellationToken cancellationToken);
     Task<Result<IReadOnlyList<VentaResponse>>> ConsultarVentasMobAsync(ConsultaVentasRequest request, Guid solicitanteId, bool soloPropias, CancellationToken cancellationToken);
     Task<Result<IReadOnlyList<ResultadoResponse>>> ResultadosMobAsync(DateOnly? fecha, Guid? loteriaId, CancellationToken cancellationToken);
+    Task<Result<IReadOnlyList<BoletoListaResponse>>> GanadoresResultadoMobAsync(Guid numeroGanadorId, CancellationToken cancellationToken);
     Task<Result<CasoGanadorResponse>> ReportarPremioMobAsync(Guid solicitanteId, ReportarCasoGanadorRequest request, CancellationToken cancellationToken);
     Task<Result<DescargaAdjuntoResponse>> ObtenerFotoPremioMobAsync(Guid casoId, CancellationToken cancellationToken);
+    Task<Result<DescargaAdjuntoResponse>> ObtenerEvidenciaPremioMobAsync(Guid casoId, Guid evidenciaId, CancellationToken cancellationToken);
     Task<Result<IReadOnlyList<CasoGanadorResponse>>> PremiosMobAsync(CancellationToken cancellationToken);
     Task<Result<IReadOnlyList<CasoGanadorResponse>>> PremiosAsignadosMobAsync(Guid observadorId, CancellationToken cancellationToken);
     Task<Result<CasoGanadorResponse>> IniciarRegistroPremioMobAsync(Guid casoId, Guid observadorId, CancellationToken cancellationToken);
@@ -157,11 +159,17 @@ public sealed class AndroidPdaService : IAndroidPdaService
     public Task<Result<IReadOnlyList<ResultadoResponse>>> ResultadosMobAsync(DateOnly? fecha, Guid? loteriaId, CancellationToken cancellationToken) =>
         _resultados.ListarAsync(fecha, loteriaId, cancellationToken);
 
+    public Task<Result<IReadOnlyList<BoletoListaResponse>>> GanadoresResultadoMobAsync(Guid numeroGanadorId, CancellationToken cancellationToken) =>
+        _resultados.ListarGanadoresAsync(numeroGanadorId, cancellationToken);
+
     public Task<Result<CasoGanadorResponse>> ReportarPremioMobAsync(Guid solicitanteId, ReportarCasoGanadorRequest request, CancellationToken cancellationToken) =>
         _premios.ReportarAsync(solicitanteId, request, cancellationToken);
 
     public Task<Result<DescargaAdjuntoResponse>> ObtenerFotoPremioMobAsync(Guid casoId, CancellationToken cancellationToken) =>
         _premios.ObtenerFotoAsync(casoId, cancellationToken);
+
+    public Task<Result<DescargaAdjuntoResponse>> ObtenerEvidenciaPremioMobAsync(Guid casoId, Guid evidenciaId, CancellationToken cancellationToken) =>
+        _premios.ObtenerEvidenciaAsync(casoId, evidenciaId, cancellationToken);
 
     public Task<Result<IReadOnlyList<CasoGanadorResponse>>> PremiosMobAsync(CancellationToken cancellationToken) =>
         _premios.ListarAsync(cancellationToken);

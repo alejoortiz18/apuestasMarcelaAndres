@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using NewRich.Application.Abstractions;
 using NewRich.Application.Contracts.Resultados;
 using NewRich.Application.Services;
+using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
 using NewRich.Domain.Enums;
 using NewRich.Infrastructure.Persistence;
@@ -137,6 +138,68 @@ public sealed class ResolucionResultadosServiceTests
 
         recalculados.Data.Should().Be(1);
         (await db.Boletos.FindAsync(boleto.BoletoId))!.EstadoBoleto.Should().Be(EstadoBoleto.Ganador);
+    }
+
+    [Fact]
+    public async Task Listar_incluye_la_cantidad_de_boletos_ganadores_del_resultado()
+    {
+        var (resultados, db, loterias) = CreateSut();
+        await CrearBoletoAsync(db, "5432", loterias["Armenia"]);
+        await CrearBoletoAsync(db, "5432", loterias["Armenia"]);
+        await CrearBoletoAsync(db, "9999", loterias["Armenia"]);
+        await resultados.RegistrarAsync(Solicitud(loterias["Armenia"], "5432"), CancellationToken.None);
+
+        var listado = await resultados.ListarAsync(FechaJuego, loterias["Armenia"], CancellationToken.None);
+
+        listado.IsSuccess.Should().BeTrue();
+        listado.Data.Should().ContainSingle();
+        listado.Data![0].Numero.Should().Be("5432");
+        listado.Data[0].CantidadGanadores.Should().Be(2);
+        listado.Data[0].TieneGanadores.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Listar_cuenta_cero_cuando_nadie_acerto_el_numero()
+    {
+        var (resultados, db, loterias) = CreateSut();
+        await CrearBoletoAsync(db, "9999", loterias["Armenia"]);
+        await resultados.RegistrarAsync(Solicitud(loterias["Armenia"], "5432"), CancellationToken.None);
+
+        var listado = await resultados.ListarAsync(FechaJuego, loterias["Armenia"], CancellationToken.None);
+
+        listado.Data![0].CantidadGanadores.Should().Be(0);
+        listado.Data[0].TieneGanadores.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Listar_sigue_contando_un_ganador_aunque_el_premio_ya_se_haya_entregado()
+    {
+        var (resultados, db, loterias) = CreateSut();
+        var boleto = await CrearBoletoAsync(db, "5432", loterias["Armenia"]);
+        await resultados.RegistrarAsync(Solicitud(loterias["Armenia"], "5432"), CancellationToken.None);
+        boleto.EstadoBoleto = EstadoBoleto.PremioEntregado;
+        await db.SaveChangesAsync();
+
+        var listado = await resultados.ListarAsync(FechaJuego, loterias["Armenia"], CancellationToken.None);
+
+        listado.Data![0].CantidadGanadores.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task ListarGanadores_devuelve_los_boletos_que_acertaron_el_resultado()
+    {
+        var (resultados, db, loterias) = CreateSut();
+        var ganador1 = await CrearBoletoAsync(db, "5432", loterias["Armenia"]);
+        var ganador2 = await CrearBoletoAsync(db, "5432", loterias["Armenia"]);
+        await CrearBoletoAsync(db, "9999", loterias["Armenia"]);
+        var registro = await resultados.RegistrarAsync(Solicitud(loterias["Armenia"], "5432"), CancellationToken.None);
+
+        var lista = await resultados.ListarGanadoresAsync(registro.Data!.NumeroGanadorId, CancellationToken.None);
+
+        lista.IsSuccess.Should().BeTrue();
+        lista.Data.Should().HaveCount(2);
+        lista.Data!.Select(b => b.BoletoId).Should().BeEquivalentTo(new[] { ganador1.BoletoId, ganador2.BoletoId });
+        lista.Data.Should().OnlyContain(b => b.Estado == BoletoMessages.BoletoGanador);
     }
 
     private static RegistrarResultadoRequest Solicitud(Guid loteriaId, string numero) => new()

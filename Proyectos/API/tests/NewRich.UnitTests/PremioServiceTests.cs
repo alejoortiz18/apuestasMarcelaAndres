@@ -388,6 +388,23 @@ public sealed class PremioServiceTests
     }
 
     [Fact]
+    public async Task ListarAsync_de_caso_entregado_incluye_las_evidencias()
+    {
+        var (sut, db) = CreateSut();
+        var caso = await CasoAsignadoAsync(sut, db);
+        await sut.RegistrarEntregaAsync(caso.CasoId, caso.ObservadorId, EntregaCompleta(), CancellationToken.None);
+
+        var result = await sut.ListarAsync(CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        var item = result.Data!.Should().ContainSingle(c => c.CasoId == caso.CasoId).Subject;
+        item.FechaEntrega.Should().NotBeNull();
+        item.Evidencias.Should().HaveCount(4);
+        item.Evidencias.Select(e => e.Tipo).Should().Contain("Ticket con QR");
+        item.Evidencias.Select(e => e.Tipo).Should().Contain(PremioMessages.EvidenciaCedulaReverso);
+    }
+
+    [Fact]
     public async Task ObtenerAsync_incluye_entrega_evidencias_y_datos_de_la_apuesta()
     {
         var (sut, db) = CreateSut();
