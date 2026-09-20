@@ -23,10 +23,13 @@ public static class UiTexts
     public const string LoginAyuda = "Ingresa con tu cuenta de administrador para gestionar la operación.";
     public const string Usuario = "Usuario";
     public const string Contrasena = "Contraseña";
+    public const string MostrarContrasena = "Mostrar contraseña";
+    public const string OcultarContrasena = "Ocultar contraseña";
     public const string ContrasenaActual = "Contraseña actual";
     public const string ContrasenaNueva = "Contraseña nueva";
     public const string ContrasenaConfirmacion = "Confirmación de contraseña";
     public const string CambiarContrasena = "Cambiar contraseña";
+    public const string RequisitosContrasenaNueva = "La nueva contraseña debe tener mínimo 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial (por ejemplo Admin123*).";
     public const string GuardarCambios = "Guardar cambios";
     public const string Cancelar = "Cancelar";
     public const string Buscar = "Buscar";
@@ -82,6 +85,7 @@ public static class UiTexts
     public const string ApiNoDisponible = "No fue posible conectar con el servidor central. Verifique que la API esté en ejecución.";
     public const string ApiRespuestaSinContrato = "El servidor central respondió HTTP {0} sin un contrato válido. Verifique que la API esté actualizada.";
     public const string SesionExpiradaVista = "La sesión expiró. Debe autenticarse nuevamente.";
+    public const string PdaSesionExpirada = "La sesión del administrador expiró o no es válida ante la API. Cierre sesión, vuelva a iniciar e intente registrar el PDA otra vez.";
 
     public const string NavResumen = "Resumen";
     public const string NavUsuarios = "Usuarios";

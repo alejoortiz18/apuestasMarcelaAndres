@@ -28,6 +28,8 @@ public sealed class CambiarPasswordViewModel
     [Display(Name = UiTexts.ContrasenaNueva)]
     [Required(ErrorMessage = ValidationMessages.PasswordRequerido)]
     [DataType(DataType.Password)]
+    [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z]).{8,}$",
+        ErrorMessage = ValidationMessages.PasswordDebilFormato)]
     public string PasswordNuevo { get; set; } = string.Empty;
 
     [Display(Name = UiTexts.ContrasenaConfirmacion)]

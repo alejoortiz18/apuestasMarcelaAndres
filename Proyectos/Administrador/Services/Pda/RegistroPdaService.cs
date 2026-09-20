@@ -108,7 +108,10 @@ public sealed class RegistroPdaService : IRegistroPdaService
 
         if (!registro.Success || registro.Data is null)
         {
-            return new ResultadoRegistroPda(false, registro.Message, modeloEquipo);
+            var mensaje = registro.Unauthorized
+                ? UiTexts.PdaSesionExpirada
+                : registro.Message;
+            return new ResultadoRegistroPda(false, mensaje, modeloEquipo);
         }
 
         await avance.ReportarAsync(new AvanceRegistroPda(60, UiTexts.PdaProgresoRegistrando), cancellationToken);
