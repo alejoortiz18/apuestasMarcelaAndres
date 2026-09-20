@@ -26,6 +26,7 @@ public sealed class ConfiguracionServiceTests
         result.Data!.HoraApertura.Should().Be("10:00:00");
         result.Data.HoraCierre.Should().Be("20:00:00");
         result.Data.VigenciaPremiosDias.Should().Be(30);
+        result.Data.DiasInactividadEliminarPda.Should().Be(30);
         result.Data.MaxJuegosCombinado.Should().Be(1);
         result.Data.MaxLineasIndividual.Should().Be(6);
         result.Data.AlertaRepeticionNumero.Should().Be(10);
@@ -35,7 +36,7 @@ public sealed class ConfiguracionServiceTests
         result.Data.LeyendaTirilla.Should().Be(TirillaCuerpo.CuerpoDefecto);
         result.Data.LeyendaTirilla.Should().Contain("{vigenciaDias}");
         result.Data.LeyendaTirilla.Should().NotContain("GRACIAS POR SU COMPRA");
-        db.Configuraciones.Should().HaveCount(8);
+        db.Configuraciones.Should().HaveCount(9);
         db.ConfiguracionesTipoApuesta.Should().Contain(t => t.TipoApuesta == "COMBINADO" && t.Maximo == 1);
         db.ConfiguracionesTipoApuesta.Should().Contain(t => t.TipoApuesta == "INDIVIDUAL" && t.Maximo == 6);
     }
@@ -77,6 +78,7 @@ public sealed class ConfiguracionServiceTests
             HoraApertura = "10:00 AM",
             HoraCierre = "18:45",
             VigenciaPremiosDias = 15,
+            DiasInactividadEliminarPda = 45,
             MaxJuegosCombinado = 2,
             MaxLineasIndividual = 5,
             AlertaRepeticionNumero = 8,
@@ -90,6 +92,7 @@ public sealed class ConfiguracionServiceTests
         result.Data!.HoraApertura.Should().Be("10:00:00");
         result.Data.HoraCierre.Should().Be("18:45:00");
         result.Data.VigenciaPremiosDias.Should().Be(15);
+        result.Data.DiasInactividadEliminarPda.Should().Be(45);
         result.Data.MaxJuegosCombinado.Should().Be(2);
         result.Data.MaxLineasIndividual.Should().Be(5);
         result.Data.AlertaRepeticionNumero.Should().Be(8);
@@ -186,11 +189,24 @@ public sealed class ConfiguracionServiceTests
         result.Message.Should().Be(ValidationMessages.CapacidadCodigosOfflineRango);
     }
 
+    [Fact]
+    public async Task GuardarOperativaAsync_rechaza_dias_inactividad_eliminar_pda_invalidos()
+    {
+        var (sut, _) = CreateSut();
+        await sut.ObtenerOperativaAsync(CancellationToken.None);
+
+        var result = await sut.GuardarOperativaAsync(RequestValida() with { DiasInactividadEliminarPda = 0 }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Message.Should().Be(ConfiguracionMessages.DiasInactividadEliminarPdaInvalido);
+    }
+
     private static GuardarConfiguracionOperativaRequest RequestValida() => new()
     {
         HoraApertura = "10:00 AM",
         HoraCierre = "8:00 PM",
         VigenciaPremiosDias = 30,
+        DiasInactividadEliminarPda = 30,
         MaxJuegosCombinado = 1,
         MaxLineasIndividual = 6,
         AlertaRepeticionNumero = 10,

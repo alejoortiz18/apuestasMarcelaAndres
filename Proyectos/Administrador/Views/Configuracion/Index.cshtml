@@ -67,6 +67,12 @@
                 <span asp-validation-for="Form.CodigosOfflineCapacidad"></span>
             </div>
             <div class="field">
+                <label asp-for="Form.DiasInactividadEliminarPda"></label>
+                <input asp-for="Form.DiasInactividadEliminarPda" type="number" min="1" />
+                <span class="field-help">@UiTexts.DiasInactividadEliminarPdaAyuda</span>
+                <span asp-validation-for="Form.DiasInactividadEliminarPda"></span>
+            </div>
+            <div class="field">
                 <label asp-for="Form.SincronizacionModo"></label>
                 <select asp-for="Form.SincronizacionModo" class="searchable">
                     <option value="Manual">@UiTexts.ModoManual</option>

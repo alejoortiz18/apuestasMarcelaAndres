@@ -202,7 +202,20 @@ public sealed class DispositivosController : AdminControllerBase
             return RedirectToAction(nameof(Index));
         }
 
-        return View(new EliminarDispositivosViewModel { Items = items });
+        var config = await _api.ObtenerConfiguracionOperativaAsync(cancellationToken);
+        var configDenied = RedirectIfUnauthorized(config);
+        if (configDenied is not null)
+        {
+            return configDenied;
+        }
+
+        return View(new EliminarDispositivosViewModel
+        {
+            Items = items,
+            DiasInactividadEliminarPda = config.Data?.DiasInactividadEliminarPda > 0
+                ? config.Data.DiasInactividadEliminarPda
+                : 30
+        });
     }
 
     [HttpPost]

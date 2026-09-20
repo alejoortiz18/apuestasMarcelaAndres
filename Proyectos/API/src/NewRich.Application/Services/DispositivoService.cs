@@ -1,9 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using NewRich.Application.Abstractions;
 using NewRich.Application.Contracts.Dispositivos;
+using NewRich.Constants;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
 using NewRich.Domain.Enums;
+using NewRich.Domain.Services;
 using NewRich.Shared.Results;
 
 namespace NewRich.Application.Services;
@@ -257,6 +259,19 @@ public sealed class DispositivoService : IDispositivoService
             return Result.Fail(UsuarioMessages.DispositivoNoEncontrado, 404);
         }
 
+        var ahora = _clock.UtcNow;
+        var diasInactividad = await ObtenerDiasInactividadEliminarAsync(cancellationToken);
+        if (_presencia.EstaVivo(dispositivoId, ahora))
+        {
+            return Result.Fail(string.Format(UsuarioMessages.DispositivoConActividadRecienteFormato, diasInactividad));
+        }
+
+        var ultimaActividad = await ObtenerUltimaActividadAsync(dispositivo, cancellationToken);
+        if (!InactividadPda.PuedeEliminar(ultimaActividad, ahora, diasInactividad))
+        {
+            return Result.Fail(string.Format(UsuarioMessages.DispositivoConActividadRecienteFormato, diasInactividad));
+        }
+
         var asociaciones = await _db.DispositivosUsuarios
             .Where(x => x.DispositivoId == dispositivoId)
             .ToListAsync(cancellationToken);
@@ -292,6 +307,52 @@ public sealed class DispositivoService : IDispositivoService
         _db.Dispositivos.Remove(dispositivo);
         await _db.SaveChangesAsync(cancellationToken);
         return Result.Ok(SuccessMessages.RegistroEliminado);
+    }
+
+    private async Task<int> ObtenerDiasInactividadEliminarAsync(CancellationToken cancellationToken)
+    {
+        var valor = await _db.Configuraciones
+            .Where(c => c.Clave == ConfiguracionClaves.DiasInactividadEliminarPda)
+            .Select(c => c.Valor)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return int.TryParse(valor, out var dias) && dias > 0
+            ? dias
+            : InactividadPda.DiasSinActividadPorDefecto;
+    }
+
+    private async Task<DateTime> ObtenerUltimaActividadAsync(Dispositivo dispositivo, CancellationToken cancellationToken)
+    {
+        var ultima = dispositivo.FechaRegistro;
+
+        var ultimaSesion = await _db.Sesiones
+            .Where(s => s.DispositivoId == dispositivo.DispositivoId)
+            .Select(s => (DateTime?)s.FechaInicio)
+            .MaxAsync(cancellationToken);
+        if (ultimaSesion is DateTime sesion && sesion > ultima)
+        {
+            ultima = sesion;
+        }
+
+        var ultimaVenta = await _db.Ventas
+            .Where(v => v.DispositivoId == dispositivo.DispositivoId)
+            .Select(v => (DateTime?)v.FechaVenta)
+            .MaxAsync(cancellationToken);
+        if (ultimaVenta is DateTime venta && venta > ultima)
+        {
+            ultima = venta;
+        }
+
+        var ultimaSincronizacion = await _db.Sincronizaciones
+            .Where(s => s.DispositivoId == dispositivo.DispositivoId)
+            .Select(s => (DateTime?)s.FechaSincronizacion)
+            .MaxAsync(cancellationToken);
+        if (ultimaSincronizacion is DateTime sync && sync > ultima)
+        {
+            ultima = sync;
+        }
+
+        return ultima;
     }
 
     private async Task<Dictionary<Guid, int>> ContarCodigosDisponiblesAsync(CancellationToken cancellationToken)

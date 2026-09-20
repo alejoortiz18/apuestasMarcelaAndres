@@ -7,7 +7,8 @@
     </div>
 </div>
 <div class="panel">
-    <div class="notice error">@UiTexts.EliminarPdaIrreversible</div>
+    <div class="notice error">@string.Format(UiTexts.EliminarPdaIrreversibleFormato, Model.DiasInactividadEliminarPda)</div>
+    <div class="notice">@string.Format(UiTexts.EliminarPdaRequisitoInactividadFormato, Model.DiasInactividadEliminarPda)</div>
     <div class="field">
         <label>@UiTexts.NavPda</label>
         <input value="@string.Join(", ", Model.Items.Select(d => d.CodigoDispositivo))" readonly />

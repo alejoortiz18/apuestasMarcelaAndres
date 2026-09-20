@@ -160,6 +160,8 @@ public static class UiTexts
     public const string EliminarPda = "Eliminar PDA";
     public const string EliminarPdaIrreversible = "Esta acción es irreversible. Al eliminar el PDA se perderá su asociación y no podrá recuperarse.";
     public const string SiEliminarPda = "Sí, eliminar PDA";
+    public const string EliminarPdaRequisitoInactividadFormato = "Requisito: {0} días sin actividad";
+    public const string EliminarPdaIrreversibleFormato = "Esta acción es irreversible. Solo se puede eliminar un PDA con al menos {0} días sin actividad (sin sesiones, ventas ni sincronizaciones recientes, y sin estar conectado).";
     public const string UsuarioParaAsociar = "Usuario para asociar";
     public const string AccionesDeLoteria = "Acciones de la lotería";
     public const string AccionesDeGrupo = "Acciones del grupo";
@@ -440,6 +442,8 @@ public static class UiTexts
     public const string HoraCierrePda = "Hora de cierre o desconexión del PDA";
     public const string HoraCierrePdaAyuda = "A esta hora el PDA deja de iniciar ventas nuevas. No puede ser igual a la hora de apertura.";
     public const string VigenciaPremioDias = "Vigencia del premio en días";
+    public const string DiasInactividadEliminarPda = "Días sin actividad para eliminar PDA";
+    public const string DiasInactividadEliminarPdaAyuda = "El PDA solo podrá eliminarse si lleva al menos este número de días sin sesiones, ventas, sincronizaciones ni conexión.";
     public const string MaxJuegosCombinado = "Juegos máximos en modo combinado";
     public const string MaxLineasIndividual = "Líneas máximas en modo individual";
     public const string AlertaNumeroJugado = "Mínimo de veces de un número por boleta para alertar";

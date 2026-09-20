@@ -92,6 +92,7 @@ public sealed class DispositivosIndexViewModel
 public sealed class EliminarDispositivosViewModel
 {
     public IReadOnlyList<DispositivoResponse> Items { get; init; } = [];
+    public int DiasInactividadEliminarPda { get; init; } = 30;
 }
 
 public sealed class LoteriasIndexViewModel
@@ -262,6 +263,10 @@ public sealed class ConfiguracionOperativaFormViewModel
     [Display(Name = UiTexts.VigenciaPremioDias)]
     [Range(1, 3650, ErrorMessage = ValidationMessages.CampoRequerido)]
     public int VigenciaPremiosDias { get; set; } = 30;
+
+    [Display(Name = UiTexts.DiasInactividadEliminarPda)]
+    [Range(1, 3650, ErrorMessage = ValidationMessages.CampoRequerido)]
+    public int DiasInactividadEliminarPda { get; set; } = 30;
 
     [Display(Name = UiTexts.MaxJuegosCombinado)]
     [Range(1, 99, ErrorMessage = ValidationMessages.CampoRequerido)]

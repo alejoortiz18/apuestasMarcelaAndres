@@ -5,6 +5,7 @@ public static class ConfiguracionClaves
     public const string HoraApertura = "HoraApertura";
     public const string HoraCierre = "HoraCierre";
     public const string VigenciaPremiosDias = "VigenciaPremiosDias";
+    public const string DiasInactividadEliminarPda = "DiasInactividadEliminarPda";
     public const string AlertaRepeticionNumero = "AlertaRepeticionNumero";
     public const string AlertaValorMinimo = "AlertaValorMinimo";
     public const string CodigosOfflineCapacidad = "CodigosOfflineCapacidad";

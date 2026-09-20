@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using NewRich.Application.Abstractions;
 using NewRich.Application.Contracts.Dispositivos;
 using NewRich.Application.Services;
+using NewRich.Constants;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
 using NewRich.Domain.Enums;
@@ -164,8 +165,9 @@ public sealed class DispositivoServiceTests
     [Fact]
     public async Task EliminarAsync_quita_el_pda()
     {
-        var (sut, db, _) = CreateSut();
-        var pda = await AgregarPdaAsync(db);
+        var ahora = new DateTime(2026, 9, 20, 12, 0, 0, DateTimeKind.Utc);
+        var (sut, db, _) = CreateSut(ahora);
+        var pda = await AgregarPdaAsync(db, fechaRegistro: ahora.AddDays(-31));
 
         var result = await sut.EliminarAsync(pda.DispositivoId, CancellationToken.None);
 
@@ -174,17 +176,117 @@ public sealed class DispositivoServiceTests
         db.Dispositivos.Should().BeEmpty();
     }
 
-    private static (DispositivoService Sut, NewRichDbContext Db, IPresenciaDispositivos Presencia) CreateSut()
+    [Fact]
+    public async Task EliminarAsync_rechaza_si_el_registro_tiene_menos_de_30_dias()
+    {
+        var ahora = new DateTime(2026, 9, 20, 12, 0, 0, DateTimeKind.Utc);
+        var (sut, db, _) = CreateSut(ahora);
+        var pda = await AgregarPdaAsync(db, fechaRegistro: ahora.AddDays(-10));
+
+        var result = await sut.EliminarAsync(pda.DispositivoId, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Message.Should().Be(string.Format(UsuarioMessages.DispositivoConActividadRecienteFormato, 30));
+        db.Dispositivos.Should().ContainSingle(d => d.DispositivoId == pda.DispositivoId);
+    }
+
+    [Fact]
+    public async Task EliminarAsync_respeta_dias_de_inactividad_configurados()
+    {
+        var ahora = new DateTime(2026, 9, 20, 12, 0, 0, DateTimeKind.Utc);
+        var (sut, db, _) = CreateSut(ahora);
+        db.Configuraciones.Add(new Configuracion
+        {
+            ConfiguracionId = Guid.NewGuid(),
+            Clave = ConfiguracionClaves.DiasInactividadEliminarPda,
+            Valor = "7",
+            FechaActualizacion = ahora
+        });
+        await db.SaveChangesAsync();
+        var pda = await AgregarPdaAsync(db, fechaRegistro: ahora.AddDays(-7));
+
+        var result = await sut.EliminarAsync(pda.DispositivoId, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        db.Dispositivos.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task EliminarAsync_rechaza_si_no_cumple_dias_configurados()
+    {
+        var ahora = new DateTime(2026, 9, 20, 12, 0, 0, DateTimeKind.Utc);
+        var (sut, db, _) = CreateSut(ahora);
+        db.Configuraciones.Add(new Configuracion
+        {
+            ConfiguracionId = Guid.NewGuid(),
+            Clave = ConfiguracionClaves.DiasInactividadEliminarPda,
+            Valor = "7",
+            FechaActualizacion = ahora
+        });
+        await db.SaveChangesAsync();
+        var pda = await AgregarPdaAsync(db, fechaRegistro: ahora.AddDays(-6));
+
+        var result = await sut.EliminarAsync(pda.DispositivoId, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Message.Should().Be(string.Format(UsuarioMessages.DispositivoConActividadRecienteFormato, 7));
+    }
+
+    [Fact]
+    public async Task EliminarAsync_rechaza_si_hubo_sesion_reciente_aunque_el_registro_sea_antiguo()
+    {
+        var ahora = new DateTime(2026, 9, 20, 12, 0, 0, DateTimeKind.Utc);
+        var (sut, db, _) = CreateSut(ahora);
+        var pda = await AgregarPdaAsync(db, fechaRegistro: ahora.AddDays(-60));
+        var usuario = await AgregarUsuarioAsync(db, "Pedro Sesion");
+        db.Sesiones.Add(new Sesion
+        {
+            SesionId = Guid.NewGuid(),
+            UsuarioId = usuario.UsuarioId,
+            DispositivoId = pda.DispositivoId,
+            Token = "jwt",
+            FechaInicio = ahora.AddDays(-5),
+            FechaExpiracion = ahora.AddDays(-5).AddHours(8),
+            Activa = false
+        });
+        await db.SaveChangesAsync();
+
+        var result = await sut.EliminarAsync(pda.DispositivoId, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Message.Should().Be(string.Format(UsuarioMessages.DispositivoConActividadRecienteFormato, 30));
+    }
+
+    [Fact]
+    public async Task EliminarAsync_rechaza_si_el_pda_esta_conectado()
+    {
+        var ahora = new DateTime(2026, 9, 20, 12, 0, 0, DateTimeKind.Utc);
+        var (sut, db, presencia) = CreateSut(ahora);
+        var pda = await AgregarPdaAsync(db, fechaRegistro: ahora.AddDays(-60));
+        presencia.MarcarVivo(pda.DispositivoId, ahora);
+
+        var result = await sut.EliminarAsync(pda.DispositivoId, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Message.Should().Be(string.Format(UsuarioMessages.DispositivoConActividadRecienteFormato, 30));
+    }
+
+    private static (DispositivoService Sut, NewRichDbContext Db, IPresenciaDispositivos Presencia) CreateSut(
+        DateTime? ahoraUtc = null)
     {
         var options = new DbContextOptionsBuilder<NewRichDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         var db = new NewRichDbContext(options);
         var presencia = new PresenciaDispositivosMemoria();
-        return (new DispositivoService(db, new FixedClock(DateTime.UtcNow), presencia), db, presencia);
+        var ahora = ahoraUtc ?? DateTime.UtcNow;
+        return (new DispositivoService(db, new FixedClock(ahora), presencia), db, presencia);
     }
 
-    private static async Task<Dispositivo> AgregarPdaAsync(NewRichDbContext db, string? modelo = "Android 13")
+    private static async Task<Dispositivo> AgregarPdaAsync(
+        NewRichDbContext db,
+        string? modelo = "Android 13",
+        DateTime? fechaRegistro = null)
     {
         var pda = new Dispositivo
         {
@@ -194,7 +296,7 @@ public sealed class DispositivoServiceTests
             Estado = EstadoGeneral.Activo,
             Modelo = modelo,
             CapacidadCodigosOffline = 3000,
-            FechaRegistro = DateTime.UtcNow
+            FechaRegistro = fechaRegistro ?? DateTime.UtcNow
         };
         db.Dispositivos.Add(pda);
         await db.SaveChangesAsync();

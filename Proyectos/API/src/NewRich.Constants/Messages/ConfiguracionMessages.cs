@@ -7,6 +7,7 @@ public static class ConfiguracionMessages
     public const string HoraCierreInvalida = "La hora de cierre no tiene un formato válido.";
     public const string HorasOperacionIguales = "La hora de apertura y la hora de cierre no pueden ser iguales.";
     public const string VigenciaInvalida = "La vigencia de premios debe ser un número entero mayor que cero.";
+    public const string DiasInactividadEliminarPdaInvalido = "Los días de inactividad para eliminar un PDA deben ser un número entero mayor que cero.";
     public const string EnteroInvalido = "El valor debe ser un número entero mayor que cero.";
     public const string LineasIndividualInvalidas = "El máximo de líneas individuales debe estar entre 1 y 6.";
     public const string ModoSincronizacionInvalido = "El modo de sincronización debe ser Manual o Automatica.";
