@@ -12,4 +12,6 @@ public static class HistoricoVentasReglas
     }
 
     public static DateTime FechaMinima(DateTime hoy) => hoy.Date.AddDays(-MaxDias);
+
+    public static decimal TotalDe(IEnumerable<decimal> totales) => totales.Sum();
 }

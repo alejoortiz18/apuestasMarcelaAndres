@@ -18,5 +18,5 @@ public static class VentaMessages
     public const string VendedorSinDispositivoActivo = "El vendedor no tiene un dispositivo activo asociado.";
 
     public const string AlertaRepeticionNumero = "El número {0} superó el umbral de repeticiones configurado.";
-    public const string AlertaValorAlto = "Se registró una apuesta con valor alto: {0}.";
+    public const string AlertaValorAlto = "Se registró una apuesta con valor alto: {0}. Número {1} en {2}.";
 }

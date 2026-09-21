@@ -50,6 +50,7 @@ public static class PdaTexts
     public const string AccesosRapidos = "Accesos rápidos";
     public const string HistoricoVentas = "Histórico de ventas";
     public const string HistoricoAyuda = "Consulta hasta 10 días atrás";
+    public const string TotalVentas = "TOTAL VENTAS";
     public const string ResultadosTitulo = "Resultados y números ganadores";
     public const string ResultadosAyuda = "Consulta por lotería y fecha";
     public const string ResultadosSoloLectura = "Solo lectura";

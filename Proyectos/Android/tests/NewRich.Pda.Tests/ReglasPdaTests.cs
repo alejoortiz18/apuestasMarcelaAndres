@@ -27,6 +27,19 @@ public sealed class ReglasPdaTests
     }
 
     [Fact]
+    public void Historico_suma_el_total_de_las_ventas_consultadas()
+    {
+        HistoricoVentasReglas.TotalDe([10_000m, 5_500m, 500m]).Should().Be(16_000m);
+        HistoricoVentasReglas.TotalDe([]).Should().Be(0m);
+    }
+
+    [Fact]
+    public void Historico_muestra_la_etiqueta_total_ventas()
+    {
+        PdaTexts.TotalVentas.Should().Be("TOTAL VENTAS");
+    }
+
+    [Fact]
     public void Horario_cerrado_muestra_el_aviso_de_juegos_cerrados()
     {
         AuthPantalla.Mensaje(AuthMessages.FueraDeHorarioOperacion).Should().Be(PdaTexts.JuegosCerrados);

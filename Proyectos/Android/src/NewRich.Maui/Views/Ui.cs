@@ -18,6 +18,7 @@ public static class Ui
     public static readonly Color Info = Color.FromArgb("#246b9f");
     public static readonly Color Warn = Color.FromArgb("#a9670c");
     public static readonly Color WarnBg = Color.FromArgb("#fbedd6");
+    public static readonly Color Crema = Color.FromArgb("#FBF3E3");
 
     public static Label Titulo(string texto) => new()
     {

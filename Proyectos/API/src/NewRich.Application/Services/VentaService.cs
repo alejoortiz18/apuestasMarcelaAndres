@@ -171,7 +171,11 @@ public sealed class VentaService : IVentaService
                 var totalJugada = TotalesApuesta.TotalJuego(linea.Valor, loterias.Count);
                 if (totalJugada >= alertaValor)
                 {
-                    avisos.Add((admins, NotificacionMessages.TipoValorAlto, string.Format(VentaMessages.AlertaValorAlto, totalJugada.ToString("N0", CultureInfo.GetCultureInfo("es-CO"))), venta.VentaId, juego.JuegoId));
+                    avisos.Add((admins, NotificacionMessages.TipoValorAlto, string.Format(
+                        VentaMessages.AlertaValorAlto,
+                        totalJugada.ToString("N0", CultureInfo.GetCultureInfo("es-CO")),
+                        linea.Numero.Trim(),
+                        string.Join(", ", loterias.Select(l => l.Nombre))), venta.VentaId, juego.JuegoId));
                 }
             }
 

@@ -1,3 +1,4 @@
+using Microsoft.Maui.Controls.Shapes;
 using NewRich.Application.Contracts.Ventas;
 using NewRich.Pda.Core;
 using NewRich.Pda.Core.Api;
@@ -14,6 +15,14 @@ public sealed class HistoricoPage : ContentPage
     private readonly Picker _filas = new() { ItemsSource = Paginacion.OpcionesFilas.Cast<object>().ToList(), SelectedIndex = 1 };
     private readonly VerticalStackLayout _lista = new() { Spacing = 8 };
     private readonly Label _resumen = new() { FontSize = 12, TextColor = Ui.Muted };
+    private readonly Label _totalVentasValor = new()
+    {
+        Text = FormatoDinero.Pesos(0m),
+        TextColor = Ui.Ink,
+        FontSize = 28,
+        FontAttributes = FontAttributes.Bold
+    };
+    private readonly Border _totalVentas;
     private int _pagina = 1;
     private IReadOnlyList<VentaResponse> _datos = [];
 
@@ -27,6 +36,29 @@ public sealed class HistoricoPage : ContentPage
         _hasta = new DatePicker { Date = hoy, MinimumDate = HistoricoVentasReglas.FechaMinima(hoy), MaximumDate = hoy };
         var buscar = Ui.Primario(PdaTexts.Buscar);
         buscar.Clicked += async (_, _) => { _pagina = 1; await CargarAsync(); };
+        _totalVentas = new Border
+        {
+            BackgroundColor = Ui.Crema,
+            Stroke = Colors.Transparent,
+            StrokeShape = new RoundRectangle { CornerRadius = 16 },
+            Padding = new Thickness(18, 16),
+            HorizontalOptions = LayoutOptions.Fill,
+            Content = new VerticalStackLayout
+            {
+                Spacing = 2,
+                Children =
+                {
+                    new Label
+                    {
+                        Text = PdaTexts.TotalVentas,
+                        TextColor = Ui.Muted,
+                        FontSize = 12,
+                        FontAttributes = FontAttributes.Bold
+                    },
+                    _totalVentasValor
+                }
+            }
+        };
 
         Content = new ScrollView
         {
@@ -43,6 +75,7 @@ public sealed class HistoricoPage : ContentPage
                     Ui.Campo(PdaTexts.FilasPorPagina),
                     _filas,
                     buscar,
+                    _totalVentas,
                     _resumen,
                     _lista,
                     Paginador()
@@ -125,6 +158,7 @@ public sealed class HistoricoPage : ContentPage
     private void Pintar()
     {
         var filas = Filas();
+        _totalVentasValor.Text = FormatoDinero.Pesos(HistoricoVentasReglas.TotalDe(_datos.Select(x => x.Total)));
         _resumen.Text = Paginacion.Resumen(_pagina, filas, _datos.Count);
         _lista.Children.Clear();
         var pagina = Paginacion.Pagina(_datos, _pagina, filas);

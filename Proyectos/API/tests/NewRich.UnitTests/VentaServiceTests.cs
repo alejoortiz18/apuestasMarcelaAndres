@@ -50,7 +50,13 @@ public sealed class VentaServiceTests
         tiempoReal.Avisos.Should().Contain(a =>
             a.UsuarioId == adminId
             && a.Aviso.Tipo == "ValorAlto"
-            && a.Aviso.Mensaje.Contains("10.500"));
+            && a.Aviso.Mensaje.Contains("10.500")
+            && a.Aviso.Mensaje.Contains("1234")
+            && a.Aviso.Mensaje.Contains("Cali"));
+        db.Notificaciones.Should().Contain(n =>
+            n.Tipo == "ValorAlto"
+            && n.Mensaje.Contains("1234")
+            && n.Mensaje.Contains("Cali"));
     }
 
     [Fact]
