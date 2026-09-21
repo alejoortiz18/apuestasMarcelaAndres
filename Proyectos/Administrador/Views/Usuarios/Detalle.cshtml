@@ -21,7 +21,7 @@
     <p><strong>@UiTexts.Email:</strong> @(Model.Email ?? UiTexts.NoAplica)</p>
     <div class="text-center-actions">
         <a class="secondary" asp-action="Index">@UiTexts.Cerrar</a>
-        <form asp-action="Restablecer" asp-route-id="@Model.UsuarioId" method="post">
+        <form asp-action="Restablecer" asp-route-id="@Model.UsuarioId" method="post" data-protected-action="@AccionesProtegidas.UsuariosRestablecer">
             <button class="primary" type="submit">@UiTexts.RestablecerContrasena</button>
         </form>
     </div>

@@ -20,7 +20,11 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddScoped<INotificacionTiempoReal, SignalRNotificacionTiempoReal>();
 builder.Services.AddScoped<IChatTiempoReal, SignalRChatTiempoReal>();
 builder.Services.AddScoped<ICodigosOfflineTiempoReal, SignalRCodigosOfflineTiempoReal>();
-builder.Services.AddControllers(options => options.Filters.Add<SesionYPasswordActionFilter>());
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<SesionYPasswordActionFilter>();
+    options.Filters.Add<RequiereConfirmacionFilter>();
+});
 builder.Services.AddSignalR();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>

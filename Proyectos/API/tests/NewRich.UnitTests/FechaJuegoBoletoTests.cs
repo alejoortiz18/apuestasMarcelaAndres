@@ -42,6 +42,16 @@ public sealed class FechaJuegoBoletoTests
     }
 
     [Fact]
+    public void La_venta_de_armenia_3221_del_20_pertenece_al_sorteo_del_20_aunque_utc_ya_sea_21()
+    {
+        var ventaUtc = new DateTime(2026, 9, 21, 0, 18, 1, DateTimeKind.Utc);
+        var (desde, hasta) = FechaJuegoBoleto.Ventana(new DateOnly(2026, 9, 20), Colombia);
+
+        FechaJuegoBoleto.De(ventaUtc, Colombia).Should().Be(new DateOnly(2026, 9, 20));
+        (ventaUtc >= desde && ventaUtc < hasta).Should().BeTrue();
+    }
+
+    [Fact]
     public void El_desfase_se_redondea_al_minuto_para_ignorar_el_jitter_del_reloj()
     {
         var utcNow = new DateTime(2026, 9, 13, 20, 0, 0, 0, DateTimeKind.Utc);

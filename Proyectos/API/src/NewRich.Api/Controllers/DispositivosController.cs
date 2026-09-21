@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using NewRich.Api.Filters;
 using NewRich.Application.Contracts.Dispositivos;
 using NewRich.Application.Services;
+using NewRich.Constants;
 
 namespace NewRich.Api.Controllers;
 
@@ -22,6 +24,7 @@ public sealed class DispositivosController : ApiControllerBase
     }
 
     [Authorize(Roles = "Administrador")]
+    [RequiereConfirmacion(AccionesProtegidas.PdaRegistrar)]
     [HttpPost]
     public async Task<IActionResult> Crear([FromBody] CrearDispositivoRequest request, CancellationToken cancellationToken)
     {
@@ -29,6 +32,7 @@ public sealed class DispositivosController : ApiControllerBase
     }
 
     [Authorize(Roles = "Administrador")]
+    [RequiereConfirmacion(AccionesProtegidas.PdaRegistrar)]
     [HttpPost("automatico")]
     public async Task<IActionResult> RegistrarAutomatico([FromBody] RegistrarPdaAutomaticoRequest request, CancellationToken cancellationToken)
     {
@@ -36,6 +40,7 @@ public sealed class DispositivosController : ApiControllerBase
     }
 
     [Authorize(Roles = "Administrador")]
+    [RequiereConfirmacion(AccionesProtegidas.PdaBloquear, AccionesProtegidas.PdaDesbloquear)]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Actualizar(Guid id, [FromBody] ActualizarDispositivoRequest request, CancellationToken cancellationToken)
     {
@@ -43,6 +48,7 @@ public sealed class DispositivosController : ApiControllerBase
     }
 
     [Authorize(Roles = "Administrador")]
+    [RequiereConfirmacion(AccionesProtegidas.PdaAsociar)]
     [HttpPost("{id:guid}/asociar/{usuarioId:guid}")]
     public async Task<IActionResult> Asociar(Guid id, Guid usuarioId, CancellationToken cancellationToken)
     {
@@ -50,6 +56,7 @@ public sealed class DispositivosController : ApiControllerBase
     }
 
     [Authorize(Roles = "Administrador")]
+    [RequiereConfirmacion(AccionesProtegidas.PdaDesasociar)]
     [HttpPost("{id:guid}/desasociar/{usuarioId:guid}")]
     public async Task<IActionResult> Desasociar(Guid id, Guid usuarioId, CancellationToken cancellationToken)
     {
@@ -57,6 +64,7 @@ public sealed class DispositivosController : ApiControllerBase
     }
 
     [Authorize(Roles = "Administrador")]
+    [RequiereConfirmacion(AccionesProtegidas.PdaDesasociar)]
     [HttpPost("{id:guid}/desasociar")]
     public async Task<IActionResult> DesasociarPorDispositivo(Guid id, CancellationToken cancellationToken)
     {
@@ -64,6 +72,7 @@ public sealed class DispositivosController : ApiControllerBase
     }
 
     [Authorize(Roles = "Administrador")]
+    [RequiereConfirmacion(AccionesProtegidas.PdaEliminar)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Eliminar(Guid id, CancellationToken cancellationToken)
     {

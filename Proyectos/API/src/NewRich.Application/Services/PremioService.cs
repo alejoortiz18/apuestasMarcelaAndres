@@ -42,7 +42,7 @@ public sealed class PremioService : IPremioService
     public async Task<Result<IReadOnlyList<CasoGanadorResponse>>> ListarAsync(CancellationToken cancellationToken)
     {
         var casos = await Query().OrderByDescending(c => c.FechaReporte).ToListAsync(cancellationToken);
-        return Result<IReadOnlyList<CasoGanadorResponse>>.Ok(casos.Select(MapConEntrega).ToList(), SuccessMessages.OperacionExitosa);
+        return Result<IReadOnlyList<CasoGanadorResponse>>.Ok(await MapearListaAsync(casos, cancellationToken), SuccessMessages.OperacionExitosa);
     }
 
     public async Task<Result<IReadOnlyList<CasoGanadorResponse>>> ListarAsignadosAsync(Guid observadorId, CancellationToken cancellationToken)
@@ -52,7 +52,7 @@ public sealed class PremioService : IPremioService
                 && (c.Estado == EstadoCasoGanador.Asignado || c.Estado == EstadoCasoGanador.EnProceso))
             .OrderByDescending(c => c.FechaAsignacion ?? c.FechaReporte)
             .ToListAsync(cancellationToken);
-        return Result<IReadOnlyList<CasoGanadorResponse>>.Ok(casos.Select(MapConEntrega).ToList(), SuccessMessages.OperacionExitosa);
+        return Result<IReadOnlyList<CasoGanadorResponse>>.Ok(await MapearListaAsync(casos, cancellationToken), SuccessMessages.OperacionExitosa);
     }
 
     public async Task<Result<CasoGanadorResponse>> ObtenerAsync(Guid casoId, CancellationToken cancellationToken)
@@ -123,6 +123,8 @@ public sealed class PremioService : IPremioService
             .Select(c => c.ConsecutivoUnico)
             .FirstOrDefaultAsync(cancellationToken);
         detalle.CodigoRecibo = CodigoImpresoTicket.De(boleto.CodigoPublico, boleto.QrCifrado, consecutivoOffline);
+        detalle.VentaOffline = CodigoImpresoTicket.CeldaVentaOffline(
+            CodigoImpresoTicket.SoloOffline(boleto.CodigoPublico, boleto.QrCifrado, consecutivoOffline));
         var desfase = FechaJuegoBoleto.Desfase(_clock.UtcNow, _clock.LocalNow);
         var fechaJuego = FechaJuegoBoleto.De(boleto.Venta?.FechaVenta ?? boleto.FechaCreacion, desfase);
         detalle.FechaJuego = fechaJuego.ToDateTime(TimeOnly.MinValue);
@@ -573,6 +575,39 @@ public sealed class PremioService : IPremioService
             .ThenInclude(e => e!.Evidencias)
             .Include(c => c.EntregaGanador)
             .ThenInclude(e => e!.PersonaQueEntregaNavigation);
+
+    private async Task<IReadOnlyList<CasoGanadorResponse>> MapearListaAsync(
+        IReadOnlyList<CasoGanador> casos,
+        CancellationToken cancellationToken)
+    {
+        var lista = casos.Select(MapConEntrega).ToList();
+        var boletoIds = casos.Select(c => c.BoletoId).Distinct().ToList();
+        if (boletoIds.Count == 0)
+        {
+            return lista;
+        }
+
+        var offs = await _db.CodigosPreventaOffline
+            .AsNoTracking()
+            .Where(c => boletoIds.Contains(c.CodigoId))
+            .Select(c => new { c.CodigoId, c.ConsecutivoUnico })
+            .ToListAsync(cancellationToken);
+        var porBoleto = offs.ToDictionary(c => c.CodigoId, c => c.ConsecutivoUnico);
+        var porCaso = casos.ToDictionary(c => c.CasoId);
+
+        foreach (var dto in lista)
+        {
+            porCaso.TryGetValue(dto.CasoId, out var caso);
+            porBoleto.TryGetValue(dto.BoletoId, out var consecutivo);
+            dto.VentaOffline = CodigoImpresoTicket.CeldaVentaOffline(
+                CodigoImpresoTicket.SoloOffline(
+                    caso?.Boleto?.CodigoPublico ?? dto.Ticket,
+                    caso?.Boleto?.QrCifrado,
+                    consecutivo));
+        }
+
+        return lista;
+    }
 
     private static CasoGanadorResponse MapConEntrega(CasoGanador caso)
     {

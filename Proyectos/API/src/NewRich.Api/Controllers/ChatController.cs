@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using NewRich.Api.Filters;
 using NewRich.Application.Chat;
 using NewRich.Application.Contracts.Chat;
 using NewRich.Application.Services;
+using NewRich.Constants;
 
 namespace NewRich.Api.Controllers;
 
@@ -49,6 +51,7 @@ public sealed class ChatController : ApiControllerBase
     }
 
     [Authorize(Roles = "Administrador")]
+    [RequiereConfirmacion(AccionesProtegidas.SoporteCerrar)]
     [HttpPost("{id:guid}/cerrar")]
     public async Task<IActionResult> Cerrar(Guid id, CancellationToken cancellationToken)
     {

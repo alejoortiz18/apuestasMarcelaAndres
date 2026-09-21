@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using NewRich.Api.Filters;
 using NewRich.Application.Contracts.Offline;
 using NewRich.Application.Services;
+using NewRich.Constants;
 
 namespace NewRich.Api.Controllers;
 
@@ -28,6 +30,7 @@ public sealed class OfflineController : ApiControllerBase
     }
 
     [Authorize(Roles = "Administrador")]
+    [RequiereConfirmacion(AccionesProtegidas.OfflineGenerar)]
     [HttpPost]
     public async Task<IActionResult> Generar([FromBody] GenerarCodigosOfflineRequest request, CancellationToken cancellationToken)
     {
@@ -35,6 +38,7 @@ public sealed class OfflineController : ApiControllerBase
     }
 
     [Authorize(Roles = "Administrador")]
+    [RequiereConfirmacion(AccionesProtegidas.OfflineRegistrarQr)]
     [HttpPost("RegistrarQr")]
     public async Task<IActionResult> RegistrarQr([FromBody] RegistrarQrOfflineRequest request, CancellationToken cancellationToken)
     {

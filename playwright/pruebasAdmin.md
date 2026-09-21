@@ -179,7 +179,18 @@ Estas comprobaciones se reutilizan en cada módulo. Además hay casos dedicados:
 
 ---
 
-## 6. PDA (dispositivos)
+## 6.1. Instalaciones
+
+**Ruta índice:** `/Instalaciones`
+
+### PA-032b Instalaciones: Registro PDA
+- **Qué probar:** El menú **Instalaciones** está visible. La tarjeta **Registro PDA** tiene el botón **Instalar**.
+- **Acción:** Pulsar **Instalar**.
+- **Esperado:** Abre `/Dispositivos/Crear` (el mismo asistente de Registrar PDA). Cancelar vuelve a Instalaciones.
+
+---
+
+
 
 **Ruta índice:** `/Dispositivos`
 
@@ -330,10 +341,10 @@ Estas comprobaciones se reutilizan en cada módulo. Además hay casos dedicados:
 **Ruta:** `/Soporte`
 
 ### PA-057 Lista de conversaciones
-- **Qué probar:** Título *Soporte*, panel *Conversaciones*, lista a la izquierda, ventana a la derecha. Estado vacío si no hay chats.
+- **Qué probar:** Panel *Conversaciones* a la izquierda y ventana del hilo a la derecha, sin buscador ni *Limpiar filtros*. El chat llena el alto disponible. Estado vacío si no hay chats.
 
 ### PA-058 Iniciar conversación
-- **Qué probar:** Destinatario con buscador (vendedores y observadores). Mensaje obligatorio. **Iniciar conversación**.
+- **Qué probar:** Barra compacta encima del chat: destinatario con buscador (vendedores y observadores). Mensaje obligatorio. **Iniciar conversación**.
 - **Esperado:** Aviso de conversación iniciada. El hilo queda seleccionado con el primer mensaje.
 
 ### PA-059 Abrir conversación existente

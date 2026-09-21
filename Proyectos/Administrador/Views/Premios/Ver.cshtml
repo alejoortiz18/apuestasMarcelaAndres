@@ -77,11 +77,11 @@
     @if (puedeValidar)
     {
         <div class="table-actions-buttons" style="margin-top:18px">
-            <form method="post" asp-action="Validar" asp-route-id="@caso.CasoId">
+            <form method="post" asp-action="Validar" asp-route-id="@caso.CasoId" data-protected-action="@AccionesProtegidas.PremiosValidar">
                 @Html.AntiForgeryToken()
                 <button class="primary" type="submit">@UiTexts.ValidarCaso</button>
             </form>
-            <form method="post" asp-action="Rechazar" asp-route-id="@caso.CasoId">
+            <form method="post" asp-action="Rechazar" asp-route-id="@caso.CasoId" data-protected-action="@AccionesProtegidas.PremiosRechazar">
                 @Html.AntiForgeryToken()
                 <button class="danger" type="submit">@UiTexts.RechazarCaso</button>
             </form>
@@ -89,7 +89,7 @@
     }
     @if (puedeAsignar)
     {
-        <form method="post" asp-action="Asignar" asp-route-id="@caso.CasoId" class="toolbar" style="margin-top:18px">
+        <form method="post" asp-action="Asignar" asp-route-id="@caso.CasoId" class="toolbar" style="margin-top:18px" data-protected-action="@AccionesProtegidas.PremiosAsignar">
             @Html.AntiForgeryToken()
             <div class="field">
                 <label for="observadorId">@UiTexts.AsignarObservador</label>

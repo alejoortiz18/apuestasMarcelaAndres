@@ -100,7 +100,7 @@
             <h2>@UiTexts.AccionesDeVenta</h2>
             <p class="panel-sub">@UiTexts.SeleccionaParaAcciones</p>
             <div class="table-actions-buttons">
-                <form method="post" data-needs-selection data-show-when="ganador" data-url-template="@Url.Action("Pagar")/{id}" hidden>
+                <form method="post" data-needs-selection data-show-when="ganador" data-url-template="@Url.Action("Pagar")/{id}" data-protected-action="@AccionesProtegidas.VentasAutorizarPago" hidden>
                     @Html.AntiForgeryToken()
                     <button class="primary" type="submit" disabled>@UiTexts.AutorizarPago</button>
                 </form>

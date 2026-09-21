@@ -17,7 +17,7 @@ public sealed class SoporteController : AdminControllerBase
         _api = api;
     }
 
-    public async Task<IActionResult> Index(Guid? id, string? q, CancellationToken cancellationToken)
+    public async Task<IActionResult> Index(Guid? id, CancellationToken cancellationToken)
     {
         SetNav("soporte", UiTexts.NavAtencionCliente);
         var conversacionesTask = _api.ListarConversacionesAsync(cancellationToken, "AtencionCliente");
@@ -30,14 +30,6 @@ public sealed class SoporteController : AdminControllerBase
         }
 
         var lista = (conversacionesTask.Result.Data ?? []).ToList();
-        if (!string.IsNullOrWhiteSpace(q))
-        {
-            var termino = q.Trim();
-            lista = lista.Where(c =>
-                c.NombreIniciador.Contains(termino, StringComparison.OrdinalIgnoreCase)
-                || c.NombreDestino.Contains(termino, StringComparison.OrdinalIgnoreCase)
-                || c.UltimoTexto.Contains(termino, StringComparison.OrdinalIgnoreCase)).ToList();
-        }
         ConversacionDetalleResponse? detalle = null;
         var selected = id ?? lista.FirstOrDefault()?.ConversacionId;
         if (selected.HasValue)
@@ -61,8 +53,7 @@ public sealed class SoporteController : AdminControllerBase
             Conversaciones = lista,
             ConversacionId = selected,
             Detalle = detalle,
-            Destinatarios = destinatarios,
-            Busqueda = q
+            Destinatarios = destinatarios
         });
     }
 

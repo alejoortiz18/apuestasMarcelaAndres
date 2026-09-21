@@ -87,7 +87,7 @@
             <h2>@UiTexts.AccionesDePda</h2>
             <p class="panel-sub">@UiTexts.SeleccionaParaAccionesPda</p>
             <div class="table-actions-buttons pda-action-buttons">
-                <form method="post" asp-action="Asociar" data-needs-selection data-needs-one data-post-ids>
+                <form method="post" asp-action="Asociar" data-needs-selection data-needs-one data-post-ids data-protected-action="@AccionesProtegidas.PdaAsociar">
                     @Html.AntiForgeryToken()
                     <div class="field">
                         <label for="usuarioIdAsociar">@UiTexts.UsuarioParaAsociar</label>
@@ -101,21 +101,21 @@
                     </div>
                     <button class="secondary" type="submit" disabled>@UiTexts.Asociar</button>
                 </form>
-                <form method="post" asp-action="Desasociar" data-needs-selection data-post-ids>
+                <form method="post" asp-action="Desasociar" data-needs-selection data-post-ids data-protected-action="@AccionesProtegidas.PdaDesasociar">
                     @Html.AntiForgeryToken()
                     <button class="secondary" type="submit" disabled>@UiTexts.Desasociar</button>
                 </form>
-                <form method="post" asp-action="CambiarEstado" data-needs-selection data-post-ids>
+                <form method="post" asp-action="CambiarEstado" data-needs-selection data-post-ids data-protected-action="@AccionesProtegidas.PdaBloquear">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="estado" value="@((int)EstadoGeneral.Inactivo)" />
                     <button class="secondary" type="submit" disabled>@UiTexts.Bloquear</button>
                 </form>
-                <form method="post" asp-action="CambiarEstado" data-needs-selection data-post-ids>
+                <form method="post" asp-action="CambiarEstado" data-needs-selection data-post-ids data-protected-action="@AccionesProtegidas.PdaDesbloquear">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="estado" value="@((int)EstadoGeneral.Activo)" />
                     <button class="secondary" type="submit" disabled>@UiTexts.Desbloquear</button>
                 </form>
-                <a class="danger" data-needs-selection data-ids-query data-url-base="@Url.Action("Eliminar")" href="#" aria-disabled="true">@UiTexts.Eliminar</a>
+                <a class="danger" data-needs-selection data-ids-query data-url-base="@Url.Action("Eliminar")" data-protected-action="@AccionesProtegidas.PdaEliminar" href="#" aria-disabled="true">@UiTexts.Eliminar</a>
             </div>
         </div>
     }

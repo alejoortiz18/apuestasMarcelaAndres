@@ -74,6 +74,8 @@ public static class Ui
         return entrada;
     }
 
+    public static CampoValorGanado Pesos(string placeholder) => new(placeholder);
+
     public static Button Primario(string texto) => new()
     {
         Text = texto,

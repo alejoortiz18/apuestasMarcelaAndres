@@ -12,9 +12,22 @@ public sealed class BoletoPorCodigoTests
     [InlineData("  AOL-6661571  ", "6661571")]
     [InlineData("4839190", "4839190")]
     [InlineData("AOL-4839190", "4839190")]
+    [InlineData("OFF-000020", "OFF-000020")]
     public void Extrae_el_codigo_publico_del_formato_impreso(string entrada, string esperado)
     {
         BoletoPorCodigo.Normalizar(entrada).Should().Be(esperado);
+    }
+
+    [Theory]
+    [InlineData("OFF-000020", "OFF-000020")]
+    [InlineData("off-000020", "OFF-000020")]
+    [InlineData("000020", "OFF-000020")]
+    [InlineData("20", "OFF-000020")]
+    [InlineData("1699284", null)]
+    [InlineData("AOL-1699284", null)]
+    public void ConsecutivoOfflineDe_reconoce_el_codigo_de_venta_offline(string entrada, string? esperado)
+    {
+        BoletoPorCodigo.ConsecutivoOfflineDe(entrada).Should().Be(esperado);
     }
 
     [Fact]

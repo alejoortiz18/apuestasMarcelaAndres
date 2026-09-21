@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using NewRich.Api.Filters;
 using NewRich.Application.Chat;
 using NewRich.Application.Contracts.Premios;
 using NewRich.Application.Services;
+using NewRich.Constants;
 
 namespace NewRich.Api.Controllers;
 
@@ -30,6 +32,8 @@ public sealed class PremiosController : ApiControllerBase
         return From(await _premioService.ObtenerAsync(id, cancellationToken));
     }
 
+    [Authorize(Roles = "Administrador")]
+    [RequiereConfirmacion(AccionesProtegidas.PremiosIniciar)]
     [HttpPost("reportar")]
     public async Task<IActionResult> Reportar([FromBody] ReportarCasoGanadorRequest request, CancellationToken cancellationToken)
     {
@@ -37,6 +41,7 @@ public sealed class PremiosController : ApiControllerBase
     }
 
     [Authorize(Roles = "Administrador")]
+    [RequiereConfirmacion(AccionesProtegidas.PremiosValidar)]
     [HttpPost("{id:guid}/validar")]
     public async Task<IActionResult> Validar(Guid id, CancellationToken cancellationToken)
     {
@@ -44,6 +49,7 @@ public sealed class PremiosController : ApiControllerBase
     }
 
     [Authorize(Roles = "Administrador")]
+    [RequiereConfirmacion(AccionesProtegidas.PremiosRechazar)]
     [HttpPost("{id:guid}/rechazar")]
     public async Task<IActionResult> Rechazar(Guid id, CancellationToken cancellationToken)
     {
@@ -51,6 +57,7 @@ public sealed class PremiosController : ApiControllerBase
     }
 
     [Authorize(Roles = "Administrador")]
+    [RequiereConfirmacion(AccionesProtegidas.PremiosAsignar)]
     [HttpPost("{id:guid}/asignar")]
     public async Task<IActionResult> Asignar(Guid id, [FromBody] AsignarObservadorRequest request, CancellationToken cancellationToken)
     {

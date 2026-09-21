@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using NewRich.Api.Filters;
 using NewRich.Application.Contracts.Boletos;
 using NewRich.Application.Services;
+using NewRich.Constants;
 
 namespace NewRich.Api.Controllers;
 
@@ -23,6 +25,7 @@ public sealed class BoletosController : ApiControllerBase
     }
 
     [Authorize(Roles = "Administrador")]
+    [RequiereConfirmacion(AccionesProtegidas.VentasAutorizarPago)]
     [HttpPost("{id:guid}/pagar")]
     public async Task<IActionResult> AutorizarPago(Guid id, CancellationToken cancellationToken)
     {

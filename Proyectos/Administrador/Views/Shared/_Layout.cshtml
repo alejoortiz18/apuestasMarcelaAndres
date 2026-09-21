@@ -10,7 +10,7 @@
     var enVentas = ViewData["VentasVista"] is string;
 }
 <!DOCTYPE html>
-<html lang="es-CO" data-no-results="@UiTexts.SinResultadosOpcion" data-search-option="@UiTexts.BuscarOpcion" data-notif-conexion="@Url.Action("Conexion", "Notificaciones")">
+<html lang="es-CO" data-no-results="@UiTexts.SinResultadosOpcion" data-search-option="@UiTexts.BuscarOpcion" data-notif-conexion="@Url.Action("Conexion", "Notificaciones")" data-confirmacion-url="@Url.Action("Confirmar", "Seguridad")" data-confirmacion-error="@NewRich.Constants.Messages.AuthMessages.ContrasenaAccionNoValidada">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -48,6 +48,10 @@
             <a class="@NavClass("pda")" asp-controller="Dispositivos" asp-action="Index">
                 <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><rect x="7" y="3" width="10" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M10 18h4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
                 <span>@UiTexts.NavPda</span>
+            </a>
+            <a class="@NavClass("instalaciones")" asp-controller="Instalaciones" asp-action="Index">
+                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M12 3v10M8 9l4 4 4-4M5 18h14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <span>@UiTexts.NavInstalaciones</span>
             </a>
             <a class="@NavClass("resultados")" asp-controller="Resultados" asp-action="Index">
                 <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M4 19V9M10 19V5M16 19v-7M21 19H3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
@@ -174,6 +178,24 @@
         <div class="dialog-actions">
             <button type="button" class="primary" data-close-dialog>@UiTexts.Cerrar</button>
         </div>
+    </div>
+</div>
+<div id="confirmacionDialog" class="dialog-back hidden" role="dialog" aria-modal="true" aria-labelledby="confirmacionDialogTitle" hidden>
+    <div class="dialog">
+        <h2 id="confirmacionDialogTitle">@UiTexts.ConfirmarContrasenaTitulo</h2>
+        <p>@UiTexts.ConfirmarContrasenaMensaje</p>
+        <form id="confirmacionForm" method="post" asp-controller="Seguridad" asp-action="Confirmar">
+            @Html.AntiForgeryToken()
+            <div class="field">
+                <label for="confirmacionPassword">@UiTexts.Contrasena</label>
+                <input id="confirmacionPassword" name="password" type="password" autocomplete="current-password" required />
+            </div>
+            <p id="confirmacionError" class="notice error hidden" role="alert" hidden></p>
+            <div class="dialog-actions">
+                <button type="button" class="secondary" data-confirmacion-cancelar>@UiTexts.Cancelar</button>
+                <button type="submit" class="primary">@UiTexts.Continuar</button>
+            </div>
+        </form>
     </div>
 </div>
 <script src="~/lib/signalr/signalr.min.js" asp-append-version="true"></script>

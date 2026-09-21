@@ -231,7 +231,6 @@ public sealed class SoporteIndexViewModel
     public ConversacionDetalleResponse? Detalle { get; init; }
     public Guid? ConversacionId { get; init; }
     public IReadOnlyList<UsuarioResponse> Destinatarios { get; init; } = [];
-    public string? Busqueda { get; init; }
 }
 
 public sealed class ConfiguracionIndexViewModel

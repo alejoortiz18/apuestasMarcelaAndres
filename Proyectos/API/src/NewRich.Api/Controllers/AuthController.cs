@@ -34,4 +34,11 @@ public sealed class AuthController : ApiControllerBase
     {
         return From(await _authService.LogoutAsync(SesionId, cancellationToken));
     }
+
+    [Authorize(Roles = "Administrador")]
+    [HttpPost("confirmar-accion")]
+    public async Task<IActionResult> ConfirmarAccion([FromBody] ConfirmarAccionRequest request, CancellationToken cancellationToken)
+    {
+        return From(await _authService.ConfirmarAccionAdministrativaAsync(UsuarioId, request, cancellationToken));
+    }
 }

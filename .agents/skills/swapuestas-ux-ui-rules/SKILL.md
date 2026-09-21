@@ -32,7 +32,7 @@ This is the living UX/UI rulebook for the SWApuestas MVC application. Apply thes
 - Do not allow content to overlap, become clipped, or require unintended horizontal scrolling.
 - Keep responsive styles close to the component or view they support; avoid global rules that break other MVC pages.
 
-- En **Casos de premios**, el detalle de un caso reportado muestra la fotografía del ticket enviada desde el PDA, con un tamaño máximo contenido y texto alternativo descriptivo. El listado indica si el caso tiene foto.
+- En **Casos de premios**, el detalle de un caso reportado muestra la fotografía del ticket enviada desde el PDA, con un tamaño máximo contenido y texto alternativo descriptivo. En el listado de seguimiento, la segunda columna de datos (después de Ticket) es **Venta offline**: muestra el consecutivo `OFF-######` o un guion `-` si la venta fue en línea.
 
 ## Tables: mandatory behavior
 
@@ -86,9 +86,10 @@ Every data table created in the MVC application must include pagination. A table
 - Las barras de desplazamiento son delgadas, doradas y redondeadas, sin flechas grises del sistema. En el menu el riel es transparente para no tapar el globo.
 - The content area must resize or reflow when the menu changes; it must not be covered by the menu.
 - Do not show links for actions the current role cannot use unless the product explicitly needs them disabled with an explanation.
+- En **Instalaciones** hay una tarjeta **Registro PDA** con el botón **Instalar**. Ese botón abre el mismo asistente de **PDA > Registrar PDA**.
 - En **KPI** los filtros de periodo, grupo, vendedor, comparación y fechas actualizan todos los indicadores, barras y tablas. Las tablas del informe no usan casilla; **Revisar** navega al módulo relacionado. **Descargar PDF** conserva los filtros aplicados.
 - En **Ventas offline** hay tres pestañas: **Información general**, **Generar códigos** y **Registro QR vendidos**. El resultado de registrar un QR vendido se muestra en un diálogo modal, no en una franja de texto.
-- En **Soporte** el listado de conversaciones muestra nombre, rol, último mensaje y estado reales. **Buscar chat** filtra por persona o texto. **Marcar atendida** cierra la conversación y conserva el historial. No hay tabla ni casilla en este módulo. El buscador permanece fijo; el listado y el hilo tienen barra de desplazamiento vertical propia. La conversación con actividad reciente sube al inicio del listado. El adjunto de imagen o PDF usa un botón circular con icono de clip (nombre accesible y `title`), no el selector nativo del navegador; al elegir archivo aparece un chip con el nombre y **Quitar archivo**.
+- En **Soporte técnico** y **Atención al cliente** no hay título de pagina duplicado, pie ni buscador: el hilo llena el alto. Controles (iniciar, encabezado del hilo, adjunto y enviar) van compactos. En Atención al cliente, **Iniciar conversación** es una sola fila encima del chat, sin etiquetas visibles (siguen en `sr-only`). A la izquierda van las conversaciones. En Soporte técnico un texto indica que los reportes llegan desde el PDA. **Marcar atendida** cierra la conversación y conserva el historial. No hay tabla ni casilla. El listado y el hilo tienen barra de desplazamiento vertical propia. La conversación con actividad reciente sube al inicio. El adjunto de imagen o PDF usa un botón circular con icono de clip; al elegir archivo aparece un chip con el nombre y **Quitar archivo**.
 - En **Configuración** un solo **Guardar configuración** persiste horario (apertura y cierre en formato 12 h con AM/PM; no pueden ser iguales), vigencia, límites, alertas, códigos offline y el texto parametrizable de la tirilla. La sección **Días de venta** muestra lunes a domingo; para cada día se marcan las loterías vendibles y **Guardar días de venta** persiste esa matriz. El catálogo de loterías usa casilla, paginación y el panel **Editar** / **Deshabilitar** o **Habilitar**. Al **Agregar lotería** se pide al menos un día de juego.
 
 ### Login
@@ -150,6 +151,7 @@ Every data table created in the MVC application must include pagination. A table
 ### Dialogos y menus
 
 - Use dialogs for focused decisions, confirmation, short forms, or avisos puntuales (por ejemplo cuando no hay boletos en una lotería). No usar la franja roja de error para ese tipo de aviso.
+- Las acciones administrativas protegidas (crear, actualizar o eliminar datos) piden la contraseña del administrador en el modal **Confirmar contraseña** al persistir, no al abrir el formulario. Cancelar cierra el modal y no ejecuta la acción. En PDA un clic de lote pide la contraseña una sola vez.
 - Keep the title, content, primary action, and close action clear.
 - Move focus into an opened dialog, keep it contained while open, and return it to the triggering control when closed.
 - Menus close predictably with Escape and do not become inaccessible at small widths.

@@ -458,6 +458,44 @@ public sealed class PremioServiceTests
         var result = await sut.ObtenerAsync(caso.CasoId, CancellationToken.None);
 
         result.Data!.CodigoRecibo.Should().Be("OFF-000022");
+        result.Data.VentaOffline.Should().Be("OFF-000022");
+    }
+
+    [Fact]
+    public async Task ListarAsync_incluye_venta_offline_solo_cuando_existe_consecutivo_off()
+    {
+        var (sut, db) = CreateSut();
+        var escenario = await CrearBoletoGanadorAsync(db);
+        db.CodigosPreventaOffline.Add(new CodigoPreventaOffline
+        {
+            CodigoId = escenario.Boleto.BoletoId,
+            ConsecutivoUnico = "OFF-000020",
+            UsuarioId = escenario.Vendedor.UsuarioId,
+            DispositivoId = Guid.NewGuid(),
+            EstadoDelCodigo = EstadoCodigoOffline.Utilizado,
+            FechaCreacion = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+        var caso = await CasoAsignadoAsync(sut, escenario);
+
+        var result = await sut.ListarAsync(CancellationToken.None);
+
+        var item = result.Data!.Should().ContainSingle(c => c.CasoId == caso.CasoId).Subject;
+        item.Ticket.Should().Be(escenario.Boleto.CodigoPublico);
+        item.VentaOffline.Should().Be("OFF-000020");
+    }
+
+    [Fact]
+    public async Task ListarAsync_pone_guion_cuando_no_es_venta_offline()
+    {
+        var (sut, db) = CreateSut();
+        var escenario = await CrearBoletoGanadorAsync(db);
+        var caso = await CasoAsignadoAsync(sut, escenario);
+
+        var result = await sut.ListarAsync(CancellationToken.None);
+
+        var item = result.Data!.Should().ContainSingle(c => c.CasoId == caso.CasoId).Subject;
+        item.VentaOffline.Should().Be("-");
     }
 
     [Fact]

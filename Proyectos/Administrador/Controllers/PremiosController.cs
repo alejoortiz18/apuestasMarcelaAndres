@@ -34,6 +34,7 @@ public sealed class PremiosController : AdminControllerBase
             var term = q.Trim();
             items = items.Where(c =>
                     c.Ticket.Contains(term, StringComparison.OrdinalIgnoreCase)
+                    || (c.VentaOffline?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false)
                     || c.Vendedor.Contains(term, StringComparison.OrdinalIgnoreCase)
                     || c.Pda.Contains(term, StringComparison.OrdinalIgnoreCase))
                 .ToList();

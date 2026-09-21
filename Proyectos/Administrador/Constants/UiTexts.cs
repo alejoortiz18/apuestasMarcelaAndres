@@ -38,6 +38,10 @@ public static class UiTexts
     public const string Crear = "Crear";
     public const string Guardar = "Guardar";
     public const string Confirmar = "Confirmar";
+    public const string Continuar = "Continuar";
+    public const string ConfirmarContrasenaTitulo = "Confirmar contraseña";
+    public const string ConfirmarContrasenaMensaje = "Para continuar con esta acción, ingrese la contraseña del administrador.";
+    public const string ConfirmarContrasenaCancelada = "No se realizó ninguna modificación.";
     public const string Cerrar = "Cerrar";
     public const string Ver = "Ver";
     public const string Editar = "Editar";
@@ -91,6 +95,7 @@ public static class UiTexts
     public const string NavUsuarios = "Usuarios";
     public const string NavGrupos = "Grupos";
     public const string NavPda = "PDA";
+    public const string NavInstalaciones = "Instalaciones";
     public const string NavLoterias = "Loterías";
     public const string NavResultados = "Resultados";
     public const string NavVentas = "Ventas";
@@ -173,6 +178,12 @@ public static class UiTexts
     public const string PdaSub = "Registra, asocia y administra cada dispositivo de la operación.";
     public const string PdaAvisoOrden = "Orden recomendado: registra primero el PDA sin asociarlo. Luego crea el usuario y asocia un PDA disponible.";
     public const string RegistrarPda = "Registrar PDA";
+    public const string InstalacionesKicker = "Equipos";
+    public const string InstalacionesTitulo = "Instalaciones";
+    public const string InstalacionesSub = "Instale la aplicación en un PDA y déjelo registrado en el sistema.";
+    public const string RegistroPdaTarjeta = "Registro PDA";
+    public const string RegistroPdaTarjetaAyuda = "El botón Instalar abre el mismo asistente de Registrar PDA: detecta el equipo por USB, instala la aplicación y lo deja asociado al sistema.";
+    public const string Instalar = "Instalar";
     public const string BuscarPda = "Buscar PDA";
     public const string TodosLosPda = "Todos los PDA";
     public const string PdaSinRegistros = "Todavía no hay PDA registrados. Usa Registrar PDA para agregar el primero.";
@@ -263,9 +274,9 @@ public static class UiTexts
     public const string BoletosDeLoteriaSub = "Cada fila es una boleta vendida en esta lotería. Usa Ver ticket para ver la tirilla.";
     public const string VolverAlResumen = "Volver al resumen";
     public const string BuscarBoletosVendidos = "Buscar boletos vendidos";
-    public const string BuscarBoletosVendidosSub = "Consulta el ticket completo por cualquiera de los criterios disponibles.";
+    public const string BuscarBoletosVendidosSub = "Consulta el ticket por el código de 7 dígitos o por el consecutivo de venta offline.";
     public const string NumeroJugado = "Número jugado";
-    public const string PlaceholderCodigoBoleto = "AOL-4839201";
+    public const string PlaceholderCodigoBoleto = "4839201";
     public const string PlaceholderVendedorBoleto = "Nombre o alias";
     public const string PlaceholderNumeroJugado = "1234";
     public const string BuscarBoletos = "Buscar boletos";
@@ -404,7 +415,6 @@ public static class UiTexts
     public const string SoporteTitulo = "Soporte";
     public const string SoporteSub = "Administra conversaciones con vendedores y observadores.";
     public const string Conversaciones = "Conversaciones";
-    public const string BuscarChat = "Buscar chat";
     public const string EscribeMensaje = "Escribe un mensaje";
     public const string IniciarConversacion = "Iniciar conversación";
     public const string Destinatario = "Destinatario";
@@ -544,7 +554,7 @@ public static class UiTexts
     public const string PremioConsultaSub = "Pegue el código o el QR para ver la tirilla de compra y el estado del ticket.";
     public const string TirillaDeCompra = "Tirilla de compra";
     public const string BuscarTicket = "Buscar ticket";
-    public const string PlaceholderPremio = "Código, vendedor o PDA";
+    public const string PlaceholderPremio = "Ticket, venta offline, vendedor o PDA";
     public const string CodigoTicket = "Código del ticket";
     public const string PremioAyudaCodigoTicket = "Puede ingresar el código de 7 dígitos o pegar el contenido completo del QR de la tirilla.";
     public const string SeguimientoDeCasos = "Seguimiento de casos";
@@ -559,6 +569,7 @@ public static class UiTexts
     public const string RechazarCaso = "Rechazar caso";
     public const string AsignarObservador = "Asignar observador";
     public const string Ticket = "Ticket";
+    public const string VentaOffline = "Venta offline";
     public const string FotoDelTicket = "Fotografía del ticket";
     public const string ConFoto = "Con foto";
     public const string SinFoto = "Sin foto";

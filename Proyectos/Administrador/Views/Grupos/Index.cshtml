@@ -76,7 +76,7 @@
             <p class="panel-sub">@UiTexts.SeleccionaParaAcciones</p>
             <div class="table-actions-buttons">
                 <a class="secondary" data-needs-selection data-url-template="@Url.Action("Editar")/{id}" href="#" aria-disabled="true">@UiTexts.Editar</a>
-                <a class="danger" data-needs-selection data-url-template="@Url.Action("Eliminar")/{id}" href="#" aria-disabled="true">@UiTexts.EliminarGrupo</a>
+                <a class="danger" data-needs-selection data-url-template="@Url.Action("Eliminar")/{id}" data-protected-action="@AccionesProtegidas.GruposEliminar" href="#" aria-disabled="true">@UiTexts.EliminarGrupo</a>
             </div>
         </div>
     }

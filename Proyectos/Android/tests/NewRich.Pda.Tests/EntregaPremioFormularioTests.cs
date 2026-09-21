@@ -19,6 +19,13 @@ public sealed class EntregaPremioFormularioTests
     }
 
     [Fact]
+    public void EstaCompleto_acepta_el_valor_con_puntos_de_mil()
+    {
+        EntregaPremioFormulario.EstaCompleto("Juan", "Pérez", "300", "Calle 1", "1.250.000", true, true, true, true)
+            .Should().BeTrue();
+    }
+
+    [Fact]
     public void La_etiqueta_de_cada_foto_muestra_el_nombre_del_archivo_cargado()
     {
         EntregaPremioFormulario.EtiquetaFoto("IMG_20260915_190000.jpg")

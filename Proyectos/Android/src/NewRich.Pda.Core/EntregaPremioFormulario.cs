@@ -25,7 +25,8 @@ public static class EntregaPremioFormulario
             return false;
         }
 
-        if (!decimal.TryParse(valor.Trim(), out var monto) || monto <= 0)
+        var monto = EntradaEntera.LeerMonto(valor);
+        if (monto is null or <= 0)
         {
             return false;
         }

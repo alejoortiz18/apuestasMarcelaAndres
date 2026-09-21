@@ -13,7 +13,7 @@
         <label>@UiTexts.NavPda</label>
         <input value="@string.Join(", ", Model.Items.Select(d => d.CodigoDispositivo))" readonly />
     </div>
-    <form asp-action="ConfirmarEliminar" method="post">
+    <form asp-action="ConfirmarEliminar" method="post" data-protected-action="@AccionesProtegidas.PdaEliminar" data-protected-reuse>
         @foreach (var item in Model.Items)
         {
             <input type="hidden" name="ids" value="@item.DispositivoId" />

@@ -24,6 +24,7 @@ public interface IAuthService
     Task<Result<LoginResponse>> LoginAsync(LoginRequest request, CancellationToken cancellationToken);
     Task<Result<LoginResponse>> CambiarPasswordAsync(Guid usuarioId, Guid sesionId, CambiarPasswordRequest request, CancellationToken cancellationToken);
     Task<Result> LogoutAsync(Guid sesionId, CancellationToken cancellationToken);
+    Task<Result<ConfirmarAccionResponse>> ConfirmarAccionAdministrativaAsync(Guid usuarioId, ConfirmarAccionRequest request, CancellationToken cancellationToken);
 }
 
 public interface IUsuarioService

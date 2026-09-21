@@ -126,6 +126,22 @@ public static class BoletoPorCodigo
         return codigo;
     }
 
+    public static string? ConsecutivoOfflineDe(string? valor)
+    {
+        var bruto = (valor ?? string.Empty).Trim();
+        if (EsConsecutivoOffline(bruto))
+        {
+            return bruto.ToUpperInvariant();
+        }
+
+        if (EsSoloDigitos(bruto) && bruto.Length is > 0 and <= 6)
+        {
+            return $"OFF-{bruto.PadLeft(6, '0')}";
+        }
+
+        return null;
+    }
+
     private static async Task<Boleto?> BuscarPorLlaveCortaAsync(
         IQueryable<Boleto> boletos,
         SobreQrOffline sobre,
@@ -167,9 +183,12 @@ public static class BoletoPorCodigo
         return qrCifrado;
     }
 
-    private static bool EsConsecutivoOffline(string valor) =>
-        valor.StartsWith("OFF-", StringComparison.OrdinalIgnoreCase)
-        && valor.Length >= 10;
+    public static bool EsConsecutivoOffline(string? valor)
+    {
+        var codigo = (valor ?? string.Empty).Trim();
+        return codigo.StartsWith("OFF-", StringComparison.OrdinalIgnoreCase)
+               && codigo.Length >= 10;
+    }
 
     private static bool EsCodigoPublico(string codigo) =>
         codigo.Length == 7 && EsSoloDigitos(codigo);

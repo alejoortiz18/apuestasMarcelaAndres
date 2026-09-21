@@ -16,7 +16,7 @@ public sealed class SoporteTecnicoController : AdminControllerBase
         _api = api;
     }
 
-    public async Task<IActionResult> Index(Guid? id, string? q, CancellationToken cancellationToken)
+    public async Task<IActionResult> Index(Guid? id, CancellationToken cancellationToken)
     {
         SetNav("soporte-tecnico", UiTexts.NavSoporteTecnico);
         ViewData["Canal"] = "tecnico";
@@ -29,14 +29,6 @@ public sealed class SoporteTecnicoController : AdminControllerBase
         }
 
         var lista = (conversacionesTask.Result.Data ?? []).ToList();
-        if (!string.IsNullOrWhiteSpace(q))
-        {
-            var termino = q.Trim();
-            lista = lista.Where(c =>
-                c.NombreIniciador.Contains(termino, StringComparison.OrdinalIgnoreCase)
-                || c.NombreDestino.Contains(termino, StringComparison.OrdinalIgnoreCase)
-                || c.UltimoTexto.Contains(termino, StringComparison.OrdinalIgnoreCase)).ToList();
-        }
 
         ConversacionDetalleResponse? detalle = null;
         var selected = id ?? lista.FirstOrDefault()?.ConversacionId;
@@ -57,8 +49,7 @@ public sealed class SoporteTecnicoController : AdminControllerBase
             Conversaciones = lista,
             ConversacionId = selected,
             Detalle = detalle,
-            Destinatarios = [],
-            Busqueda = q
+            Destinatarios = []
         });
     }
 

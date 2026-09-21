@@ -18,13 +18,15 @@ public sealed class AuthService : IAuthService
     private readonly IPasswordHasher _hasher;
     private readonly IJwtTokenService _jwt;
     private readonly IClock _clock;
+    private readonly IConfirmacionAccionStore _confirmaciones;
 
-    public AuthService(INewRichDbContext db, IPasswordHasher hasher, IJwtTokenService jwt, IClock clock)
+    public AuthService(INewRichDbContext db, IPasswordHasher hasher, IJwtTokenService jwt, IClock clock, IConfirmacionAccionStore confirmaciones)
     {
         _db = db;
         _hasher = hasher;
         _jwt = jwt;
         _clock = clock;
+        _confirmaciones = confirmaciones;
     }
 
     public async Task<Result<LoginResponse>> LoginAsync(LoginRequest request, CancellationToken cancellationToken)
@@ -233,6 +235,33 @@ public sealed class AuthService : IAuthService
         sesion.Activa = false;
         await _db.SaveChangesAsync(cancellationToken);
         return Result.Ok(SuccessMessages.SesionCerrada);
+    }
+
+    public async Task<Result<ConfirmarAccionResponse>> ConfirmarAccionAdministrativaAsync(Guid usuarioId, ConfirmarAccionRequest request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.Password) || string.IsNullOrWhiteSpace(request.Accion))
+        {
+            return Result<ConfirmarAccionResponse>.Fail(AuthMessages.ConfirmacionAccionRequerida, 400);
+        }
+
+        var usuario = await _db.Usuarios.FirstOrDefaultAsync(u => u.UsuarioId == usuarioId, cancellationToken);
+        if (usuario is null)
+        {
+            return Result<ConfirmarAccionResponse>.Fail(AuthMessages.SesionInvalida, 401);
+        }
+
+        if (usuario.Rol != RolUsuario.Administrador)
+        {
+            return Result<ConfirmarAccionResponse>.Fail(AuthMessages.SoloAdministrador, 403);
+        }
+
+        if (!_hasher.Verify(request.Password, usuario.PasswordHash, usuario.PasswordSalt))
+        {
+            return Result<ConfirmarAccionResponse>.Fail(AuthMessages.ContrasenaAccionIncorrecta, 403);
+        }
+
+        var token = _confirmaciones.Emitir(usuarioId, request.Accion.Trim(), request.Usos);
+        return Result<ConfirmarAccionResponse>.Ok(new ConfirmarAccionResponse { Token = token }, SuccessMessages.OperacionExitosa);
     }
 
     private async Task<bool> EstaFueraDeHorario(CancellationToken cancellationToken)

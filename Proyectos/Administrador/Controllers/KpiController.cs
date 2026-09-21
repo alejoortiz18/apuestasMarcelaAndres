@@ -1,13 +1,9 @@
-using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 using NewRich.Admin.Constants;
 using NewRich.Admin.Models;
 using NewRich.Admin.Services;
 using NewRich.Application.Contracts.Kpi;
 using NewRich.Domain.Enums;
-using QuestPDF.Fluent;
-using QuestPDF.Helpers;
-using QuestPDF.Infrastructure;
 
 namespace NewRich.Admin.Controllers;
 
@@ -68,7 +64,7 @@ public sealed class KpiController : AdminControllerBase
             return RedirectToAction(nameof(Index));
         }
 
-        var bytes = KpiPdf.Crear(model.view.Kpi);
+        var bytes = KpiPdf.Crear(model.view);
         var nombre = $"kpi-{inicio:yyyyMMdd}-{fin:yyyyMMdd}.pdf";
         return File(bytes, "application/pdf", nombre);
     }
@@ -149,57 +145,5 @@ public sealed class KpiController : AdminControllerBase
             "personalizado" => (fechaInicial?.Date ?? hoy.AddDays(-29), fechaFinal?.Date ?? hoy, "personalizado"),
             _ => (hoy.AddDays(-29), hoy, "30")
         };
-    }
-}
-
-internal static class KpiPdf
-{
-    public static byte[] Crear(KpiResponse kpi)
-    {
-        QuestPDF.Settings.License = LicenseType.Community;
-        var cultura = CultureInfo.GetCultureInfo("es-CO");
-        return Document.Create(container =>
-        {
-            container.Page(page =>
-            {
-                page.Margin(28);
-                page.Size(PageSizes.A4);
-                page.Header().Text($"{UiTexts.KpiTitulo} · {kpi.FiltroAplicado}").Bold().FontSize(14);
-                page.Content().Column(col =>
-                {
-                    col.Spacing(8);
-                    col.Item().Text($"{UiTexts.CorteDeInformacion}: {kpi.Corte:dd/MM/yyyy HH:mm} · {UiTexts.FuenteSql}");
-                    col.Item().Text($"{UiTexts.IngresosRegistrados}: {kpi.Ingresos.ToString("C0", cultura)} · {UiTexts.VentasConfirmadas}: {kpi.VentasConfirmadas}");
-                    col.Item().Text($"{UiTexts.NumeroMasJugado}: {kpi.NumeroMasJugado ?? "—"} · {UiTexts.ValorMasAltoApostado}: {kpi.ValorMasAltoApostado.ToString("C0", cultura)} · {UiTexts.BoletosGanadores}: {kpi.BoletosGanadores}");
-                    col.Item().Text($"{UiTexts.PersonasTotales}: {kpi.PersonasTotales} · {UiTexts.Vendedor}: {kpi.Vendedores} · {UiTexts.Observador}: {kpi.Observadores}");
-                    col.Item().Text($"{UiTexts.ValorEntregado}: {kpi.ValorPremiosEntregados.ToString("C0", cultura)} · {UiTexts.CasosAbiertos}: {kpi.CasosAbiertos}");
-                    col.Item().Text($"{UiTexts.PdasConectados}: {kpi.PdasConectados} / {kpi.PdasTotales} · {UiTexts.AlertasActivas}: {kpi.AlertasActivas}");
-                    col.Item().Table(t =>
-                    {
-                        t.ColumnsDefinition(c =>
-                        {
-                            c.RelativeColumn(2);
-                            c.RelativeColumn(2);
-                            c.RelativeColumn();
-                            c.RelativeColumn();
-                        });
-                        t.Header(h =>
-                        {
-                            h.Cell().Text(UiTexts.Vendedor).Bold();
-                            h.Cell().Text(UiTexts.Grupo).Bold();
-                            h.Cell().Text(UiTexts.VentasConfirmadas).Bold();
-                            h.Cell().Text(UiTexts.IngresosRegistrados).Bold();
-                        });
-                        foreach (var fila in kpi.IngresosPorVendedor)
-                        {
-                            t.Cell().Text(fila.Vendedor);
-                            t.Cell().Text(fila.Grupo);
-                            t.Cell().Text(fila.Ventas.ToString("N0", cultura));
-                            t.Cell().Text(fila.Total.ToString("C0", cultura));
-                        }
-                    });
-                });
-            });
-        }).GeneratePdf();
     }
 }

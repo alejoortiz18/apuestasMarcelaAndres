@@ -993,3 +993,220 @@ function iniciarDiasVenta() {
 
 iniciarDiasVenta();
 
+(function () {
+  const dialog = document.getElementById("confirmacionDialog");
+  const form = document.getElementById("confirmacionForm");
+  const password = document.getElementById("confirmacionPassword");
+  const error = document.getElementById("confirmacionError");
+  const cancelar = dialog && dialog.querySelector("[data-confirmacion-cancelar]");
+  const url = document.documentElement.getAttribute("data-confirmacion-url");
+  const errorValidacion = document.documentElement.getAttribute("data-confirmacion-error") || "";
+  const claveToken = "nr.confirmacion.token";
+  const claveAccion = "nr.confirmacion.accion";
+  let pendiente = null;
+  let origen = null;
+
+  function mostrarError(texto) {
+    if (!error) {
+      return;
+    }
+    error.textContent = texto || errorValidacion;
+    error.classList.remove("hidden");
+    error.removeAttribute("hidden");
+  }
+
+  function ocultarError() {
+    if (!error) {
+      return;
+    }
+    error.textContent = "";
+    error.classList.add("hidden");
+    error.setAttribute("hidden", "hidden");
+  }
+
+  function cerrar(token) {
+    if (!dialog) {
+      return;
+    }
+    dialog.classList.add("hidden");
+    dialog.setAttribute("hidden", "hidden");
+    if (password) {
+      password.value = "";
+    }
+    ocultarError();
+    const resolver = pendiente;
+    pendiente = null;
+    if (resolver) {
+      resolver(token || null);
+    }
+    if (origen && typeof origen.focus === "function") {
+      origen.focus();
+    }
+    origen = null;
+  }
+
+  function abrir() {
+    if (!dialog || !password) {
+      return Promise.resolve(null);
+    }
+    origen = document.activeElement;
+    ocultarError();
+    password.value = "";
+    dialog.classList.remove("hidden");
+    dialog.removeAttribute("hidden");
+    password.focus();
+    return new Promise(function (resolver) {
+      pendiente = resolver;
+    });
+  }
+
+  function usosDe(el) {
+    const fijo = el.getAttribute("data-protected-usos");
+    if (fijo) {
+      return Math.max(1, parseInt(fijo, 10) || 1);
+    }
+    if (el.hasAttribute("data-post-ids")) {
+      return Math.max(1, el.querySelectorAll('input[name="ids"]').length);
+    }
+    if (el.hasAttribute("data-ids-query")) {
+      const coincidencias = (el.getAttribute("href") || "").match(/ids=/g);
+      return coincidencias ? coincidencias.length : 1;
+    }
+    return 1;
+  }
+
+  function asegurarCampo(destino, token) {
+    let input = destino.querySelector('input[name="confirmacionToken"]');
+    if (!input) {
+      input = document.createElement("input");
+      input.type = "hidden";
+      input.name = "confirmacionToken";
+      destino.appendChild(input);
+    }
+    input.value = token;
+  }
+
+  function pedirConfirmacion(accion, usos) {
+    if (!accion || !url || !form) {
+      return Promise.resolve(null);
+    }
+    const solicitud = abrir();
+    form.dataset.accion = accion;
+    form.dataset.usos = String(usos || 1);
+    return solicitud;
+  }
+
+  window.NewRichPedirConfirmacion = pedirConfirmacion;
+
+  if (form) {
+    form.addEventListener("submit", function (event) {
+      event.preventDefault();
+      ocultarError();
+      const datos = new FormData(form);
+      datos.set("accion", form.dataset.accion || "");
+      datos.set("usos", form.dataset.usos || "1");
+      const boton = form.querySelector('button[type="submit"]');
+      if (boton) {
+        boton.disabled = true;
+      }
+      fetch(url, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "X-Requested-With": "XMLHttpRequest" },
+        body: datos
+      }).then(function (respuesta) {
+        if (respuesta.status === 401) {
+          window.location.reload();
+          return null;
+        }
+        return respuesta.json();
+      }).then(function (data) {
+        if (!data) {
+          return;
+        }
+        if (data.ok && data.token) {
+          cerrar(data.token);
+          return;
+        }
+        mostrarError(data.mensaje || errorValidacion);
+        if (password) {
+          password.focus();
+          password.select();
+        }
+      }).catch(function () {
+        mostrarError(errorValidacion);
+      }).finally(function () {
+        if (boton) {
+          boton.disabled = false;
+        }
+      });
+    });
+  }
+
+  if (cancelar) {
+    cancelar.addEventListener("click", function () {
+      cerrar(null);
+    });
+  }
+
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" && dialog && !dialog.classList.contains("hidden")) {
+      event.preventDefault();
+      cerrar(null);
+    }
+  });
+
+  document.querySelectorAll("form[data-protected-reuse]").forEach(function (protegido) {
+    const accion = protegido.getAttribute("data-protected-action");
+    if (sessionStorage.getItem(claveAccion) === accion && sessionStorage.getItem(claveToken)) {
+      asegurarCampo(protegido, sessionStorage.getItem(claveToken));
+      protegido.dataset.protegidoOk = "1";
+      sessionStorage.removeItem(claveToken);
+      sessionStorage.removeItem(claveAccion);
+    }
+  });
+
+  document.addEventListener("submit", function (event) {
+    const destino = event.target;
+    if (!(destino instanceof HTMLFormElement)) {
+      return;
+    }
+    const accion = destino.getAttribute("data-protected-action");
+    if (!accion || destino.dataset.protegidoOk === "1") {
+      return;
+    }
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    pedirConfirmacion(accion, usosDe(destino)).then(function (token) {
+      if (!token) {
+        return;
+      }
+      asegurarCampo(destino, token);
+      destino.dataset.protegidoOk = "1";
+      if (typeof destino.requestSubmit === "function") {
+        destino.requestSubmit();
+      } else {
+        destino.submit();
+      }
+    });
+  }, true);
+
+  document.addEventListener("click", function (event) {
+    const enlace = event.target.closest("a[data-protected-action]");
+    if (!enlace || enlace.getAttribute("aria-disabled") === "true") {
+      return;
+    }
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    const accion = enlace.getAttribute("data-protected-action");
+    pedirConfirmacion(accion, usosDe(enlace)).then(function (token) {
+      if (!token) {
+        return;
+      }
+      sessionStorage.setItem(claveToken, token);
+      sessionStorage.setItem(claveAccion, accion);
+      window.location.href = enlace.getAttribute("href") || "#";
+    });
+  }, true);
+})();
+

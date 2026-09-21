@@ -2,6 +2,8 @@
 @using NewRich.Domain.Enums
 @{
     ViewData["Title"] = UiTexts.RegistroPdaTitulo;
+    var cancelarController = ViewData["CancelarController"] as string ?? "Dispositivos";
+    var cancelarAction = ViewData["CancelarAction"] as string ?? "Index";
 }
 <div class="heading">
     <div>
@@ -9,7 +11,7 @@
         <h1>@UiTexts.RegistroPdaTitulo</h1>
         <p>@UiTexts.RegistroPdaSub</p>
     </div>
-    <a class="secondary" asp-action="Index">@UiTexts.Cancelar</a>
+    <a class="secondary" asp-controller="@cancelarController" asp-action="@cancelarAction">@UiTexts.Cancelar</a>
 </div>
 
 <div class="registro-pda"
@@ -49,7 +51,7 @@
         <div class="notice hidden" role="status" aria-live="polite" data-verificacion-estado hidden></div>
         <div class="text-center-actions">
             <button class="primary" type="button" data-continuar>@UiTexts.RegistroPdaContinuar</button>
-            <a class="secondary" asp-action="Index">@UiTexts.Cancelar</a>
+            <a class="secondary" asp-controller="@cancelarController" asp-action="@cancelarAction">@UiTexts.Cancelar</a>
         </div>
     </section>
 
@@ -77,7 +79,7 @@
         <div class="notice error hidden" role="alert" data-registro-error hidden></div>
         <div class="text-center-actions hidden" data-acciones-error hidden>
             <button class="primary" type="button" data-reintentar>@UiTexts.RegistroPdaReintentar</button>
-            <a class="secondary" asp-action="Index">@UiTexts.Cancelar</a>
+            <a class="secondary" asp-controller="@cancelarController" asp-action="@cancelarAction">@UiTexts.Cancelar</a>
         </div>
     </section>
 </div>
@@ -88,7 +90,7 @@
         <p>@UiTexts.PdaRegistroCompletadoDetalle</p>
         <p class="panel-sub">@UiTexts.PdaRegistroSiguientePaso</p>
         <div class="dialog-actions">
-            <a class="primary" asp-action="Index">@UiTexts.Aceptar</a>
+            <a class="primary" asp-controller="@cancelarController" asp-action="@cancelarAction">@UiTexts.Aceptar</a>
         </div>
     </div>
 </div>

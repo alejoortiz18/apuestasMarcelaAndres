@@ -141,6 +141,20 @@ public sealed class ResolucionResultadosServiceTests
     }
 
     [Fact]
+    public async Task Listar_cuenta_el_ganador_vendido_despues_de_medianoche_utc()
+    {
+        var (resultados, db, loterias) = CreateSut();
+        await CrearBoletoAsync(db, "3221", new DateTime(2026, 9, 14, 0, 18, 1, DateTimeKind.Utc), loterias["Armenia"]);
+
+        await resultados.RegistrarAsync(Solicitud(loterias["Armenia"], "3221"), CancellationToken.None);
+        var listado = await resultados.ListarAsync(FechaJuego, loterias["Armenia"], CancellationToken.None);
+
+        listado.Data![0].CantidadGanadores.Should().Be(1);
+        listado.Data[0].TieneGanadores.Should().BeTrue();
+        (await db.Boletos.SingleAsync()).EstadoBoleto.Should().Be(EstadoBoleto.Ganador);
+    }
+
+    [Fact]
     public async Task Listar_incluye_la_cantidad_de_boletos_ganadores_del_resultado()
     {
         var (resultados, db, loterias) = CreateSut();

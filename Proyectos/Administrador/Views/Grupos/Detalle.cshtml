@@ -18,7 +18,7 @@
     }
     else
     {
-        <form class="toolbar" asp-action="Asignar" asp-route-id="@grupo.GrupoId" method="post">
+        <form class="toolbar" asp-action="Asignar" asp-route-id="@grupo.GrupoId" method="post" data-protected-action="@AccionesProtegidas.GruposAsignar">
             <div class="field">
                 <label for="usuarioId">@UiTexts.AgregarVendedor</label>
                 <select id="usuarioId" name="usuarioId" class="searchable" required>
@@ -77,7 +77,7 @@
             <h2>@UiTexts.AccionesDeGrupo</h2>
             <p class="panel-sub">@UiTexts.SeleccionaParaAcciones</p>
             <div class="table-actions-buttons">
-                <form method="post" data-needs-selection data-url-template="@(Url.Action("Quitar", new { id = grupo.GrupoId }))?usuarioId={id}">
+                <form method="post" data-needs-selection data-url-template="@(Url.Action("Quitar", new { id = grupo.GrupoId }))?usuarioId={id}" data-protected-action="@AccionesProtegidas.GruposQuitar">
                     @Html.AntiForgeryToken()
                     <button class="danger" type="submit" disabled>@UiTexts.QuitarDelGrupo</button>
                 </form>

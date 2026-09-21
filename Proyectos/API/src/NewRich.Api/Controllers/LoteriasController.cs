@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using NewRich.Api.Filters;
 using NewRich.Application.Contracts.Loterias;
 using NewRich.Application.Services;
+using NewRich.Constants;
 
 namespace NewRich.Api.Controllers;
 
@@ -22,6 +24,7 @@ public sealed class LoteriasController : ApiControllerBase
     }
 
     [Authorize(Roles = "Administrador")]
+    [RequiereConfirmacion(AccionesProtegidas.LoteriasGuardar)]
     [HttpPost]
     public async Task<IActionResult> Crear([FromBody] CrearLoteriaRequest request, CancellationToken cancellationToken)
     {
@@ -29,6 +32,7 @@ public sealed class LoteriasController : ApiControllerBase
     }
 
     [Authorize(Roles = "Administrador")]
+    [RequiereConfirmacion(AccionesProtegidas.ConfiguracionDias)]
     [HttpPut("dias")]
     public async Task<IActionResult> ActualizarDias([FromBody] ActualizarDiasLoteriasRequest request, CancellationToken cancellationToken)
     {
@@ -36,6 +40,7 @@ public sealed class LoteriasController : ApiControllerBase
     }
 
     [Authorize(Roles = "Administrador")]
+    [RequiereConfirmacion(AccionesProtegidas.LoteriasGuardar, AccionesProtegidas.LoteriasCambiarEstado)]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Actualizar(Guid id, [FromBody] ActualizarLoteriaRequest request, CancellationToken cancellationToken)
     {

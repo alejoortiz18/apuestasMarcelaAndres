@@ -24,6 +24,7 @@
   const token = raiz.querySelector('input[name="__RequestVerificationToken"]');
 
   let conexion = null;
+  let tokenRegistro = "";
 
   function mostrar(elemento, texto) {
     if (!elemento) {
@@ -44,7 +45,7 @@
     elemento.setAttribute("hidden", "hidden");
   }
 
-  function enviar(url) {
+  function enviar(url, conConfirmacion) {
     const datos = new FormData();
     if (token) {
       datos.append("__RequestVerificationToken", token.value);
@@ -55,10 +56,14 @@
     if (tipo) {
       datos.append("tipo", tipo.value);
     }
+    const headers = { "X-Requested-With": "XMLHttpRequest" };
+    if (conConfirmacion && tokenRegistro) {
+      headers["X-Confirmacion-Token"] = tokenRegistro;
+    }
     return fetch(url, {
       method: "POST",
       credentials: "same-origin",
-      headers: { "X-Requested-With": "XMLHttpRequest" },
+      headers: headers,
       body: datos
     }).then(function (respuesta) {
       if (!respuesta.ok) {
@@ -137,7 +142,7 @@
       bitacora.replaceChildren();
     }
     pintarAvance({ porcentaje: 0, mensaje: "" });
-    enviar(raiz.getAttribute("data-url-registrar"))
+    enviar(raiz.getAttribute("data-url-registrar"), true)
       .then(function (datos) {
         if (!datos.exitoso) {
           mostrar(errorRegistro, datos.mensaje);
@@ -167,11 +172,29 @@
     errorRegistro.setAttribute("tabindex", "-1");
   }
 
+  function pedirRegistro(siguiente) {
+    const pedir = window.NewRichPedirConfirmacion;
+    if (typeof pedir !== "function") {
+      return;
+    }
+    pedir("pda.registrar", 1).then(function (valor) {
+      if (!valor) {
+        return;
+      }
+      tokenRegistro = valor;
+      siguiente();
+    });
+  }
+
   botonContinuar.addEventListener("click", function () {
-    conectarHub().then(verificar);
+    pedirRegistro(function () {
+      conectarHub().then(verificar);
+    });
   });
 
   if (botonReintentar) {
-    botonReintentar.addEventListener("click", registrar);
+    botonReintentar.addEventListener("click", function () {
+      pedirRegistro(registrar);
+    });
   }
 })();

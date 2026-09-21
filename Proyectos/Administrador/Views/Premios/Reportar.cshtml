@@ -37,7 +37,7 @@
         <partial name="_TicketModalContent" model="Model.Tirilla" />
         @if (Model.PuedeIniciarCaso)
         {
-            <form method="post" asp-action="IniciarCaso" class="premio-iniciar-caso">
+            <form method="post" asp-action="IniciarCaso" class="premio-iniciar-caso" data-protected-action="@AccionesProtegidas.PremiosIniciar">
                 @Html.AntiForgeryToken()
                 <input type="hidden" asp-for="TicketCode" />
                 <button class="primary" type="submit">@UiTexts.IniciarCasoPremio</button>

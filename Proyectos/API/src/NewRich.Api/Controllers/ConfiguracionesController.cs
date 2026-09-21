@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using NewRich.Api.Filters;
 using NewRich.Application.Contracts.Configuracion;
 using NewRich.Application.Services;
+using NewRich.Constants;
 
 namespace NewRich.Api.Controllers;
 
@@ -28,6 +30,7 @@ public sealed class ConfiguracionesController : ApiControllerBase
     }
 
     [Authorize(Roles = "Administrador")]
+    [RequiereConfirmacion(AccionesProtegidas.ConfiguracionGuardar)]
     [HttpPut("operativa")]
     public async Task<IActionResult> GuardarOperativa([FromBody] GuardarConfiguracionOperativaRequest request, CancellationToken cancellationToken)
     {
@@ -35,6 +38,7 @@ public sealed class ConfiguracionesController : ApiControllerBase
     }
 
     [Authorize(Roles = "Administrador")]
+    [RequiereConfirmacion(AccionesProtegidas.ConfiguracionGuardar)]
     [HttpPut("{clave}")]
     public async Task<IActionResult> Actualizar(string clave, [FromBody] ActualizarConfiguracionRequest request, CancellationToken cancellationToken)
     {

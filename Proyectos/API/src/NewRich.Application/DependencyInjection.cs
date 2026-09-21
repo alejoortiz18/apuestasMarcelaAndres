@@ -9,6 +9,7 @@ public static class DependencyInjection
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
         services.AddSingleton<IPresenciaDispositivos, PresenciaDispositivosMemoria>();
+        services.AddSingleton<IConfirmacionAccionStore, ConfirmacionAccionMemoria>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IUsuarioService, UsuarioService>();
         services.AddScoped<IDispositivoService, DispositivoService>();

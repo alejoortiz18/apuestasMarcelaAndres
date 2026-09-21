@@ -14,7 +14,7 @@ public sealed class RegistroEntregaPage : ContentPage
     private readonly Entry _apellido = Ui.Entrada(PdaTexts.ApellidoGanador);
     private readonly Entry _contacto = Ui.Entero(PdaTexts.NumeroContacto, 15);
     private readonly Entry _lugar = Ui.Entrada(PdaTexts.LugarGano);
-    private readonly Entry _valor = Ui.Entrada(PdaTexts.ValorTotalGanado);
+    private readonly CampoValorGanado _valor = Ui.Pesos(PdaTexts.ValorTotalGanado);
     private readonly Label _vendedor;
     private readonly Label _entrega;
     private readonly Label _estadoFotoTicket = EstadoFoto();
@@ -39,13 +39,14 @@ public sealed class RegistroEntregaPage : ContentPage
         BackgroundColor = Ui.Paper;
         _vendedor = SoloLectura(caso.Vendedor);
         _entrega = SoloLectura(sesion.Usuario?.NombreCompleto ?? string.Empty);
-        _valor.Keyboard = Keyboard.Numeric;
         _registrar = Ui.Primario(PdaTexts.RegistrarEntregaPremio);
         _registrar.Clicked += async (_, _) => await RegistrarAsync();
-        foreach (var entrada in new[] { _nombre, _apellido, _contacto, _lugar, _valor })
+        foreach (var entrada in new[] { _nombre, _apellido, _contacto, _lugar })
         {
             entrada.TextChanged += (_, _) => ActualizarEstadoBoton();
         }
+
+        _valor.TextoCambiado += (_, _) => ActualizarEstadoBoton();
 
         Content = new ScrollView
         {
@@ -178,7 +179,8 @@ public sealed class RegistroEntregaPage : ContentPage
         _aviso.Text = string.Empty;
         try
         {
-            if (!decimal.TryParse(_valor.Text?.Trim(), out var monto) || monto <= 0)
+            var monto = EntradaEntera.LeerMonto(_valor.Texto);
+            if (monto is null or <= 0)
             {
                 _aviso.Text = $"{PdaTexts.FaltaCompletar} {PdaTexts.ValorTotalGanado}";
                 return;
@@ -190,7 +192,7 @@ public sealed class RegistroEntregaPage : ContentPage
                 ApellidoGanador = _apellido.Text?.Trim() ?? string.Empty,
                 NumeroContacto = _contacto.Text?.Trim() ?? string.Empty,
                 LugarGano = _lugar.Text?.Trim() ?? string.Empty,
-                ValorTotalGanado = monto,
+                ValorTotalGanado = monto.Value,
                 FotoTicketConQr = _fotoTicket,
                 FotoGanadorConTicket = _fotoGanador,
                 FotoCedulaFrente = _fotoCedulaFrente,
@@ -204,7 +206,7 @@ public sealed class RegistroEntregaPage : ContentPage
                 return;
             }
 
-            await MostrarComprobanteAsync(resultado.Data, monto);
+            await MostrarComprobanteAsync(resultado.Data, monto.Value);
         }
         catch (Exception)
         {
@@ -262,7 +264,7 @@ public sealed class RegistroEntregaPage : ContentPage
             _apellido.Text,
             _contacto.Text,
             _lugar.Text,
-            _valor.Text,
+            _valor.Texto,
             _fotoTicket is not null,
             _fotoGanador is not null,
             _fotoCedulaFrente is not null,

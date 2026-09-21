@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using NewRich.Api.Filters;
 using NewRich.Application.Contracts.Grupos;
 using NewRich.Application.Services;
+using NewRich.Constants;
 
 namespace NewRich.Api.Controllers;
 
@@ -28,6 +30,7 @@ public sealed class GruposController : ApiControllerBase
     }
 
     [Authorize(Roles = "Administrador")]
+    [RequiereConfirmacion(AccionesProtegidas.GruposGuardar)]
     [HttpPost]
     public async Task<IActionResult> Crear([FromBody] CrearGrupoRequest request, CancellationToken cancellationToken)
     {
@@ -35,6 +38,7 @@ public sealed class GruposController : ApiControllerBase
     }
 
     [Authorize(Roles = "Administrador")]
+    [RequiereConfirmacion(AccionesProtegidas.GruposGuardar)]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Actualizar(Guid id, [FromBody] ActualizarGrupoRequest request, CancellationToken cancellationToken)
     {
@@ -42,6 +46,7 @@ public sealed class GruposController : ApiControllerBase
     }
 
     [Authorize(Roles = "Administrador")]
+    [RequiereConfirmacion(AccionesProtegidas.GruposEliminar)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Eliminar(Guid id, CancellationToken cancellationToken)
     {
@@ -49,6 +54,7 @@ public sealed class GruposController : ApiControllerBase
     }
 
     [Authorize(Roles = "Administrador")]
+    [RequiereConfirmacion(AccionesProtegidas.GruposAsignar, AccionesProtegidas.UsuariosCambiarGrupo)]
     [HttpPost("{id:guid}/asignar/{usuarioId:guid}")]
     public async Task<IActionResult> Asignar(Guid id, Guid usuarioId, CancellationToken cancellationToken)
     {
@@ -56,6 +62,7 @@ public sealed class GruposController : ApiControllerBase
     }
 
     [Authorize(Roles = "Administrador")]
+    [RequiereConfirmacion(AccionesProtegidas.GruposQuitar, AccionesProtegidas.UsuariosCambiarGrupo)]
     [HttpPost("desasignar/{usuarioId:guid}")]
     public async Task<IActionResult> Desasignar(Guid usuarioId, CancellationToken cancellationToken)
     {

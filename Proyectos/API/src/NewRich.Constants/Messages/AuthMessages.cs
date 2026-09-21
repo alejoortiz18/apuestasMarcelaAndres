@@ -28,4 +28,9 @@ public static class AuthMessages
     public const string SoloAdministrador = "Solo un usuario con perfil Administrador puede ejecutar esta operación.";
     public const string SoloVendedor = "Solo un usuario con perfil Vendedor puede ejecutar esta operación.";
     public const string SoloObservador = "Solo un usuario con perfil Observador puede ejecutar esta operación.";
+
+    public const string ContrasenaAccionIncorrecta = "La contraseña ingresada es incorrecta. No se realizó ninguna modificación.";
+    public const string ContrasenaAccionNoValidada = "No fue posible validar la contraseña. Intente nuevamente.";
+    public const string ConfirmacionAccionRequerida = "Para continuar debe confirmar la contraseña del administrador.";
+    public const string ConfirmacionAccionInvalida = "La confirmación de la acción no es válida o ya fue utilizada.";
 }

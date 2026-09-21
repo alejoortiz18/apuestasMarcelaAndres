@@ -1,5 +1,6 @@
 @using NewRich.Admin.Constants
 @using NewRich.Admin.Services
+@using NewRich.Application.Services
 @model NewRich.Admin.Models.PremiosIndexViewModel
 <div class="heading">
     <div>
@@ -59,11 +60,11 @@
                 <tr>
                     <th class="col-check"><span class="visually-hidden">@UiTexts.SeleccionarFila</span></th>
                     <th>@UiTexts.Ticket</th>
+                    <th>@UiTexts.VentaOffline</th>
                     <th>@UiTexts.UsuarioVendedor</th>
                     <th>@UiTexts.FechaReporte</th>
                     <th>@UiTexts.Pda</th>
                     <th>@UiTexts.Estado</th>
-                    <th>@UiTexts.FotoDelTicket</th>
                     <th>@UiTexts.Observador</th>
                     <th>@UiTexts.Accion</th>
                 </tr>
@@ -79,29 +80,11 @@
                             <input class="row-check" type="checkbox" value="@item.CasoId" aria-label="@UiTexts.SeleccionarFila @item.Ticket" />
                         </td>
                         <td><strong>@item.Ticket</strong></td>
+                        <td>@CodigoImpresoTicket.CeldaVentaOffline(item.VentaOffline)</td>
                         <td>@item.Vendedor</td>
                         <td>@item.FechaReporte.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
                         <td>@item.Pda</td>
                         <td><span class="pill @EstadoUi.Pill(item.Estado)">@item.Estado</span></td>
-                        <td>
-                            @if (item.TieneFoto)
-                            {
-                                <a class="premio-foto-enlace"
-                                   href="@Url.Action("Foto", new { id = item.CasoId })"
-                                   target="_blank"
-                                   rel="noopener"
-                                   title="@UiTexts.VerFotoDelTicket">
-                                    <img class="premio-foto-miniatura"
-                                         src="@Url.Action("Foto", new { id = item.CasoId })"
-                                         alt="@UiTexts.FotoDelTicket @item.Ticket"
-                                         loading="lazy" />
-                                </a>
-                            }
-                            else
-                            {
-                                <span class="field-help">@UiTexts.SinFoto</span>
-                            }
-                        </td>
                         <td>@item.Observador</td>
                         <td>
                             <a class="secondary table-ver" asp-action="Ver" asp-route-id="@item.CasoId">@UiTexts.Ver</a>
@@ -117,11 +100,11 @@
             <p class="panel-sub">@UiTexts.SeleccionaCasoPremio</p>
             <div class="table-actions-buttons">
                 <a class="secondary" data-needs-selection data-url-template="@Url.Action("Ver")/{id}" href="#" aria-disabled="true">@UiTexts.Ver</a>
-                <form method="post" data-needs-selection data-show-when="reportado" data-url-template="@Url.Action("Validar")/{id}" hidden>
+                <form method="post" data-needs-selection data-show-when="reportado" data-url-template="@Url.Action("Validar")/{id}" data-protected-action="@AccionesProtegidas.PremiosValidar" hidden>
                     @Html.AntiForgeryToken()
                     <button class="secondary" type="submit" disabled>@UiTexts.ValidarCaso</button>
                 </form>
-                <form method="post" data-needs-selection data-show-when="reportado" data-url-template="@Url.Action("Rechazar")/{id}" hidden>
+                <form method="post" data-needs-selection data-show-when="reportado" data-url-template="@Url.Action("Rechazar")/{id}" data-protected-action="@AccionesProtegidas.PremiosRechazar" hidden>
                     @Html.AntiForgeryToken()
                     <button class="danger" type="submit" disabled>@UiTexts.RechazarCaso</button>
                 </form>

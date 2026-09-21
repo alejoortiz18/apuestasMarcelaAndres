@@ -38,6 +38,8 @@ public sealed class CasoGanadorResponse
     public Guid CasoId { get; set; }
     public Guid BoletoId { get; set; }
     public string Ticket { get; set; } = string.Empty;
+    /// <summary>Consecutivo OFF-###### cuando la venta fue offline; "-" si fue en línea.</summary>
+    public string? VentaOffline { get; set; }
     public string Vendedor { get; set; } = string.Empty;
     public string Pda { get; set; } = string.Empty;
     public string Estado { get; set; } = string.Empty;

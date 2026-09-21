@@ -29,6 +29,18 @@ public static class CodigoImpresoTicket
         return CodigoPublicoGenerator.FormatoImpreso((codigoPublico ?? string.Empty).Trim());
     }
 
+    public static string? SoloOffline(string? codigoPublico, string? qrCifrado, string? consecutivoOffline = null)
+    {
+        var codigo = De(codigoPublico, qrCifrado, consecutivoOffline);
+        return EsConsecutivoOffline(codigo) ? codigo : null;
+    }
+
+    public static string CeldaVentaOffline(string? valor)
+    {
+        var limpio = valor?.Trim();
+        return EsConsecutivoOffline(limpio) ? limpio! : "-";
+    }
+
     private static string? ExtraerOff(string? qr)
     {
         if (string.IsNullOrWhiteSpace(qr))

@@ -9,7 +9,7 @@
 <div class="panel">
     <div asp-validation-summary="ModelOnly" class="notice error"></div>
     <div class="notice">Solo puedes registrar un numero ganador por combinacion de fecha y loteria.</div>
-    <form method="post">
+    <form method="post" data-protected-action="@AccionesProtegidas.ResultadosGuardar">
         <div class="field">
             <label asp-for="LoteriaId"></label>
             <select asp-for="LoteriaId" class="searchable">

@@ -19,6 +19,7 @@ using NewRich.Application.Contracts.Premios;
 using NewRich.Application.Contracts.Resultados;
 using NewRich.Application.Contracts.Usuarios;
 using NewRich.Application.Contracts.Ventas;
+using NewRich.Constants;
 using NewRich.Constants.Messages;
 
 namespace NewRich.Admin.Services;
@@ -28,6 +29,7 @@ public interface IAdminApiClient
     Task<ApiCallResult<LoginResponse>> LoginAsync(LoginRequest request, CancellationToken cancellationToken);
     Task<ApiCallResult<object>> LogoutAsync(CancellationToken cancellationToken);
     Task<ApiCallResult<LoginResponse>> CambiarPasswordAsync(CambiarPasswordRequest request, CancellationToken cancellationToken);
+    Task<ApiCallResult<ConfirmarAccionResponse>> ConfirmarAccionAsync(ConfirmarAccionRequest request, CancellationToken cancellationToken);
 
     Task<ApiCallResult<List<UsuarioResponse>>> ListarUsuariosAsync(CancellationToken cancellationToken);
     Task<ApiCallResult<UsuarioResponse>> ObtenerUsuarioAsync(Guid id, CancellationToken cancellationToken);
@@ -60,6 +62,7 @@ public interface IAdminApiClient
 
     Task<ApiCallResult<List<ResultadoResponse>>> ListarResultadosAsync(DateOnly? fecha, Guid? loteriaId, CancellationToken cancellationToken);
     Task<ApiCallResult<ResultadoResponse>> RegistrarResultadoAsync(RegistrarResultadoRequest request, CancellationToken cancellationToken);
+    Task<ApiCallResult<List<BoletoListaResponse>>> ListarGanadoresResultadoAsync(Guid numeroGanadorId, CancellationToken cancellationToken);
 
     Task<ApiCallResult<List<VentaResponse>>> ConsultarVentasAsync(ConsultaVentasRequest request, CancellationToken cancellationToken);
     Task<ApiCallResult<List<BoletoListaResponse>>> FiltrarBoletosAsync(FiltroBoletosRequest request, CancellationToken cancellationToken);
@@ -124,6 +127,9 @@ public sealed class AdminApiClient : IAdminApiClient
 
     public Task<ApiCallResult<LoginResponse>> CambiarPasswordAsync(CambiarPasswordRequest request, CancellationToken cancellationToken) =>
         SendAsync<LoginResponse>(HttpMethod.Post, "api/Auth/cambiar-password", request, includeToken: true, cancellationToken);
+
+    public Task<ApiCallResult<ConfirmarAccionResponse>> ConfirmarAccionAsync(ConfirmarAccionRequest request, CancellationToken cancellationToken) =>
+        SendAsync<ConfirmarAccionResponse>(HttpMethod.Post, "api/Auth/confirmar-accion", request, includeToken: true, cancellationToken);
 
     public Task<ApiCallResult<List<UsuarioResponse>>> ListarUsuariosAsync(CancellationToken cancellationToken) =>
         SendAsync<List<UsuarioResponse>>(HttpMethod.Get, "api/Usuarios", null, true, cancellationToken);
@@ -219,6 +225,14 @@ public sealed class AdminApiClient : IAdminApiClient
 
     public Task<ApiCallResult<ResultadoResponse>> RegistrarResultadoAsync(RegistrarResultadoRequest request, CancellationToken cancellationToken) =>
         SendAsync<ResultadoResponse>(HttpMethod.Post, "api/Resultados", request, true, cancellationToken);
+
+    public Task<ApiCallResult<List<BoletoListaResponse>>> ListarGanadoresResultadoAsync(Guid numeroGanadorId, CancellationToken cancellationToken) =>
+        SendAsync<List<BoletoListaResponse>>(
+            HttpMethod.Get,
+            $"api/Resultados/{numeroGanadorId}/ganadores",
+            null,
+            true,
+            cancellationToken);
 
     public Task<ApiCallResult<List<VentaResponse>>> ConsultarVentasAsync(ConsultaVentasRequest request, CancellationToken cancellationToken)
     {
@@ -441,6 +455,8 @@ public sealed class AdminApiClient : IAdminApiClient
                 {
                     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
                 }
+
+                AdjuntarConfirmacion(request);
             }
 
             if (body is not null)
@@ -489,6 +505,26 @@ public sealed class AdminApiClient : IAdminApiClient
         catch (TaskCanceledException)
         {
             return ApiCallResult<T>.Fail(UiTexts.ApiNoDisponible, 0);
+        }
+    }
+
+    private void AdjuntarConfirmacion(HttpRequestMessage request)
+    {
+        var http = _httpContextAccessor.HttpContext?.Request;
+        if (http is null)
+        {
+            return;
+        }
+
+        var token = http.Headers[ConfirmacionAccion.HeaderToken].ToString();
+        if (string.IsNullOrWhiteSpace(token) && http.HasFormContentType)
+        {
+            token = http.Form[ConfirmacionAccion.CampoFormulario].ToString();
+        }
+
+        if (!string.IsNullOrWhiteSpace(token))
+        {
+            request.Headers.TryAddWithoutValidation(ConfirmacionAccion.HeaderToken, token);
         }
     }
 

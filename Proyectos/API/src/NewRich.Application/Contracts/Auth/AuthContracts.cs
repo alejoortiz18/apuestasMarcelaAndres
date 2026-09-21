@@ -16,6 +16,18 @@ public sealed class CambiarPasswordRequest
     public string PasswordConfirmacion { get; set; } = string.Empty;
 }
 
+public sealed class ConfirmarAccionRequest
+{
+    public string Password { get; set; } = string.Empty;
+    public string Accion { get; set; } = string.Empty;
+    public int Usos { get; set; } = 1;
+}
+
+public sealed class ConfirmarAccionResponse
+{
+    public string Token { get; set; } = string.Empty;
+}
+
 public sealed class LoginResponse
 {
     public string Token { get; set; } = string.Empty;

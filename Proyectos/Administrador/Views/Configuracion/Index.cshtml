@@ -10,7 +10,7 @@
         <p>@UiTexts.ConfigSub</p>
     </div>
 </div>
-<form asp-action="Guardar" method="post" class="config-form">
+<form asp-action="Guardar" method="post" class="config-form" data-protected-action="@AccionesProtegidas.ConfiguracionGuardar">
     <div asp-validation-summary="ModelOnly" class="notice error"></div>
     <div class="config-grid">
         <section class="kpi-section">
@@ -102,7 +102,7 @@
         <button class="primary" type="submit">@UiTexts.GuardarConfiguracion</button>
     </div>
 </form>
-<form asp-action="GuardarDias" method="post" class="dias-venta" id="dias-venta">
+<form asp-action="GuardarDias" method="post" class="dias-venta" id="dias-venta" data-protected-action="@AccionesProtegidas.ConfiguracionDias">
     @Html.AntiForgeryToken()
     <section class="kpi-section kpi-section-wide dias-venta-panel" data-resumen="@UiTexts.LoteriasHabilitadasDelDia">
         <h2>@UiTexts.ConfigDiasVenta</h2>
@@ -224,11 +224,11 @@
             <p class="panel-sub">@UiTexts.SeleccionaParaAcciones</p>
             <div class="table-actions-buttons">
                 <a class="secondary" data-needs-selection data-url-template="@Url.Action("EditarLoteria")/{id}" href="#" aria-disabled="true">@UiTexts.Editar</a>
-                <form method="post" data-needs-selection data-show-when="activo" data-url-template="@Url.Action("CambiarEstadoLoteria")/{id}" hidden>
+                <form method="post" data-needs-selection data-show-when="activo" data-url-template="@Url.Action("CambiarEstadoLoteria")/{id}" data-protected-action="@AccionesProtegidas.LoteriasCambiarEstado" hidden>
                     @Html.AntiForgeryToken()
                     <button class="secondary" type="submit" disabled>@UiTexts.Deshabilitar</button>
                 </form>
-                <form method="post" data-needs-selection data-show-when="inactivo" data-url-template="@Url.Action("CambiarEstadoLoteria")/{id}" hidden>
+                <form method="post" data-needs-selection data-show-when="inactivo" data-url-template="@Url.Action("CambiarEstadoLoteria")/{id}" data-protected-action="@AccionesProtegidas.LoteriasCambiarEstado" hidden>
                     @Html.AntiForgeryToken()
                     <button class="secondary" type="submit" disabled>@UiTexts.Habilitar</button>
                 </form>

@@ -26,7 +26,22 @@ public sealed class ConsultaService : IConsultaService
 
         if (!string.IsNullOrWhiteSpace(request.CodigoBoleto))
         {
-            query = query.Where(b => b.CodigoPublico == request.CodigoBoleto);
+            var bruto = request.CodigoBoleto.Trim();
+            var off = BoletoPorCodigo.ConsecutivoOfflineDe(bruto);
+            var codigo = BoletoPorCodigo.Normalizar(bruto);
+            if (off is not null)
+            {
+                query = query.Where(b =>
+                    _db.CodigosPreventaOffline.Any(c =>
+                        (c.CodigoId == b.BoletoId || c.VentaId == b.VentaId)
+                        && c.ConsecutivoUnico.ToUpper() == off)
+                    || b.QrCifrado.ToUpper().Contains(off)
+                    || b.CodigoPublico == codigo);
+            }
+            else
+            {
+                query = query.Where(b => b.CodigoPublico == codigo);
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(request.Numero))

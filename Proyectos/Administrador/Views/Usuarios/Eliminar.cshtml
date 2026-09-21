@@ -12,7 +12,7 @@
         <label>@UiTexts.NombreCompleto</label>
         <input value="@Model.NombreCompleto" readonly />
     </div>
-    <form asp-action="ConfirmarEliminar" asp-route-id="@Model.UsuarioId" method="post">
+    <form asp-action="ConfirmarEliminar" asp-route-id="@Model.UsuarioId" method="post" data-protected-action="@AccionesProtegidas.UsuariosEliminar" data-protected-reuse>
         <div class="text-center-actions">
             <a class="secondary" asp-action="Index">@UiTexts.Cancelar</a>
             <button class="danger" type="submit">@UiTexts.SiEliminarUsuario</button>

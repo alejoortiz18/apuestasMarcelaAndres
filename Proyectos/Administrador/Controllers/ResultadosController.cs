@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 using NewRich.Admin.Constants;
 using NewRich.Admin.Models;
 using NewRich.Admin.Services;
-using NewRich.Application.Contracts.Boletos;
 using NewRich.Application.Contracts.Resultados;
 using NewRich.Constants.Messages;
 
@@ -29,23 +28,10 @@ public sealed class ResultadosController : AdminControllerBase
             return unauthorized;
         }
 
+        // La cantidad de ganadores llega calculada por la API, que resuelve el día del sorteo
+        // sobre la hora local de la venta. Recontar aquí con fechas planas pierde las ventas
+        // de la noche, que en UTC quedan registradas al día siguiente.
         var resultados = (resultadosTask.Result.Data ?? []).ToList();
-        foreach (var resultado in resultados)
-        {
-            var ganadores = await _api.FiltrarBoletosAsync(new FiltroBoletosRequest
-            {
-                Estado = "Ganador",
-                Numero = resultado.Numero,
-                LoteriaId = resultado.LoteriaId,
-                FechaInicial = resultado.FechaJuego.ToDateTime(TimeOnly.MinValue),
-                FechaFinal = resultado.FechaJuego.ToDateTime(TimeOnly.MaxValue)
-            }, cancellationToken);
-
-            if (ganadores.Success)
-            {
-                resultado.CantidadGanadores = ganadores.Data?.Count ?? 0;
-            }
-        }
 
         ViewBag.Fecha = fecha?.ToString("yyyy-MM-dd");
         ViewBag.LoteriaId = loteriaId;
@@ -76,15 +62,7 @@ public sealed class ResultadosController : AdminControllerBase
             return RedirectToAction(nameof(Index));
         }
 
-        var ganadores = await _api.FiltrarBoletosAsync(new FiltroBoletosRequest
-        {
-            Estado = "Ganador",
-            Numero = resultado.Numero,
-            LoteriaId = resultado.LoteriaId,
-            FechaInicial = resultado.FechaJuego.ToDateTime(TimeOnly.MinValue),
-            FechaFinal = resultado.FechaJuego.ToDateTime(TimeOnly.MaxValue)
-        }, cancellationToken);
-
+        var ganadores = await _api.ListarGanadoresResultadoAsync(numeroGanadorId, cancellationToken);
         var unauthorizedGanadores = RedirectIfUnauthorized(ganadores);
         if (unauthorizedGanadores is not null)
         {

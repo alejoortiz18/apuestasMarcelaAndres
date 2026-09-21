@@ -9,7 +9,7 @@
 </div>
 <div class="panel">
     <div asp-validation-summary="ModelOnly" class="notice error"></div>
-    <form method="post">
+    <form method="post" data-protected-action="@AccionesProtegidas.LoteriasGuardar">
         <div class="field">
             <label asp-for="Nombre"></label>
             <input asp-for="Nombre" />

@@ -27,4 +27,27 @@ public sealed class CodigoImpresoTicketTests
     {
         CodigoImpresoTicket.De("4839201", "qr-interno", "OFF-000018").Should().Be("OFF-000018");
     }
+
+    [Fact]
+    public void SoloOffline_devuelve_el_consecutivo_cuando_la_venta_fue_offline()
+    {
+        CodigoImpresoTicket.SoloOffline("4839201", null, "OFF-000020").Should().Be("OFF-000020");
+    }
+
+    [Fact]
+    public void SoloOffline_queda_vacio_cuando_la_venta_fue_en_linea()
+    {
+        CodigoImpresoTicket.SoloOffline("1699284", "1.clave.nonce.cipher.tag").Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData(null, "-")]
+    [InlineData("", "-")]
+    [InlineData("   ", "-")]
+    [InlineData("AOL-1699284", "-")]
+    [InlineData("OFF-000020", "OFF-000020")]
+    public void CeldaVentaOffline_muestra_guion_si_no_hay_consecutivo(string? valor, string esperado)
+    {
+        CodigoImpresoTicket.CeldaVentaOffline(valor).Should().Be(esperado);
+    }
 }

@@ -10,7 +10,7 @@
 </div>
 <div class="panel">
     <div asp-validation-summary="ModelOnly" class="notice error"></div>
-    <form method="post" data-offline-generate>
+    <form method="post" data-offline-generate data-protected-action="@AccionesProtegidas.OfflineGenerar">
         <div class="field">
             <label asp-for="UsuarioId"></label>
             <select asp-for="UsuarioId" class="searchable" data-offline-usuario>

@@ -101,15 +101,15 @@
             <p class="panel-sub">@UiTexts.SeleccionaParaAcciones</p>
             <div class="table-actions-buttons">
                 <a class="secondary" data-needs-selection data-url-template="@Url.Action("Editar")/{id}" href="#" aria-disabled="true">@UiTexts.Editar</a>
-                <form method="post" data-needs-selection data-url-template="@Url.Action("Restablecer")/{id}">
+                <form method="post" data-needs-selection data-url-template="@Url.Action("Restablecer")/{id}" data-protected-action="@AccionesProtegidas.UsuariosRestablecer">
                     @Html.AntiForgeryToken()
                     <button class="secondary" type="submit" disabled>@UiTexts.RestablecerContrasena</button>
                 </form>
-                <form method="post" data-needs-selection data-show-when="bloqueado" data-url-template="@Url.Action("Desbloquear")/{id}" hidden>
+                <form method="post" data-needs-selection data-show-when="bloqueado" data-url-template="@Url.Action("Desbloquear")/{id}" data-protected-action="@AccionesProtegidas.UsuariosDesbloquear" hidden>
                     @Html.AntiForgeryToken()
                     <button class="secondary" type="submit" disabled>@UiTexts.DesbloquearUsuario</button>
                 </form>
-                <form method="post" data-needs-selection data-show-when="vendedor" data-url-template="@Url.Action("CambiarGrupo")/{id}" hidden>
+                <form method="post" data-needs-selection data-show-when="vendedor" data-url-template="@Url.Action("CambiarGrupo")/{id}" data-protected-action="@AccionesProtegidas.UsuariosCambiarGrupo" hidden>
                     @Html.AntiForgeryToken()
                     <div class="field">
                         <label for="grupoIdAccion">@UiTexts.CambiarGrupo</label>
@@ -123,7 +123,7 @@
                     </div>
                     <button class="secondary" type="submit" disabled>@UiTexts.CambiarGrupo</button>
                 </form>
-                <a class="danger" data-needs-selection data-url-template="@Url.Action("Eliminar")/{id}" href="#" aria-disabled="true">@UiTexts.EliminarUsuario</a>
+                <a class="danger" data-needs-selection data-url-template="@Url.Action("Eliminar")/{id}" data-protected-action="@AccionesProtegidas.UsuariosEliminar" href="#" aria-disabled="true">@UiTexts.EliminarUsuario</a>
             </div>
         </div>
     }
