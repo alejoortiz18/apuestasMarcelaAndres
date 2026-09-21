@@ -3,6 +3,7 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using NewRich.Application.Abstractions;
 using NewRich.Application.Contracts.Offline;
+using NewRich.Constants;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
 using NewRich.Domain.Enums;
@@ -170,6 +171,134 @@ public sealed class OfflineService : IOfflineService
         return Result<SincronizarVentasOfflineResponse>.Ok(
             new SincronizarVentasOfflineResponse { Sincronizados = sincronizados },
             SuccessMessages.VentasOfflineSincronizadas);
+    }
+
+    public async Task<Result<ReponerCodigosOfflineResponse>> ReponerDiarioAsync(
+        Guid vendedorId,
+        Guid dispositivoId,
+        ReponerCodigosOfflineRequest request,
+        CancellationToken cancellationToken)
+    {
+        var maximoVigente = await ObtenerMaximoVigenteAsync(dispositivoId, cancellationToken);
+        var habilitada = await ReposicionDiariaHabilitadaAsync(cancellationToken);
+        var respuestaBase = new ReponerCodigosOfflineResponse
+        {
+            CodigosOfflineMaximos = maximoVigente,
+            CodigosOfflineGastadosPendientes = Math.Max(0, request.CodigosOfflineGastadosPendientes),
+            ReposicionHabilitada = habilitada
+        };
+
+        if (!habilitada)
+        {
+            return Result<ReponerCodigosOfflineResponse>.Ok(
+                respuestaBase,
+                UsuarioMessages.ReposicionDiariaOfflineDeshabilitada);
+        }
+
+        var marcaDia = ReposicionOfflineCalculo.MarcaDiaria(_clock.LocalNow.Date);
+        var yaHoy = await _db.Sincronizaciones.AnyAsync(
+            s => s.DispositivoId == dispositivoId
+                && s.Tipo == ConfiguracionClaves.TipoReposicionOfflineDiaria
+                && s.Resultado == marcaDia,
+            cancellationToken);
+        if (yaHoy)
+        {
+            return Result<ReponerCodigosOfflineResponse>.Ok(
+                new ReponerCodigosOfflineResponse
+                {
+                    CodigosOfflineMaximos = maximoVigente,
+                    CodigosOfflineGastadosPendientes = Math.Max(0, request.CodigosOfflineGastadosPendientes),
+                    ReposicionHabilitada = habilitada,
+                    YaRealizadaHoy = true
+                },
+                UsuarioMessages.ReposicionDiariaOfflineYaRealizada);
+        }
+
+        var asociado = await _db.DispositivosUsuarios.AnyAsync(
+            x => x.DispositivoId == dispositivoId && x.UsuarioId == vendedorId && x.Activo,
+            cancellationToken);
+        if (!asociado)
+        {
+            return Result<ReponerCodigosOfflineResponse>.Fail(AuthMessages.DispositivoNoAsociado);
+        }
+
+        var pda = await _db.Dispositivos.FirstOrDefaultAsync(d => d.DispositivoId == dispositivoId, cancellationToken);
+        if (pda is null)
+        {
+            return Result<ReponerCodigosOfflineResponse>.Fail(UsuarioMessages.DispositivoNoEncontrado, 404);
+        }
+
+        var disponibles = await _db.CodigosPreventaOffline.CountAsync(
+            c => c.DispositivoId == dispositivoId
+                && (c.EstadoDelCodigo == EstadoCodigoOffline.Generado
+                    || c.EstadoDelCodigo == EstadoCodigoOffline.Descargado),
+            cancellationToken);
+
+        var cantidad = ReposicionOfflineCalculo.CantidadAReponer(maximoVigente, disponibles);
+        if (cantidad > 0)
+        {
+            var generados = await GenerarAsync(
+                new GenerarCodigosOfflineRequest
+                {
+                    UsuarioId = vendedorId,
+                    DispositivoId = dispositivoId,
+                    Cantidad = cantidad
+                },
+                cancellationToken);
+            if (!generados.IsSuccess)
+            {
+                return Result<ReponerCodigosOfflineResponse>.Fail(generados.Message, generados.StatusCode);
+            }
+        }
+
+        _db.Sincronizaciones.Add(new Sincronizacion
+        {
+            SincronizacionId = Guid.NewGuid(),
+            DispositivoId = dispositivoId,
+            FechaSincronizacion = _clock.UtcNow,
+            Tipo = ConfiguracionClaves.TipoReposicionOfflineDiaria,
+            Resultado = marcaDia
+        });
+        await _db.SaveChangesAsync(cancellationToken);
+
+        return Result<ReponerCodigosOfflineResponse>.Ok(
+            new ReponerCodigosOfflineResponse
+            {
+                CodigosOfflineMaximos = maximoVigente,
+                CodigosOfflineGastadosPendientes = 0,
+                ReposicionExitosa = true,
+                ReposicionHabilitada = true,
+                CantidadRepuesta = cantidad
+            },
+            SuccessMessages.CodigosOfflineRepuestos);
+    }
+
+    private async Task<int> ObtenerMaximoVigenteAsync(Guid dispositivoId, CancellationToken cancellationToken)
+    {
+        var pda = await _db.Dispositivos.AsNoTracking()
+            .FirstOrDefaultAsync(d => d.DispositivoId == dispositivoId, cancellationToken);
+        if (pda is not null && pda.CapacidadCodigosOffline > 0)
+        {
+            return pda.CapacidadCodigosOffline;
+        }
+
+        var cfg = await _db.Configuraciones.AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Clave == ConfiguracionClaves.CodigosOfflineCapacidad, cancellationToken);
+        return int.TryParse(cfg?.Valor, out var n) && n > 0 ? n : 3000;
+    }
+
+    private async Task<bool> ReposicionDiariaHabilitadaAsync(CancellationToken cancellationToken)
+    {
+        var cfg = await _db.Configuraciones.AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Clave == ConfiguracionClaves.ReposicionDiariaOffline, cancellationToken);
+        if (cfg is null || string.IsNullOrWhiteSpace(cfg.Valor))
+        {
+            return true;
+        }
+
+        return bool.TryParse(cfg.Valor, out var b)
+            ? b
+            : cfg.Valor.Equals("1", StringComparison.OrdinalIgnoreCase);
     }
 
     public Task<Result<CodigoOfflineResponse>> RegistrarQrAsync(

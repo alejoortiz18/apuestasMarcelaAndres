@@ -152,14 +152,14 @@ BEGIN
         Estado                   NVARCHAR(20)     NOT NULL DEFAULT 'Activo',   -- Activo, Inactivo
         Modelo                   NVARCHAR(100)    NULL,
         NumeroSerie              NVARCHAR(100)    NULL,
-        CapacidadCodigosOffline  INT              NOT NULL DEFAULT 3000,      -- 3000 a 5000
+        CapacidadCodigosOffline  INT              NOT NULL DEFAULT 3000,      -- >= 1
         FechaRegistro            DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
         CONSTRAINT PK_Dispositivos PRIMARY KEY (DispositivoId),
         CONSTRAINT UQ_Dispositivos_Codigo UNIQUE (CodigoDispositivo),
         CONSTRAINT UQ_Dispositivos_NumeroSerie UNIQUE (NumeroSerie),
         CONSTRAINT CK_Dispositivos_Tipo CHECK (Tipo IN ('Vendedor', 'Observador')),
         CONSTRAINT CK_Dispositivos_Estado CHECK (Estado IN ('Activo', 'Inactivo')),
-        CONSTRAINT CK_Dispositivos_Capacidad CHECK (CapacidadCodigosOffline BETWEEN 3000 AND 5000)
+        CONSTRAINT CK_Dispositivos_Capacidad CHECK (CapacidadCodigosOffline >= 1)
     );
     PRINT 'Tabla Dispositivos creada.';
 END

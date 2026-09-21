@@ -62,6 +62,7 @@ public static class MauiProgram
         builder.Services.AddTransient<SoportePage>();
         builder.Services.AddTransient<SoporteTecnicoPage>();
         builder.Services.AddTransient<ConfiguracionPage>();
+        builder.Services.AddTransient<SincronizacionPage>();
         builder.Services.AddTransient<MasPage>();
         builder.Services.AddTransient<VendedorShell>();
         builder.Services.AddTransient<ObservadorHomePage>();

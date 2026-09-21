@@ -140,6 +140,11 @@ public interface IOfflineService
         Guid vendedorId,
         SincronizarVentasOfflineRequest request,
         CancellationToken cancellationToken);
+    Task<Result<ReponerCodigosOfflineResponse>> ReponerDiarioAsync(
+        Guid vendedorId,
+        Guid dispositivoId,
+        ReponerCodigosOfflineRequest request,
+        CancellationToken cancellationToken);
     Task<Result<CodigoOfflineResponse>> RegistrarQrAsync(
         Guid administradorId,
         RegistrarQrOfflineRequest request,

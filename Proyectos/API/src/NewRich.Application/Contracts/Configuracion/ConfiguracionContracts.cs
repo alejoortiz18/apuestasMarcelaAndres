@@ -23,6 +23,7 @@ public sealed class ConfiguracionOperativaResponse
     public int AlertaRepeticionNumero { get; set; } = 10;
     public int AlertaValorMinimo { get; set; } = 10000;
     public int CodigosOfflineCapacidad { get; set; } = 3000;
+    public bool ReposicionDiariaOffline { get; set; } = true;
     public string SincronizacionModo { get; set; } = "Manual";
     public string LeyendaTirilla { get; set; } = string.Empty;
 }
@@ -38,6 +39,7 @@ public sealed record GuardarConfiguracionOperativaRequest
     public int AlertaRepeticionNumero { get; init; }
     public int AlertaValorMinimo { get; init; }
     public int CodigosOfflineCapacidad { get; init; }
+    public bool ReposicionDiariaOffline { get; init; } = true;
     public string SincronizacionModo { get; init; } = string.Empty;
     public string LeyendaTirilla { get; init; } = string.Empty;
 }

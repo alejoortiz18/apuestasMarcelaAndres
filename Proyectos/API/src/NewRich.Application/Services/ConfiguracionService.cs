@@ -20,6 +20,7 @@ public sealed class ConfiguracionService : IConfiguracionService
         (ConfiguracionClaves.AlertaRepeticionNumero, "10"),
         (ConfiguracionClaves.AlertaValorMinimo, "10000"),
         (ConfiguracionClaves.CodigosOfflineCapacidad, "3000"),
+        (ConfiguracionClaves.ReposicionDiariaOffline, "true"),
         (ConfiguracionClaves.SincronizacionModo, ConfiguracionClaves.ModoManual),
         (ConfiguracionClaves.LeyendaTirilla, TirillaCuerpo.CuerpoDefecto)
     ];
@@ -86,6 +87,7 @@ public sealed class ConfiguracionService : IConfiguracionService
             AlertaRepeticionNumero = Entero(mapa[ConfiguracionClaves.AlertaRepeticionNumero], 10),
             AlertaValorMinimo = Entero(mapa[ConfiguracionClaves.AlertaValorMinimo], 10000),
             CodigosOfflineCapacidad = Entero(mapa[ConfiguracionClaves.CodigosOfflineCapacidad], 3000),
+            ReposicionDiariaOffline = Booleano(mapa[ConfiguracionClaves.ReposicionDiariaOffline], true),
             SincronizacionModo = mapa[ConfiguracionClaves.SincronizacionModo],
             LeyendaTirilla = TirillaCuerpo.NormalizarCuerpo(mapa[ConfiguracionClaves.LeyendaTirilla])
         }, SuccessMessages.OperacionExitosa);
@@ -133,7 +135,7 @@ public sealed class ConfiguracionService : IConfiguracionService
             return Result<ConfiguracionOperativaResponse>.Fail(ConfiguracionMessages.AlertaValorInvalida);
         }
 
-        if (request.CodigosOfflineCapacidad is < 3000 or > 5000)
+        if (request.CodigosOfflineCapacidad < 1)
         {
             return Result<ConfiguracionOperativaResponse>.Fail(ValidationMessages.CapacidadCodigosOfflineRango);
         }
@@ -168,6 +170,7 @@ public sealed class ConfiguracionService : IConfiguracionService
         await GuardarClaveAsync(ConfiguracionClaves.AlertaRepeticionNumero, request.AlertaRepeticionNumero.ToString(), cancellationToken);
         await GuardarClaveAsync(ConfiguracionClaves.AlertaValorMinimo, request.AlertaValorMinimo.ToString(), cancellationToken);
         await GuardarClaveAsync(ConfiguracionClaves.CodigosOfflineCapacidad, request.CodigosOfflineCapacidad.ToString(), cancellationToken);
+        await GuardarClaveAsync(ConfiguracionClaves.ReposicionDiariaOffline, request.ReposicionDiariaOffline ? "true" : "false", cancellationToken);
         await GuardarClaveAsync(ConfiguracionClaves.SincronizacionModo, modo, cancellationToken);
         await GuardarClaveAsync(ConfiguracionClaves.LeyendaTirilla, cuerpo, cancellationToken);
         await GuardarTipoAsync(ConfiguracionClaves.TipoCombinado, request.MaxJuegosCombinado, cancellationToken);
@@ -248,6 +251,7 @@ public sealed class ConfiguracionService : IConfiguracionService
         AlertaRepeticionNumero = actual.AlertaRepeticionNumero,
         AlertaValorMinimo = actual.AlertaValorMinimo,
         CodigosOfflineCapacidad = actual.CodigosOfflineCapacidad,
+        ReposicionDiariaOffline = actual.ReposicionDiariaOffline,
         SincronizacionModo = actual.SincronizacionModo,
         LeyendaTirilla = actual.LeyendaTirilla
     };
@@ -264,6 +268,7 @@ public sealed class ConfiguracionService : IConfiguracionService
             ConfiguracionClaves.AlertaRepeticionNumero when int.TryParse(valor, out var repeticion) => request with { AlertaRepeticionNumero = repeticion },
             ConfiguracionClaves.AlertaValorMinimo when int.TryParse(valor, out var minimo) => request with { AlertaValorMinimo = minimo },
             ConfiguracionClaves.CodigosOfflineCapacidad when int.TryParse(valor, out var capacidad) => request with { CodigosOfflineCapacidad = capacidad },
+            ConfiguracionClaves.ReposicionDiariaOffline => request with { ReposicionDiariaOffline = Booleano(valor, true) },
             ConfiguracionClaves.SincronizacionModo => request with { SincronizacionModo = valor },
             ConfiguracionClaves.LeyendaTirilla => request with { LeyendaTirilla = valor },
             _ => null
@@ -271,6 +276,23 @@ public sealed class ConfiguracionService : IConfiguracionService
     }
 
     private static int Entero(string valor, int defecto) => int.TryParse(valor, out var n) ? n : defecto;
+
+    private static bool Booleano(string? valor, bool defecto)
+    {
+        if (string.IsNullOrWhiteSpace(valor))
+        {
+            return defecto;
+        }
+
+        if (bool.TryParse(valor, out var b))
+        {
+            return b;
+        }
+
+        return valor.Equals("1", StringComparison.OrdinalIgnoreCase)
+            || valor.Equals("si", StringComparison.OrdinalIgnoreCase)
+            || valor.Equals("sí", StringComparison.OrdinalIgnoreCase);
+    }
 
     private static ConfiguracionResponse Map(Configuracion x) => new()
     {

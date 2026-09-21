@@ -25,6 +25,7 @@ public static class SuccessMessages
     public const string CodigosOfflineDescargados = "Los códigos de preventa offline fueron marcados como descargados.";
     public const string CodigoOfflineRegistrado = "El código de preventa offline fue registrado oficialmente.";
     public const string VentasOfflineSincronizadas = "Las ventas offline fueron sincronizadas.";
+    public const string CodigosOfflineRepuestos = "Los códigos offline fueron repuestos correctamente.";
     public const string SincronizacionRegistrada = "La sincronización del dispositivo fue registrada correctamente.";
 
     public const string CasoGanadorReportado = "El caso de ticket ganador fue reportado correctamente.";

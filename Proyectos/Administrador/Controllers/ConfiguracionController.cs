@@ -77,6 +77,7 @@ public sealed class ConfiguracionController : AdminControllerBase
             AlertaRepeticionNumero = form.AlertaRepeticionNumero,
             AlertaValorMinimo = form.AlertaValorMinimo,
             CodigosOfflineCapacidad = form.CodigosOfflineCapacidad,
+            ReposicionDiariaOffline = form.ReposicionDiariaOffline,
             SincronizacionModo = form.SincronizacionModo,
             LeyendaTirilla = form.LeyendaTirilla
         }, cancellationToken);
@@ -274,6 +275,7 @@ public sealed class ConfiguracionController : AdminControllerBase
             AlertaRepeticionNumero = data.AlertaRepeticionNumero,
             AlertaValorMinimo = data.AlertaValorMinimo,
             CodigosOfflineCapacidad = data.CodigosOfflineCapacidad,
+            ReposicionDiariaOffline = data.ReposicionDiariaOffline,
             SincronizacionModo = data.SincronizacionModo,
             LeyendaTirilla = string.IsNullOrWhiteSpace(data.LeyendaTirilla)
                 ? TirillaCuerpo.CuerpoDefecto

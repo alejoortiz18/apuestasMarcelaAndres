@@ -1,8 +1,10 @@
 using NewRich.Application.Contracts.Chat;
+using NewRich.Application.Contracts.Offline;
 using NewRich.Domain.Enums;
 using NewRich.Maui.Data;
 using NewRich.Pda.Core;
 using NewRich.Pda.Core.Api;
+using NewRich.Pda.Core.Auth;
 
 namespace NewRich.Maui.Services;
 
@@ -21,6 +23,23 @@ public sealed class SecureTokenStore : ITokenStore
     }
 }
 
+public sealed record AvanceSincronizacion(
+    string Estado,
+    int Completados,
+    int Total,
+    int Porcentaje,
+    int VentasPendientes,
+    int CodigosPendientes,
+    string? Mensaje);
+
+public sealed record ResultadoSincronizacion(
+    bool Exito,
+    int VentasSincronizadas,
+    int CodigosRepuestos,
+    int VentasPendientes,
+    int CodigosPendientes,
+    string Mensaje);
+
 public sealed class SincronizacionOfflineServicio
 {
     private readonly NewRichApiClient _api;
@@ -33,60 +52,136 @@ public sealed class SincronizacionOfflineServicio
         _offline = offline;
     }
 
-    public async Task SincronizarEnSilencioAsync(
+    public Task SincronizarEnSilencioAsync(
         bool conectado,
         RolUsuario rol,
         bool debeCambiarPassword,
+        CancellationToken cancellationToken) =>
+        SincronizarTodoAsync(conectado, rol, debeCambiarPassword, null, cancellationToken);
+
+    public async Task<ResultadoSincronizacion> SincronizarTodoAsync(
+        bool conectado,
+        RolUsuario rol,
+        bool debeCambiarPassword,
+        IProgress<AvanceSincronizacion>? progreso,
         CancellationToken cancellationToken)
     {
+        var ventasPendientes = await _offline.ContarVentasPendientesCantidadAsync();
+        var gastados = await _offline.ObtenerGastadosPendientesAsync();
         if (!conectado)
         {
-            return;
+            Reportar(progreso, PdaTexts.SyncSinConexion, 0, 1, 0, ventasPendientes, gastados, PdaTexts.SyncSinConexion);
+            return new ResultadoSincronizacion(false, 0, 0, ventasPendientes, gastados, PdaTexts.SyncSinConexion);
         }
 
         await _candado.WaitAsync(cancellationToken);
         try
         {
-            if (DescargaCodigosOffline.SincronizarEnSilencio(conectado, rol, debeCambiarPassword))
-            {
-                var resultado = await _api.DescargarOfflineAsync(cancellationToken);
-                if (resultado.IsSuccess)
-                {
-                    var guardar = DescargaCodigosOffline.ParaGuardar(resultado.Data);
-                    if (guardar.Count > 0)
-                    {
-                        await _offline.GuardarDescargaAsync(guardar);
-                    }
-                }
-
-                var pendientes = await _offline.VentasPendientesAsync();
-                if (pendientes.Count > 0)
-                {
-                    var sync = await _api.SincronizarVentasOfflineAsync(pendientes, cancellationToken);
-                    if (sync.IsSuccess && sync.Data is not null)
-                    {
-                        await _offline.MarcarSincronizadasAsync(sync.Data.Sincronizados);
-                    }
-                }
-            }
-
             if (ReporteTecnicoRegla.DebeEnviarPendientes(conectado, rol, debeCambiarPassword))
             {
                 await EnviarReportesPendientesAsync(cancellationToken);
             }
+
+            if (!DescargaCodigosOffline.SincronizarEnSilencio(conectado, rol, debeCambiarPassword))
+            {
+                return new ResultadoSincronizacion(false, 0, 0, ventasPendientes, gastados, PdaTexts.SyncNoAplica);
+            }
+
+            var pendientes = (await _offline.VentasPendientesAsync()).ToList();
+            gastados = await _offline.ObtenerGastadosPendientesAsync();
+            var total = pendientes.Count + 1;
+            var completados = 0;
+            var ventasOk = 0;
+            Reportar(progreso, PdaTexts.SyncSincronizando, completados, total, 0, pendientes.Count, gastados, null);
+
+            if (pendientes.Count > 0)
+            {
+                Reportar(progreso, PdaTexts.SyncValidando, completados, total, Porcentaje(completados, total), pendientes.Count, gastados, null);
+                var sync = await _api.SincronizarVentasOfflineAsync(pendientes, cancellationToken);
+                if (sync.IsSuccess && sync.Data is not null)
+                {
+                    await _offline.MarcarSincronizadasAsync(sync.Data.Sincronizados);
+                    ventasOk = sync.Data.Sincronizados.Count;
+                    completados += pendientes.Count;
+                }
+                else
+                {
+                    var msg = sync.Message ?? PdaTexts.SyncError;
+                    Reportar(progreso, PdaTexts.SyncError, completados, total, Porcentaje(completados, total), pendientes.Count, gastados, msg);
+                    return new ResultadoSincronizacion(false, ventasOk, 0, await _offline.ContarVentasPendientesCantidadAsync(), gastados, msg);
+                }
+            }
+
+            var codigosRepuestos = 0;
+            gastados = await _offline.ObtenerGastadosPendientesAsync();
+            Reportar(progreso, PdaTexts.SyncReponiendo, completados, total, Porcentaje(completados, total), 0, gastados, null);
+            var maximos = await _offline.ObtenerMaximosOfflineAsync();
+            var repo = await _api.ReponerCodigosDiarioAsync(
+                new ReponerCodigosOfflineRequest
+                {
+                    CodigosOfflineMaximos = maximos,
+                    CodigosOfflineGastadosPendientes = gastados
+                },
+                cancellationToken);
+
+            if (!repo.IsSuccess || repo.Data is null)
+            {
+                var msg = repo.Message ?? PdaTexts.SyncError;
+                Reportar(progreso, PdaTexts.SyncError, completados, total, Porcentaje(completados, total), 0, gastados, msg);
+                return new ResultadoSincronizacion(false, ventasOk, 0, 0, gastados, msg);
+            }
+
+            Reportar(progreso, PdaTexts.SyncActualizandoConfig, completados, total, Porcentaje(completados, total), 0, gastados, null);
+            await _offline.GuardarMaximosOfflineAsync(repo.Data.CodigosOfflineMaximos);
+
+            if (repo.Data.ReposicionExitosa)
+            {
+                await _offline.GuardarGastadosPendientesAsync(0);
+                codigosRepuestos = repo.Data.CantidadRepuesta;
+                gastados = 0;
+            }
+            else if (repo.Data.YaRealizadaHoy)
+            {
+                Reportar(progreso, PdaTexts.SyncReposicionYaRealizada, completados, total, Porcentaje(completados, total), 0, gastados, repo.Message);
+            }
+
+            completados += 1;
+            await DescargarCodigosAsync(cancellationToken);
+
+            var ventasRestantes = await _offline.ContarVentasPendientesCantidadAsync();
+            Reportar(progreso, PdaTexts.SyncCompletado, total, total, 100, ventasRestantes, gastados, PdaTexts.SyncCompletado);
+            return new ResultadoSincronizacion(true, ventasOk, codigosRepuestos, ventasRestantes, gastados, PdaTexts.SyncCompletado);
         }
         catch (HttpRequestException)
         {
+            return new ResultadoSincronizacion(false, 0, 0, await _offline.ContarVentasPendientesCantidadAsync(), await _offline.ObtenerGastadosPendientesAsync(), PdaTexts.SyncSinConexion);
         }
         catch (TaskCanceledException)
         {
+            return new ResultadoSincronizacion(false, 0, 0, await _offline.ContarVentasPendientesCantidadAsync(), await _offline.ObtenerGastadosPendientesAsync(), PdaTexts.SyncError);
         }
         catch (Exception)
         {
+            return new ResultadoSincronizacion(false, 0, 0, await _offline.ContarVentasPendientesCantidadAsync(), await _offline.ObtenerGastadosPendientesAsync(), PdaTexts.SyncError);
         }
         finally
         {
             _candado.Release();
+        }
+    }
+
+    private async Task DescargarCodigosAsync(CancellationToken cancellationToken)
+    {
+        var resultado = await _api.DescargarOfflineAsync(cancellationToken);
+        if (!resultado.IsSuccess)
+        {
+            return;
+        }
+
+        var guardar = DescargaCodigosOffline.ParaGuardar(resultado.Data);
+        if (guardar.Count > 0)
+        {
+            await _offline.GuardarDescargaAsync(guardar);
         }
     }
 
@@ -128,6 +223,20 @@ public sealed class SincronizacionOfflineServicio
 
         return ok;
     }
+
+    private static int Porcentaje(int completados, int total) =>
+        total <= 0 ? 100 : (int)Math.Round(100.0 * completados / total);
+
+    private static void Reportar(
+        IProgress<AvanceSincronizacion>? progreso,
+        string estado,
+        int completados,
+        int total,
+        int porcentaje,
+        int ventas,
+        int codigos,
+        string? mensaje) =>
+        progreso?.Report(new AvanceSincronizacion(estado, completados, total, porcentaje, ventas, codigos, mensaje));
 }
 
 public interface IPrinterService

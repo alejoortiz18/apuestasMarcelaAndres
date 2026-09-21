@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NewRich.Application.Contracts.Offline;
 using NewRich.Application.Services;
+using NewRich.Constants.Messages;
+using NewRich.Shared.Results;
 
 namespace NewRich.Api.Controllers;
 
@@ -29,5 +31,18 @@ public sealed class OfflineAndroidController : ApiControllerBase
         CancellationToken cancellationToken)
     {
         return From(await _offline.SincronizarVentasAsync(UsuarioId, request, cancellationToken));
+    }
+
+    [HttpPost("ReponerDiarioMob")]
+    public async Task<IActionResult> ReponerDiarioMob(
+        [FromBody] ReponerCodigosOfflineRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (DispositivoId is null)
+        {
+            return From(Result<ReponerCodigosOfflineResponse>.Fail(AuthMessages.DispositivoNoAsociado));
+        }
+
+        return From(await _offline.ReponerDiarioAsync(UsuarioId, DispositivoId.Value, request, cancellationToken));
     }
 }

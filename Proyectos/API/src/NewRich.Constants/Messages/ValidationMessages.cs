@@ -27,7 +27,7 @@ public static class ValidationMessages
     public const string CodigoDispositivoRequerido = "El código del dispositivo es obligatorio.";
     public const string NumeroSerieRequerido = "No se pudo leer el número de serie del dispositivo.";
     public const string TipoDispositivoInvalido = "El tipo de dispositivo no es válido. Valores permitidos: Vendedor, Observador.";
-    public const string CapacidadCodigosOfflineRango = "La capacidad de códigos offline debe estar entre 3000 y 5000.";
+    public const string CapacidadCodigosOfflineRango = "La capacidad de códigos offline debe ser un número entero mayor o igual a 1.";
     public const string CantidadCodigosOfflineRango = "La cantidad de códigos a generar debe estar entre 1 y 5000.";
 
     public const string TextoMensajeRequerido = "El texto del mensaje es obligatorio.";

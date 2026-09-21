@@ -142,7 +142,41 @@ public sealed class LocalDatabase
 
         codigo.Usado = true;
         await db.UpdateAsync(codigo);
+        await IncrementarGastadosPendientesAsync();
         return codigo;
+    }
+
+    public const string ClaveMaximosOffline = "codigosOfflineMaximos";
+    public const string ClaveGastadosPendientes = "codigosOfflineGastadosPendientes";
+
+    public async Task<int> ObtenerMaximosOfflineAsync()
+    {
+        var valor = await LeerJsonAsync<int?>(ClaveMaximosOffline);
+        return valor is > 0 ? valor.Value : 0;
+    }
+
+    public async Task GuardarMaximosOfflineAsync(int maximos) =>
+        await GuardarJsonAsync(ClaveMaximosOffline, Math.Max(0, maximos));
+
+    public async Task<int> ObtenerGastadosPendientesAsync()
+    {
+        var valor = await LeerJsonAsync<int?>(ClaveGastadosPendientes);
+        return valor is > 0 ? valor.Value : 0;
+    }
+
+    public async Task GuardarGastadosPendientesAsync(int gastados) =>
+        await GuardarJsonAsync(ClaveGastadosPendientes, Math.Max(0, gastados));
+
+    public async Task IncrementarGastadosPendientesAsync()
+    {
+        var actual = await ObtenerGastadosPendientesAsync();
+        await GuardarGastadosPendientesAsync(actual + 1);
+    }
+
+    public async Task<int> ContarVentasPendientesCantidadAsync()
+    {
+        var db = await ConexionAsync();
+        return await db.Table<VentaOfflineLocal>().Where(v => !v.Sincronizada).CountAsync();
     }
 
     public async Task GuardarVentaAsync(string consecutivo, string qrJson)

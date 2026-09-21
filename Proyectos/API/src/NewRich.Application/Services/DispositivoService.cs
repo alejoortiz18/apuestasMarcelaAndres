@@ -355,11 +355,15 @@ public sealed class DispositivoService : IDispositivoService
         return ultima;
     }
 
+    /// <summary>
+    /// Cuenta lo que el PDA tiene realmente en su poder. Los códigos en estado Generado siguen
+    /// en el servidor esperando la descarga, así que no se suman para que el número del
+    /// administrador coincida con el que muestra el equipo.
+    /// </summary>
     private async Task<Dictionary<Guid, int>> ContarCodigosDisponiblesAsync(CancellationToken cancellationToken)
     {
         return await _db.CodigosPreventaOffline
-            .Where(c => c.EstadoDelCodigo == EstadoCodigoOffline.Generado
-                || c.EstadoDelCodigo == EstadoCodigoOffline.Descargado)
+            .Where(c => c.EstadoDelCodigo == EstadoCodigoOffline.Descargado)
             .GroupBy(c => c.DispositivoId)
             .Select(g => new { g.Key, Total = g.Count() })
             .ToDictionaryAsync(x => x.Key, x => x.Total, cancellationToken);

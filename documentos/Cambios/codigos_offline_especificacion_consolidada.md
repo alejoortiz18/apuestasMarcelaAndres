@@ -107,15 +107,12 @@ La reposición debe poder ejecutarse aunque:
 
 ```text
 Ventas pendientes = 0
+codigosOfflineGastadosPendientes = 0
 ```
 
-siempre que:
-
-```text
-codigosOfflineGastadosPendientes > 0
-```
-
-y se cumplan las demás condiciones de reposición.
+siempre que se cumplan las demás condiciones de reposición. El contador de
+gastados es información que el PDA reporta, no una condición para reponer: quien
+decide la cantidad es el servidor a partir del faltante frente al límite vigente.
 
 ---
 
@@ -404,10 +401,15 @@ La reposición de códigos es independiente de las ventas pendientes.
 
 La reposición debe procesarse cuando:
 
-1. `codigosOfflineGastadosPendientes > 0`.
-2. La reposición diaria esté habilitada.
-3. El vendedor/PDA no haya recibido reposición durante el día.
-4. Exista conexión con el servidor.
+1. La reposición diaria esté habilitada.
+2. El vendedor/PDA no haya recibido reposición durante el día.
+3. Exista conexión con el servidor.
+
+El PDA siempre solicita la reposición en su primera conexión del día e informa sus
+gastados y su máximo conocido. El servidor calcula el faltante y, si es mayor que
+cero, genera los códigos en ese momento y quedan disponibles para el PDA. Los
+códigos nunca se generan como efecto del cambio de capacidad hecho por el
+administrador: ese cambio solo actualiza el límite vigente.
 
 ### Caso válido
 
@@ -576,8 +578,6 @@ Existe conexión
 Se realiza cuando:
 
 ```text
-Existen códigos gastados pendientes
-+
 Reposición diaria habilitada
 +
 No se ha realizado reposición ese día

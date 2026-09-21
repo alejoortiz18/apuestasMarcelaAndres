@@ -74,3 +74,19 @@ public sealed class RegistrarQrOfflineRequest
 {
     public string Qr { get; set; } = string.Empty;
 }
+
+public sealed class ReponerCodigosOfflineRequest
+{
+    public int CodigosOfflineMaximos { get; set; }
+    public int CodigosOfflineGastadosPendientes { get; set; }
+}
+
+public sealed class ReponerCodigosOfflineResponse
+{
+    public int CodigosOfflineMaximos { get; set; }
+    public int CodigosOfflineGastadosPendientes { get; set; }
+    public bool ReposicionExitosa { get; set; }
+    public bool YaRealizadaHoy { get; set; }
+    public bool ReposicionHabilitada { get; set; }
+    public int CantidadRepuesta { get; set; }
+}

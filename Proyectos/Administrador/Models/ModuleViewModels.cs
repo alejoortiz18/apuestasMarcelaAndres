@@ -285,8 +285,11 @@ public sealed class ConfiguracionOperativaFormViewModel
     public int AlertaValorMinimo { get; set; } = 10000;
 
     [Display(Name = UiTexts.CodigosOfflineMaximo)]
-    [Range(3000, 5000, ErrorMessage = ValidationMessages.CapacidadCodigosOfflineRango)]
+    [Range(1, int.MaxValue, ErrorMessage = ValidationMessages.CapacidadCodigosOfflineRango)]
     public int CodigosOfflineCapacidad { get; set; } = 3000;
+
+    [Display(Name = UiTexts.ReposicionDiariaOffline)]
+    public bool ReposicionDiariaOffline { get; set; } = true;
 
     [Display(Name = UiTexts.ModoSincronizacionOffline)]
     [Required(ErrorMessage = ValidationMessages.CampoRequerido)]

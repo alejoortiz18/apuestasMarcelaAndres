@@ -442,6 +442,8 @@ public static class UiTexts
     public const string HoraCierrePda = "Hora de cierre o desconexión del PDA";
     public const string HoraCierrePdaAyuda = "A esta hora el PDA deja de iniciar ventas nuevas. No puede ser igual a la hora de apertura.";
     public const string VigenciaPremioDias = "Vigencia del premio en días";
+    public const string ReposicionDiariaOffline = "Reasignación diaria de códigos offline";
+    public const string ReposicionDiariaOfflineAyuda = "Si está activo, el servidor repone códigos offline como máximo una vez por día por vendedor.";
     public const string DiasInactividadEliminarPda = "Días sin actividad para eliminar PDA";
     public const string DiasInactividadEliminarPdaAyuda = "El PDA solo podrá eliminarse si lleva al menos este número de días sin sesiones, ventas, sincronizaciones ni conexión.";
     public const string MaxJuegosCombinado = "Juegos máximos en modo combinado";

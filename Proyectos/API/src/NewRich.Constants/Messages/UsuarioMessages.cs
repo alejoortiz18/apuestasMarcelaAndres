@@ -30,4 +30,6 @@ public static class UsuarioMessages
     public const string QrPendienteDeSincronizar = "El QR es válido. Primero sincronice la venta desde el PDA.";
     public const string QrYaRegistrado = "QR ya registrado";
     public const string SinCodigosOfflineDisponibles = "No tiene códigos disponibles.";
+    public const string ReposicionDiariaOfflineDeshabilitada = "La reposición diaria de códigos offline está deshabilitada.";
+    public const string ReposicionDiariaOfflineYaRealizada = "La reposición diaria de códigos offline ya fue realizada hoy.";
 }

@@ -32,11 +32,12 @@ public sealed class ConfiguracionServiceTests
         result.Data.AlertaRepeticionNumero.Should().Be(10);
         result.Data.AlertaValorMinimo.Should().Be(10000);
         result.Data.CodigosOfflineCapacidad.Should().Be(3000);
+        result.Data.ReposicionDiariaOffline.Should().BeTrue();
         result.Data.SincronizacionModo.Should().Be("Manual");
         result.Data.LeyendaTirilla.Should().Be(TirillaCuerpo.CuerpoDefecto);
         result.Data.LeyendaTirilla.Should().Contain("{vigenciaDias}");
         result.Data.LeyendaTirilla.Should().NotContain("GRACIAS POR SU COMPRA");
-        db.Configuraciones.Should().HaveCount(9);
+        db.Configuraciones.Should().HaveCount(10);
         db.ConfiguracionesTipoApuesta.Should().Contain(t => t.TipoApuesta == "COMBINADO" && t.Maximo == 1);
         db.ConfiguracionesTipoApuesta.Should().Contain(t => t.TipoApuesta == "INDIVIDUAL" && t.Maximo == 6);
     }
@@ -84,6 +85,7 @@ public sealed class ConfiguracionServiceTests
             AlertaRepeticionNumero = 8,
             AlertaValorMinimo = 20000,
             CodigosOfflineCapacidad = 4000,
+            ReposicionDiariaOffline = false,
             SincronizacionModo = "Automatica",
             LeyendaTirilla = TirillaCuerpo.CuerpoDefecto
         }, CancellationToken.None);
@@ -98,6 +100,7 @@ public sealed class ConfiguracionServiceTests
         result.Data.AlertaRepeticionNumero.Should().Be(8);
         result.Data.AlertaValorMinimo.Should().Be(20000);
         result.Data.CodigosOfflineCapacidad.Should().Be(4000);
+        result.Data.ReposicionDiariaOffline.Should().BeFalse();
         result.Data.SincronizacionModo.Should().Be("Automatica");
         db.ConfiguracionesTipoApuesta.Single(t => t.TipoApuesta == "COMBINADO").Maximo.Should().Be(2);
         db.ConfiguracionesTipoApuesta.Single(t => t.TipoApuesta == "INDIVIDUAL").Maximo.Should().Be(5);
@@ -178,12 +181,24 @@ public sealed class ConfiguracionServiceTests
     }
 
     [Fact]
-    public async Task GuardarOperativaAsync_rechaza_capacidad_fuera_de_rango()
+    public async Task GuardarOperativaAsync_acepta_cualquier_capacidad_positiva()
     {
         var (sut, _) = CreateSut();
         await sut.ObtenerOperativaAsync(CancellationToken.None);
 
-        var result = await sut.GuardarOperativaAsync(RequestValida() with { CodigosOfflineCapacidad = 100 }, CancellationToken.None);
+        var result = await sut.GuardarOperativaAsync(RequestValida() with { CodigosOfflineCapacidad = 50 }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data.CodigosOfflineCapacidad.Should().Be(50);
+    }
+
+    [Fact]
+    public async Task GuardarOperativaAsync_rechaza_capacidad_no_positiva()
+    {
+        var (sut, _) = CreateSut();
+        await sut.ObtenerOperativaAsync(CancellationToken.None);
+
+        var result = await sut.GuardarOperativaAsync(RequestValida() with { CodigosOfflineCapacidad = 0 }, CancellationToken.None);
 
         result.IsSuccess.Should().BeFalse();
         result.Message.Should().Be(ValidationMessages.CapacidadCodigosOfflineRango);
@@ -212,6 +227,7 @@ public sealed class ConfiguracionServiceTests
         AlertaRepeticionNumero = 10,
         AlertaValorMinimo = 10000,
         CodigosOfflineCapacidad = 3000,
+        ReposicionDiariaOffline = true,
         SincronizacionModo = "Manual",
         LeyendaTirilla = TirillaCuerpo.CuerpoDefecto
     };

@@ -4,9 +4,11 @@ using Moq;
 using NewRich.Application.Abstractions;
 using NewRich.Application.Contracts.Offline;
 using NewRich.Application.Services;
+using NewRich.Constants;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
 using NewRich.Domain.Enums;
+using NewRich.Domain.Services;
 using NewRich.Infrastructure.Persistence;
 
 namespace NewRich.UnitTests;
@@ -198,6 +200,172 @@ public sealed class OfflineServiceTests
 
         result.IsSuccess.Should().BeFalse();
         result.Message.Should().Be(UsuarioMessages.CapacidadCodigosOfflineInsuficiente);
+    }
+
+    [Fact]
+    public async Task ReponerDiarioAsync_genera_hasta_el_maximo_vigente_y_limpia_pendientes()
+    {
+        var (sut, db, _) = CreateSut();
+        var pda = await AgregarPdaAsync(db, "PDA-REP", capacidad: 10);
+        var usuario = await AgregarUsuarioAsync(db, "Vendedor Repo");
+        await AsociarAsync(db, pda.DispositivoId, usuario.UsuarioId);
+        db.CodigosPreventaOffline.Add(Codigo(pda, usuario, EstadoCodigoOffline.Descargado, "OFF-000001"));
+        db.Configuraciones.Add(new Configuracion
+        {
+            ConfiguracionId = Guid.NewGuid(),
+            Clave = ConfiguracionClaves.ReposicionDiariaOffline,
+            Valor = "true",
+            FechaActualizacion = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+
+        var result = await sut.ReponerDiarioAsync(
+            usuario.UsuarioId,
+            pda.DispositivoId,
+            new ReponerCodigosOfflineRequest
+            {
+                CodigosOfflineMaximos = 5,
+                CodigosOfflineGastadosPendientes = 3
+            },
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.ReposicionExitosa.Should().BeTrue();
+        result.Data.CantidadRepuesta.Should().Be(9);
+        result.Data.CodigosOfflineGastadosPendientes.Should().Be(0);
+        result.Data.CodigosOfflineMaximos.Should().Be(10);
+        db.CodigosPreventaOffline.Count(c =>
+            c.DispositivoId == pda.DispositivoId
+            && (c.EstadoDelCodigo == EstadoCodigoOffline.Generado || c.EstadoDelCodigo == EstadoCodigoOffline.Descargado))
+            .Should().Be(10);
+    }
+
+    [Fact]
+    public async Task ReponerDiarioAsync_pda_sin_codigos_ni_gastados_se_llena_al_maximo_vigente()
+    {
+        var (sut, db, _) = CreateSut();
+        var pda = await AgregarPdaAsync(db, "PDA-NUEVO", capacidad: 20);
+        var usuario = await AgregarUsuarioAsync(db, "Vendedor Nuevo");
+        await AsociarAsync(db, pda.DispositivoId, usuario.UsuarioId);
+        await db.SaveChangesAsync();
+
+        var result = await sut.ReponerDiarioAsync(
+            usuario.UsuarioId,
+            pda.DispositivoId,
+            new ReponerCodigosOfflineRequest
+            {
+                CodigosOfflineMaximos = 0,
+                CodigosOfflineGastadosPendientes = 0
+            },
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.ReposicionExitosa.Should().BeTrue();
+        result.Data.CantidadRepuesta.Should().Be(20);
+        result.Data.CodigosOfflineMaximos.Should().Be(20);
+        db.CodigosPreventaOffline.Count(c => c.DispositivoId == pda.DispositivoId).Should().Be(20);
+    }
+
+    [Fact]
+    public async Task ReponerDiarioAsync_marca_el_dia_con_un_valor_que_cabe_en_la_base()
+    {
+        var (sut, db, _) = CreateSut();
+        var pda = await AgregarPdaAsync(db, "PDA-MARCA", capacidad: 5);
+        var usuario = await AgregarUsuarioAsync(db, "Vendedor Marca");
+        await AsociarAsync(db, pda.DispositivoId, usuario.UsuarioId);
+        await db.SaveChangesAsync();
+
+        await sut.ReponerDiarioAsync(
+            usuario.UsuarioId,
+            pda.DispositivoId,
+            new ReponerCodigosOfflineRequest { CodigosOfflineGastadosPendientes = 0 },
+            CancellationToken.None);
+
+        var marca = db.Sincronizaciones.Single(s => s.Tipo == ConfiguracionClaves.TipoReposicionOfflineDiaria);
+        marca.DispositivoId.Should().Be(pda.DispositivoId);
+        marca.Tipo.Length.Should().BeLessThanOrEqualTo(30);
+        marca.Resultado.Should().Be("2026-08-30");
+        marca.Resultado.Length.Should().BeLessThanOrEqualTo(ReposicionOfflineCalculo.LargoMaximoMarca);
+    }
+
+    [Fact]
+    public async Task ReponerDiarioAsync_no_bloquea_a_otro_pda_el_mismo_dia()
+    {
+        var (sut, db, _) = CreateSut();
+        var primero = await AgregarPdaAsync(db, "PDA-UNO", capacidad: 4);
+        var segundo = await AgregarPdaAsync(db, "PDA-DOS", capacidad: 4);
+        var vendedorUno = await AgregarUsuarioAsync(db, "Vendedor Uno");
+        var vendedorDos = await AgregarUsuarioAsync(db, "Vendedor Dos");
+        await AsociarAsync(db, primero.DispositivoId, vendedorUno.UsuarioId);
+        await AsociarAsync(db, segundo.DispositivoId, vendedorDos.UsuarioId);
+        await db.SaveChangesAsync();
+
+        var uno = await sut.ReponerDiarioAsync(
+            vendedorUno.UsuarioId,
+            primero.DispositivoId,
+            new ReponerCodigosOfflineRequest { CodigosOfflineGastadosPendientes = 0 },
+            CancellationToken.None);
+        var dos = await sut.ReponerDiarioAsync(
+            vendedorDos.UsuarioId,
+            segundo.DispositivoId,
+            new ReponerCodigosOfflineRequest { CodigosOfflineGastadosPendientes = 0 },
+            CancellationToken.None);
+
+        uno.Data!.CantidadRepuesta.Should().Be(4);
+        dos.Data!.YaRealizadaHoy.Should().BeFalse();
+        dos.Data.CantidadRepuesta.Should().Be(4);
+    }
+
+    [Fact]
+    public async Task ReponerDiarioAsync_no_repite_en_el_mismo_dia()
+    {
+        var (sut, db, _) = CreateSut();
+        var pda = await AgregarPdaAsync(db, "PDA-DIA", capacidad: 5);
+        var usuario = await AgregarUsuarioAsync(db, "Vendedor Dia");
+        await AsociarAsync(db, pda.DispositivoId, usuario.UsuarioId);
+        await db.SaveChangesAsync();
+
+        var primero = await sut.ReponerDiarioAsync(
+            usuario.UsuarioId,
+            pda.DispositivoId,
+            new ReponerCodigosOfflineRequest { CodigosOfflineGastadosPendientes = 2 },
+            CancellationToken.None);
+        var segundo = await sut.ReponerDiarioAsync(
+            usuario.UsuarioId,
+            pda.DispositivoId,
+            new ReponerCodigosOfflineRequest { CodigosOfflineGastadosPendientes = 2 },
+            CancellationToken.None);
+
+        primero.Data!.ReposicionExitosa.Should().BeTrue();
+        segundo.Data!.YaRealizadaHoy.Should().BeTrue();
+        segundo.Data.ReposicionExitosa.Should().BeFalse();
+        segundo.Data.CodigosOfflineGastadosPendientes.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task ReponerDiarioAsync_con_tope_reducido_y_excedentes_no_genera()
+    {
+        var (sut, db, _) = CreateSut();
+        var pda = await AgregarPdaAsync(db, "PDA-RED", capacidad: 40);
+        var usuario = await AgregarUsuarioAsync(db, "Vendedor Red");
+        await AsociarAsync(db, pda.DispositivoId, usuario.UsuarioId);
+        for (var i = 0; i < 45; i++)
+        {
+            db.CodigosPreventaOffline.Add(Codigo(pda, usuario, EstadoCodigoOffline.Descargado, $"OFF-{i:000000}"));
+        }
+
+        await db.SaveChangesAsync();
+
+        var result = await sut.ReponerDiarioAsync(
+            usuario.UsuarioId,
+            pda.DispositivoId,
+            new ReponerCodigosOfflineRequest { CodigosOfflineGastadosPendientes = 5 },
+            CancellationToken.None);
+
+        result.Data!.ReposicionExitosa.Should().BeTrue();
+        result.Data.CantidadRepuesta.Should().Be(0);
+        result.Data.CodigosOfflineGastadosPendientes.Should().Be(0);
+        db.CodigosPreventaOffline.Count(c => c.EstadoDelCodigo == EstadoCodigoOffline.Descargado).Should().Be(45);
     }
 
     [Fact]

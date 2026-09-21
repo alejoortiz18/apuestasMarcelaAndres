@@ -39,13 +39,14 @@ public sealed class DispositivoServiceTests
     }
 
     [Fact]
-    public async Task ListarAsync_cuenta_codigos_offline_disponibles()
+    public async Task ListarAsync_cuenta_solo_los_codigos_que_el_pda_ya_descargo()
     {
         var (sut, db, _) = CreateSut();
         var pda = await AgregarPdaAsync(db);
         var usuario = await AgregarUsuarioAsync(db, "Camila Rojas");
         db.CodigosPreventaOffline.AddRange(
             Codigo(pda.DispositivoId, usuario.UsuarioId, EstadoCodigoOffline.Generado),
+            Codigo(pda.DispositivoId, usuario.UsuarioId, EstadoCodigoOffline.Descargado),
             Codigo(pda.DispositivoId, usuario.UsuarioId, EstadoCodigoOffline.Descargado),
             Codigo(pda.DispositivoId, usuario.UsuarioId, EstadoCodigoOffline.Utilizado));
         await db.SaveChangesAsync();

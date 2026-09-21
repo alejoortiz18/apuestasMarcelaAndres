@@ -264,6 +264,15 @@ public sealed class NewRichApiClient
             new SincronizarVentasOfflineRequest { QrJson = qrJson },
             ct);
 
+    public Task<Result<ReponerCodigosOfflineResponse>> ReponerCodigosDiarioAsync(
+        ReponerCodigosOfflineRequest request,
+        CancellationToken ct) =>
+        Enviar<ReponerCodigosOfflineResponse>(
+            HttpMethod.Post,
+            "api/OfflineAndroid/ReponerDiarioMob",
+            request,
+            ct);
+
     public Task<Result<ConversacionResponse>> IniciarChatAsync(IniciarChatRequest request, CancellationToken ct) =>
         Enviar<ConversacionResponse>(HttpMethod.Post, "api/ChatAndroid/IniciarMob", request, ct);
 

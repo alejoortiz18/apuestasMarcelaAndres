@@ -273,6 +273,7 @@ public sealed class LoginPage : ContentPage
             if (operativa.IsSuccess && operativa.Data is not null)
             {
                 _sesion.Limites = operativa.Data;
+                await _local.GuardarMaximosOfflineAsync(operativa.Data.CodigosOfflineCapacidad);
             }
 
             var loterias = await _api.LoteriasAsync(CancellationToken.None);
