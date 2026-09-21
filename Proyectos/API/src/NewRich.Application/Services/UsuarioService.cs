@@ -40,6 +40,11 @@ public sealed class UsuarioService : IUsuarioService
 
     public async Task<Result<UsuarioResponse>> CrearAsync(CrearUsuarioRequest request, CancellationToken cancellationToken)
     {
+        if (request.Rol == RolUsuario.Super)
+        {
+            return Result<UsuarioResponse>.Fail(UsuarioMessages.RolSuperReservado);
+        }
+
         if (string.IsNullOrWhiteSpace(request.NombreCompleto))
         {
             return Result<UsuarioResponse>.Fail(ValidationMessages.NombreCompletoRequerido);
@@ -177,6 +182,11 @@ public sealed class UsuarioService : IUsuarioService
         if (usuario is null)
         {
             return Result.Fail(UsuarioMessages.UsuarioNoEncontrado, 404);
+        }
+
+        if (usuario.Rol == RolUsuario.Super)
+        {
+            return Result.Fail(UsuarioMessages.NoPuedeEliminarSuper);
         }
 
         if (usuario.Rol == RolUsuario.Administrador)
@@ -333,6 +343,7 @@ public sealed class UsuarioService : IUsuarioService
 
     private IQueryable<Usuario> QueryUsuarios() =>
         _db.Usuarios
+            .Where(u => u.Rol != RolUsuario.Super)
             .Include(u => u.DispositivosUsuarios).ThenInclude(d => d.Dispositivo)
             .Include(u => u.UsuarioGrupos).ThenInclude(g => g.Grupo);
 

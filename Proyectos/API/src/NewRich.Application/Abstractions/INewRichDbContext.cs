@@ -33,6 +33,7 @@ public interface INewRichDbContext
     DbSet<CasoGanador> CasosGanadores { get; }
     DbSet<EntregaGanador> EntregasGanadores { get; }
     DbSet<EvidenciaGanador> EvidenciasGanador { get; }
+    DbSet<LlaveAdministrador> LlavesAdministrador { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     Task ExecuteInTransactionAsync(Func<CancellationToken, Task> action, CancellationToken cancellationToken = default);

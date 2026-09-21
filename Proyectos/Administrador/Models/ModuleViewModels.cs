@@ -18,6 +18,7 @@ using NewRich.Application.Services;
 using NewRich.Constants;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Enums;
+using NewRich.Domain.Services;
 
 namespace NewRich.Admin.Models;
 
@@ -373,4 +374,17 @@ public sealed class PremioReportarViewModel
     public bool PuedeIniciarCaso { get; set; }
     public Guid? BoletoId { get; set; }
     public TirillaViewModel? Tirilla { get; set; }
+}
+
+public sealed class LlaveUsbViewModel
+{
+    public Guid UsuarioId { get; set; }
+    public string? LetraUsb { get; set; }
+    public bool ConfirmarBorrado { get; set; }
+    public bool ConfirmarReemplazo { get; set; }
+    public bool PideConfirmacionBorrado { get; set; }
+    public bool PideConfirmacionReemplazo { get; set; }
+    public string? Error { get; set; }
+    public IReadOnlyList<DiscoUsbInfo> Discos { get; set; } = [];
+    public IReadOnlyList<UsuarioResponseMini> Administradores { get; set; } = [];
 }

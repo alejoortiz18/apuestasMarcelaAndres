@@ -121,4 +121,10 @@ app.MapControllers();
 app.MapHub<NotificacionesHub>(NotificacionesHub.Ruta).RequireCors("Admin");
 app.MapHub<ChatHub>(ChatHub.Ruta).RequireCors("Admin");
 
+using (var alcance = app.Services.CreateScope())
+{
+    var super = alcance.ServiceProvider.GetRequiredService<NewRich.Application.Services.ISuperUsuarioAsegurador>();
+    await super.AsegurarAsync(CancellationToken.None);
+}
+
 app.Run();

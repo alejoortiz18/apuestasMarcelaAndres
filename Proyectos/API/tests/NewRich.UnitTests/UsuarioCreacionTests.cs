@@ -78,6 +78,17 @@ public sealed class UsuarioCreacionTests
     }
 
     [Fact]
+    public async Task CrearAsync_rechaza_el_rol_super()
+    {
+        var (sut, _) = CreateSut();
+
+        var result = await sut.CrearAsync(Solicitud(RolUsuario.Super), CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Message.Should().Be(UsuarioMessages.RolSuperReservado);
+    }
+
+    [Fact]
     public async Task CrearAsync_permite_observadores_sin_grupo()
     {
         var (sut, _) = CreateSut();

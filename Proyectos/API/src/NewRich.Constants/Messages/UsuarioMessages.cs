@@ -10,6 +10,8 @@ public static class UsuarioMessages
     public const string UsuarioNoBloqueado = "El usuario no está bloqueado.";
     public const string UsuarioDebeEstarActivo = "El usuario debe estar ACTIVO para restablecer la contraseña.";
     public const string NoPuedeEliminarUltimoAdministrador = "No es posible eliminar el último usuario administrador activo.";
+    public const string NoPuedeEliminarSuper = "El usuario super no se puede eliminar.";
+    public const string RolSuperReservado = "El perfil Super es reservado y no se puede asignar desde esta pantalla.";
     public const string NoPuedeEliminarseASiMismo = "Un usuario no puede eliminar su propia cuenta.";
     public const string SoloVendedoresPertenecenGrupos = "Solo los usuarios con perfil Vendedor pueden pertenecer a un grupo.";
     public const string GrupoRequeridoParaVendedor = "Selecciona el grupo al que pertenece el vendedor.";

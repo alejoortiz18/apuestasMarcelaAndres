@@ -28,6 +28,8 @@ public static class DependencyInjection
         services.AddScoped<IChatService, ChatService>();
         services.AddScoped<IOfflineService, OfflineService>();
         services.AddScoped<IPremioService, PremioService>();
+        services.AddScoped<ILlaveAdministradorService, LlaveAdministradorService>();
+        services.AddScoped<ISuperUsuarioAsegurador, SuperUsuarioAsegurador>();
         services.AddScoped<IAndroidPdaService, AndroidPdaService>();
         services.AddScoped<IObservadorTicketService, ObservadorTicketService>();
         return services;

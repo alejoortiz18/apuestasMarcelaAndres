@@ -13,12 +13,14 @@ using NewRich.Application.Contracts.Dispositivos;
 using NewRich.Application.Contracts.Grupos;
 using NewRich.Application.Contracts.Kpi;
 using NewRich.Application.Contracts.Loterias;
+using NewRich.Application.Contracts.Llaves;
 using NewRich.Application.Contracts.Notificaciones;
 using NewRich.Application.Contracts.Offline;
 using NewRich.Application.Contracts.Premios;
 using NewRich.Application.Contracts.Resultados;
 using NewRich.Application.Contracts.Usuarios;
 using NewRich.Application.Contracts.Ventas;
+using NewRich.Application.Services;
 using NewRich.Constants;
 using NewRich.Constants.Messages;
 
@@ -101,6 +103,10 @@ public interface IAdminApiClient
     Task<ApiCallResult<CasoGanadorResponse>> AsignarObservadorPremioAsync(Guid id, AsignarObservadorRequest request, CancellationToken cancellationToken);
     Task<ApiCallResult<ArchivoChat>> DescargarFotoCasoPremioAsync(Guid id, CancellationToken cancellationToken);
     Task<ApiCallResult<ArchivoChat>> DescargarEvidenciaCasoPremioAsync(Guid id, Guid evidenciaId, CancellationToken cancellationToken);
+
+    Task<ApiCallResult<List<UsuarioResponseMini>>> ListarAdministradoresLlaveAsync(CancellationToken cancellationToken);
+    Task<ApiCallResult<LlaveAdministradorEstadoResponse>> EstadoLlaveAsync(Guid usuarioId, CancellationToken cancellationToken);
+    Task<ApiCallResult<GenerarLlaveAdministradorResponse>> GenerarLlaveAsync(GenerarLlaveAdministradorRequest request, CancellationToken cancellationToken);
 }
 
 public sealed class AdminApiClient : IAdminApiClient
@@ -403,6 +409,15 @@ public sealed class AdminApiClient : IAdminApiClient
 
     public Task<ApiCallResult<ArchivoChat>> DescargarEvidenciaCasoPremioAsync(Guid id, Guid evidenciaId, CancellationToken cancellationToken) =>
         DescargarImagenPremioAsync($"api/Premios/{id}/evidencias/{evidenciaId}", cancellationToken);
+
+    public Task<ApiCallResult<List<UsuarioResponseMini>>> ListarAdministradoresLlaveAsync(CancellationToken cancellationToken) =>
+        SendAsync<List<UsuarioResponseMini>>(HttpMethod.Get, "api/LlavesAdministrador/administradores", null, true, cancellationToken);
+
+    public Task<ApiCallResult<LlaveAdministradorEstadoResponse>> EstadoLlaveAsync(Guid usuarioId, CancellationToken cancellationToken) =>
+        SendAsync<LlaveAdministradorEstadoResponse>(HttpMethod.Get, $"api/LlavesAdministrador/estado/{usuarioId}", null, true, cancellationToken);
+
+    public Task<ApiCallResult<GenerarLlaveAdministradorResponse>> GenerarLlaveAsync(GenerarLlaveAdministradorRequest request, CancellationToken cancellationToken) =>
+        SendAsync<GenerarLlaveAdministradorResponse>(HttpMethod.Post, "api/LlavesAdministrador", request, true, cancellationToken);
 
     private async Task<ApiCallResult<ArchivoChat>> DescargarImagenPremioAsync(string ruta, CancellationToken cancellationToken)
     {

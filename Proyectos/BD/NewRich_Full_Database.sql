@@ -72,7 +72,7 @@ BEGIN
         CONSTRAINT PK_Usuarios PRIMARY KEY (UsuarioId),
         CONSTRAINT UQ_Usuarios_Usuario UNIQUE (Usuario),
         CONSTRAINT UQ_Usuarios_Documento UNIQUE (Documento),
-        CONSTRAINT CK_Usuarios_Rol CHECK (Rol IN ('Administrador', 'Vendedor', 'Observador')),
+        CONSTRAINT CK_Usuarios_Rol CHECK (Rol IN ('Administrador', 'Vendedor', 'Observador', 'Super')),
         CONSTRAINT CK_Usuarios_Estado CHECK (Estado IN ('Activo', 'Inactivo'))
     );
     PRINT 'Tabla Usuarios creada.';

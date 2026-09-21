@@ -1,0 +1,71 @@
+@using NewRich.Admin.Constants
+@using NewRich.Constants
+@using NewRich.Constants.Messages
+@model LlaveUsbViewModel
+@{
+    ViewData["Title"] = UiTexts.LlaveAdminTitulo;
+}
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.InstalacionesKicker</div>
+        <h1>@UiTexts.LlaveAdminTitulo</h1>
+        <p>@UiTexts.LlaveAdminSub</p>
+    </div>
+    <a class="secondary" asp-action="Index">@UiTexts.Cancelar</a>
+</div>
+@if (!string.IsNullOrWhiteSpace(Model.Error))
+{
+    <div class="notice error" role="alert">@Model.Error</div>
+}
+@if (Model.Administradores.Count == 0)
+{
+    <p class="empty">@UiTexts.LlaveAdminSinAdministradores</p>
+}
+else if (Model.Discos.Count == 0)
+{
+    <p class="empty">@UiTexts.LlaveAdminSinUsb</p>
+}
+else
+{
+    <form method="post" class="panel" data-protected-action="@AccionesProtegidas.LlaveRegistrar">
+        <div class="field">
+            <label for="UsuarioId">@UiTexts.LlaveAdminUsuario</label>
+            <select asp-for="UsuarioId" id="UsuarioId">
+                @foreach (var admin in Model.Administradores)
+                {
+                    <option value="@admin.UsuarioId">@admin.NombreCompleto (@admin.NombreUsuario)</option>
+                }
+            </select>
+        </div>
+        <div class="field">
+            <label for="LetraUsb">@UiTexts.LlaveAdminUsb</label>
+            @if (Model.Discos.Count == 1)
+            {
+                <input type="hidden" asp-for="LetraUsb" value="@Model.Discos[0].Letra" />
+                <p class="field-help">@Model.Discos[0].Letra @Model.Discos[0].Etiqueta</p>
+            }
+            else
+            {
+                <select asp-for="LetraUsb" id="LetraUsb">
+                    @foreach (var disco in Model.Discos)
+                    {
+                        <option value="@disco.Letra">@disco.Letra @disco.Etiqueta</option>
+                    }
+                </select>
+            }
+        </div>
+        <label class="check">
+            <input asp-for="ConfirmarBorrado" />
+            @UiTexts.LlaveAdminConfirmarBorrado
+        </label>
+        @if (Model.PideConfirmacionReemplazo)
+        {
+            <label class="check">
+                <input asp-for="ConfirmarReemplazo" />
+                @UiTexts.LlaveAdminConfirmarReemplazo
+            </label>
+        }
+        <p class="field-help">@LlaveMessages.AdvertenciaBorrado</p>
+        <button class="primary" type="submit">@UiTexts.LlaveAdminGenerar</button>
+    </form>
+}

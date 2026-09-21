@@ -3,6 +3,7 @@ using NewRich.Admin.Filters;
 using NewRich.Admin.Hubs;
 using NewRich.Admin.Services;
 using NewRich.Admin.Services.Pda;
+using NewRich.Admin.Services.Usb;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -40,6 +41,9 @@ builder.Services.AddSingleton<IAdb, AdbProceso>();
 builder.Services.AddSingleton<IApkPda, ApkPdaEnDisco>();
 builder.Services.AddSingleton<CandadoRegistroPda>();
 builder.Services.AddScoped<IRegistroPdaService, RegistroPdaService>();
+builder.Services.AddSingleton<IInventarioUsb, InventarioUsbWindows>();
+builder.Services.AddSingleton<IPreparadorLlaveUsb, PreparadorLlaveUsbWindows>();
+builder.Services.AddSingleton<ILectorLlaveUsb, LectorLlaveUsb>();
 builder.Services.AddSignalR();
 
 var app = builder.Build();

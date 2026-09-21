@@ -40,6 +40,7 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
     public DbSet<CasoGanador> CasosGanadores => Set<CasoGanador>();
     public DbSet<EntregaGanador> EntregasGanadores => Set<EntregaGanador>();
     public DbSet<EvidenciaGanador> EvidenciasGanador => Set<EvidenciaGanador>();
+    public DbSet<LlaveAdministrador> LlavesAdministrador => Set<LlaveAdministrador>();
 
     public async Task ExecuteInTransactionAsync(Func<CancellationToken, Task> action, CancellationToken cancellationToken = default)
     {
@@ -68,6 +69,7 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
         var estadoCasoGanador = new EnumToStringConverter<EstadoCasoGanador>();
         var estadoPremio = new EnumToStringConverter<EstadoDelPremio>();
         var tipoEvidencia = new EnumToStringConverter<TipoEvidencia>();
+        var estadoLlave = new EnumToStringConverter<EstadoLlaveAdministrador>();
         var estadoBoleto = new ValueConverter<EstadoBoleto, string>(
             v => EstadoBoletoToString(v),
             v => StringToEstadoBoleto(v));
@@ -311,6 +313,19 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
             e.HasKey(x => x.EvidenciaId);
             e.Property(x => x.TipoEvidencia).HasConversion(tipoEvidencia).HasMaxLength(30);
             e.HasOne(x => x.EntregaGanador).WithMany(x => x.Evidencias).HasForeignKey(x => x.EntregaId);
+        });
+
+        modelBuilder.Entity<LlaveAdministrador>(e =>
+        {
+            e.ToTable("LlavesAdministrador");
+            e.HasKey(x => x.LlaveId);
+            e.Property(x => x.Codigo).HasMaxLength(32);
+            e.Property(x => x.Estado).HasConversion(estadoLlave).HasMaxLength(20);
+            e.Property(x => x.ClavePublica).HasMaxLength(4000);
+            e.Property(x => x.HuellaDispositivo).HasMaxLength(128);
+            e.Property(x => x.MotivoRevocacion).HasMaxLength(200);
+            e.HasOne(x => x.Usuario).WithMany().HasForeignKey(x => x.UsuarioId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(x => x.Codigo).IsUnique();
         });
     }
 

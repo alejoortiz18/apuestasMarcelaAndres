@@ -25,6 +25,10 @@ public sealed class AdminSessionService : IAdminSessionService
             new(ClaimTypes.Role, login.Rol.ToString()),
             new("debeCambiarPassword", login.DebeCambiarPassword ? "true" : "false")
         };
+        if (login.Rol == RolUsuario.Super)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, nameof(RolUsuario.Administrador)));
+        }
 
         var identity = new ClaimsIdentity(claims, AuthCookieNames.Scheme);
         var principal = new ClaimsPrincipal(identity);
@@ -86,5 +90,5 @@ public static class ClaimsPrincipalExtensions
     }
 
     public static bool EsAdministrador(this ClaimsPrincipal user) =>
-        user.IsInRole(nameof(RolUsuario.Administrador));
+        user.IsInRole(nameof(RolUsuario.Administrador)) || user.IsInRole(nameof(RolUsuario.Super));
 }

@@ -3,10 +3,11 @@ namespace NewRich.Constants.Messages;
 /// <summary>Mensajes de operación exitosa compartidos por API, MVC y PDA.</summary>
 public static class SuccessMessages
 {
+    public const string OperacionExitosa = "Listo.";
     public const string RegistroCreado = "El registro fue creado correctamente.";
     public const string RegistroActualizado = "El registro fue actualizado correctamente.";
     public const string RegistroEliminado = "El registro fue eliminado correctamente.";
-    public const string OperacionExitosa = "La operación se completó correctamente.";
+    public const string LlaveGenerada = "La llave de administrador fue generada y quedó asociada al usuario.";
 
     public const string UsuarioCreado = "El usuario fue creado correctamente con contraseña temporal.";
     public const string UsuarioActualizado = "El usuario fue actualizado correctamente.";

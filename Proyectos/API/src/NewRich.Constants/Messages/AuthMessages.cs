@@ -33,4 +33,9 @@ public static class AuthMessages
     public const string ContrasenaAccionNoValidada = "No fue posible validar la contraseña. Intente nuevamente.";
     public const string ConfirmacionAccionRequerida = "Para continuar debe confirmar la contraseña del administrador.";
     public const string ConfirmacionAccionInvalida = "La confirmación de la acción no es válida o ya fue utilizada.";
+
+    public const string LlaveNoDetectada = "No se ha detectado una llave de administrador válida. Conecte la llave USB asociada al usuario para continuar.";
+    public const string LlaveNoCorresponde = "La llave conectada no corresponde al usuario seleccionado. Conecte la llave de administrador correspondiente para continuar.";
+    public const string LlaveNoValida = "La llave de administrador no es válida. La llave ha sido revocada, bloqueada o invalidada. Contacte al administrador del sistema para generar una nueva llave.";
+    public const string LlavePruebaInvalida = "La llave física no pudo demostrarse. Verifique que esté conectada la USB original.";
 }

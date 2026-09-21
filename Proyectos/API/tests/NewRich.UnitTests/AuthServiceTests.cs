@@ -7,6 +7,7 @@ using NewRich.Constants;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
 using NewRich.Domain.Enums;
+using NewRich.Domain.Services;
 using NewRich.Infrastructure.Persistence;
 using NewRich.Infrastructure.Security;
 
@@ -15,14 +16,81 @@ namespace NewRich.UnitTests;
 public sealed class AuthServiceTests
 {
     [Fact]
-    public async Task LoginAsync_acepta_credenciales_validas_de_administrador()
+    public async Task LoginAsync_super_ingresa_sin_llave_usb()
     {
-        var (sut, _, usuario, _) = await CreateSutConAdminAsync("Admin123");
+        var options = new DbContextOptionsBuilder<NewRichDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+        var db = new NewRichDbContext(options);
+        var hasher = new Pbkdf2PasswordHasher();
+        var hashed = hasher.Hash(SuperUsuario.PasswordInicial);
+        db.Usuarios.Add(new Usuario
+        {
+            UsuarioId = Guid.NewGuid(),
+            NombreCompleto = SuperUsuario.NombreCompleto,
+            NombreUsuario = SuperUsuario.NombreUsuario,
+            PasswordHash = hashed.Hash,
+            PasswordSalt = hashed.Salt,
+            Rol = RolUsuario.Super,
+            Estado = EstadoUsuario.Activo,
+            EstadoValidado = false,
+            FechaCreacion = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+        var sut = new AuthService(db, hasher, new JwtFalso(), new RelojFijo(new DateTime(2026, 9, 19, 20, 0, 0, DateTimeKind.Utc)), new ConfirmacionAccionMemoria());
+
+        var result = await sut.LoginAsync(new LoginRequest
+        {
+            Usuario = SuperUsuario.NombreUsuario,
+            Password = SuperUsuario.PasswordInicial
+        }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Rol.Should().Be(RolUsuario.Super);
+    }
+
+    [Fact]
+    public async Task LoginAsync_administrador_sin_prueba_de_llave_es_rechazado()
+    {
+        var (sut, db, usuario, _, _) = await CreateSutConAdminAsync("Admin123");
+        await RegistrarLlaveAsync(db, usuario, new RelojFijo(new DateTime(2026, 9, 19, 20, 0, 0, DateTimeKind.Utc)));
 
         var result = await sut.LoginAsync(new LoginRequest
         {
             Usuario = usuario.NombreUsuario,
             Password = "Admin123"
+        }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Message.Should().Be(AuthMessages.LlaveNoDetectada);
+    }
+
+    [Fact]
+    public async Task LoginAsync_administrador_sin_llave_activa_es_rechazado()
+    {
+        var (sut, _, usuario, _, _) = await CreateSutConAdminAsync("Admin123");
+
+        var result = await sut.LoginAsync(new LoginRequest
+        {
+            Usuario = usuario.NombreUsuario,
+            Password = "Admin123"
+        }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Message.Should().Be(AuthMessages.LlaveNoValida);
+    }
+
+    [Fact]
+    public async Task LoginAsync_acepta_credenciales_validas_de_administrador()
+    {
+        var (sut, db, usuario, _, reloj) = await CreateSutConAdminAsync("Admin123");
+        var prueba = await RegistrarLlaveAsync(db, usuario, reloj);
+
+        var result = await sut.LoginAsync(new LoginRequest
+        {
+            Usuario = usuario.NombreUsuario,
+            Password = "Admin123",
+            PruebaLlave = prueba
         }, CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
@@ -34,12 +102,14 @@ public sealed class AuthServiceTests
     [Fact]
     public async Task LoginAsync_marca_debe_cambiar_password_cuando_estado_validado()
     {
-        var (sut, _, usuario, _) = await CreateSutConAdminAsync("Admin123", estadoValidado: true);
+        var (sut, db, usuario, _, reloj) = await CreateSutConAdminAsync("Admin123", estadoValidado: true);
+        var prueba = await RegistrarLlaveAsync(db, usuario, reloj);
 
         var result = await sut.LoginAsync(new LoginRequest
         {
             Usuario = usuario.NombreUsuario,
-            Password = "Admin123"
+            Password = "Admin123",
+            PruebaLlave = prueba
         }, CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
@@ -50,7 +120,7 @@ public sealed class AuthServiceTests
     [Fact]
     public async Task LoginAsync_rechaza_password_incorrecta()
     {
-        var (sut, _, usuario, _) = await CreateSutConAdminAsync("Admin123");
+        var (sut, _, usuario, _, _) = await CreateSutConAdminAsync("Admin123");
 
         var result = await sut.LoginAsync(new LoginRequest
         {
@@ -66,7 +136,7 @@ public sealed class AuthServiceTests
     [Fact]
     public async Task CambiarPasswordAsync_exige_formato_fuerte()
     {
-        var (sut, db, usuario, _) = await CreateSutConAdminAsync("Admin123", estadoValidado: true);
+        var (sut, db, usuario, _, _) = await CreateSutConAdminAsync("Admin123", estadoValidado: true);
         var sesionId = await CrearSesionAsync(db, usuario.UsuarioId);
 
         var result = await sut.CambiarPasswordAsync(usuario.UsuarioId, sesionId, new CambiarPasswordRequest
@@ -83,7 +153,7 @@ public sealed class AuthServiceTests
     [Fact]
     public async Task CambiarPasswordAsync_actualiza_hash_y_limpia_estado_validado()
     {
-        var (sut, db, usuario, _) = await CreateSutConAdminAsync("Admin123", estadoValidado: true);
+        var (sut, db, usuario, _, _) = await CreateSutConAdminAsync("Admin123", estadoValidado: true);
         var sesionId = await CrearSesionAsync(db, usuario.UsuarioId);
 
         var result = await sut.CambiarPasswordAsync(usuario.UsuarioId, sesionId, new CambiarPasswordRequest
@@ -102,7 +172,8 @@ public sealed class AuthServiceTests
         var loginNuevo = await sut.LoginAsync(new LoginRequest
         {
             Usuario = usuario.NombreUsuario,
-            Password = "Admin123*"
+            Password = "Admin123*",
+            PruebaLlave = await RegistrarLlaveAsync(db, usuario, new RelojFijo(new DateTime(2026, 9, 19, 20, 0, 0, DateTimeKind.Utc)))
         }, CancellationToken.None);
         loginNuevo.IsSuccess.Should().BeTrue();
 
@@ -117,7 +188,7 @@ public sealed class AuthServiceTests
     [Fact]
     public async Task CambiarPasswordAsync_rechaza_password_actual_incorrecta()
     {
-        var (sut, db, usuario, _) = await CreateSutConAdminAsync("Admin123", estadoValidado: true);
+        var (sut, db, usuario, _, _) = await CreateSutConAdminAsync("Admin123", estadoValidado: true);
         var sesionId = await CrearSesionAsync(db, usuario.UsuarioId);
 
         var result = await sut.CambiarPasswordAsync(usuario.UsuarioId, sesionId, new CambiarPasswordRequest
@@ -134,7 +205,7 @@ public sealed class AuthServiceTests
     [Fact]
     public async Task ConfirmarAccionAdministrativaAsync_emite_token_con_password_correcta()
     {
-        var (sut, _, usuario, _) = await CreateSutConAdminAsync("Admin123");
+        var (sut, _, usuario, _, _) = await CreateSutConAdminAsync("Admin123");
 
         var result = await sut.ConfirmarAccionAdministrativaAsync(usuario.UsuarioId, new ConfirmarAccionRequest
         {
@@ -149,7 +220,7 @@ public sealed class AuthServiceTests
     [Fact]
     public async Task ConfirmarAccionAdministrativaAsync_rechaza_password_incorrecta_sin_bloquear()
     {
-        var (sut, db, usuario, _) = await CreateSutConAdminAsync("Admin123");
+        var (sut, db, usuario, _, _) = await CreateSutConAdminAsync("Admin123");
 
         var result = await sut.ConfirmarAccionAdministrativaAsync(usuario.UsuarioId, new ConfirmarAccionRequest
         {
@@ -168,7 +239,7 @@ public sealed class AuthServiceTests
     [Fact]
     public async Task ConfirmarAccionAdministrativaAsync_token_solo_sirve_para_esa_accion_una_vez()
     {
-        var (sut, _, usuario, store) = await CreateSutConAdminAsync("Admin123");
+        var (sut, _, usuario, store, _) = await CreateSutConAdminAsync("Admin123");
 
         var result = await sut.ConfirmarAccionAdministrativaAsync(usuario.UsuarioId, new ConfirmarAccionRequest
         {
@@ -184,7 +255,7 @@ public sealed class AuthServiceTests
     [Fact]
     public async Task ConfirmarAccionAdministrativaAsync_emite_token_con_usos_del_lote()
     {
-        var (sut, _, usuario, store) = await CreateSutConAdminAsync("Admin123");
+        var (sut, _, usuario, store, _) = await CreateSutConAdminAsync("Admin123");
 
         var result = await sut.ConfirmarAccionAdministrativaAsync(usuario.UsuarioId, new ConfirmarAccionRequest
         {
@@ -198,7 +269,7 @@ public sealed class AuthServiceTests
         store.Consumir(result.Data.Token, usuario.UsuarioId, AccionesProtegidas.PdaBloquear).Should().BeFalse();
     }
 
-    private static async Task<(AuthService Sut, NewRichDbContext Db, Usuario Usuario, ConfirmacionAccionMemoria Store)> CreateSutConAdminAsync(
+    private static async Task<(AuthService Sut, NewRichDbContext Db, Usuario Usuario, ConfirmacionAccionMemoria Store, RelojFijo Reloj)> CreateSutConAdminAsync(
         string password,
         bool estadoValidado = false)
     {
@@ -223,8 +294,36 @@ public sealed class AuthServiceTests
         db.Usuarios.Add(usuario);
         await db.SaveChangesAsync();
         var store = new ConfirmacionAccionMemoria();
-        var sut = new AuthService(db, hasher, new JwtFalso(), new RelojFijo(new DateTime(2026, 9, 19, 20, 0, 0, DateTimeKind.Utc)), store);
-        return (sut, db, usuario, store);
+        var reloj = new RelojFijo(new DateTime(2026, 9, 19, 20, 0, 0, DateTimeKind.Utc));
+        var sut = new AuthService(db, hasher, new JwtFalso(), reloj, store);
+        return (sut, db, usuario, store, reloj);
+    }
+
+    private static async Task<PruebaLlaveAdministradorRequest> RegistrarLlaveAsync(NewRichDbContext db, Usuario usuario, RelojFijo reloj)
+    {
+        var material = LlaveUsbCriptografia.Generar("KEY-TEST01", "SERIE-A", "VOL-1");
+        db.LlavesAdministrador.Add(new LlaveAdministrador
+        {
+            LlaveId = Guid.NewGuid(),
+            UsuarioId = usuario.UsuarioId,
+            Codigo = material.Codigo,
+            Estado = EstadoLlaveAdministrador.Activa,
+            ClavePublica = material.ClavePublica,
+            HuellaDispositivo = material.Huella,
+            FechaCreacion = reloj.UtcNow,
+            FechaActivacion = reloj.UtcNow
+        });
+        await db.SaveChangesAsync();
+        LlaveUsbCriptografia.TryDesenvolver(material.SecretoEnvuelto, "SERIE-A", "VOL-1", out var privada).Should().BeTrue();
+        var unix = new DateTimeOffset(reloj.UtcNow).ToUnixTimeSeconds();
+        var payload = LlaveUsbCriptografia.PayloadLogin(material.Codigo, usuario.NombreUsuario, material.Huella, unix);
+        return new PruebaLlaveAdministradorRequest
+        {
+            Codigo = material.Codigo,
+            HuellaDispositivo = material.Huella,
+            Firma = LlaveUsbCriptografia.Firmar(privada, payload),
+            Unix = unix
+        };
     }
 
     private static async Task<Guid> CrearSesionAsync(NewRichDbContext db, Guid usuarioId)

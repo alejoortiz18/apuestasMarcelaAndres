@@ -30,6 +30,11 @@ public sealed class JwtTokenService : IJwtTokenService
             new("debeCambiarPassword", user.DebeCambiarPassword.ToString())
         };
 
+        if (user.Rol == NewRich.Domain.Enums.RolUsuario.Super)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, nameof(NewRich.Domain.Enums.RolUsuario.Administrador)));
+        }
+
         if (user.DispositivoId.HasValue)
         {
             claims.Add(new Claim("dispositivoId", user.DispositivoId.Value.ToString()));

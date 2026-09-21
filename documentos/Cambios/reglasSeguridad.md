@@ -193,6 +193,28 @@ La contraseña debe solicitarse **antes de continuar con el registro del PDA**.
 
 ---
 
+# ITEM: INSTALACIONES
+
+## Instalar
+
+- Enlace: `Instalar`
+- Requiere contraseña: **No** (abre el registro de PDA)
+- La contraseña se pide al `Continuar` / `Reintentar` del registro, igual que en el módulo PDA
+
+## Generar llave (abrir formulario)
+
+- Enlace: `Generar llave`
+- Requiere contraseña: **No** (abre el formulario de registrar llave)
+
+## Generar llave → persistir
+
+- Botón: `Generar llave`
+- Requiere contraseña: **Sí**
+- Agregada en revisión: crea (o reemplaza) la llave USB del administrador seleccionado.
+- Los avisos de borrado del USB y de reemplazo de una llave activa son confirmaciones adicionales; no sustituyen la contraseña.
+
+---
+
 # ITEM: RESULTADOS
 
 ## Registrar resultado
@@ -408,7 +430,7 @@ La validación anterior no debe autorizar automáticamente una acción diferente
 
 - Ver, consultar, buscar, filtrar, paginar
 - Navegar entre pestañas o módulos
-- Abrir formularios (`Editar`, `Crear`, `Nuevo registro`, `Agregar lotería`, `Registrar resultado`)
+- Abrir formularios (`Editar`, `Crear`, `Nuevo registro`, `Agregar lotería`, `Registrar resultado`, `Generar llave`, `Instalar`)
 - Cancelar, volver, cerrar
 - Validar ticket (consulta)
 - Enviar mensajes de soporte
@@ -530,6 +552,7 @@ Las operaciones de consulta que no modifican información no requieren contrase�
 | PDA               | Eliminar                                    | Sí                  |
 | PDA               | Registrar PDA → Continuar                   | Sí                  |
 | PDA               | Registrar PDA → Reintentar                  | Sí                  |
+| Instalaciones     | Generar llave                               | Sí                  |
 | Resultados        | Guardar resultado                           | Sí                  |
 | Loterías vendidas | Guardar (crear o editar)                    | Sí                  |
 | Ventas            | Autorizar pago                              | Sí                  |

@@ -56,6 +56,27 @@
                     </div>
                     <span asp-validation-for="Password"></span>
                 </div>
+                @if (Model.Discos.Count > 1)
+                {
+                    <div class="field">
+                        <label asp-for="LetraUsb">@UiTexts.LoginUsb</label>
+                        <select asp-for="LetraUsb">
+                            @foreach (var disco in Model.Discos)
+                            {
+                                <option value="@disco.Letra">@disco.Letra @disco.Etiqueta</option>
+                            }
+                        </select>
+                        <span class="field-help">@UiTexts.LoginUsbVarias</span>
+                    </div>
+                }
+                else if (Model.Discos.Count == 1)
+                {
+                    <input type="hidden" asp-for="LetraUsb" value="@Model.Discos[0].Letra" />
+                }
+                else
+                {
+                    <p class="field-help">@UiTexts.LoginUsbNinguna</p>
+                }
                 @if (!string.IsNullOrWhiteSpace(Model.Error))
                 {
                     <div class="notice error" role="alert">@Model.Error</div>

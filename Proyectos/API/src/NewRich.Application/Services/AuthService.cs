@@ -118,6 +118,15 @@ public sealed class AuthService : IAuthService
             }
         }
 
+        if (usuario.Rol == RolUsuario.Administrador)
+        {
+            var llave = await ValidarLlaveAdministradorAsync(usuario, request.PruebaLlave, cancellationToken);
+            if (!llave.IsSuccess)
+            {
+                return Result<LoginResponse>.Fail(llave.Message, llave.StatusCode);
+            }
+        }
+
         usuario.IntentosFallidos = 0;
         usuario.FechaUltimoAcceso = _clock.UtcNow;
         _db.IntentosFallidos.Add(new IntentosFallidos
@@ -250,7 +259,7 @@ public sealed class AuthService : IAuthService
             return Result<ConfirmarAccionResponse>.Fail(AuthMessages.SesionInvalida, 401);
         }
 
-        if (usuario.Rol != RolUsuario.Administrador)
+        if (!RolConsola.EsEquipoAdministrativo(usuario.Rol))
         {
             return Result<ConfirmarAccionResponse>.Fail(AuthMessages.SoloAdministrador, 403);
         }
@@ -276,5 +285,55 @@ public sealed class AuthService : IAuthService
         }
 
         return HorarioOperacion.EstaFuera(_clock.LocalNow.TimeOfDay, apertura, cierre);
+    }
+
+    private async Task<Result> ValidarLlaveAdministradorAsync(Usuario usuario, PruebaLlaveAdministradorRequest? prueba, CancellationToken cancellationToken)
+    {
+        var activa = await _db.LlavesAdministrador
+            .Where(l => l.UsuarioId == usuario.UsuarioId && l.Estado == EstadoLlaveAdministrador.Activa)
+            .OrderByDescending(l => l.FechaActivacion)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (activa is null)
+        {
+            return Result.Fail(AuthMessages.LlaveNoValida, 403);
+        }
+
+        if (prueba is null
+            || string.IsNullOrWhiteSpace(prueba.Codigo)
+            || string.IsNullOrWhiteSpace(prueba.Firma)
+            || string.IsNullOrWhiteSpace(prueba.HuellaDispositivo))
+        {
+            return Result.Fail(AuthMessages.LlaveNoDetectada, 403);
+        }
+
+        if (!string.Equals(prueba.Codigo, activa.Codigo, StringComparison.OrdinalIgnoreCase))
+        {
+            return Result.Fail(AuthMessages.LlaveNoCorresponde, 403);
+        }
+
+        var unixAhora = new DateTimeOffset(_clock.UtcNow).ToUnixTimeSeconds();
+        if (Math.Abs(unixAhora - prueba.Unix) > 300)
+        {
+            return Result.Fail(AuthMessages.LlavePruebaInvalida, 403);
+        }
+
+        if (!string.Equals(prueba.HuellaDispositivo, activa.HuellaDispositivo, StringComparison.OrdinalIgnoreCase))
+        {
+            activa.Estado = EstadoLlaveAdministrador.Comprometida;
+            activa.FechaRevocacion = _clock.UtcNow;
+            activa.MotivoRevocacion = "Huella de dispositivo no coincide";
+            await _db.SaveChangesAsync(cancellationToken);
+            return Result.Fail(AuthMessages.LlaveNoValida, 403);
+        }
+
+        var payload = LlaveUsbCriptografia.PayloadLogin(activa.Codigo, usuario.NombreUsuario, activa.HuellaDispositivo, prueba.Unix);
+        if (!LlaveUsbCriptografia.Verificar(activa.ClavePublica, payload, prueba.Firma))
+        {
+            return Result.Fail(AuthMessages.LlavePruebaInvalida, 403);
+        }
+
+        activa.FechaUltimoUso = _clock.UtcNow;
+        return Result.Ok(SuccessMessages.OperacionExitosa);
     }
 }

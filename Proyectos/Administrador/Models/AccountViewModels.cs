@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using NewRich.Admin.Constants;
 using NewRich.Constants.Messages;
+using NewRich.Domain.Services;
 
 namespace NewRich.Admin.Models;
 
@@ -16,6 +17,10 @@ public sealed class LoginViewModel
     public string Password { get; set; } = string.Empty;
 
     public string? Error { get; set; }
+
+    public string? LetraUsb { get; set; }
+
+    public IReadOnlyList<DiscoUsbInfo> Discos { get; set; } = [];
 }
 
 public sealed class CambiarPasswordViewModel

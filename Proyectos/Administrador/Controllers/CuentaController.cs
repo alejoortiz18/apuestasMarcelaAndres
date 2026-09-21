@@ -3,9 +3,11 @@ using Microsoft.AspNetCore.Mvc;
 using NewRich.Admin.Constants;
 using NewRich.Admin.Models;
 using NewRich.Admin.Services;
+using NewRich.Admin.Services.Usb;
 using NewRich.Application.Contracts.Auth;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Enums;
+using NewRich.Domain.Services;
 
 namespace NewRich.Admin.Controllers;
 
@@ -13,11 +15,19 @@ public sealed class CuentaController : Controller
 {
     private readonly IAdminApiClient _api;
     private readonly IAdminSessionService _session;
+    private readonly IInventarioUsb _inventario;
+    private readonly ILectorLlaveUsb _lectorLlave;
 
-    public CuentaController(IAdminApiClient api, IAdminSessionService session)
+    public CuentaController(
+        IAdminApiClient api,
+        IAdminSessionService session,
+        IInventarioUsb inventario,
+        ILectorLlaveUsb lectorLlave)
     {
         _api = api;
         _session = session;
+        _inventario = inventario;
+        _lectorLlave = lectorLlave;
     }
 
     [HttpGet]
@@ -29,10 +39,15 @@ public sealed class CuentaController : Controller
             return RedirectToAction("Index", "Inicio");
         }
 
-        return View(new LoginViewModel
-        {
-            Error = expired ? UiTexts.SesionExpiradaVista : null
-        });
+        return View(CrearLogin(expired ? UiTexts.SesionExpiradaVista : null));
+    }
+
+    [HttpGet]
+    [AllowAnonymous]
+    public IActionResult DiscosUsb()
+    {
+        var discos = _inventario.Listar();
+        return Json(discos.Select(d => new { letra = d.Letra, etiqueta = d.Etiqueta, ntfs = d.EsNtfs }));
     }
 
     [HttpPost]
@@ -40,15 +55,18 @@ public sealed class CuentaController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Ingresar(LoginViewModel model, CancellationToken cancellationToken)
     {
+        model.Discos = _inventario.Listar();
         if (!ModelState.IsValid)
         {
             return View(model);
         }
 
+        var prueba = ResolverPrueba(model.Usuario.Trim(), model.LetraUsb, model.Discos);
         var result = await _api.LoginAsync(new LoginRequest
         {
             Usuario = model.Usuario.Trim(),
-            Password = model.Password
+            Password = model.Password,
+            PruebaLlave = prueba
         }, cancellationToken);
 
         if (!result.Success || result.Data is null)
@@ -57,7 +75,7 @@ public sealed class CuentaController : Controller
             return View(model);
         }
 
-        if (result.Data.Rol != RolUsuario.Administrador)
+        if (!RolConsola.EsEquipoAdministrativo(result.Data.Rol))
         {
             model.Error = UiTexts.SoloAdministrador;
             return View(model);
@@ -134,5 +152,23 @@ public sealed class CuentaController : Controller
         }
 
         return mensajeApi;
+    }
+
+    private LoginViewModel CrearLogin(string? error) =>
+        new()
+        {
+            Error = error,
+            Discos = _inventario.Listar()
+        };
+
+    private PruebaLlaveAdministradorRequest? ResolverPrueba(string usuario, string? letra, IReadOnlyList<DiscoUsbInfo> discos)
+    {
+        var resultado = SeleccionDiscoUsb.Elegir(discos, letra, out var disco);
+        if (resultado != ResultadoSeleccionUsb.Ok || disco is null)
+        {
+            return null;
+        }
+
+        return _lectorLlave.CrearPrueba(disco, usuario);
     }
 }

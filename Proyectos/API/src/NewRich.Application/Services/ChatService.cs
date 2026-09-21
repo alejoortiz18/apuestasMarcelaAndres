@@ -44,7 +44,10 @@ public sealed class ChatService : IChatService
         Guid destinoId;
         if (iniciador.Rol == RolUsuario.Vendedor)
         {
-            var admin = await _db.Usuarios.FirstOrDefaultAsync(u => u.Rol == RolUsuario.Administrador && u.Estado == EstadoUsuario.Activo, cancellationToken);
+            var admin = await _db.Usuarios
+                .Where(u => (u.Rol == RolUsuario.Administrador || u.Rol == RolUsuario.Super) && u.Estado == EstadoUsuario.Activo)
+                .OrderBy(u => u.Rol == RolUsuario.Administrador ? 0 : 1)
+                .FirstOrDefaultAsync(cancellationToken);
             if (admin is null)
             {
                 return Result<ConversacionResponse>.Fail(ChatMessages.AdministradorNoDisponible);
@@ -56,7 +59,10 @@ public sealed class ChatService : IChatService
         {
             if (!request.DestinoId.HasValue)
             {
-                var admin = await _db.Usuarios.FirstOrDefaultAsync(u => u.Rol == RolUsuario.Administrador && u.Estado == EstadoUsuario.Activo, cancellationToken);
+                var admin = await _db.Usuarios
+                .Where(u => (u.Rol == RolUsuario.Administrador || u.Rol == RolUsuario.Super) && u.Estado == EstadoUsuario.Activo)
+                .OrderBy(u => u.Rol == RolUsuario.Administrador ? 0 : 1)
+                .FirstOrDefaultAsync(cancellationToken);
                 if (admin is null)
                 {
                     return Result<ConversacionResponse>.Fail(ChatMessages.AdministradorNoDisponible);
@@ -133,7 +139,7 @@ public sealed class ChatService : IChatService
             .ThenInclude(m => m.UsuarioEmisor)
             .Where(c => c.Tipo == tipo)
             .AsQueryable();
-        if (actor is null || actor.Rol != RolUsuario.Administrador)
+        if (actor is null || !RolConsola.EsEquipoAdministrativo(actor.Rol))
         {
             consulta = consulta.Where(c => c.UsuarioIniciadorId == usuarioId || c.UsuarioDestinoId == usuarioId);
         }
@@ -198,7 +204,7 @@ public sealed class ChatService : IChatService
             return Result<MensajeResponse>.Fail(UsuarioMessages.UsuarioNoEncontrado, 404);
         }
 
-        if (conversacion.Tipo == TipoConversacion.SoporteTecnico && emisor.Rol != RolUsuario.Administrador)
+        if (conversacion.Tipo == TipoConversacion.SoporteTecnico && !RolConsola.EsEquipoAdministrativo(emisor.Rol))
         {
             return Result<MensajeResponse>.Fail(ChatMessages.SoporteTecnicoSoloLectura, 403);
         }
@@ -254,9 +260,10 @@ public sealed class ChatService : IChatService
             return Result<MensajeResponse>.Fail(ChatMessages.SoporteTecnicoSoloLectura, 403);
         }
 
-        var admin = await _db.Usuarios.FirstOrDefaultAsync(
-            u => u.Rol == RolUsuario.Administrador && u.Estado == EstadoUsuario.Activo,
-            cancellationToken);
+        var admin = await _db.Usuarios
+            .Where(u => (u.Rol == RolUsuario.Administrador || u.Rol == RolUsuario.Super) && u.Estado == EstadoUsuario.Activo)
+            .OrderBy(u => u.Rol == RolUsuario.Administrador ? 0 : 1)
+            .FirstOrDefaultAsync(cancellationToken);
         if (admin is null)
         {
             return Result<MensajeResponse>.Fail(ChatMessages.AdministradorNoDisponible);
@@ -325,7 +332,7 @@ public sealed class ChatService : IChatService
     public async Task<Result> CerrarAsync(Guid conversacionId, Guid administradorId, CancellationToken cancellationToken)
     {
         var admin = await _db.Usuarios.FirstAsync(u => u.UsuarioId == administradorId, cancellationToken);
-        if (admin.Rol != RolUsuario.Administrador)
+        if (!RolConsola.EsEquipoAdministrativo(admin.Rol))
         {
             return Result.Fail(ChatMessages.ObservadorNoCierraConversacion, 403);
         }
@@ -442,7 +449,7 @@ public sealed class ChatService : IChatService
         };
         var destinatarios = new HashSet<Guid> { conversacion.UsuarioIniciadorId, conversacion.UsuarioDestinoId };
         var administradores = await _db.Usuarios
-            .Where(u => u.Rol == RolUsuario.Administrador && u.Estado == EstadoUsuario.Activo)
+            .Where(u => (u.Rol == RolUsuario.Administrador || u.Rol == RolUsuario.Super) && u.Estado == EstadoUsuario.Activo)
             .Select(u => u.UsuarioId)
             .ToListAsync(cancellationToken);
         foreach (var adminId in administradores)
@@ -454,7 +461,7 @@ public sealed class ChatService : IChatService
 
         var emisor = mensaje.UsuarioEmisor
             ?? await _db.Usuarios.FirstOrDefaultAsync(u => u.UsuarioId == mensaje.UsuarioEmisorId, cancellationToken);
-        if (emisor is null || emisor.Rol == RolUsuario.Administrador)
+        if (emisor is null || RolConsola.EsEquipoAdministrativo(emisor.Rol))
         {
             return;
         }
@@ -481,7 +488,7 @@ public sealed class ChatService : IChatService
         }
 
         var actor = await _db.Usuarios.FirstOrDefaultAsync(u => u.UsuarioId == usuarioId, cancellationToken);
-        return actor?.Rol == RolUsuario.Administrador;
+        return actor is not null && RolConsola.EsEquipoAdministrativo(actor.Rol);
     }
 
     private static ConversacionResponse Map(Conversacion c)
