@@ -20,13 +20,22 @@ public sealed class ConfiguracionController : AdminControllerBase
         _api = api;
     }
 
-    public async Task<IActionResult> Index(string? q, int page = 1, int pageSize = 5, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> Index(
+        string? q,
+        int page = 1,
+        int pageSize = 5,
+        int pageNumeros = 1,
+        int pageSizeNumeros = 5,
+        CancellationToken cancellationToken = default)
     {
         SetNav("configuracion", UiTexts.NavConfiguracion);
         var configTask = _api.ObtenerConfiguracionOperativaAsync(cancellationToken);
         var loteriasTask = _api.ListarLoteriasAsync(cancellationToken);
-        await Task.WhenAll(configTask, loteriasTask);
-        var unauthorized = RedirectIfUnauthorized(configTask.Result) ?? RedirectIfUnauthorized(loteriasTask.Result);
+        var numerosTask = _api.ListarNumerosRestringidosAsync(cancellationToken);
+        await Task.WhenAll(configTask, loteriasTask, numerosTask);
+        var unauthorized = RedirectIfUnauthorized(configTask.Result)
+            ?? RedirectIfUnauthorized(loteriasTask.Result)
+            ?? RedirectIfUnauthorized(numerosTask.Result);
         if (unauthorized is not null)
         {
             return unauthorized;
@@ -45,7 +54,8 @@ public sealed class ConfiguracionController : AdminControllerBase
             Form = Mapear(configTask.Result.Data),
             Busqueda = q,
             Pagina = PagingHelper.Paginate(loterias, page, pageSize),
-            DiasVenta = MapDias(todas)
+            DiasVenta = MapDias(todas),
+            PaginaNumeros = PagingHelper.Paginate(numerosTask.Result.Data ?? [], pageNumeros, pageSizeNumeros)
         });
     }
 
@@ -125,6 +135,37 @@ public sealed class ConfiguracionController : AdminControllerBase
         }
 
         SetFlash(result.Success ? SuccessMessages.RegistroActualizado : result.Message, result.Success);
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AgregarNumeroRestringido(string numero, CancellationToken cancellationToken)
+    {
+        SetNav("configuracion", UiTexts.NavConfiguracion);
+        var result = await _api.AgregarNumeroRestringidoAsync(numero, cancellationToken);
+        var denied = RedirectIfUnauthorized(result);
+        if (denied is not null)
+        {
+            return denied;
+        }
+
+        SetFlash(result.Success ? SuccessMessages.RegistroCreado : result.Message, result.Success);
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> EliminarNumeroRestringido(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _api.EliminarNumeroRestringidoAsync(id, cancellationToken);
+        var denied = RedirectIfUnauthorized(result);
+        if (denied is not null)
+        {
+            return denied;
+        }
+
+        SetFlash(result.Success ? SuccessMessages.RegistroEliminado : result.Message, result.Success);
         return RedirectToAction(nameof(Index));
     }
 
@@ -323,11 +364,19 @@ public sealed class ConfiguracionController : AdminControllerBase
             return unauthorized;
         }
 
+        var numeros = await _api.ListarNumerosRestringidosAsync(cancellationToken);
+        unauthorized = RedirectIfUnauthorized(numeros);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
         return View("Index", new ConfiguracionIndexViewModel
         {
             Form = form,
             Pagina = PagingHelper.Paginate(loterias.Data ?? [], 1, 5),
-            DiasVenta = MapDias(loterias.Data ?? [])
+            DiasVenta = MapDias(loterias.Data ?? []),
+            PaginaNumeros = PagingHelper.Paginate(numeros.Data ?? [], 1, 5)
         });
     }
 

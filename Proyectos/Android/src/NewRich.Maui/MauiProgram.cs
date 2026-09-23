@@ -58,6 +58,7 @@ public static class MauiProgram
         builder.Services.AddTransient<TirillaVendidaPage>();
         builder.Services.AddTransient<HistoricoPage>();
         builder.Services.AddTransient<ResultadosPage>();
+        builder.Services.AddTransient<NumerosBloqueadosPage>();
         builder.Services.AddTransient<ValidarTicketPage>();
         builder.Services.AddTransient<SoportePage>();
         builder.Services.AddTransient<SoporteTecnicoPage>();

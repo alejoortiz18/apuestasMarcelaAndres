@@ -14,4 +14,6 @@ public static class ConfiguracionMessages
     public const string AlertaValorInvalida = "La alerta por valor mínimo no puede ser negativa.";
     public const string LeyendaTirillaRequerida = "El texto de la tirilla es obligatorio.";
     public const string LeyendaTirillaDemasiadoLarga = "El texto de la tirilla no puede superar 4000 caracteres.";
+    public const string NumeroRestringidoDuplicado = "Ese número ya está restringido.";
+    public const string NumeroRestringidoNoEncontrado = "El número restringido no existe.";
 }

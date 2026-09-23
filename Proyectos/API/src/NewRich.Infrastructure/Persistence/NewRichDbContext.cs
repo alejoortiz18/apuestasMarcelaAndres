@@ -31,6 +31,7 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
     public DbSet<ClaveValidacionBoleto> ClavesValidacionBoleto => Set<ClaveValidacionBoleto>();
     public DbSet<Configuracion> Configuraciones => Set<Configuracion>();
     public DbSet<ConfiguracionTipoApuesta> ConfiguracionesTipoApuesta => Set<ConfiguracionTipoApuesta>();
+    public DbSet<NumeroRestringido> NumerosRestringidos => Set<NumeroRestringido>();
     public DbSet<Notificacion> Notificaciones => Set<Notificacion>();
     public DbSet<Sincronizacion> Sincronizaciones => Set<Sincronizacion>();
     public DbSet<CodigoPreventaOffline> CodigosPreventaOffline => Set<CodigoPreventaOffline>();
@@ -229,6 +230,14 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
         {
             e.ToTable("ConfiguracionesTipoApuesta");
             e.HasKey(x => x.ConfiguracionTipoApuestaId);
+        });
+
+        modelBuilder.Entity<NumeroRestringido>(e =>
+        {
+            e.ToTable("NumerosRestringidos");
+            e.HasKey(x => x.NumeroRestringidoId);
+            e.Property(x => x.Numero).HasMaxLength(4).IsRequired();
+            e.HasIndex(x => x.Numero).IsUnique();
         });
 
         modelBuilder.Entity<Notificacion>(e =>

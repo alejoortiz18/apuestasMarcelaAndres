@@ -166,6 +166,80 @@
 <div class="panel">
     <div class="panel-head">
         <div>
+            <h2>@UiTexts.ConfigNumerosRestringidos</h2>
+            <div class="panel-sub">@UiTexts.ConfigNumerosRestringidosSub</div>
+        </div>
+    </div>
+    <form asp-action="AgregarNumeroRestringido" method="post" class="toolbar" data-protected-action="@AccionesProtegidas.ConfiguracionNumerosRestringidos">
+        @Html.AntiForgeryToken()
+        <div class="field">
+            <label for="numero">@UiTexts.NumeroRestringido</label>
+            <input id="numero" name="numero" value="@Model.NuevoNumeroRestringido" maxlength="4" inputmode="numeric" pattern="[0-9]{3,4}" placeholder="1234" />
+            <span class="field-help">@UiTexts.NumeroRestringidoAyuda</span>
+        </div>
+        <button class="primary" type="submit">@UiTexts.AgregarNumeroRestringido</button>
+    </form>
+    <form class="toolbar" method="get">
+        <input type="hidden" name="q" value="@Model.Busqueda" />
+        <input type="hidden" name="pageSize" value="@Model.Pagina.PageSize" />
+        <div class="field">
+            <label for="pageSizeNumeros">@UiTexts.FilasPorPagina</label>
+            <select id="pageSizeNumeros" name="pageSizeNumeros" class="searchable">
+                @foreach (var size in PagingHelper.PageSizes)
+                {
+                    <option value="@size" @(Model.PaginaNumeros.PageSize == size ? "selected" : null)>@size</option>
+                }
+            </select>
+        </div>
+        <button class="primary" type="submit">@UiTexts.Buscar</button>
+    </form>
+    @if (!Model.PaginaNumeros.Items.Any())
+    {
+        <div class="empty">@UiTexts.VacioNumerosRestringidos</div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table data-table-select="config-numeros">
+                <thead>
+                <tr>
+                    <th class="col-check"><span class="visually-hidden">@UiTexts.SeleccionarFila</span></th>
+                    <th>@UiTexts.NumeroRestringido</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var item in Model.PaginaNumeros.Items)
+                {
+                    <tr tabindex="0" data-row-id="@item.NumeroRestringidoId">
+                        <td class="col-check">
+                            <input class="row-check" type="checkbox" value="@item.NumeroRestringidoId" aria-label="@UiTexts.SeleccionarFila @item.Numero" />
+                        </td>
+                        <td><strong>@item.Numero</strong></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        ViewData["PagerPageKey"] = "pageNumeros";
+        ViewData["PagerPageSizeKey"] = "pageSizeNumeros";
+        <partial name="_Pager" model="Model.PaginaNumeros" />
+        ViewData["PagerPageKey"] = "page";
+        ViewData["PagerPageSizeKey"] = "pageSize";
+        <div class="table-actions" data-table-panel="config-numeros">
+            <h2>@UiTexts.AccionesDeNumeroRestringido</h2>
+            <p class="panel-sub">@UiTexts.SeleccionaParaAcciones</p>
+            <div class="table-actions-buttons">
+                <form method="post" data-needs-selection data-url-template="@Url.Action("EliminarNumeroRestringido")/{id}" data-protected-action="@AccionesProtegidas.ConfiguracionNumerosRestringidos" hidden>
+                    @Html.AntiForgeryToken()
+                    <button class="danger" type="submit" disabled>@UiTexts.Eliminar</button>
+                </form>
+            </div>
+        </div>
+    }
+</div>
+<div class="panel">
+    <div class="panel-head">
+        <div>
             <h2>@UiTexts.CatalogoLoterias</h2>
             <div class="panel-sub">@UiTexts.CatalogoLoteriasSub</div>
         </div>

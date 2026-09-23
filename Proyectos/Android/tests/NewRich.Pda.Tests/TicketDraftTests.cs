@@ -105,6 +105,17 @@ public sealed class TicketDraftTests
     }
 
     [Fact]
+    public void Rechaza_un_numero_restringido()
+    {
+        var draft = TicketDraft.Crear(TipoApuesta.INDIVIDUAL, maxLineas: 6);
+
+        var resultado = draft.AgregarLinea("1234", 1000, [Guid.NewGuid()], ["Cali"], ["1234"]);
+
+        resultado.IsSuccess.Should().BeFalse();
+        resultado.Message.Should().Be(string.Format(VentaMessages.NumeroRestringido, "1234"));
+    }
+
+    [Fact]
     public void Quitar_linea_descuenta_el_total()
     {
         var draft = TicketDraft.Crear(TipoApuesta.INDIVIDUAL, maxLineas: 6);

@@ -14,6 +14,8 @@
     <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
     <ApplicationVersion>76</ApplicationVersion>
     <AndroidFastDeploymentEnabled>false</AndroidFastDeploymentEnabled>
+    <!-- El APK se instala copiandolo (Registrar PDA), asi que debe traer los ensamblados adentro. -->
+    <EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
     <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">24.0</SupportedOSPlatformVersion>
     <RuntimeIdentifiers Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">android-arm;android-arm64</RuntimeIdentifiers>
   </PropertyGroup>

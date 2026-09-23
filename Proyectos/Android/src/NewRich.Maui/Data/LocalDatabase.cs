@@ -4,6 +4,7 @@ using NewRich.Application.Contracts.Configuracion;
 using NewRich.Application.Contracts.Loterias;
 using NewRich.Pda.Core;
 using NewRich.Pda.Core.Auth;
+using NewRich.Pda.Core.Ventas;
 using SQLite;
 
 namespace NewRich.Maui.Data;
@@ -58,6 +59,12 @@ public sealed class DatoLocal
     public string Json { get; set; } = string.Empty;
 }
 
+public sealed class NumeroRestringidoLocal
+{
+    [PrimaryKey]
+    public string Numero { get; set; } = string.Empty;
+}
+
 public sealed class SesionLocal
 {
     public LoginAndroidResponse Usuario { get; set; } = new();
@@ -92,6 +99,7 @@ public sealed class LocalDatabase
             await _db.CreateTableAsync<VentaOfflineLocal>();
             await _db.CreateTableAsync<ReporteTecnicoLocal>();
             await _db.CreateTableAsync<DatoLocal>();
+            await _db.CreateTableAsync<NumeroRestringidoLocal>();
         }
         finally
         {
@@ -276,6 +284,23 @@ public sealed class LocalDatabase
     {
         var lista = await LeerJsonAsync<List<LoteriaResponse>>("loterias");
         return lista ?? [];
+    }
+
+    public async Task GuardarNumerosRestringidosAsync(IReadOnlyCollection<string>? numeros)
+    {
+        var db = await ConexionAsync();
+        await db.DeleteAllAsync<NumeroRestringidoLocal>();
+        foreach (var numero in NumerosRestringidosPda.Vigentes(numeros, null))
+        {
+            await db.InsertAsync(new NumeroRestringidoLocal { Numero = numero });
+        }
+    }
+
+    public async Task<IReadOnlyList<string>> NumerosRestringidosAsync()
+    {
+        var db = await ConexionAsync();
+        var filas = await db.Table<NumeroRestringidoLocal>().OrderBy(n => n.Numero).ToListAsync();
+        return filas.Select(n => n.Numero).ToArray();
     }
 
     public async Task GuardarSesionAsync(SesionLocal sesion) =>

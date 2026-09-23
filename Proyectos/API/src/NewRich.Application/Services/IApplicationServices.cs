@@ -76,6 +76,13 @@ public interface IConfiguracionService
     Task<Result<ConfiguracionOperativaResponse>> GuardarOperativaAsync(GuardarConfiguracionOperativaRequest request, CancellationToken cancellationToken);
 }
 
+public interface INumerosRestringidosService
+{
+    Task<Result<IReadOnlyList<NumeroRestringidoResponse>>> ListarAsync(CancellationToken cancellationToken);
+    Task<Result<NumeroRestringidoResponse>> AgregarAsync(string numero, CancellationToken cancellationToken);
+    Task<Result> EliminarAsync(Guid numeroRestringidoId, CancellationToken cancellationToken);
+}
+
 public interface IVentaService
 {
     Task<Result<VentaResponse>> ConfirmarAsync(Guid vendedorId, Guid? dispositivoId, ConfirmarVentaRequest request, string? idempotencyKey, CancellationToken cancellationToken);

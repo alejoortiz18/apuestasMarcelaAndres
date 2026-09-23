@@ -447,6 +447,11 @@ public sealed class OfflineService : IOfflineService
                 return Result.Fail(UsuarioMessages.QrInvalidoOAlterado);
             }
 
+            if (await _db.NumerosRestringidos.AnyAsync(x => x.Numero == linea.Numero.Trim(), cancellationToken))
+            {
+                return Result.Fail(string.Format(VentaMessages.NumeroRestringido, linea.Numero.Trim()));
+            }
+
             var ids = linea.LoteriaIds.Distinct().ToArray();
             if (ids.Length == 0)
             {

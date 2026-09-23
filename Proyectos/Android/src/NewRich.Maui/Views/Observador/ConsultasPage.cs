@@ -1,4 +1,5 @@
 using Microsoft.Maui.Controls.Shapes;
+using Microsoft.Maui.Layouts;
 using NewRich.Application.Contracts.Boletos;
 using NewRich.Application.Contracts.Resultados;
 using NewRich.Application.Contracts.Usuarios;
@@ -7,6 +8,7 @@ using NewRich.Domain.Enums;
 using NewRich.Domain.Services;
 using NewRich.Pda.Core;
 using NewRich.Pda.Core.Api;
+using NewRich.Pda.Core.Ventas;
 using NewRich.Maui.Views;
 
 namespace NewRich.Maui.Views.Observador;
@@ -46,8 +48,16 @@ public sealed class ConsultasPage : ContentPage
     private readonly DatePicker _fechaDesde = new() { Date = DateTime.Today.AddDays(-7) };
     private readonly DatePicker _fechaHasta = new() { Date = DateTime.Today };
     private readonly Picker _filas = new() { ItemsSource = Paginacion.OpcionesFilas.Cast<object>().ToList(), SelectedIndex = 1 };
-    private readonly HorizontalStackLayout _fichas = new() { Spacing = 8 };
+    private readonly FlexLayout _fichas = new()
+    {
+        Direction = FlexDirection.Row,
+        Wrap = FlexWrap.Wrap,
+        JustifyContent = FlexJustify.Start,
+        AlignItems = FlexAlignItems.Start
+    };
     private readonly VerticalStackLayout _lista = new() { Spacing = 10 };
+    private readonly VerticalStackLayout _tablaRestringidos = new() { Spacing = 10, IsVisible = false };
+    private IReadOnlyList<string> _numerosRestringidos = [];
     private readonly Grid _filtros = new() { ColumnSpacing = 10, RowSpacing = 10 };
     private readonly Border _resumenVentas;
     private readonly Label _resumenVentasTitulo = new()
@@ -143,17 +153,12 @@ public sealed class ConsultasPage : ContentPage
                 Children =
                 {
                     new Label { Text = PdaTexts.ConsultasAyuda, TextColor = Ui.Muted, FontSize = 12 },
-                    new ScrollView
-                    {
-                        Orientation = ScrollOrientation.Horizontal,
-                        HorizontalScrollBarVisibility = ScrollBarVisibility.Never,
-                        Content = _fichas
-                    },
                     PanelFiltros(),
                     _resumenVentas,
                     CabeceraResultados(),
                     _ayudaGanador,
                     _lista,
+                    _tablaRestringidos,
                     Paginador()
                 }
             }
@@ -179,6 +184,7 @@ public sealed class ConsultasPage : ContentPage
             StrokeThickness = 1,
             StrokeShape = new RoundRectangle { CornerRadius = 20 },
             Padding = new Thickness(16, 9),
+            Margin = new Thickness(0, 0, 8, 8),
             Content = new Label
             {
                 Text = tipo,
@@ -253,6 +259,7 @@ public sealed class ConsultasPage : ContentPage
                         FontAttributes = FontAttributes.Bold,
                         TextColor = Ui.Dark
                     },
+                    _fichas,
                     _filtros,
                     acciones
                 }
@@ -460,6 +467,7 @@ public sealed class ConsultasPage : ContentPage
         ActualizarFiltrosVisuales();
 
         IReadOnlyList<Fila> filas = [];
+        _numerosRestringidos = [];
         var mensaje = string.Empty;
         var ok = true;
         var fechaDesde = (_fechaDesde.Date ?? DateTime.Today.AddDays(-7)).Date;
@@ -585,13 +593,15 @@ public sealed class ConsultasPage : ContentPage
             if (resultado.Data is not null)
             {
                 var c = resultado.Data;
-                filas =
-                [
-                    new Fila(PdaTexts.HorarioAbierto, PdaTexts.ConsultaConfiguracion, c.HoraCierre, null),
-                    new Fila(PdaTexts.VigenciaPremios, PdaTexts.ConsultaConfiguracion, $"{c.VigenciaPremiosDias} días", null),
-                    new Fila($"Máximo {PdaTexts.TipoCombinada}", PdaTexts.ConsultaConfiguracion, c.MaxJuegosCombinado.ToString(), null),
-                    new Fila($"Máximo {PdaTexts.TipoIndividual}", PdaTexts.ConsultaConfiguracion, c.MaxLineasIndividual.ToString(), null)
-                ];
+                var filasConfig = new List<Fila>
+                {
+                    new(PdaTexts.HorarioAbierto, PdaTexts.ConsultaConfiguracion, c.HoraCierre, null),
+                    new(PdaTexts.VigenciaPremios, PdaTexts.ConsultaConfiguracion, $"{c.VigenciaPremiosDias} días", null),
+                    new($"Máximo {PdaTexts.TipoCombinada}", PdaTexts.ConsultaConfiguracion, c.MaxJuegosCombinado.ToString(), null),
+                    new($"Máximo {PdaTexts.TipoIndividual}", PdaTexts.ConsultaConfiguracion, c.MaxLineasIndividual.ToString(), null)
+                };
+                _numerosRestringidos = NumerosRestringidosPda.Vigentes(c.NumerosRestringidos, null);
+                filas = filasConfig;
             }
         }
 
@@ -721,6 +731,7 @@ public sealed class ConsultasPage : ContentPage
             : PdaTexts.ConsultaGanadorAyuda;
         _ayudaGanador.IsVisible = _datos.Any(x => x.Ganador);
         _lista.Children.Clear();
+        PintarNumerosRestringidos();
 
         if (_datos.Count == 0)
         {
@@ -746,6 +757,79 @@ public sealed class ConsultasPage : ContentPage
         {
             _lista.Children.Add(TarjetaFila(item));
         }
+    }
+
+    private const int ColumnasNumerosRestringidos = 4;
+
+    private void PintarNumerosRestringidos()
+    {
+        _tablaRestringidos.Children.Clear();
+        _tablaRestringidos.IsVisible = _tipo == PdaTexts.ConsultaConfiguracion;
+        if (!_tablaRestringidos.IsVisible)
+        {
+            return;
+        }
+
+        var cuerpo = new VerticalStackLayout { Spacing = 0 };
+        cuerpo.Children.Add(new Border
+        {
+            BackgroundColor = Ui.Paper,
+            Stroke = Colors.Transparent,
+            StrokeThickness = 0,
+            Padding = new Thickness(16, 12),
+            Content = new Label
+            {
+                Text = PdaTexts.NumerosRestringidos,
+                FontSize = 15,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Ui.Ink
+            }
+        });
+
+        if (_numerosRestringidos.Count == 0)
+        {
+            cuerpo.Children.Add(new Label
+            {
+                Text = PdaTexts.NingunNumeroRestringido,
+                FontSize = 12,
+                TextColor = Ui.Muted,
+                Margin = new Thickness(16, 14)
+            });
+        }
+
+        foreach (var fila in NumerosRestringidosPda.EnFilas(_numerosRestringidos, ColumnasNumerosRestringidos))
+        {
+            var grid = new Grid { ColumnSpacing = 8, Padding = new Thickness(16, 10) };
+            for (var columna = 0; columna < ColumnasNumerosRestringidos; columna++)
+            {
+                grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
+            }
+
+            for (var columna = 0; columna < fila.Count; columna++)
+            {
+                grid.Add(new Label
+                {
+                    Text = fila[columna],
+                    FontSize = 16,
+                    FontAttributes = FontAttributes.Bold,
+                    TextColor = Ui.Ink,
+                    HorizontalTextAlignment = TextAlignment.Center
+                }, columna, 0);
+            }
+
+            cuerpo.Children.Add(new BoxView { HeightRequest = 1, Color = Ui.Line });
+            cuerpo.Children.Add(grid);
+        }
+
+        _tablaRestringidos.Children.Add(new Border
+        {
+            BackgroundColor = Colors.White,
+            Stroke = Ui.Line,
+            StrokeThickness = 1,
+            StrokeShape = new RoundRectangle { CornerRadius = 14 },
+            Padding = 0,
+            Content = cuerpo
+        });
     }
 
     private View TarjetaFila(Fila fila)

@@ -35,7 +35,12 @@ public sealed class TicketDraft
 
     public static TicketDraft Crear(TipoApuesta tipo, int maxLineas) => new(tipo, maxLineas);
 
-    public Result AgregarLinea(string numero, decimal valor, IReadOnlyList<Guid> loteriaIds, IReadOnlyList<string> loteriaNombres)
+    public Result AgregarLinea(
+        string numero,
+        decimal valor,
+        IReadOnlyList<Guid> loteriaIds,
+        IReadOnlyList<string> loteriaNombres,
+        IReadOnlyCollection<string>? numerosRestringidos = null)
     {
         if (_lineas.Count >= MaxLineas)
         {
@@ -45,6 +50,11 @@ public sealed class TicketDraft
         if (!NumeroApuesta.EsValido(numero))
         {
             return Result.Fail(ValidationMessages.NumeroApuestaFormato);
+        }
+
+        if (NumerosRestringidos.EstaBloqueado(numero, numerosRestringidos))
+        {
+            return Result.Fail(string.Format(VentaMessages.NumeroRestringido, numero.Trim()));
         }
 
         if (valor <= 0)

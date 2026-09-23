@@ -24,6 +24,7 @@ public interface INewRichDbContext
     DbSet<ClaveValidacionBoleto> ClavesValidacionBoleto { get; }
     DbSet<Configuracion> Configuraciones { get; }
     DbSet<ConfiguracionTipoApuesta> ConfiguracionesTipoApuesta { get; }
+    DbSet<NumeroRestringido> NumerosRestringidos { get; }
     DbSet<Notificacion> Notificaciones { get; }
     DbSet<Sincronizacion> Sincronizaciones { get; }
     DbSet<CodigoPreventaOffline> CodigosPreventaOffline { get; }

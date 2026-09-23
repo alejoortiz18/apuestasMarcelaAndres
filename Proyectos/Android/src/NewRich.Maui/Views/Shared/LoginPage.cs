@@ -4,6 +4,7 @@ using NewRich.Domain.Services;
 using NewRich.Pda.Core;
 using NewRich.Pda.Core.Api;
 using NewRich.Pda.Core.Auth;
+using NewRich.Pda.Core.Ventas;
 using NewRich.Maui.Data;
 using NewRich.Maui.Services;
 using NewRich.Maui.Views;
@@ -274,6 +275,7 @@ public sealed class LoginPage : ContentPage
             {
                 _sesion.Limites = operativa.Data;
                 await _local.GuardarMaximosOfflineAsync(operativa.Data.CodigosOfflineCapacidad);
+                await _local.GuardarNumerosRestringidosAsync(operativa.Data.NumerosRestringidos);
             }
 
             var loterias = await _api.LoteriasAsync(CancellationToken.None);
@@ -377,6 +379,10 @@ public sealed class LoginPage : ContentPage
 
         _sesion.Usuario = cache.Usuario;
         _sesion.Limites = cache.Limites;
+        var restringidosLocales = await _local.NumerosRestringidosAsync();
+        _sesion.Limites.NumerosRestringidos = NumerosRestringidosPda.Vigentes(
+            restringidosLocales.Count > 0 ? restringidosLocales : null,
+            cache.Limites.NumerosRestringidos);
         _sesion.CodigoDispositivo = string.IsNullOrWhiteSpace(cache.CodigoDispositivo)
             ? PdaConexion.CodigoDispositivo
             : cache.CodigoDispositivo;

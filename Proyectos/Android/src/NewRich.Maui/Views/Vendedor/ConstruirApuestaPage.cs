@@ -19,6 +19,7 @@ public sealed class ConstruirApuestaPage : ContentPage
     private readonly LocalDatabase _offline;
     private readonly IServiceProvider _services;
     private IReadOnlyList<LoteriaResponse> _loterias = [];
+    private IReadOnlyList<string> _restringidos = [];
 
     public ConstruirApuestaPage(NewRichApiClient api, SesionPda sesion, LocalDatabase offline, IServiceProvider services)
     {
@@ -33,6 +34,7 @@ public sealed class ConstruirApuestaPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        await CargarRestringidosAsync();
         try
         {
             IReadOnlyList<LoteriaResponse> lote = [];
@@ -54,6 +56,21 @@ public sealed class ConstruirApuestaPage : ContentPage
         {
             _loterias = LoteriasDelDia.FiltrarHoy(await _offline.LoteriasAsync());
             Render();
+        }
+    }
+
+    private async Task CargarRestringidosAsync()
+    {
+        try
+        {
+            var guardados = await _offline.NumerosRestringidosAsync();
+            _restringidos = NumerosRestringidosPda.Vigentes(
+                guardados.Count > 0 ? guardados : null,
+                _sesion.Limites.NumerosRestringidos);
+        }
+        catch (Exception)
+        {
+            _restringidos = NumerosRestringidosPda.Vigentes(_sesion.Limites.NumerosRestringidos, null);
         }
     }
 
@@ -149,7 +166,12 @@ public sealed class ConstruirApuestaPage : ContentPage
                 nombres = [_loterias[sel].Nombre];
             }
 
-            var resultado = draft.AgregarLinea(EntradaEntera.SoloDigitos(numero.Text), monto, ids, nombres);
+            var resultado = draft.AgregarLinea(
+                EntradaEntera.SoloDigitos(numero.Text),
+                monto,
+                ids,
+                nombres,
+                _restringidos);
             if (!resultado.IsSuccess)
             {
                 await this.AvisoAsync(PdaTexts.JuegoNuevo, resultado.Message, PdaTexts.Cerrar);

@@ -44,12 +44,14 @@ public sealed class SincronizacionOfflineServicio
 {
     private readonly NewRichApiClient _api;
     private readonly LocalDatabase _offline;
+    private readonly SesionPda _sesion;
     private readonly SemaphoreSlim _candado = new(1, 1);
 
-    public SincronizacionOfflineServicio(NewRichApiClient api, LocalDatabase offline)
+    public SincronizacionOfflineServicio(NewRichApiClient api, LocalDatabase offline, SesionPda sesion)
     {
         _api = api;
         _offline = offline;
+        _sesion = sesion;
     }
 
     public Task SincronizarEnSilencioAsync(
@@ -133,6 +135,7 @@ public sealed class SincronizacionOfflineServicio
 
             Reportar(progreso, PdaTexts.SyncActualizandoConfig, completados, total, Porcentaje(completados, total), 0, gastados, null);
             await _offline.GuardarMaximosOfflineAsync(repo.Data.CodigosOfflineMaximos);
+            await DescargarOperativaAsync(cancellationToken);
 
             if (repo.Data.ReposicionExitosa)
             {
@@ -168,6 +171,26 @@ public sealed class SincronizacionOfflineServicio
         {
             _candado.Release();
         }
+    }
+
+    private async Task DescargarOperativaAsync(CancellationToken cancellationToken)
+    {
+        var operativa = await _api.OperativaAsync(cancellationToken);
+        if (!operativa.IsSuccess || operativa.Data is null)
+        {
+            return;
+        }
+
+        _sesion.Limites = operativa.Data;
+        await _offline.GuardarMaximosOfflineAsync(operativa.Data.CodigosOfflineCapacidad);
+        await _offline.GuardarNumerosRestringidosAsync(operativa.Data.NumerosRestringidos);
+        var cache = await _offline.SesionAsync() ?? new SesionLocal();
+        cache.Limites = operativa.Data;
+        cache.Usuario = _sesion.Usuario ?? cache.Usuario;
+        cache.CodigoDispositivo = string.IsNullOrWhiteSpace(_sesion.CodigoDispositivo)
+            ? cache.CodigoDispositivo
+            : _sesion.CodigoDispositivo;
+        await _offline.GuardarSesionAsync(cache);
     }
 
     private async Task DescargarCodigosAsync(CancellationToken cancellationToken)

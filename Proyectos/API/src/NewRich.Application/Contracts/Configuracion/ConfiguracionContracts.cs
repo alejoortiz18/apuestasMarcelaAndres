@@ -26,6 +26,7 @@ public sealed class ConfiguracionOperativaResponse
     public bool ReposicionDiariaOffline { get; set; } = true;
     public string SincronizacionModo { get; set; } = "Manual";
     public string LeyendaTirilla { get; set; } = string.Empty;
+    public IReadOnlyList<string> NumerosRestringidos { get; set; } = [];
 }
 
 public sealed record GuardarConfiguracionOperativaRequest

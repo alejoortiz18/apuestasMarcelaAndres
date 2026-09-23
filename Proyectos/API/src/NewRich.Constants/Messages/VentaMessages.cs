@@ -19,4 +19,5 @@ public static class VentaMessages
 
     public const string AlertaRepeticionNumero = "El número {0} superó el umbral de repeticiones configurado.";
     public const string AlertaValorAlto = "Se registró una apuesta con valor alto: {0}. Número {1} en {2}.";
+    public const string NumeroRestringido = "El número {0} está restringido y no se puede jugar.";
 }

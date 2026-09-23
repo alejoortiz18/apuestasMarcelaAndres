@@ -5,6 +5,7 @@ using NewRich.Application.Contracts.Notificaciones;
 using NewRich.Application.Contracts.Offline;
 using NewRich.Application.Contracts.Ventas;
 using NewRich.Application.Services;
+using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
 using NewRich.Domain.Enums;
 using NewRich.Domain.Services;
@@ -95,6 +96,43 @@ public sealed class VentaServiceTests
 
         result.IsSuccess.Should().BeFalse();
         result.Message.Should().Be("Una de las loterías seleccionadas no está habilitada para vender hoy.");
+    }
+
+    [Fact]
+    public async Task ConfirmarAsync_rechaza_un_numero_restringido()
+    {
+        var (sut, db, _) = await CreateSutAsync(new TiempoRealFake());
+        var vendedor = db.Usuarios.Single(u => u.Rol == RolUsuario.Vendedor);
+        var loteria = db.Loterias.Single();
+        db.NumerosRestringidos.Add(new NumeroRestringido
+        {
+            NumeroRestringidoId = Guid.NewGuid(),
+            Numero = "1234",
+            FechaCreacion = Ahora
+        });
+        await db.SaveChangesAsync();
+
+        var result = await sut.ConfirmarAsync(
+            vendedor.UsuarioId,
+            null,
+            new ConfirmarVentaRequest
+            {
+                TipoApuesta = TipoApuesta.INDIVIDUAL,
+                Juegos =
+                [
+                    new LineaJuegoRequest
+                    {
+                        Numero = "1234",
+                        Valor = 1000,
+                        LoteriaIds = [loteria.LoteriaId]
+                    }
+                ]
+            },
+            Guid.NewGuid().ToString("N"),
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Message.Should().Be(string.Format(VentaMessages.NumeroRestringido, "1234"));
     }
 
     private static async Task<(VentaService Sut, NewRichDbContext Db, Guid AdminId)> CreateSutAsync(TiempoRealFake tiempoReal)

@@ -48,6 +48,11 @@ public static class PdaTexts
     public const string PdaAsociado = "PDA asociado";
     public const string Grupo = "Grupo";
     public const string AccesosRapidos = "Accesos rápidos";
+    public const string NumerosBloqueados = "Números bloqueados";
+    public const string NumerosBloqueadosAyuda = "Consulta los números que no se pueden jugar";
+    public const string SinNumerosBloqueados = "No hay números bloqueados.";
+    public const string NumerosRestringidos = "Números restringidos";
+    public const string NingunNumeroRestringido = "Ninguno";
     public const string HistoricoVentas = "Histórico de ventas";
     public const string HistoricoAyuda = "Consulta hasta 10 días atrás";
     public const string TotalVentas = "TOTAL VENTAS";

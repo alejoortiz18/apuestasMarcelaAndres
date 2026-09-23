@@ -89,6 +89,9 @@ public interface IAdminApiClient
     Task<ApiCallResult<ConfiguracionResponse>> ActualizarConfiguracionAsync(string clave, string valor, CancellationToken cancellationToken);
     Task<ApiCallResult<ConfiguracionOperativaResponse>> ObtenerConfiguracionOperativaAsync(CancellationToken cancellationToken);
     Task<ApiCallResult<ConfiguracionOperativaResponse>> GuardarConfiguracionOperativaAsync(GuardarConfiguracionOperativaRequest request, CancellationToken cancellationToken);
+    Task<ApiCallResult<List<NumeroRestringidoResponse>>> ListarNumerosRestringidosAsync(CancellationToken cancellationToken);
+    Task<ApiCallResult<NumeroRestringidoResponse>> AgregarNumeroRestringidoAsync(string numero, CancellationToken cancellationToken);
+    Task<ApiCallResult<object>> EliminarNumeroRestringidoAsync(Guid id, CancellationToken cancellationToken);
 
     Task<ApiCallResult<OfflineListadoResponse>> ListarCodigosOfflineAsync(CancellationToken cancellationToken);
     Task<ApiCallResult<CodigoOfflineResponse>> ObtenerCodigoOfflineAsync(Guid id, CancellationToken cancellationToken);
@@ -373,6 +376,15 @@ public sealed class AdminApiClient : IAdminApiClient
 
     public Task<ApiCallResult<ConfiguracionOperativaResponse>> GuardarConfiguracionOperativaAsync(GuardarConfiguracionOperativaRequest request, CancellationToken cancellationToken) =>
         SendAsync<ConfiguracionOperativaResponse>(HttpMethod.Put, "api/Configuraciones/operativa", request, true, cancellationToken);
+
+    public Task<ApiCallResult<List<NumeroRestringidoResponse>>> ListarNumerosRestringidosAsync(CancellationToken cancellationToken) =>
+        SendAsync<List<NumeroRestringidoResponse>>(HttpMethod.Get, "api/NumerosRestringidos", null, true, cancellationToken);
+
+    public Task<ApiCallResult<NumeroRestringidoResponse>> AgregarNumeroRestringidoAsync(string numero, CancellationToken cancellationToken) =>
+        SendAsync<NumeroRestringidoResponse>(HttpMethod.Post, "api/NumerosRestringidos", new AgregarNumeroRestringidoRequest { Numero = numero }, true, cancellationToken);
+
+    public Task<ApiCallResult<object>> EliminarNumeroRestringidoAsync(Guid id, CancellationToken cancellationToken) =>
+        SendAsync<object>(HttpMethod.Delete, $"api/NumerosRestringidos/{id}", null, true, cancellationToken);
 
     public Task<ApiCallResult<OfflineListadoResponse>> ListarCodigosOfflineAsync(CancellationToken cancellationToken) =>
         SendAsync<OfflineListadoResponse>(HttpMethod.Get, "api/Offline", null, true, cancellationToken);

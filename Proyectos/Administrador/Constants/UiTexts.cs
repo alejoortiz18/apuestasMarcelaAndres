@@ -446,7 +446,7 @@ public static class UiTexts
 
     public const string ConfigKicker = "Parámetros";
     public const string ConfigTitulo = "Configuración operativa";
-    public const string ConfigSub = "Define el cierre de los PDA, la vigencia de premios, los límites de apuesta, las alertas, los códigos offline, el texto de la tirilla y los días de venta de cada lotería.";
+    public const string ConfigSub = "Define el cierre de los PDA, la vigencia de premios, los límites de apuesta, las alertas, los códigos offline, el texto de la tirilla, los números restringidos y los días de venta de cada lotería.";
     public const string GuardarConfiguracion = "Guardar configuración";
     public const string ConfigHorarioPremios = "Horario y premios";
     public const string ConfigDiasVenta = "Días de venta";
@@ -459,6 +459,13 @@ public static class UiTexts
     public const string LoteriasHabilitadasDelDia = "loterías habilitadas este día";
     public const string DiaDeLaSemana = "Día de la semana";
     public const string ConfigTirilla = "Texto de la tirilla";
+    public const string ConfigNumerosRestringidos = "Números restringidos";
+    public const string ConfigNumerosRestringidosSub = "Estos números no se podrán jugar. El vendedor y el observador los consultan; el PDA los descarga para validarlos también sin conexión.";
+    public const string AgregarNumeroRestringido = "Agregar número";
+    public const string NumeroRestringido = "Número restringido";
+    public const string NumeroRestringidoAyuda = "Escriba un número de 3 o 4 dígitos.";
+    public const string VacioNumerosRestringidos = "No hay números restringidos. Agregue el primero para bloquearlo.";
+    public const string AccionesDeNumeroRestringido = "Acciones del número restringido";
     public const string ConfigApuestas = "Límites de apuesta";
     public const string ConfigAlertas = "Alertas de jugada";
     public const string ConfigOffline = "Códigos offline";

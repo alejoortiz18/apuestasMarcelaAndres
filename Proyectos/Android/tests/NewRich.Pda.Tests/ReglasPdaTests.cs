@@ -40,6 +40,14 @@ public sealed class ReglasPdaTests
     }
 
     [Fact]
+    public void El_vendedor_consulta_numeros_bloqueados()
+    {
+        PdaTexts.NumerosBloqueados.Should().Be("Números bloqueados");
+        PdaTexts.NumerosBloqueadosAyuda.Should().Be("Consulta los números que no se pueden jugar");
+        PdaTexts.SinNumerosBloqueados.Should().Be("No hay números bloqueados.");
+    }
+
+    [Fact]
     public void Horario_cerrado_muestra_el_aviso_de_juegos_cerrados()
     {
         AuthPantalla.Mensaje(AuthMessages.FueraDeHorarioOperacion).Should().Be(PdaTexts.JuegosCerrados);

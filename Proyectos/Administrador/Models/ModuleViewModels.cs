@@ -240,6 +240,8 @@ public sealed class ConfiguracionIndexViewModel
     public string? Busqueda { get; init; }
     public PagedViewModel<LoteriaResponse> Pagina { get; init; } = new();
     public List<DiasLoteriaFormItem> DiasVenta { get; set; } = [];
+    public PagedViewModel<NumeroRestringidoResponse> PaginaNumeros { get; init; } = new();
+    public string NuevoNumeroRestringido { get; set; } = string.Empty;
 }
 
 public sealed class DiasLoteriaFormItem

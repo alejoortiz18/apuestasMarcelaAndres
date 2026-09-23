@@ -77,6 +77,7 @@ public sealed class VentaService : IVentaService
             var vigencia = await ObtenerVigencia(ct);
             var alertaRepeticion = await ObtenerEntero("AlertaRepeticionNumero", 10, ct);
             var alertaValor = await ObtenerEntero("AlertaValorMinimo", 10000, ct);
+            var restringidos = await _db.NumerosRestringidos.Select(x => x.Numero).ToListAsync(ct);
 
             var venta = new Venta
             {
@@ -105,6 +106,11 @@ public sealed class VentaService : IVentaService
                 if (!NumeroApuesta.EsValido(linea.Numero))
                 {
                     throw new InvalidOperationException(ValidationMessages.NumeroApuestaFormato);
+                }
+
+                if (NumerosRestringidos.EstaBloqueado(linea.Numero, restringidos))
+                {
+                    throw new InvalidOperationException(string.Format(VentaMessages.NumeroRestringido, linea.Numero.Trim()));
                 }
 
                 if (linea.Valor <= 0)

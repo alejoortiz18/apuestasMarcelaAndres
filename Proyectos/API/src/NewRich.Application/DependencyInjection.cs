@@ -16,6 +16,7 @@ public static class DependencyInjection
         services.AddScoped<ILoteriaService, LoteriaService>();
         services.AddScoped<IGrupoService, GrupoService>();
         services.AddScoped<IConfiguracionService, ConfiguracionService>();
+        services.AddScoped<INumerosRestringidosService, NumerosRestringidosService>();
         services.AddScoped<IVentaService, VentaService>();
         services.AddScoped<IResultadoService, ResultadoService>();
         services.AddScoped<IValidacionBoletoService, ValidacionBoletoService>();

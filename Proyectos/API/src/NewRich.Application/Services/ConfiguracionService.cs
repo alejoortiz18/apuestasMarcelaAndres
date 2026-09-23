@@ -89,7 +89,12 @@ public sealed class ConfiguracionService : IConfiguracionService
             CodigosOfflineCapacidad = Entero(mapa[ConfiguracionClaves.CodigosOfflineCapacidad], 3000),
             ReposicionDiariaOffline = Booleano(mapa[ConfiguracionClaves.ReposicionDiariaOffline], true),
             SincronizacionModo = mapa[ConfiguracionClaves.SincronizacionModo],
-            LeyendaTirilla = TirillaCuerpo.NormalizarCuerpo(mapa[ConfiguracionClaves.LeyendaTirilla])
+            LeyendaTirilla = TirillaCuerpo.NormalizarCuerpo(mapa[ConfiguracionClaves.LeyendaTirilla]),
+            NumerosRestringidos = await _db.NumerosRestringidos
+                .AsNoTracking()
+                .OrderBy(x => x.Numero)
+                .Select(x => x.Numero)
+                .ToListAsync(cancellationToken)
         }, SuccessMessages.OperacionExitosa);
     }
 

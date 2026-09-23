@@ -1,3 +1,4 @@
+using NewRich.Application.Contracts.Android;
 using NewRich.Application.Contracts.Ventas;
 using NewRich.Domain.Services;
 using NewRich.Pda.Core;
@@ -105,6 +106,7 @@ public sealed class VendedorHomePage : ContentPage
                         }
                     },
                     new Label { Text = PdaTexts.AccesosRapidos, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink },
+                    Menu(PdaTexts.NumerosBloqueados, PdaTexts.NumerosBloqueadosAyuda, async () => await Navigation.PushAsync(_services.GetRequiredService<NumerosBloqueadosPage>())),
                     Menu(PdaTexts.ResultadosTitulo, PdaTexts.ResultadosAyuda, async () => await Navigation.PushAsync(_services.GetRequiredService<ResultadosPage>())),
                     Menu(PdaTexts.ValidarTicket, PdaTexts.ValidarTicketAyuda, async () => await Navigation.PushAsync(_services.GetRequiredService<ValidarTicketPage>()))
                 }
@@ -135,6 +137,19 @@ public sealed class VendedorHomePage : ContentPage
         if (conectado)
         {
             await _enVivo.AsegurarSesionAsync(CancellationToken.None);
+            var operativa = await _api.OperativaAsync(CancellationToken.None);
+            if (operativa.IsSuccess && operativa.Data is not null)
+            {
+                _sesion.Limites = operativa.Data;
+                await _offline.GuardarNumerosRestringidosAsync(operativa.Data.NumerosRestringidos);
+                await _offline.GuardarSesionAsync(new SesionLocal
+                {
+                    Usuario = _sesion.Usuario ?? new(),
+                    Limites = operativa.Data,
+                    CodigoDispositivo = _sesion.CodigoDispositivo
+                });
+            }
+
             var loterias = await _api.LoteriasAsync(CancellationToken.None);
             if (loterias.IsSuccess && loterias.Data is not null)
             {
