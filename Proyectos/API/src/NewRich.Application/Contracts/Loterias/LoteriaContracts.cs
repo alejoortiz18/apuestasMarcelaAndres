@@ -7,6 +7,8 @@ public sealed class CrearLoteriaRequest
     public string Nombre { get; set; } = string.Empty;
     public decimal Tope { get; set; }
     public List<DiaSemana> DiasHabilitados { get; set; } = [];
+    public string HoraInicio { get; set; } = string.Empty;
+    public string HoraFin { get; set; } = string.Empty;
 }
 
 public sealed class ActualizarLoteriaRequest
@@ -14,6 +16,8 @@ public sealed class ActualizarLoteriaRequest
     public string Nombre { get; set; } = string.Empty;
     public EstadoGeneral Estado { get; set; }
     public decimal? Tope { get; set; }
+    public string HoraInicio { get; set; } = string.Empty;
+    public string HoraFin { get; set; } = string.Empty;
 }
 
 public sealed class TopeLoteriaRequest
@@ -34,6 +38,8 @@ public sealed class LoteriaResponse
     public string Nombre { get; set; } = string.Empty;
     public EstadoGeneral Estado { get; set; }
     public decimal Tope { get; set; }
+    public string? HoraInicio { get; set; }
+    public string? HoraFin { get; set; }
     public string? HoraCierre { get; set; }
     public string? NumeroJugado { get; set; }
     public int BoletosVendidos { get; set; }

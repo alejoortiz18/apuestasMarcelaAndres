@@ -29,6 +29,7 @@ public sealed class LoginPage : ContentPage
     private readonly SincronizacionOfflineServicio _offline;
     private readonly LocalDatabase _local;
     private readonly CodigosOfflineEnVivoServicio _enVivo;
+    private readonly LoteriasEnVivoServicio _loteriasVivo;
     private readonly Entry _usuario;
     private readonly Entry _password;
     private readonly ImageButton _verClave;
@@ -48,7 +49,8 @@ public sealed class LoginPage : ContentPage
         NavegadorApp nav,
         SincronizacionOfflineServicio offline,
         LocalDatabase local,
-        CodigosOfflineEnVivoServicio enVivo)
+        CodigosOfflineEnVivoServicio enVivo,
+        LoteriasEnVivoServicio loteriasVivo)
     {
         _api = api;
         _tokens = tokens;
@@ -57,6 +59,7 @@ public sealed class LoginPage : ContentPage
         _offline = offline;
         _local = local;
         _enVivo = enVivo;
+        _loteriasVivo = loteriasVivo;
         Title = string.Empty;
         NavigationPage.SetHasNavigationBar(this, false);
         Shell.SetNavBarIsVisible(this, false);
@@ -311,10 +314,11 @@ public sealed class LoginPage : ContentPage
                 return;
             }
 
+            await _enVivo.AsegurarSesionAsync(CancellationToken.None);
+            await _loteriasVivo.AsegurarSesionAsync(CancellationToken.None);
             if (shell.Data == ShellPda.Vendedor)
             {
                 await _offline.SincronizarEnSilencioAsync(true, resultado.Data.Rol, false, CancellationToken.None);
-                await _enVivo.AsegurarSesionAsync(CancellationToken.None);
                 _nav.IrAVendedor();
             }
             else
@@ -387,6 +391,8 @@ public sealed class LoginPage : ContentPage
             ? PdaConexion.CodigoDispositivo
             : cache.CodigoDispositivo;
         _sesion.HorarioCerrado = HorarioPda.EstaFuera(cache.Limites, ahora);
+        await _enVivo.AsegurarSesionAsync(CancellationToken.None);
+        await _loteriasVivo.AsegurarSesionAsync(CancellationToken.None);
         if (shell.Data == ShellPda.Vendedor)
         {
             _nav.IrAVendedor();

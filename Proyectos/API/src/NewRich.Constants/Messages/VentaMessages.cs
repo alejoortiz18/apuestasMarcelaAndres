@@ -14,7 +14,7 @@ public static class VentaMessages
     public const string LoteriaNoHabilitadaHoy = "Una de las loterías seleccionadas no está habilitada para vender hoy.";
     public const string LoteriaNoEncontrada = "La lotería seleccionada no existe.";
     public const string LoteriaNombreDuplicado = "Ya existe una lotería con ese nombre.";
-    public const string CombinadoUnaSolaLinea = "Una apuesta COMBINADO admite una sola línea de juego.";
+    public const string CombinadoUnaSolaLinea = "Una apuesta COMBO admite una sola línea de juego.";
     public const string VendedorSinDispositivoActivo = "El vendedor no tiene un dispositivo activo asociado.";
 
     public const string AlertaRepeticionNumero = "El número {0} superó el umbral de repeticiones configurado.";

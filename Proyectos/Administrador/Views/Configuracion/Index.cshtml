@@ -10,23 +10,11 @@
         <p>@UiTexts.ConfigSub</p>
     </div>
 </div>
-<form asp-action="Guardar" method="post" class="config-form" data-protected-action="@AccionesProtegidas.ConfiguracionGuardar">
+<form asp-action="Guardar" method="post" class="config-form" id="config-operativa" data-protected-action="@AccionesProtegidas.ConfiguracionGuardar">
     <div asp-validation-summary="ModelOnly" class="notice error"></div>
     <div class="config-grid">
         <section class="kpi-section">
             <h2>@UiTexts.ConfigHorarioPremios</h2>
-            <div class="field">
-                <label asp-for="Form.HoraApertura"></label>
-                <input asp-for="Form.HoraApertura" type="time" step="60" />
-                <span class="field-help">@UiTexts.HoraAperturaPdaAyuda</span>
-                <span asp-validation-for="Form.HoraApertura"></span>
-            </div>
-            <div class="field">
-                <label asp-for="Form.HoraCierre"></label>
-                <input asp-for="Form.HoraCierre" type="time" step="60" />
-                <span class="field-help">@UiTexts.HoraCierrePdaAyuda</span>
-                <span asp-validation-for="Form.HoraCierre"></span>
-            </div>
             <div class="field">
                 <label asp-for="Form.VigenciaPremiosDias"></label>
                 <input asp-for="Form.VigenciaPremiosDias" type="number" min="1" />
@@ -317,6 +305,23 @@
         </div>
         <a class="primary" asp-action="CrearLoteria">@UiTexts.AgregarLoteria</a>
     </div>
+    <div class="catalogo-horario">
+        <div class="field">
+            <label asp-for="Form.HoraCierre"></label>
+            <input asp-for="Form.HoraCierre" type="time" step="60" form="config-operativa" />
+            <span class="field-help">@UiTexts.HoraCierrePdaAyuda</span>
+            <span asp-validation-for="Form.HoraCierre"></span>
+        </div>
+        <div class="field">
+            <label asp-for="Form.HoraApertura"></label>
+            <input asp-for="Form.HoraApertura" type="time" step="60" form="config-operativa" />
+            <span class="field-help">@UiTexts.HoraAperturaPdaAyuda</span>
+            <span asp-validation-for="Form.HoraApertura"></span>
+        </div>
+        <div class="catalogo-horario-save">
+            <button class="primary" type="submit" form="config-operativa">@UiTexts.GuardarConfiguracion</button>
+        </div>
+    </div>
     <form class="toolbar" method="get">
         <div class="field">
             <label for="q">@UiTexts.BuscarLoteria</label>
@@ -346,6 +351,7 @@
                 <tr>
                     <th class="col-check"><span class="visually-hidden">@UiTexts.SeleccionarFila</span></th>
                     <th>@UiTexts.Loteria</th>
+                    <th>@UiTexts.HorarioHabilitado</th>
                     <th>@UiTexts.Estado</th>
                 </tr>
                 </thead>
@@ -358,6 +364,7 @@
                             <input class="row-check" type="checkbox" value="@item.LoteriaId" aria-label="@UiTexts.SeleccionarFila @item.Nombre" />
                         </td>
                         <td><strong>@item.Nombre</strong></td>
+                        <td>@item.HoraInicio - @item.HoraFin</td>
                         <td><span class="pill @(item.Estado == EstadoGeneral.Activo ? "ok" : "info")">@item.Estado</span></td>
                     </tr>
                 }

@@ -9,6 +9,7 @@ using NewRich.Pda.Core.Api;
 using NewRich.Pda.Core.Auth;
 using NewRich.Pda.Core.Ventas;
 using NewRich.Maui.Data;
+using NewRich.Maui.Services;
 using NewRich.Maui.Views;
 
 namespace NewRich.Maui.Views.Vendedor;
@@ -19,15 +20,22 @@ public sealed class ConstruirApuestaPage : ContentPage
     private readonly SesionPda _sesion;
     private readonly LocalDatabase _offline;
     private readonly IServiceProvider _services;
+    private readonly LoteriasEnVivoServicio _loteriasVivo;
     private IReadOnlyList<LoteriaResponse> _loterias = [];
     private IReadOnlyList<string> _restringidos = [];
 
-    public ConstruirApuestaPage(NewRichApiClient api, SesionPda sesion, LocalDatabase offline, IServiceProvider services)
+    public ConstruirApuestaPage(
+        NewRichApiClient api,
+        SesionPda sesion,
+        LocalDatabase offline,
+        IServiceProvider services,
+        LoteriasEnVivoServicio loteriasVivo)
     {
         _api = api;
         _sesion = sesion;
         _offline = offline;
         _services = services;
+        _loteriasVivo = loteriasVivo;
         Title = PdaTexts.JuegoNuevo;
         BackgroundColor = Ui.Paper;
     }
@@ -35,11 +43,28 @@ public sealed class ConstruirApuestaPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        _loteriasVivo.CatalogoRefrescado += OnCatalogoRefrescado;
         await CargarRestringidosAsync();
-        _loterias = LoteriasDelDia.FiltrarHoy(await LoteriasGuardadasAsync());
+        _loterias = LoteriasDelDia.FiltrarHoy(await LoteriasGuardadasAsync(), IdsEnVenta());
         Render();
+        await _loteriasVivo.AsegurarSesionAsync(CancellationToken.None);
         await RefrescarLoteriasAsync();
     }
+
+    protected override void OnDisappearing()
+    {
+        _loteriasVivo.CatalogoRefrescado -= OnCatalogoRefrescado;
+        base.OnDisappearing();
+    }
+
+    private void OnCatalogoRefrescado(IReadOnlyList<LoteriaResponse> loterias)
+    {
+        _loterias = LoteriasDelDia.FiltrarHoy(loterias, IdsEnVenta());
+        Render();
+    }
+
+    private IReadOnlyList<Guid> IdsEnVenta() =>
+        _sesion.Borrador?.Lineas.SelectMany(l => l.LoteriaIds).Distinct().ToArray() ?? [];
 
     private async Task<IReadOnlyList<LoteriaResponse>> LoteriasGuardadasAsync()
     {
@@ -71,7 +96,7 @@ public sealed class ConstruirApuestaPage : ContentPage
             }
 
             await _offline.GuardarLoteriasAsync(loterias.Data);
-            var frescas = LoteriasDelDia.FiltrarHoy(loterias.Data);
+            var frescas = LoteriasDelDia.FiltrarHoy(loterias.Data, IdsEnVenta());
             if (CargaLoterias.SonIguales(frescas, _loterias))
             {
                 return;

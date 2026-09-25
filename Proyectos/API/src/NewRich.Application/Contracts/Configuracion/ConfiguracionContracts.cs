@@ -36,6 +36,8 @@ public sealed class TopeLoteriaResponse
     public Guid LoteriaId { get; set; }
     public string Nombre { get; set; } = string.Empty;
     public decimal Tope { get; set; }
+    public string HoraInicio { get; set; } = string.Empty;
+    public string HoraFin { get; set; } = string.Empty;
 }
 
 public sealed record GuardarConfiguracionOperativaRequest

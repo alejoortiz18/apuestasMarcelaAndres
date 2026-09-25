@@ -117,7 +117,7 @@ public static class PdaTexts
     public const string JuegosCerradosDetalle = "No se pueden iniciar nuevas apuestas hasta la próxima apertura de horario.";
     public const string JuegosCerradosVenta = "Vuelve a intentarlo cuando el administrador habilite el horario.";
     public const string TipoApuestaAyuda = "Selecciona el tipo de apuesta. El tipo no se puede mezclar dentro del mismo boleto.";
-    public const string TipoCombinada = "COMBINADA";
+    public const string TipoCombinada = "COMBO";
     public const string TipoIndividual = "INDIVIDUAL";
     public const string TipoCombinadaAyuda = "Un número y valor jugados en varias loterías.";
     public const string TipoIndividualAyuda = "Líneas independientes, cada una con su propia lotería.";
@@ -244,6 +244,8 @@ public static class PdaTexts
     public const string ConsultaDispositivos = "Dispositivos";
     public const string ConsultaResultados = "Resultados";
     public const string ConsultaConfiguracion = "Configuración";
+    public const string HoraAperturaPda = "Hora de apertura del PDA";
+    public const string HoraCierrePda = "Hora de cierre del PDA";
     public const string FiltroGeneral = "General";
     public const string FiltroTodos = "Todos";
     public const string TipoConsulta = "Tipo de consulta";

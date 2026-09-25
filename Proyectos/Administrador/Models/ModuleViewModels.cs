@@ -120,6 +120,14 @@ public sealed class LoteriaFormViewModel
 
     [Display(Name = UiTexts.DiasDeJuego)]
     public List<DiaSemana> DiasHabilitados { get; set; } = [];
+
+    [Display(Name = UiTexts.HoraInicioLoteria)]
+    [Required(ErrorMessage = ValidationMessages.CampoRequerido)]
+    public string HoraInicio { get; set; } = string.Empty;
+
+    [Display(Name = UiTexts.HoraFinLoteria)]
+    [Required(ErrorMessage = ValidationMessages.CampoRequerido)]
+    public string HoraFin { get; set; } = string.Empty;
 }
 
 public sealed class GruposIndexViewModel

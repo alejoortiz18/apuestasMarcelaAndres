@@ -214,6 +214,8 @@ BEGIN
         Nombre          NVARCHAR(100)    NOT NULL,
         Estado          NVARCHAR(20)     NOT NULL DEFAULT 'Activo',
         Tope            DECIMAL(18, 2)   NOT NULL DEFAULT 1000,
+        HoraInicio      TIME(0)          NOT NULL DEFAULT '10:00:00',
+        HoraFin         TIME(0)          NOT NULL DEFAULT '13:00:00',
         FechaCreacion   DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
         CONSTRAINT PK_Loterias PRIMARY KEY (LoteriaId),
         CONSTRAINT UQ_Loterias_Nombre UNIQUE (Nombre),

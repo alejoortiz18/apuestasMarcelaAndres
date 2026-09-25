@@ -13,6 +13,7 @@ public sealed class ChatEnVivoServicio : IAsyncDisposable
 
     public event Action<MensajeChatEnVivoResponse>? Recibido;
     public event Action<CodigosOfflineAsignadosAviso>? CodigosAsignados;
+    public event Action? LoteriasActualizadas;
 
     public async Task AsegurarConectadoAsync(string baseUrl, string token, CancellationToken cancellationToken)
     {
@@ -46,6 +47,10 @@ public sealed class ChatEnVivoServicio : IAsyncDisposable
         _hub.On<CodigosOfflineAsignadosAviso>(HubRutas.EventoCodigosOfflineAsignados, aviso =>
         {
             MainThread.BeginInvokeOnMainThread(() => CodigosAsignados?.Invoke(aviso));
+        });
+        _hub.On(HubRutas.EventoLoteriasActualizadas, () =>
+        {
+            MainThread.BeginInvokeOnMainThread(() => LoteriasActualizadas?.Invoke());
         });
         try
         {

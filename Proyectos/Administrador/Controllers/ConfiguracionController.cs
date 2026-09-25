@@ -214,7 +214,9 @@ public sealed class ConfiguracionController : AdminControllerBase
         {
             Nombre = model.Nombre.Trim(),
             Tope = model.Tope,
-            DiasHabilitados = model.DiasHabilitados
+            DiasHabilitados = model.DiasHabilitados,
+            HoraInicio = model.HoraInicio,
+            HoraFin = model.HoraFin
         }, cancellationToken);
         var unauthorized = RedirectIfUnauthorized(result);
         if (unauthorized is not null)
@@ -255,7 +257,9 @@ public sealed class ConfiguracionController : AdminControllerBase
             LoteriaId = item.LoteriaId,
             Nombre = item.Nombre,
             Estado = item.Estado,
-            Tope = item.Tope
+            Tope = item.Tope,
+            HoraInicio = FormatoHoraInput(item.HoraInicio, string.Empty),
+            HoraFin = FormatoHoraInput(item.HoraFin, string.Empty)
         });
     }
 
@@ -273,7 +277,9 @@ public sealed class ConfiguracionController : AdminControllerBase
         {
             Nombre = model.Nombre.Trim(),
             Estado = model.Estado,
-            Tope = model.Tope
+            Tope = model.Tope,
+            HoraInicio = model.HoraInicio,
+            HoraFin = model.HoraFin
         }, cancellationToken);
         var unauthorized = RedirectIfUnauthorized(result);
         if (unauthorized is not null)
@@ -313,7 +319,9 @@ public sealed class ConfiguracionController : AdminControllerBase
         var result = await _api.ActualizarLoteriaAsync(id, new ActualizarLoteriaRequest
         {
             Nombre = item.Nombre,
-            Estado = nuevo
+            Estado = nuevo,
+            HoraInicio = item.HoraInicio ?? string.Empty,
+            HoraFin = item.HoraFin ?? string.Empty
         }, cancellationToken);
         unauthorized = RedirectIfUnauthorized(result);
         if (unauthorized is not null)

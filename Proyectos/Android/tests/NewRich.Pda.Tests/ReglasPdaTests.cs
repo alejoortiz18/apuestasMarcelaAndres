@@ -10,9 +10,10 @@ namespace NewRich.Pda.Tests;
 public sealed class ReglasPdaTests
 {
     [Fact]
-    public void Tipo_combinado_se_muestra_como_combinada()
+    public void Tipo_combinado_se_muestra_como_combo()
     {
-        TipoApuestaEtiqueta.Texto(TipoApuesta.COMBINADO).Should().Be(PdaTexts.TipoCombinada);
+        PdaTexts.TipoCombinada.Should().Be("COMBO");
+        TipoApuestaEtiqueta.Texto(TipoApuesta.COMBINADO).Should().Be("COMBO");
         TipoApuestaEtiqueta.Texto(TipoApuesta.INDIVIDUAL).Should().Be(PdaTexts.TipoIndividual);
     }
 

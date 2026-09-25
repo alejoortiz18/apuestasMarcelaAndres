@@ -49,6 +49,7 @@ public static class MauiProgram
 
         builder.Services.AddSingleton<ChatEnVivoServicio>();
         builder.Services.AddSingleton<CodigosOfflineEnVivoServicio>();
+        builder.Services.AddSingleton<LoteriasEnVivoServicio>();
         builder.Services.AddTransient<ArranquePage>();
         builder.Services.AddTransient<LoginPage>();
         builder.Services.AddTransient<PasswordPage>();

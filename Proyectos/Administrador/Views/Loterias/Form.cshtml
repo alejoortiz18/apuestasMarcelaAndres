@@ -31,6 +31,17 @@
             <span class="field-help">@UiTexts.TopeLoteriaAyuda</span>
             <span asp-validation-for="Tope"></span>
         </div>
+        <div class="field">
+            <label asp-for="HoraInicio"></label>
+            <input asp-for="HoraInicio" type="time" step="60" />
+            <span class="field-help">@UiTexts.HorarioLoteriaAyuda</span>
+            <span asp-validation-for="HoraInicio"></span>
+        </div>
+        <div class="field">
+            <label asp-for="HoraFin"></label>
+            <input asp-for="HoraFin" type="time" step="60" />
+            <span asp-validation-for="HoraFin"></span>
+        </div>
         @if (!Model.LoteriaId.HasValue)
         {
             <partial name="_DiasJuegoCampos" model="Model" />

@@ -1645,6 +1645,17 @@ label.check input {
   height: 18px;
 }
 .config-form textarea { min-height: 140px; resize: vertical; line-height: 1.45; }
+.catalogo-horario {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 16px;
+  align-items: end;
+  margin: 0 0 18px;
+}
+.catalogo-horario-save { padding-bottom: 2px; }
+@media (max-width: 800px) {
+  .catalogo-horario { grid-template-columns: 1fr; }
+}
 
 .dias-venta { margin: 0 0 22px; }
 .dias-venta-panel { display: grid; gap: 14px; }

@@ -1,6 +1,7 @@
 using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Layouts;
 using NewRich.Application.Contracts.Boletos;
+using NewRich.Application.Contracts.Loterias;
 using NewRich.Application.Contracts.Resultados;
 using NewRich.Application.Contracts.Usuarios;
 using NewRich.Application.Contracts.Ventas;
@@ -9,6 +10,7 @@ using NewRich.Domain.Services;
 using NewRich.Pda.Core;
 using NewRich.Pda.Core.Api;
 using NewRich.Pda.Core.Ventas;
+using NewRich.Maui.Services;
 using NewRich.Maui.Views;
 
 namespace NewRich.Maui.Views.Observador;
@@ -36,6 +38,7 @@ public sealed class ConsultasPage : ContentPage
     ];
 
     private readonly NewRichApiClient _api;
+    private readonly LoteriasEnVivoServicio _loteriasVivo;
     private readonly Entry _codigo = Ui.Entrada(PdaTexts.TicketCode);
     private readonly Entry _numero = Ui.Entero(PdaTexts.NumeroApostado);
     private readonly Picker _estado = new();
@@ -90,9 +93,10 @@ public sealed class ConsultasPage : ContentPage
     private IReadOnlyList<Fila> _datos = [];
     private decimal _totalVentasSegunFiltro;
 
-    public ConsultasPage(NewRichApiClient api)
+    public ConsultasPage(NewRichApiClient api, LoteriasEnVivoServicio loteriasVivo)
     {
         _api = api;
+        _loteriasVivo = loteriasVivo;
         Title = PdaTexts.Consultas;
         BackgroundColor = Ui.Paper;
 
@@ -452,13 +456,31 @@ public sealed class ConsultasPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        _loteriasVivo.CatalogoRefrescado += OnCatalogoRefrescado;
         try
         {
+            await _loteriasVivo.AsegurarSesionAsync(CancellationToken.None);
             await CargarAsync();
         }
         catch (Exception)
         {
         }
+    }
+
+    protected override void OnDisappearing()
+    {
+        _loteriasVivo.CatalogoRefrescado -= OnCatalogoRefrescado;
+        base.OnDisappearing();
+    }
+
+    private void OnCatalogoRefrescado(IReadOnlyList<LoteriaResponse> catalogo)
+    {
+        if (_tipo != PdaTexts.ConsultaConfiguracion)
+        {
+            return;
+        }
+
+        _ = CargarAsync();
     }
 
     private async Task CargarAsync()
@@ -593,13 +615,12 @@ public sealed class ConsultasPage : ContentPage
             if (resultado.Data is not null)
             {
                 var c = resultado.Data;
-                var filasConfig = new List<Fila>
-                {
-                    new(PdaTexts.HorarioAbierto, PdaTexts.ConsultaConfiguracion, c.HoraCierre, null),
-                    new(PdaTexts.VigenciaPremios, PdaTexts.ConsultaConfiguracion, $"{c.VigenciaPremiosDias} días", null),
-                    new($"Máximo {PdaTexts.TipoCombinada}", PdaTexts.ConsultaConfiguracion, c.MaxJuegosCombinado.ToString(), null),
-                    new($"Máximo {PdaTexts.TipoIndividual}", PdaTexts.ConsultaConfiguracion, c.MaxLineasIndividual.ToString(), null)
-                };
+                var filasConfig = ConfiguracionObservador.Filas(c)
+                    .Select(f => new Fila(f.Titulo, PdaTexts.ConsultaConfiguracion, f.Valor, null))
+                    .ToList();
+                filasConfig.Add(new(PdaTexts.VigenciaPremios, PdaTexts.ConsultaConfiguracion, $"{c.VigenciaPremiosDias} días", null));
+                filasConfig.Add(new($"Máximo {PdaTexts.TipoCombinada}", PdaTexts.ConsultaConfiguracion, c.MaxJuegosCombinado.ToString(), null));
+                filasConfig.Add(new($"Máximo {PdaTexts.TipoIndividual}", PdaTexts.ConsultaConfiguracion, c.MaxLineasIndividual.ToString(), null));
                 _numerosRestringidos = NumerosRestringidosPda.Vigentes(c.NumerosRestringidos, null);
                 filas = filasConfig;
             }

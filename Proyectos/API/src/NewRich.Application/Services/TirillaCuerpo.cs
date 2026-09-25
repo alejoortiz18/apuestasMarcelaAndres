@@ -14,7 +14,8 @@ public static class TirillaCuerpo
 
     public static bool EsCombinada(TipoApuesta tipo) => tipo == TipoApuesta.COMBINADO;
 
-    public static string EtiquetaTipo(TipoApuesta tipo) => tipo.ToString();
+    public static string EtiquetaTipo(TipoApuesta tipo) =>
+        tipo == TipoApuesta.COMBINADO ? "COMBO" : tipo.ToString();
 
     public static string Pesos(decimal valor) =>
         "$" + valor.ToString("N0", Cultura);

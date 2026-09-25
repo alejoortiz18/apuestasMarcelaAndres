@@ -20,6 +20,7 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddScoped<INotificacionTiempoReal, SignalRNotificacionTiempoReal>();
 builder.Services.AddScoped<IChatTiempoReal, SignalRChatTiempoReal>();
 builder.Services.AddScoped<ICodigosOfflineTiempoReal, SignalRCodigosOfflineTiempoReal>();
+builder.Services.AddScoped<ILoteriasTiempoReal, SignalRLoteriasTiempoReal>();
 builder.Services.AddControllers(options =>
 {
     options.Filters.Add<SesionYPasswordActionFilter>();

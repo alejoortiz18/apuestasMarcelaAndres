@@ -25,6 +25,8 @@ public sealed class ObservadorTextsTests
         PdaTexts.ConsultaDispositivos.Should().Be("Dispositivos");
         PdaTexts.ConsultaResultados.Should().Be("Resultados");
         PdaTexts.ConsultaConfiguracion.Should().Be("Configuración");
+        PdaTexts.HoraAperturaPda.Should().Be("Hora de apertura del PDA");
+        PdaTexts.HoraCierrePda.Should().Be("Hora de cierre del PDA");
         PdaTexts.FiltroGeneral.Should().Be("General");
     }
 }

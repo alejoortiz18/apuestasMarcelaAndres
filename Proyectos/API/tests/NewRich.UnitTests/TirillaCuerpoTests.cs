@@ -11,7 +11,7 @@ public sealed class TirillaCuerpoTests
     {
         TirillaCuerpo.EsCombinada(TipoApuesta.COMBINADO).Should().BeTrue();
         TirillaCuerpo.EsCombinada(TipoApuesta.INDIVIDUAL).Should().BeFalse();
-        TirillaCuerpo.EtiquetaTipo(TipoApuesta.COMBINADO).Should().Be("COMBINADO");
+        TirillaCuerpo.EtiquetaTipo(TipoApuesta.COMBINADO).Should().Be("COMBO");
         TirillaCuerpo.EtiquetaTipo(TipoApuesta.INDIVIDUAL).Should().Be("INDIVIDUAL");
     }
 

@@ -107,7 +107,7 @@ public sealed class LoteriaServiceTests
             && l.NumeroJugado == "1234"
             && l.BoletosVendidos == 1
             && l.TotalVendido == 5000
-            && l.TipoApuesta == "Combinado");
+            && l.TipoApuesta == "Combo");
     }
 
     [Fact]
@@ -122,6 +122,95 @@ public sealed class LoteriaServiceTests
     }
 
     [Fact]
+    public async Task CrearAsync_exige_hora_inicio_y_fin()
+    {
+        var (sut, _) = CreateSut();
+
+        var result = await sut.CrearAsync(
+            new CrearLoteriaRequest
+            {
+                Nombre = "Boyaca",
+                DiasHabilitados = [DiaSemana.Lunes]
+            },
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Message.Should().Be(ValidationMessages.HorarioLoteriaRequerido);
+    }
+
+    [Fact]
+    public async Task CrearAsync_rechaza_horario_fuera_del_pda()
+    {
+        var (sut, db) = CreateSut();
+        await SembrarHorarioPdaAsync(db, "08:00:00", "18:00:00");
+
+        var result = await sut.CrearAsync(
+            new CrearLoteriaRequest
+            {
+                Nombre = "Boyaca",
+                DiasHabilitados = [DiaSemana.Lunes],
+                HoraInicio = "07:00",
+                HoraFin = "11:00"
+            },
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Message.Should().Be(ValidationMessages.HorarioLoteriaFueraDePda);
+    }
+
+    [Fact]
+    public async Task CrearAsync_guarda_el_horario_disponible()
+    {
+        var (sut, db) = CreateSut();
+        await SembrarHorarioPdaAsync(db, "08:00:00", "18:00:00");
+
+        var creado = await sut.CrearAsync(
+            new CrearLoteriaRequest
+            {
+                Nombre = "Boyaca",
+                DiasHabilitados = [DiaSemana.Lunes],
+                HoraInicio = "09:00",
+                HoraFin = "11:00"
+            },
+            CancellationToken.None);
+        var listado = await sut.ListarAsync(CancellationToken.None);
+
+        creado.IsSuccess.Should().BeTrue(creado.Message);
+        listado.Data.Should().ContainSingle(l => l.Nombre == "Boyaca")
+            .Which.Should().Match<LoteriaResponse>(l => l.HoraInicio == "09:00" && l.HoraFin == "11:00");
+    }
+
+    [Fact]
+    public async Task ActualizarAsync_rechaza_horario_fuera_del_pda()
+    {
+        var (sut, db) = CreateSut();
+        await SembrarHorarioPdaAsync(db, "08:00:00", "18:00:00");
+        var creada = await sut.CrearAsync(
+            new CrearLoteriaRequest
+            {
+                Nombre = "Boyaca",
+                DiasHabilitados = [DiaSemana.Lunes],
+                HoraInicio = "09:00",
+                HoraFin = "11:00"
+            },
+            CancellationToken.None);
+
+        var result = await sut.ActualizarAsync(
+            creada.Data!.LoteriaId,
+            new ActualizarLoteriaRequest
+            {
+                Nombre = "Boyaca",
+                Estado = EstadoGeneral.Activo,
+                HoraInicio = "09:00",
+                HoraFin = "19:00"
+            },
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Message.Should().Be(ValidationMessages.HorarioLoteriaFueraDePda);
+    }
+
+    [Fact]
     public async Task CrearAsync_guarda_los_dias_indicados()
     {
         var (sut, _) = CreateSut();
@@ -130,7 +219,9 @@ public sealed class LoteriaServiceTests
             new CrearLoteriaRequest
             {
                 Nombre = "Boyaca",
-                DiasHabilitados = [DiaSemana.Sabado, DiaSemana.Sabado, DiaSemana.Jueves]
+                DiasHabilitados = [DiaSemana.Sabado, DiaSemana.Sabado, DiaSemana.Jueves],
+                HoraInicio = "10:00",
+                HoraFin = "13:00"
             },
             CancellationToken.None);
         var listado = await sut.ListarAsync(CancellationToken.None);
@@ -171,7 +262,9 @@ public sealed class LoteriaServiceTests
             new CrearLoteriaRequest
             {
                 Nombre = "Cundinamarca",
-                DiasHabilitados = [DiaSemana.Lunes]
+                DiasHabilitados = [DiaSemana.Lunes],
+                HoraInicio = "10:00",
+                HoraFin = "13:00"
             },
             CancellationToken.None);
 
@@ -199,8 +292,8 @@ public sealed class LoteriaServiceTests
     public async Task ActualizarTopesAsync_guarda_el_tope_de_todas_las_loterias()
     {
         var (sut, _) = CreateSut();
-        var cali = await sut.CrearAsync(new CrearLoteriaRequest { Nombre = "Cali", Tope = 1000, DiasHabilitados = [DiaSemana.Lunes] }, CancellationToken.None);
-        var pasto = await sut.CrearAsync(new CrearLoteriaRequest { Nombre = "Pasto", Tope = 1000, DiasHabilitados = [DiaSemana.Lunes] }, CancellationToken.None);
+        var cali = await sut.CrearAsync(RequestCrear("Cali"), CancellationToken.None);
+        var pasto = await sut.CrearAsync(RequestCrear("Pasto"), CancellationToken.None);
 
         var result = await sut.ActualizarTopesAsync(
             new ActualizarTopesLoteriasRequest
@@ -223,8 +316,8 @@ public sealed class LoteriaServiceTests
     public async Task ActualizarTopesAsync_no_guarda_nada_si_un_tope_es_negativo()
     {
         var (sut, _) = CreateSut();
-        var cali = await sut.CrearAsync(new CrearLoteriaRequest { Nombre = "Cali", Tope = 1000, DiasHabilitados = [DiaSemana.Lunes] }, CancellationToken.None);
-        var pasto = await sut.CrearAsync(new CrearLoteriaRequest { Nombre = "Pasto", Tope = 1000, DiasHabilitados = [DiaSemana.Lunes] }, CancellationToken.None);
+        var cali = await sut.CrearAsync(RequestCrear("Cali"), CancellationToken.None);
+        var pasto = await sut.CrearAsync(RequestCrear("Pasto"), CancellationToken.None);
 
         var result = await sut.ActualizarTopesAsync(
             new ActualizarTopesLoteriasRequest
@@ -243,13 +336,109 @@ public sealed class LoteriaServiceTests
         listado.Data!.Should().OnlyContain(l => l.Tope == 1000);
     }
 
-    private static (LoteriaService Sut, NewRichDbContext Db) CreateSut()
+    [Fact]
+    public async Task CrearAsync_avisa_a_los_pdas_en_tiempo_real()
+    {
+        var vivo = new LoteriasVivoSpy();
+        var (sut, db) = CreateSut(vivo);
+        await SembrarHorarioPdaAsync(db, "08:00:00", "18:00:00");
+
+        var result = await sut.CrearAsync(
+            new CrearLoteriaRequest
+            {
+                Nombre = "Boyaca",
+                DiasHabilitados = [DiaSemana.Lunes],
+                HoraInicio = "09:00",
+                HoraFin = "11:00"
+            },
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue(result.Message);
+        vivo.Avisos.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task ActualizarDiasAsync_avisa_a_los_pdas_en_tiempo_real()
+    {
+        var vivo = new LoteriasVivoSpy();
+        var (sut, db) = CreateSut(vivo);
+        await SembrarHorarioPdaAsync(db, "08:00:00", "18:00:00");
+        var creada = await sut.CrearAsync(
+            new CrearLoteriaRequest
+            {
+                Nombre = "Cundinamarca",
+                DiasHabilitados = [DiaSemana.Lunes],
+                HoraInicio = "10:00",
+                HoraFin = "13:00"
+            },
+            CancellationToken.None);
+        vivo.Avisos = 0;
+
+        var result = await sut.ActualizarDiasAsync(
+            new ActualizarDiasLoteriasRequest
+            {
+                Loterias =
+                [
+                    new DiasLoteriaRequest
+                    {
+                        LoteriaId = creada.Data!.LoteriaId,
+                        DiasHabilitados = [DiaSemana.Martes]
+                    }
+                ]
+            },
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue(result.Message);
+        vivo.Avisos.Should().Be(1);
+    }
+
+    private static CrearLoteriaRequest RequestCrear(string nombre) => new()
+    {
+        Nombre = nombre,
+        Tope = 1000,
+        DiasHabilitados = [DiaSemana.Lunes],
+        HoraInicio = "10:00",
+        HoraFin = "13:00"
+    };
+
+    private static async Task SembrarHorarioPdaAsync(NewRichDbContext db, string apertura, string cierre)
+    {
+        db.Configuraciones.AddRange(
+            new Configuracion
+            {
+                ConfiguracionId = Guid.NewGuid(),
+                Clave = "HoraApertura",
+                Valor = apertura,
+                FechaActualizacion = DateTime.UtcNow
+            },
+            new Configuracion
+            {
+                ConfiguracionId = Guid.NewGuid(),
+                Clave = "HoraCierre",
+                Valor = cierre,
+                FechaActualizacion = DateTime.UtcNow
+            });
+        await db.SaveChangesAsync();
+    }
+
+    private static (LoteriaService Sut, NewRichDbContext Db) CreateSut(ILoteriasTiempoReal? vivo = null)
     {
         var options = new DbContextOptionsBuilder<NewRichDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         var db = new NewRichDbContext(options);
-        return (new LoteriaService(db, new FixedClock(DateTime.UtcNow)), db);
+        return (new LoteriaService(db, new FixedClock(DateTime.UtcNow), vivo ?? new LoteriasVivoSpy()), db);
+    }
+
+    private sealed class LoteriasVivoSpy : ILoteriasTiempoReal
+    {
+        public int Avisos { get; set; }
+
+        public Task AvisarCatalogoActualizadoAsync(CancellationToken cancellationToken)
+        {
+            Avisos++;
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class FixedClock : IClock

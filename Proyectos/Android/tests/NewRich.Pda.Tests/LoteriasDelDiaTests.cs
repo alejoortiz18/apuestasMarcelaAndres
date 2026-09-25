@@ -72,12 +72,60 @@ public sealed class LoteriasDelDiaTests
         LoteriasDelDia.Filtrar(loterias, domingoColombia).Select(l => l.Nombre).Should().Equal("Cali");
     }
 
+    [Fact]
+    public void Solo_deja_las_loterias_dentro_de_su_horario()
+    {
+        var lasDiez = new DateTime(2026, 9, 15, 10, 0, 0);
+        var loterias = new[]
+        {
+            Loteria("Medellin", EstadoGeneral.Activo, "09:00", "11:00", DiaSemana.Martes),
+            Loteria("Bogota", EstadoGeneral.Activo, "09:00", "14:00", DiaSemana.Martes)
+        };
+
+        LoteriasDelDia.Filtrar(loterias, lasDiez).Select(l => l.Nombre).Should().Equal("Medellin", "Bogota");
+    }
+
+    [Fact]
+    public void Oculta_la_loteria_cuando_ya_termino_su_horario()
+    {
+        var lasOnceYCinco = new DateTime(2026, 9, 15, 11, 5, 0);
+        var loterias = new[]
+        {
+            Loteria("Medellin", EstadoGeneral.Activo, "09:00", "11:00", DiaSemana.Martes),
+            Loteria("Bogota", EstadoGeneral.Activo, "09:00", "14:00", DiaSemana.Martes)
+        };
+
+        LoteriasDelDia.Filtrar(loterias, lasOnceYCinco).Select(l => l.Nombre).Should().Equal("Bogota");
+    }
+
+    [Fact]
+    public void Conserva_la_loteria_de_una_venta_empezada_aunque_haya_cerrado_su_horario()
+    {
+        var lasOnceYCinco = new DateTime(2026, 9, 15, 11, 5, 0);
+        var medellin = Loteria("Medellin", EstadoGeneral.Activo, "09:00", "11:00", DiaSemana.Martes);
+        var bogota = Loteria("Bogota", EstadoGeneral.Activo, "09:00", "14:00", DiaSemana.Martes);
+
+        LoteriasDelDia.Filtrar([medellin, bogota], lasOnceYCinco, [medellin.LoteriaId])
+            .Select(l => l.Nombre)
+            .Should().Equal("Medellin", "Bogota");
+    }
+
     private static LoteriaResponse Loteria(string nombre, EstadoGeneral estado, params DiaSemana[] dias) =>
+        Loteria(nombre, estado, "00:00", "23:59", dias);
+
+    private static LoteriaResponse Loteria(
+        string nombre,
+        EstadoGeneral estado,
+        string horaInicio,
+        string horaFin,
+        params DiaSemana[] dias) =>
         new()
         {
             LoteriaId = Guid.NewGuid(),
             Nombre = nombre,
             Estado = estado,
+            HoraInicio = horaInicio,
+            HoraFin = horaFin,
             DiasHabilitados = [.. dias]
         };
 }

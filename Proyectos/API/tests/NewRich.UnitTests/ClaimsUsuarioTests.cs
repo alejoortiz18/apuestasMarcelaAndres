@@ -43,5 +43,6 @@ public sealed class ClaimsUsuarioTests
         HubRutas.EventoNuevaNotificacion.Should().Be("nuevaNotificacion");
         HubRutas.EventoMensajeChat.Should().Be("mensajeChat");
         HubRutas.EventoCodigosOfflineAsignados.Should().Be("codigosOfflineAsignados");
+        HubRutas.EventoLoteriasActualizadas.Should().Be("loteriasActualizadas");
     }
 }

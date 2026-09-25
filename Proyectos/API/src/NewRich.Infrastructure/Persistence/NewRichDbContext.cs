@@ -153,6 +153,8 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
             e.HasKey(x => x.LoteriaId);
             e.Property(x => x.Estado).HasConversion(estadoGeneral).HasMaxLength(20);
             e.Property(x => x.Tope).HasColumnType("decimal(18,2)");
+            e.Property(x => x.HoraInicio).HasColumnType("time(0)");
+            e.Property(x => x.HoraFin).HasColumnType("time(0)");
         });
 
         modelBuilder.Entity<LoteriaDiaSemana>(e =>

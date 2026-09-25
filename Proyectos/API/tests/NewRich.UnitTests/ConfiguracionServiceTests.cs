@@ -70,6 +70,19 @@ public sealed class ConfiguracionServiceTests
     }
 
     [Fact]
+    public async Task GuardarOperativaAsync_avisa_a_los_pdas_en_tiempo_real()
+    {
+        var vivo = new LoteriasVivoSpy();
+        var (sut, _) = CreateSut(vivo);
+        await sut.ObtenerOperativaAsync(CancellationToken.None);
+
+        var result = await sut.GuardarOperativaAsync(RequestValida(), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue(result.Message);
+        vivo.Avisos.Should().Be(1);
+    }
+
+    [Fact]
     public async Task GuardarOperativaAsync_persiste_parametros_y_maximos()
     {
         var (sut, db) = CreateSut();
@@ -208,6 +221,31 @@ public sealed class ConfiguracionServiceTests
     }
 
     [Fact]
+    public async Task GuardarOperativaAsync_rechaza_horario_que_deja_loterias_fuera()
+    {
+        var (sut, db) = CreateSut();
+        await sut.ObtenerOperativaAsync(CancellationToken.None);
+        db.Loterias.Add(new Loteria
+        {
+            LoteriaId = Guid.NewGuid(),
+            Nombre = "Medellin",
+            Estado = EstadoGeneral.Activo,
+            HoraInicio = TimeSpan.Parse("10:00:00"),
+            HoraFin = TimeSpan.Parse("13:00:00"),
+            FechaCreacion = Ahora
+        });
+        await db.SaveChangesAsync();
+
+        var result = await sut.GuardarOperativaAsync(
+            RequestValida() with { HoraApertura = "11:00 AM", HoraCierre = "8:00 PM" },
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Message.Should().Be(ConfiguracionMessages.HorarioPdaViolaLoterias);
+        db.Configuraciones.Single(c => c.Clave == ConfiguracionClaves.HoraApertura).Valor.Should().Be("10:00:00");
+    }
+
+    [Fact]
     public async Task GuardarOperativaAsync_rechaza_dias_inactividad_eliminar_pda_invalidos()
     {
         var (sut, _) = CreateSut();
@@ -236,13 +274,24 @@ public sealed class ConfiguracionServiceTests
         LeyendaTirilla = TirillaCuerpo.CuerpoDefecto
     };
 
-    private static (ConfiguracionService Sut, NewRichDbContext Db) CreateSut()
+    private static (ConfiguracionService Sut, NewRichDbContext Db) CreateSut(ILoteriasTiempoReal? vivo = null)
     {
         var options = new DbContextOptionsBuilder<NewRichDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         var db = new NewRichDbContext(options);
-        return (new ConfiguracionService(db, new RelojFijo(Ahora)), db);
+        return (new ConfiguracionService(db, new RelojFijo(Ahora), vivo ?? new LoteriasVivoSpy()), db);
+    }
+
+    private sealed class LoteriasVivoSpy : ILoteriasTiempoReal
+    {
+        public int Avisos { get; set; }
+
+        public Task AvisarCatalogoActualizadoAsync(CancellationToken cancellationToken)
+        {
+            Avisos++;
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class RelojFijo : IClock

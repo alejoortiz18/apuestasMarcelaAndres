@@ -22,7 +22,9 @@ public sealed class TirillaTextoTests
         texto.Should().Contain("Fecha: 2026-09-09");
         texto.Should().Contain("Hora: 14:22");
         texto.Should().Contain("Tipo de apuesta:");
-        texto.Should().Contain("COMBINADO");
+        texto.Should().Contain("COMBO");
+        texto.Should().NotContain("COMBINADO");
+        texto.Should().NotContain("COMBINADA");
         texto.Should().Contain("JUGADO");
         texto.Should().Contain("NUMERO");
         texto.Should().Contain("VALOR");
@@ -43,7 +45,7 @@ public sealed class TirillaTextoTests
         fechaLinea.Should().Contain("2026-09-09");
         fechaLinea.Should().NotContain("Hora:");
         lineas.Should().Contain(l => l.StartsWith("Hora:") && l.Contains("14:22"));
-        lineas.Should().Contain("Tipo de apuesta: COMBINADO");
+        lineas.Should().Contain("Tipo de apuesta: COMBO");
         var totalLinea = lineas.First(l => l.StartsWith("TOTAL APOSTADO"));
         totalLinea.Should().Contain("$4.000");
         totalLinea.Should().NotMatchRegex(@"TOTAL APOSTADO {3,}");

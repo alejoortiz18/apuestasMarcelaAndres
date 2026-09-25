@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using NewRich.Application.Abstractions;
 using NewRich.Application.Contracts.Loterias;
+using NewRich.Constants;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
 using NewRich.Domain.Enums;
@@ -13,11 +14,13 @@ public sealed class LoteriaService : ILoteriaService
 {
     private readonly INewRichDbContext _db;
     private readonly IClock _clock;
+    private readonly ILoteriasTiempoReal _vivo;
 
-    public LoteriaService(INewRichDbContext db, IClock clock)
+    public LoteriaService(INewRichDbContext db, IClock clock, ILoteriasTiempoReal vivo)
     {
         _db = db;
         _clock = clock;
+        _vivo = vivo;
     }
 
     public async Task<Result<IReadOnlyList<LoteriaResponse>>> ListarAsync(CancellationToken cancellationToken)
@@ -65,6 +68,12 @@ public sealed class LoteriaService : ILoteriaService
             return Result<LoteriaResponse>.Fail(VentaMessages.TopeNegativo);
         }
 
+        var horario = await ResolverHorarioAsync(request.HoraInicio, request.HoraFin, cancellationToken);
+        if (!horario.IsSuccess)
+        {
+            return Result<LoteriaResponse>.Fail(horario.Message);
+        }
+
         if (await _db.Loterias.AnyAsync(x => x.Nombre == request.Nombre.Trim(), cancellationToken))
         {
             return Result<LoteriaResponse>.Fail(VentaMessages.LoteriaNombreDuplicado, 409);
@@ -76,11 +85,14 @@ public sealed class LoteriaService : ILoteriaService
             Nombre = request.Nombre.Trim(),
             Estado = EstadoGeneral.Activo,
             Tope = request.Tope,
+            HoraInicio = horario.Data!.Inicio,
+            HoraFin = horario.Data.Fin,
             FechaCreacion = _clock.UtcNow
         };
         _db.Loterias.Add(loteria);
         ReemplazarDias(loteria.LoteriaId, dias);
         await _db.SaveChangesAsync(cancellationToken);
+        await _vivo.AvisarCatalogoActualizadoAsync(cancellationToken);
         return Result<LoteriaResponse>.Created(Map(loteria, null, null, dias), SuccessMessages.RegistroCreado);
     }
 
@@ -97,8 +109,16 @@ public sealed class LoteriaService : ILoteriaService
             return Result<LoteriaResponse>.Fail(VentaMessages.LoteriaNombreDuplicado, 409);
         }
 
+        var horario = await ResolverHorarioAsync(request.HoraInicio, request.HoraFin, cancellationToken);
+        if (!horario.IsSuccess)
+        {
+            return Result<LoteriaResponse>.Fail(horario.Message);
+        }
+
         loteria.Nombre = request.Nombre.Trim();
         loteria.Estado = request.Estado;
+        loteria.HoraInicio = horario.Data!.Inicio;
+        loteria.HoraFin = horario.Data.Fin;
         if (request.Tope.HasValue)
         {
             if (request.Tope.Value < 0)
@@ -110,6 +130,7 @@ public sealed class LoteriaService : ILoteriaService
         }
 
         await _db.SaveChangesAsync(cancellationToken);
+        await _vivo.AvisarCatalogoActualizadoAsync(cancellationToken);
         var dias = await CargarDiasAsync([loteriaId], cancellationToken);
         return Result<LoteriaResponse>.Ok(Map(loteria, null, null, dias.GetValueOrDefault(loteriaId)), SuccessMessages.RegistroActualizado);
     }
@@ -132,6 +153,7 @@ public sealed class LoteriaService : ILoteriaService
         }
 
         await _db.SaveChangesAsync(cancellationToken);
+        await _vivo.AvisarCatalogoActualizadoAsync(cancellationToken);
         return await ListarAsync(cancellationToken);
     }
 
@@ -210,6 +232,54 @@ public sealed class LoteriaService : ILoteriaService
             : config.Valor;
     }
 
+    private async Task<Result<HorarioResuelto>> ResolverHorarioAsync(
+        string? horaInicio,
+        string? horaFin,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(horaInicio) || string.IsNullOrWhiteSpace(horaFin))
+        {
+            return Result<HorarioResuelto>.Fail(ValidationMessages.HorarioLoteriaRequerido);
+        }
+
+        if (!Hora12.TryParse(horaInicio, out var inicio) || !Hora12.TryParse(horaFin, out var fin))
+        {
+            return Result<HorarioResuelto>.Fail(ValidationMessages.HorarioLoteriaInvalido);
+        }
+
+        if (inicio >= fin)
+        {
+            return Result<HorarioResuelto>.Fail(ValidationMessages.HorarioLoteriaInicioMayorQueFin);
+        }
+
+        var (apertura, cierre) = await ObtenerHorarioPdaAsync(cancellationToken);
+        if (!HorarioLoteria.EsValido(inicio, fin, apertura, cierre))
+        {
+            return Result<HorarioResuelto>.Fail(ValidationMessages.HorarioLoteriaFueraDePda);
+        }
+
+        return Result<HorarioResuelto>.Ok(new HorarioResuelto(inicio, fin), SuccessMessages.OperacionExitosa);
+    }
+
+    private async Task<(TimeSpan Apertura, TimeSpan Cierre)> ObtenerHorarioPdaAsync(CancellationToken cancellationToken)
+    {
+        var claves = await _db.Configuraciones
+            .Where(c => c.Clave == ConfiguracionClaves.HoraApertura || c.Clave == ConfiguracionClaves.HoraCierre)
+            .ToListAsync(cancellationToken);
+        var apertura = ParsearHoraConfig(
+            claves.FirstOrDefault(c => c.Clave == ConfiguracionClaves.HoraApertura)?.Valor,
+            new TimeSpan(10, 0, 0));
+        var cierre = ParsearHoraConfig(
+            claves.FirstOrDefault(c => c.Clave == ConfiguracionClaves.HoraCierre)?.Valor,
+            new TimeSpan(20, 0, 0));
+        return (apertura, cierre);
+    }
+
+    private static TimeSpan ParsearHoraConfig(string? valor, TimeSpan defecto) =>
+        Hora12.TryParse(valor, out var hora) ? hora : defecto;
+
+    private sealed record HorarioResuelto(TimeSpan Inicio, TimeSpan Fin);
+
     private static string? TipoApuestaResumen(IReadOnlyList<TipoApuesta> tipos)
     {
         if (tipos.Count == 0)
@@ -217,7 +287,7 @@ public sealed class LoteriaService : ILoteriaService
             return null;
         }
 
-        return string.Join(", ", tipos.Select(t => t == TipoApuesta.INDIVIDUAL ? "Individual" : "Combinado").OrderBy(x => x));
+        return string.Join(", ", tipos.Select(t => t == TipoApuesta.INDIVIDUAL ? "Individual" : "Combo").OrderBy(x => x));
     }
 
     private static string? NumerosJugados(IReadOnlyList<string> numeros)
@@ -241,6 +311,8 @@ public sealed class LoteriaService : ILoteriaService
         Nombre = loteria.Nombre,
         Estado = loteria.Estado,
         Tope = loteria.Tope,
+        HoraInicio = loteria.HoraInicio.ToString(@"hh\:mm"),
+        HoraFin = loteria.HoraFin.ToString(@"hh\:mm"),
         HoraCierre = horaCierre,
         NumeroJugado = resumen?.NumeroJugado,
         BoletosVendidos = resumen?.BoletosVendidos ?? 0,

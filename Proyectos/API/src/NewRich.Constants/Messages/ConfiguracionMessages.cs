@@ -6,6 +6,7 @@ public static class ConfiguracionMessages
     public const string HoraAperturaInvalida = "La hora de apertura no tiene un formato válido.";
     public const string HoraCierreInvalida = "La hora de cierre no tiene un formato válido.";
     public const string HorasOperacionIguales = "La hora de apertura y la hora de cierre no pueden ser iguales.";
+    public const string HorarioPdaViolaLoterias = "No puede cambiar el horario del PDA. Las loterías no pueden quedar por encima ni por debajo del horario de actividad.";
     public const string VigenciaInvalida = "La vigencia de premios debe ser un número entero mayor que cero.";
     public const string DiasInactividadEliminarPdaInvalido = "Los días de inactividad para eliminar un PDA deben ser un número entero mayor que cero.";
     public const string EnteroInvalido = "El valor debe ser un número entero mayor que cero.";

@@ -115,7 +115,9 @@ public sealed class LoteriasController : AdminControllerBase
         {
             Nombre = model.Nombre.Trim(),
             Tope = model.Tope,
-            DiasHabilitados = model.DiasHabilitados
+            DiasHabilitados = model.DiasHabilitados,
+            HoraInicio = model.HoraInicio,
+            HoraFin = model.HoraFin
         }, cancellationToken);
         var unauthorized = RedirectIfUnauthorized(result);
         if (unauthorized is not null)
@@ -156,7 +158,9 @@ public sealed class LoteriasController : AdminControllerBase
             LoteriaId = item.LoteriaId,
             Nombre = item.Nombre,
             Estado = item.Estado,
-            Tope = item.Tope
+            Tope = item.Tope,
+            HoraInicio = item.HoraInicio ?? string.Empty,
+            HoraFin = item.HoraFin ?? string.Empty
         });
     }
 
@@ -174,7 +178,9 @@ public sealed class LoteriasController : AdminControllerBase
         {
             Nombre = model.Nombre.Trim(),
             Estado = model.Estado,
-            Tope = model.Tope
+            Tope = model.Tope,
+            HoraInicio = model.HoraInicio,
+            HoraFin = model.HoraFin
         }, cancellationToken);
 
         var unauthorized = RedirectIfUnauthorized(result);

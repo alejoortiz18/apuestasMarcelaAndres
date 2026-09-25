@@ -320,10 +320,10 @@ public sealed class PasswordPage : ContentPage
                 return;
             }
 
+            await _enVivo.AsegurarSesionAsync(CancellationToken.None);
             if (shell.Data == ShellPda.Vendedor)
             {
                 await _offline.SincronizarEnSilencioAsync(true, resultado.Data.Rol, false, CancellationToken.None);
-                await _enVivo.AsegurarSesionAsync(CancellationToken.None);
                 _nav.IrAVendedor();
             }
             else

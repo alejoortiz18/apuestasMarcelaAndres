@@ -2,6 +2,7 @@ using NewRich.Application.Contracts.Ventas;
 using NewRich.Pda.Core;
 using NewRich.Pda.Core.Api;
 using NewRich.Pda.Core.Auth;
+using NewRich.Maui.Services;
 using NewRich.Maui.Views;
 using NewRich.Maui.Views.Vendedor;
 
@@ -12,6 +13,7 @@ public sealed class ObservadorHomePage : ContentPage
     private readonly NewRichApiClient _api;
     private readonly SesionPda _sesion;
     private readonly IServiceProvider _services;
+    private readonly LoteriasEnVivoServicio _loteriasVivo;
     private readonly Label _total = new() { FontSize = 30, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink };
     private readonly Label _boletos = new() { FontSize = 19, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink };
     private readonly Label _numeros = new() { FontSize = 19, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink };
@@ -20,11 +22,16 @@ public sealed class ObservadorHomePage : ContentPage
     private readonly VerticalStackLayout _banners = new() { Spacing = 8 };
     private readonly Button _validar;
 
-    public ObservadorHomePage(NewRichApiClient api, SesionPda sesion, IServiceProvider services)
+    public ObservadorHomePage(
+        NewRichApiClient api,
+        SesionPda sesion,
+        IServiceProvider services,
+        LoteriasEnVivoServicio loteriasVivo)
     {
         _api = api;
         _sesion = sesion;
         _services = services;
+        _loteriasVivo = loteriasVivo;
         Title = PdaTexts.Inicio;
         _validar = Ui.Primario(PdaTexts.ValidarTicket);
         _validar.Clicked += (_, _) => _ = Shell.Current.GoToAsync("//ovalidar");
@@ -110,6 +117,7 @@ public sealed class ObservadorHomePage : ContentPage
         base.OnAppearing();
         try
         {
+            await _loteriasVivo.AsegurarSesionAsync(CancellationToken.None);
             await ActualizarAsync();
         }
         catch (Exception)

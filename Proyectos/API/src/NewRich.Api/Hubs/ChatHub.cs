@@ -11,6 +11,7 @@ public sealed class ChatHub : Hub
     public const string Ruta = HubRutas.Chat;
     public const string EventoMensaje = HubRutas.EventoMensajeChat;
     public const string EventoCodigosOfflineAsignados = HubRutas.EventoCodigosOfflineAsignados;
+    public const string EventoLoteriasActualizadas = HubRutas.EventoLoteriasActualizadas;
 
     private readonly IPresenciaDispositivos _presencia;
 

@@ -35,7 +35,8 @@ public sealed class TirillaVentaTests
         tirilla.Lineas[0].LoteriaNombres.Should().Equal("Bogotá", "Medellín");
         tirilla.VigenciaDias.Should().Be(31);
         tirilla.ARespuesta().Juegos[0].Total.Should().Be(3000);
-        tirilla.Texto.Should().Contain("COMBINADO");
+        tirilla.Texto.Should().Contain("COMBO");
+        tirilla.Texto.Should().NotContain("COMBINADO");
         tirilla.Texto.Should().Contain("Hora: 15:55");
         tirilla.Texto.Should().NotContain("15:55:18");
         tirilla.ARespuesta().Leyenda.Should().Contain("GRACIAS POR SU COMPRA.");

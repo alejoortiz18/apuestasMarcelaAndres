@@ -277,6 +277,10 @@ public static class UiTexts
     public const string BuscarLoteria = "Buscar lotería";
     public const string PlaceholderLoteria = "Nombre o número";
     public const string CatalogoLoterias = "Catálogo de loterías";
+    public const string HorarioHabilitado = "Horario habilitado";
+    public const string HoraInicioLoteria = "Hora de inicio";
+    public const string HoraFinLoteria = "Hora de fin";
+    public const string HorarioLoteriaAyuda = "Debe estar dentro del horario de actividad del PDA. La hora de inicio debe ser menor que la hora de fin.";
     public const string ResumenPorLoteria = "Resumen por lotería";
     public const string ResumenPorLoteriaSub = "Boletos y valores registrados en el sistema";
     public const string Ciudad = "Ciudad";
@@ -448,7 +452,7 @@ public static class UiTexts
     public const string ConfigTitulo = "Configuración operativa";
     public const string ConfigSub = "Define el cierre de los PDA, la vigencia de premios, los límites de apuesta, las alertas, los códigos offline, el texto de la tirilla, los números restringidos y los días de venta de cada lotería.";
     public const string GuardarConfiguracion = "Guardar configuración";
-    public const string ConfigHorarioPremios = "Horario y premios";
+    public const string ConfigHorarioPremios = "Premios";
     public const string ConfigDiasVenta = "Días de venta";
     public const string ConfigDiasVentaSub = "Marque las loterías que el vendedor puede vender cada día. El PDA solo muestra las de hoy.";
     public const string GuardarDiasVenta = "Guardar días de venta";
@@ -489,7 +493,7 @@ public static class UiTexts
     public const string EditarTope = "Editar tope";
     public const string DiasInactividadEliminarPda = "Días sin actividad para eliminar PDA";
     public const string DiasInactividadEliminarPdaAyuda = "El PDA solo podrá eliminarse si lleva al menos este número de días sin sesiones, ventas, sincronizaciones ni conexión.";
-    public const string MaxJuegosCombinado = "Juegos máximos en modo combinado";
+    public const string MaxJuegosCombinado = "Juegos máximos en modo combo";
     public const string MaxLineasIndividual = "Líneas máximas en modo individual";
     public const string AlertaNumeroJugado = "Mínimo de veces de un número por boleta para alertar";
     public const string AlertaValorJugada = "Valor mínimo de una jugada para alertar";

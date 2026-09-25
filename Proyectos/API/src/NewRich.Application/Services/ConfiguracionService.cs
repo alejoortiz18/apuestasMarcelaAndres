@@ -28,11 +28,13 @@ public sealed class ConfiguracionService : IConfiguracionService
 
     private readonly INewRichDbContext _db;
     private readonly IClock _clock;
+    private readonly ILoteriasTiempoReal _vivo;
 
-    public ConfiguracionService(INewRichDbContext db, IClock clock)
+    public ConfiguracionService(INewRichDbContext db, IClock clock, ILoteriasTiempoReal vivo)
     {
         _db = db;
         _clock = clock;
+        _vivo = vivo;
     }
 
     public async Task<Result<IReadOnlyList<ConfiguracionResponse>>> ListarAsync(CancellationToken cancellationToken)
@@ -97,16 +99,19 @@ public sealed class ConfiguracionService : IConfiguracionService
                 .OrderBy(x => x.Numero)
                 .Select(x => x.Numero)
                 .ToListAsync(cancellationToken),
-            TopesLoterias = await _db.Loterias
+            TopesLoterias = (await _db.Loterias
                 .AsNoTracking()
                 .OrderBy(x => x.Nombre)
+                .ToListAsync(cancellationToken))
                 .Select(x => new TopeLoteriaResponse
                 {
                     LoteriaId = x.LoteriaId,
                     Nombre = x.Nombre,
-                    Tope = x.Tope
+                    Tope = x.Tope,
+                    HoraInicio = x.HoraInicio.ToString(@"hh\:mm"),
+                    HoraFin = x.HoraFin.ToString(@"hh\:mm")
                 })
-                .ToListAsync(cancellationToken)
+                .ToList()
         }, SuccessMessages.OperacionExitosa);
     }
 
@@ -125,6 +130,12 @@ public sealed class ConfiguracionService : IConfiguracionService
         if (!HorarioOperacion.SonDistintas(apertura, cierre))
         {
             return Result<ConfiguracionOperativaResponse>.Fail(ConfiguracionMessages.HorasOperacionIguales);
+        }
+
+        var loterias = await _db.Loterias.AsNoTracking().ToListAsync(cancellationToken);
+        if (loterias.Any(l => !HorarioLoteria.EsValido(l.HoraInicio, l.HoraFin, apertura, cierre)))
+        {
+            return Result<ConfiguracionOperativaResponse>.Fail(ConfiguracionMessages.HorarioPdaViolaLoterias);
         }
 
         if (request.VigenciaPremiosDias <= 0)
@@ -201,6 +212,7 @@ public sealed class ConfiguracionService : IConfiguracionService
         }
 
         await _db.SaveChangesAsync(cancellationToken);
+        await _vivo.AvisarCatalogoActualizadoAsync(cancellationToken);
         return await ObtenerOperativaAsync(cancellationToken);
     }
 
