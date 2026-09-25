@@ -24,6 +24,7 @@ public sealed class TirillaVendidaPage : ContentPage
     private bool _impresionAutomaticaHecha;
     private bool _escuchandoLector;
     private Label? _avisoImpresion;
+    private Button? _reimprimir;
     private Label? _estadoReporte;
     private VerticalStackLayout? _formularioReporte;
     private Entry? _detalleReporte;
@@ -79,6 +80,9 @@ public sealed class TirillaVendidaPage : ContentPage
             IsVisible = false
         };
 
+        _reimprimir = Ui.Secundario(PdaTexts.ReimprimirTirilla);
+        _reimprimir.Clicked += async (_, _) => await ImprimirAsync(tirilla);
+
         var cuerpo = new VerticalStackLayout { Spacing = 12 };
         cuerpo.Add(new Label
         {
@@ -89,6 +93,7 @@ public sealed class TirillaVendidaPage : ContentPage
         });
         cuerpo.Add(Recibo(tirilla));
         cuerpo.Add(_avisoImpresion);
+        cuerpo.Add(_reimprimir);
 
         var cerrar = Ui.Secundario(PdaTexts.Cerrar);
         cerrar.Clicked += async (_, _) => await CerrarAsync();
@@ -461,20 +466,37 @@ public sealed class TirillaVendidaPage : ContentPage
 
     private async Task ImprimirAsync(TirillaVenta tirilla)
     {
+        HabilitarReimpresion(false);
+        MostrarAviso(EstadoImpresora.Aviso(null), EstadoImpresora.EsError(null));
         try
         {
             var resultado = await _printer.ImprimirAsync(tirilla.Texto, tirilla.QrContenido);
             if (resultado.Ok)
             {
+                MostrarAviso(EstadoImpresora.Aviso(true), EstadoImpresora.EsError(true));
                 return;
             }
 
-            MostrarAviso(resultado.Mensaje);
+            MostrarAviso(resultado.Mensaje, true);
         }
         catch (Exception)
         {
-            MostrarAviso(PdaTexts.ErrorImpresion);
+            MostrarAviso(EstadoImpresora.Aviso(false), EstadoImpresora.EsError(false));
         }
+        finally
+        {
+            HabilitarReimpresion(true);
+        }
+    }
+
+    private void HabilitarReimpresion(bool habilitado)
+    {
+        if (_reimprimir is null)
+        {
+            return;
+        }
+
+        MainThread.BeginInvokeOnMainThread(() => _reimprimir.IsEnabled = habilitado);
     }
 
     private async Task GenerarPdfAsync(TirillaVenta tirilla)
@@ -495,7 +517,7 @@ public sealed class TirillaVendidaPage : ContentPage
         }
     }
 
-    private void MostrarAviso(string mensaje)
+    private void MostrarAviso(string mensaje, bool esError = true)
     {
         if (_avisoImpresion is null)
         {
@@ -505,6 +527,7 @@ public sealed class TirillaVendidaPage : ContentPage
         MainThread.BeginInvokeOnMainThread(() =>
         {
             _avisoImpresion.Text = mensaje;
+            _avisoImpresion.TextColor = esError ? Ui.Danger : Ui.Muted;
             _avisoImpresion.IsVisible = !string.IsNullOrWhiteSpace(mensaje);
         });
     }

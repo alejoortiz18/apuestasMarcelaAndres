@@ -180,6 +180,9 @@ public static class PdaTexts
     public const string QrNoCoincide = "El código leído no corresponde a esta tirilla.";
     public const string ImpresoraNoConfigurada = "No hay SDK de impresora térmica configurado. Use el PDF de contingencia.";
     public const string ErrorImpresion = "No se pudo imprimir la tirilla. Genere el PDF para enviarlo al cliente por un medio externo.";
+    public const string ReimprimirTirilla = "Reimprimir tirilla";
+    public const string ImprimiendoTirilla = "Enviando la tirilla a la impresora…";
+    public const string TirillaImpresa = "Tirilla enviada a la impresora. Si no salió, revise que haya papel y la tapa cerrada, y toque Reimprimir tirilla.";
     public const string ErrorPdf = "No se pudo generar el PDF. La tirilla permanece abierta para reintentar o enviarlo por un medio externo.";
     public const string DescargarCodigos = "Buscar y descargar códigos";
     public const string SincronizacionManual = "Manual";
