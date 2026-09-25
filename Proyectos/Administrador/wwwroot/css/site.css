@@ -227,6 +227,56 @@ a { color: inherit; }
   border-color: var(--gold);
 }
 
+.money-input {
+  display: inline-flex;
+  align-items: stretch;
+  min-width: 11rem;
+  max-width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffdf8;
+  overflow: hidden;
+}
+.money-input:focus-within {
+  outline: 2px solid #e8c56b;
+  border-color: var(--gold);
+}
+.money-input-wide {
+  display: flex;
+  width: 100%;
+  max-width: 22rem;
+}
+.money-prefix {
+  display: grid;
+  place-items: center;
+  min-width: 2.25rem;
+  padding: 0 8px;
+  background: #f3ebda;
+  color: var(--ink);
+  font-weight: 800;
+  border-right: 1px solid var(--line);
+}
+.money-visible {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 11px 12px;
+  outline: none !important;
+  box-shadow: none !important;
+}
+.topes-tabla td { vertical-align: middle; }
+.topes-tabla .topes-col-valor { width: 16rem; }
+.topes-tabla .topes-col-valor .money-input { display: flex; width: 100%; }
+.topes-tabla .topes-col-estado { width: 11rem; }
+.topes-panel .config-save { margin-top: 16px; }
+
 .primary, .secondary, .danger {
   border: 0;
   border-radius: 8px;

@@ -152,9 +152,11 @@ public static class PdaTexts
     public const string BoletoGenerado = "Boleto generado";
     public const string TicketVendido = "Ticket vendido";
     public const string ImprimirTirilla = "Imprimir tirilla";
-    public const string GenerarReporte = "Generar reporte";
-    public const string DetalleReporte = "Detalle del reporte";
-    public const string DetalleReporteObligatorio = "El detalle del reporte es obligatorio.";
+    public const string Reportar = "Reportar";
+    public const string ObservacionReporte = "Observación";
+    public const string ObservacionReportePlaceholder = "Describa el problema con la tirilla";
+    public const string ObservacionReporteObligatoria = "La observación es obligatoria.";
+    public const string EnviandoReporte = "Enviando reporte a soporte técnico";
     public const string EnviarReporte = "Enviar";
     public const string CancelarReporte = "Cancelar";
     public const string AtencionCliente = "Atención al cliente";
@@ -180,9 +182,8 @@ public static class PdaTexts
     public const string QrNoCoincide = "El código leído no corresponde a esta tirilla.";
     public const string ImpresoraNoConfigurada = "No hay SDK de impresora térmica configurado. Use el PDF de contingencia.";
     public const string ErrorImpresion = "No se pudo imprimir la tirilla. Genere el PDF para enviarlo al cliente por un medio externo.";
-    public const string ReimprimirTirilla = "Reimprimir tirilla";
     public const string ImprimiendoTirilla = "Enviando la tirilla a la impresora…";
-    public const string TirillaImpresa = "Tirilla enviada a la impresora. Si no salió, revise que haya papel y la tapa cerrada, y toque Reimprimir tirilla.";
+    public const string TirillaImpresa = "Tirilla enviada a la impresora. Si no salió, revise que haya papel y la tapa cerrada, y toque Reportar.";
     public const string ErrorPdf = "No se pudo generar el PDF. La tirilla permanece abierta para reintentar o enviarlo por un medio externo.";
     public const string DescargarCodigos = "Buscar y descargar códigos";
     public const string SincronizacionManual = "Manual";

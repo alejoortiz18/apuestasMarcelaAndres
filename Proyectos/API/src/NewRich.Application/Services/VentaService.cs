@@ -134,6 +134,12 @@ public sealed class VentaService : IVentaService
                     throw new InvalidOperationException(VentaMessages.LoteriaInactiva);
                 }
 
+                if (loterias.Any(l => !ValidacionTope.LoteriaJugable(l.Tope)))
+                {
+                    throw new InvalidOperationException(
+                        $"La lotería {loterias.First(l => !ValidacionTope.LoteriaJugable(l.Tope)).Nombre} no se puede utilizar (tope en cero).");
+                }
+
                 var hoy = DiasVentaLoteria.DiaDe(_clock.LocalNow);
                 var loteriaIds = loterias.Select(l => l.LoteriaId).ToList();
                 var dias = await _db.LoteriasDiasSemana
@@ -149,6 +155,13 @@ public sealed class VentaService : IVentaService
                 {
                     throw new InvalidOperationException(VentaMessages.LoteriaNoHabilitadaHoy);
                 }
+            }
+
+            await AsegurarTopesAsync(request.Juegos, ct);
+
+            foreach (var linea in request.Juegos)
+            {
+                var loterias = await _db.Loterias.Where(l => linea.LoteriaIds.Contains(l.LoteriaId)).ToListAsync(ct);
 
                 var juego = new Juego
                 {
@@ -236,6 +249,73 @@ public sealed class VentaService : IVentaService
         {
             return Result<VentaResponse>.Fail(ex.Message);
         }
+    }
+
+    public async Task<Result<ValidarTopesResponse>> ValidarTopesAsync(
+        ValidarTopesRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (request.Juegos is null || request.Juegos.Count == 0)
+        {
+            return Result<ValidarTopesResponse>.Fail(VentaMessages.VentaSinLineas);
+        }
+
+        try
+        {
+            var resultado = await EvaluarTopesAsync(request.Juegos, cancellationToken);
+            return Result<ValidarTopesResponse>.Ok(
+                new ValidarTopesResponse
+                {
+                    Ok = resultado.Ok,
+                    Disponible = resultado.Disponible,
+                    Mensaje = resultado.Mensaje
+                },
+                resultado.Ok ? SuccessMessages.OperacionExitosa : resultado.Mensaje);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Result<ValidarTopesResponse>.Fail(ex.Message);
+        }
+    }
+
+    private async Task AsegurarTopesAsync(IReadOnlyList<LineaJuegoRequest> juegos, CancellationToken cancellationToken)
+    {
+        var resultado = await EvaluarTopesAsync(juegos, cancellationToken);
+        if (!resultado.Ok)
+        {
+            throw new InvalidOperationException(resultado.Mensaje);
+        }
+    }
+
+    private async Task<ValidacionTope.Resultado> EvaluarTopesAsync(
+        IReadOnlyList<LineaJuegoRequest> juegos,
+        CancellationToken cancellationToken)
+    {
+        var loteriaIds = juegos.SelectMany(j => j.LoteriaIds).Distinct().ToList();
+        var loterias = await _db.Loterias.Where(l => loteriaIds.Contains(l.LoteriaId)).ToListAsync(cancellationToken);
+        if (loterias.Count != loteriaIds.Count)
+        {
+            throw new InvalidOperationException(VentaMessages.LoteriaNoEncontrada);
+        }
+
+        var mapa = loterias.ToDictionary(l => l.LoteriaId);
+        var aportes = juegos
+            .SelectMany(j => j.LoteriaIds.Select(id =>
+            {
+                var lot = mapa[id];
+                return new ValidacionTope.Aporte(lot.LoteriaId, lot.Nombre, j.Numero.Trim(), j.Valor);
+            }))
+            .ToList();
+
+        var claves = aportes
+            .Select(a => (a.LoteriaId, a.Numero))
+            .Distinct()
+            .ToList();
+        var acumulados = await AcumuladoTopeConsulta.CargarAsync(_db, _clock, claves, cancellationToken);
+        var topes = loterias
+            .Select(l => new ValidacionTope.TopeLoteria(l.LoteriaId, l.Nombre, l.Tope))
+            .ToList();
+        return ValidacionTope.Evaluar(aportes, topes, acumulados);
     }
 
     public async Task<Result<IReadOnlyList<VentaResponse>>> ConsultarAsync(

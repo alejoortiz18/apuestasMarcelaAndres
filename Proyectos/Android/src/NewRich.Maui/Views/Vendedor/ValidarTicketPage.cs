@@ -645,10 +645,10 @@ public sealed class ValidarTicketPage : ContentPage
             var resultado = await _api.ReportarPremioAsync(new ReportarCasoGanadorRequest
             {
                 TicketCode = ticket
-            }, CancellationToken.None);
+        }, CancellationToken.None);
             _aviso.Text = resultado.IsSuccess
                 ? $"{resultado.Message} {resultado.Data?.Ticket}"
-                : resultado.Message;
+            : resultado.Message;
             _aviso.TextColor = resultado.IsSuccess ? Ui.Green : Ui.Danger;
             _reportar.IsVisible = true;
         }

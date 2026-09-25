@@ -55,6 +55,7 @@ public interface ILoteriaService
     Task<Result<IReadOnlyList<LoteriaResponse>>> ListarAsync(CancellationToken cancellationToken);
     Task<Result<LoteriaResponse>> CrearAsync(CrearLoteriaRequest request, CancellationToken cancellationToken);
     Task<Result<LoteriaResponse>> ActualizarAsync(Guid loteriaId, ActualizarLoteriaRequest request, CancellationToken cancellationToken);
+    Task<Result<IReadOnlyList<LoteriaResponse>>> ActualizarTopesAsync(ActualizarTopesLoteriasRequest request, CancellationToken cancellationToken);
     Task<Result<IReadOnlyList<LoteriaResponse>>> ActualizarDiasAsync(ActualizarDiasLoteriasRequest request, CancellationToken cancellationToken);
 }
 
@@ -86,6 +87,7 @@ public interface INumerosRestringidosService
 public interface IVentaService
 {
     Task<Result<VentaResponse>> ConfirmarAsync(Guid vendedorId, Guid? dispositivoId, ConfirmarVentaRequest request, string? idempotencyKey, CancellationToken cancellationToken);
+    Task<Result<ValidarTopesResponse>> ValidarTopesAsync(ValidarTopesRequest request, CancellationToken cancellationToken);
     Task<Result<IReadOnlyList<VentaResponse>>> ConsultarAsync(ConsultaVentasRequest request, Guid solicitanteId, bool soloPropias, CancellationToken cancellationToken);
 }
 

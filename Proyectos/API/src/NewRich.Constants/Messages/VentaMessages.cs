@@ -20,4 +20,7 @@ public static class VentaMessages
     public const string AlertaRepeticionNumero = "El número {0} superó el umbral de repeticiones configurado.";
     public const string AlertaValorAlto = "Se registró una apuesta con valor alto: {0}. Número {1} en {2}.";
     public const string NumeroRestringido = "El número {0} está restringido y no se puede jugar.";
+    public const string LoteriaSinTope = "La lotería debe tener un tope configurado.";
+    public const string TopeNegativo = "El tope no puede ser negativo.";
+    public const string JuegosOfflineDeshabilitados = "No es posible realizar juegos sin conexión. El Administrador ha deshabilitado temporalmente los juegos offline. Verifique la conexión con el servidor para continuar.";
 }

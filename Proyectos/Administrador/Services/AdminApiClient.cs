@@ -52,6 +52,7 @@ public interface IAdminApiClient
     Task<ApiCallResult<List<LoteriaResponse>>> ListarLoteriasAsync(CancellationToken cancellationToken);
     Task<ApiCallResult<LoteriaResponse>> CrearLoteriaAsync(CrearLoteriaRequest request, CancellationToken cancellationToken);
     Task<ApiCallResult<LoteriaResponse>> ActualizarLoteriaAsync(Guid id, ActualizarLoteriaRequest request, CancellationToken cancellationToken);
+    Task<ApiCallResult<List<LoteriaResponse>>> ActualizarTopesLoteriasAsync(ActualizarTopesLoteriasRequest request, CancellationToken cancellationToken);
     Task<ApiCallResult<List<LoteriaResponse>>> ActualizarDiasLoteriasAsync(ActualizarDiasLoteriasRequest request, CancellationToken cancellationToken);
 
     Task<ApiCallResult<List<GrupoResponse>>> ListarGruposAsync(CancellationToken cancellationToken);
@@ -190,6 +191,9 @@ public sealed class AdminApiClient : IAdminApiClient
 
     public Task<ApiCallResult<LoteriaResponse>> ActualizarLoteriaAsync(Guid id, ActualizarLoteriaRequest request, CancellationToken cancellationToken) =>
         SendAsync<LoteriaResponse>(HttpMethod.Put, $"api/Loterias/{id}", request, true, cancellationToken);
+
+    public Task<ApiCallResult<List<LoteriaResponse>>> ActualizarTopesLoteriasAsync(ActualizarTopesLoteriasRequest request, CancellationToken cancellationToken) =>
+        SendAsync<List<LoteriaResponse>>(HttpMethod.Put, "api/Loterias/topes", request, true, cancellationToken);
 
     public Task<ApiCallResult<List<LoteriaResponse>>> ActualizarDiasLoteriasAsync(ActualizarDiasLoteriasRequest request, CancellationToken cancellationToken) =>
         SendAsync<List<LoteriaResponse>>(HttpMethod.Put, "api/Loterias/dias", request, true, cancellationToken);

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using NewRich.Application.Abstractions;
 using NewRich.Application.Contracts.Loterias;
 using NewRich.Application.Services;
+using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
 using NewRich.Domain.Enums;
 using NewRich.Infrastructure.Persistence;
@@ -192,6 +193,54 @@ public sealed class LoteriaServiceTests
         result.IsSuccess.Should().BeTrue(result.Message);
         listado.Data.Should().ContainSingle(l => l.Nombre == "Cundinamarca")
             .Which.DiasHabilitados.Should().Equal(DiaSemana.Miercoles, DiaSemana.Sabado);
+    }
+
+    [Fact]
+    public async Task ActualizarTopesAsync_guarda_el_tope_de_todas_las_loterias()
+    {
+        var (sut, _) = CreateSut();
+        var cali = await sut.CrearAsync(new CrearLoteriaRequest { Nombre = "Cali", Tope = 1000, DiasHabilitados = [DiaSemana.Lunes] }, CancellationToken.None);
+        var pasto = await sut.CrearAsync(new CrearLoteriaRequest { Nombre = "Pasto", Tope = 1000, DiasHabilitados = [DiaSemana.Lunes] }, CancellationToken.None);
+
+        var result = await sut.ActualizarTopesAsync(
+            new ActualizarTopesLoteriasRequest
+            {
+                Loterias =
+                [
+                    new TopeLoteriaRequest { LoteriaId = cali.Data!.LoteriaId, Tope = 250000 },
+                    new TopeLoteriaRequest { LoteriaId = pasto.Data!.LoteriaId, Tope = 0 }
+                ]
+            },
+            CancellationToken.None);
+        var listado = await sut.ListarAsync(CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue(result.Message);
+        listado.Data!.Single(l => l.Nombre == "Cali").Tope.Should().Be(250000);
+        listado.Data!.Single(l => l.Nombre == "Pasto").Tope.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task ActualizarTopesAsync_no_guarda_nada_si_un_tope_es_negativo()
+    {
+        var (sut, _) = CreateSut();
+        var cali = await sut.CrearAsync(new CrearLoteriaRequest { Nombre = "Cali", Tope = 1000, DiasHabilitados = [DiaSemana.Lunes] }, CancellationToken.None);
+        var pasto = await sut.CrearAsync(new CrearLoteriaRequest { Nombre = "Pasto", Tope = 1000, DiasHabilitados = [DiaSemana.Lunes] }, CancellationToken.None);
+
+        var result = await sut.ActualizarTopesAsync(
+            new ActualizarTopesLoteriasRequest
+            {
+                Loterias =
+                [
+                    new TopeLoteriaRequest { LoteriaId = cali.Data!.LoteriaId, Tope = 250000 },
+                    new TopeLoteriaRequest { LoteriaId = pasto.Data!.LoteriaId, Tope = -1 }
+                ]
+            },
+            CancellationToken.None);
+        var listado = await sut.ListarAsync(CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Message.Should().Be(VentaMessages.TopeNegativo);
+        listado.Data!.Should().OnlyContain(l => l.Tope == 1000);
     }
 
     private static (LoteriaService Sut, NewRichDbContext Db) CreateSut()

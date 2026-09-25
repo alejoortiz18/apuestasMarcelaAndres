@@ -15,7 +15,7 @@ public static class PdaConexion
 
     public static string CodigoDispositivo { get; set; } = CodigoDispositivoPredeterminado;
     public const string UrlEmulador = "http://10.0.2.2:5295/";
-    public const string UrlRedLocal = "http://192.168.1.19:5295/";
+    public const string UrlRedLocal = "http://192.168.20.27:5295/";
     public const string UrlPuenteUsb = "http://127.0.0.1:5295/";
     public const string RutaHubChat = "/hubs/chat";
 

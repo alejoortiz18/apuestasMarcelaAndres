@@ -225,6 +225,7 @@ public sealed class SincronizacionOfflineServicio
             {
                 Observacion = reporte.Observacion,
                 CodigoTicket = reporte.CodigoTicket,
+                FechaTicket = reporte.FechaTicket,
                 NombreArchivo = reporte.NombreArchivo,
                 ContenidoBase64 = Convert.ToBase64String(bytes)
             }, cancellationToken);

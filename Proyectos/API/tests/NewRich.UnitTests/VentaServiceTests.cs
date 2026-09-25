@@ -135,6 +135,59 @@ public sealed class VentaServiceTests
         result.Message.Should().Be(string.Format(VentaMessages.NumeroRestringido, "1234"));
     }
 
+    [Fact]
+    public async Task ConfirmarAsync_rechaza_cuando_supera_el_tope_diario()
+    {
+        var (sut, db, _) = await CreateSutAsync(new TiempoRealFake());
+        var vendedor = db.Usuarios.Single(u => u.Rol == RolUsuario.Vendedor);
+        var loteria = db.Loterias.Single();
+        loteria.Tope = 10_000m;
+        await db.SaveChangesAsync();
+
+        var primera = await sut.ConfirmarAsync(
+            vendedor.UsuarioId,
+            null,
+            new ConfirmarVentaRequest
+            {
+                TipoApuesta = TipoApuesta.INDIVIDUAL,
+                Juegos =
+                [
+                    new LineaJuegoRequest
+                    {
+                        Numero = "4321",
+                        Valor = 8_000m,
+                        LoteriaIds = [loteria.LoteriaId]
+                    }
+                ]
+            },
+            Guid.NewGuid().ToString("N"),
+            CancellationToken.None);
+        primera.IsSuccess.Should().BeTrue(primera.Message);
+
+        var segunda = await sut.ConfirmarAsync(
+            vendedor.UsuarioId,
+            null,
+            new ConfirmarVentaRequest
+            {
+                TipoApuesta = TipoApuesta.INDIVIDUAL,
+                Juegos =
+                [
+                    new LineaJuegoRequest
+                    {
+                        Numero = "4321",
+                        Valor = 3_000m,
+                        LoteriaIds = [loteria.LoteriaId]
+                    }
+                ]
+            },
+            Guid.NewGuid().ToString("N"),
+            CancellationToken.None);
+
+        segunda.IsSuccess.Should().BeFalse();
+        segunda.Message.Should().Contain("4321");
+        segunda.Message.Should().Contain("2.000");
+    }
+
     private static async Task<(VentaService Sut, NewRichDbContext Db, Guid AdminId)> CreateSutAsync(TiempoRealFake tiempoReal)
     {
         var options = new DbContextOptionsBuilder<NewRichDbContext>()
@@ -169,6 +222,7 @@ public sealed class VentaServiceTests
             LoteriaId = Guid.NewGuid(),
             Nombre = "Cali",
             Estado = EstadoGeneral.Activo,
+            Tope = 1_000_000m,
             FechaCreacion = Ahora
         };
         db.Loterias.Add(loteria);

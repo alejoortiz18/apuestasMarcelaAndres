@@ -476,6 +476,17 @@ public static class UiTexts
     public const string VigenciaPremioDias = "Vigencia del premio en días";
     public const string ReposicionDiariaOffline = "Reasignación diaria de códigos offline";
     public const string ReposicionDiariaOfflineAyuda = "Si está activo, el servidor repone códigos offline como máximo una vez por día por vendedor.";
+    public const string PermitirJuegosOffline = "Permitir juegos offline";
+    public const string PermitirJuegosOfflineAyuda = "Si está desactivado, el vendedor puede entrar al PDA sin red pero no podrá realizar juegos nuevos.";
+    public const string ConfigTopes = "Topes por lotería";
+    public const string ConfigTopesSub = "Tope diario acumulado por número (directo y combinado). Tope en $0 impide usar esa lotería. Para modificar se pide la contraseña.";
+    public const string TopeLoteria = "Tope diario por número";
+    public const string TopeLoteriaAyuda = "Valor máximo acumulado permitido por número en el día. Obligatorio al crear la lotería. Escriba solo números; los puntos de miles se agregan solos.";
+    public const string SimboloPesos = "$";
+    public const string GuardarTopes = "Guardar topes";
+    public const string TopeSinUso = "Sin uso (tope $0)";
+    public const string TopeEnUso = "En uso";
+    public const string EditarTope = "Editar tope";
     public const string DiasInactividadEliminarPda = "Días sin actividad para eliminar PDA";
     public const string DiasInactividadEliminarPdaAyuda = "El PDA solo podrá eliminarse si lleva al menos este número de días sin sesiones, ventas, sincronizaciones ni conexión.";
     public const string MaxJuegosCombinado = "Juegos máximos en modo combinado";

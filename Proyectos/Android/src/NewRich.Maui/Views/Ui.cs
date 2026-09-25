@@ -1,4 +1,5 @@
 using NewRich.Pda.Core;
+using NewRich.Pda.Core.Ventas;
 
 namespace NewRich.Maui.Views;
 
@@ -65,6 +66,24 @@ public static class Ui
         entrada.TextChanged += (_, args) =>
         {
             var limpio = EntradaEntera.SoloDigitos(args.NewTextValue);
+            if (limpio == args.NewTextValue)
+            {
+                return;
+            }
+
+            entrada.Text = limpio;
+        };
+        return entrada;
+    }
+
+    /// <summary>Valor apostado del vendedor: sin cero inicial; 1–5 → 5 dígitos; 6–9 → 4.</summary>
+    public static Entry ValorApostado(string placeholder)
+    {
+        var entrada = Entrada(placeholder);
+        entrada.Keyboard = Keyboard.Numeric;
+        entrada.TextChanged += (_, args) =>
+        {
+            var limpio = ValorApostadoDigitos.Filtrar(args.NewTextValue);
             if (limpio == args.NewTextValue)
             {
                 return;

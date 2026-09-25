@@ -6,9 +6,18 @@ namespace NewRich.Pda.Tests;
 public sealed class ReporteTecnicoReglaTests
 {
     [Fact]
+    public void Textos_del_flujo_reportar_usan_observacion()
+    {
+        PdaTexts.Reportar.Should().Be("Reportar");
+        PdaTexts.ObservacionReporte.Should().Be("Observación");
+        PdaTexts.EnviarReporte.Should().Be("Enviar");
+        PdaTexts.CancelarReporte.Should().Be("Cancelar");
+    }
+
+    [Fact]
     public void ValidarObservacion_exige_detalle()
     {
-        ReporteTecnicoRegla.ValidarObservacion(" ").Should().Be(PdaTexts.DetalleReporteObligatorio);
+        ReporteTecnicoRegla.ValidarObservacion(" ").Should().Be(PdaTexts.ObservacionReporteObligatoria);
         ReporteTecnicoRegla.ValidarObservacion("Falla en impresión").Should().BeNull();
     }
 

@@ -111,6 +111,10 @@ public sealed class LoteriaFormViewModel
     [Required(ErrorMessage = ValidationMessages.CampoRequerido)]
     public string Nombre { get; set; } = string.Empty;
 
+    [Display(Name = UiTexts.TopeLoteria)]
+    [Range(0, 100000000, ErrorMessage = ValidationMessages.CampoRequerido)]
+    public decimal Tope { get; set; } = 1000;
+
     [Display(Name = UiTexts.Estado)]
     public EstadoGeneral Estado { get; set; } = EstadoGeneral.Activo;
 
@@ -240,6 +244,7 @@ public sealed class ConfiguracionIndexViewModel
     public string? Busqueda { get; init; }
     public PagedViewModel<LoteriaResponse> Pagina { get; init; } = new();
     public List<DiasLoteriaFormItem> DiasVenta { get; set; } = [];
+    public IReadOnlyList<LoteriaResponse> Topes { get; set; } = [];
     public PagedViewModel<NumeroRestringidoResponse> PaginaNumeros { get; init; } = new();
     public string NuevoNumeroRestringido { get; set; } = string.Empty;
 }
@@ -250,6 +255,12 @@ public sealed class DiasLoteriaFormItem
     public string Nombre { get; set; } = string.Empty;
     public EstadoGeneral Estado { get; set; }
     public List<DiaSemana> DiasHabilitados { get; set; } = [];
+}
+
+public sealed class TopeLoteriaFormItem
+{
+    public Guid LoteriaId { get; set; }
+    public decimal Tope { get; set; }
 }
 
 public sealed class ConfiguracionOperativaFormViewModel
@@ -292,6 +303,9 @@ public sealed class ConfiguracionOperativaFormViewModel
 
     [Display(Name = UiTexts.ReposicionDiariaOffline)]
     public bool ReposicionDiariaOffline { get; set; } = true;
+
+    [Display(Name = UiTexts.PermitirJuegosOffline)]
+    public bool PermitirJuegosOffline { get; set; } = true;
 
     [Display(Name = UiTexts.ModoSincronizacionOffline)]
     [Required(ErrorMessage = ValidationMessages.CampoRequerido)]

@@ -33,11 +33,12 @@ public sealed class ConfiguracionServiceTests
         result.Data.AlertaValorMinimo.Should().Be(10000);
         result.Data.CodigosOfflineCapacidad.Should().Be(3000);
         result.Data.ReposicionDiariaOffline.Should().BeTrue();
+        result.Data.PermitirJuegosOffline.Should().BeTrue();
         result.Data.SincronizacionModo.Should().Be("Manual");
         result.Data.LeyendaTirilla.Should().Be(TirillaCuerpo.CuerpoDefecto);
         result.Data.LeyendaTirilla.Should().Contain("{vigenciaDias}");
         result.Data.LeyendaTirilla.Should().NotContain("GRACIAS POR SU COMPRA");
-        db.Configuraciones.Should().HaveCount(10);
+        db.Configuraciones.Should().HaveCount(11);
         db.ConfiguracionesTipoApuesta.Should().Contain(t => t.TipoApuesta == "COMBINADO" && t.Maximo == 1);
         db.ConfiguracionesTipoApuesta.Should().Contain(t => t.TipoApuesta == "INDIVIDUAL" && t.Maximo == 6);
     }
@@ -86,6 +87,7 @@ public sealed class ConfiguracionServiceTests
             AlertaValorMinimo = 20000,
             CodigosOfflineCapacidad = 4000,
             ReposicionDiariaOffline = false,
+            PermitirJuegosOffline = false,
             SincronizacionModo = "Automatica",
             LeyendaTirilla = TirillaCuerpo.CuerpoDefecto
         }, CancellationToken.None);
@@ -101,6 +103,7 @@ public sealed class ConfiguracionServiceTests
         result.Data.AlertaValorMinimo.Should().Be(20000);
         result.Data.CodigosOfflineCapacidad.Should().Be(4000);
         result.Data.ReposicionDiariaOffline.Should().BeFalse();
+        result.Data.PermitirJuegosOffline.Should().BeFalse();
         result.Data.SincronizacionModo.Should().Be("Automatica");
         db.ConfiguracionesTipoApuesta.Single(t => t.TipoApuesta == "COMBINADO").Maximo.Should().Be(2);
         db.ConfiguracionesTipoApuesta.Single(t => t.TipoApuesta == "INDIVIDUAL").Maximo.Should().Be(5);
@@ -228,6 +231,7 @@ public sealed class ConfiguracionServiceTests
         AlertaValorMinimo = 10000,
         CodigosOfflineCapacidad = 3000,
         ReposicionDiariaOffline = true,
+        PermitirJuegosOffline = true,
         SincronizacionModo = "Manual",
         LeyendaTirilla = TirillaCuerpo.CuerpoDefecto
     };

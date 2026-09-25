@@ -103,6 +103,9 @@ public sealed class NewRichApiClient
     public Task<Result<VentaResponse>> ConfirmarVentaAsync(ConfirmarVentaRequest request, string idempotencyKey, CancellationToken ct) =>
         Enviar<VentaResponse>(HttpMethod.Post, "api/VentasAndroid/ConfirmarMob", request, ct, idempotencyKey);
 
+    public Task<Result<ValidarTopesResponse>> ValidarTopesAsync(ValidarTopesRequest request, CancellationToken ct) =>
+        Enviar<ValidarTopesResponse>(HttpMethod.Post, "api/VentasAndroid/ValidarTopesMob", request, ct);
+
     public Task<Result<IReadOnlyList<VentaResponse>>> VentasAsync(ConsultaVentasRequest request, CancellationToken ct)
     {
         var q = new List<string>();

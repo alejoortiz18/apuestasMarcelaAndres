@@ -1,4 +1,5 @@
 using NewRich.Application.Contracts.Loterias;
+using NewRich.Application.Contracts.Ventas;
 using NewRich.Application.Services;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Enums;
@@ -129,7 +130,7 @@ public sealed class ConstruirApuestaPage : ContentPage
 
         var combinada = draft.Tipo == TipoApuesta.COMBINADO;
         var numero = Ui.Entero("123", 4);
-        var valor = Ui.Entero("1000");
+        var valor = Ui.ValorApostado("1000");
         var checks = new Dictionary<Guid, CheckBox>();
         var loteriasBox = new VerticalStackLayout { Spacing = 6 };
         Picker? picker = null;
@@ -339,6 +340,12 @@ public sealed class ConstruirApuestaPage : ContentPage
 
     private async Task JugarInternoAsync(TicketDraft draft)
     {
+        var topeOk = await ValidarTopesAntesDePagarAsync(draft);
+        if (!topeOk)
+        {
+            return;
+        }
+
         var ok = await this.ConfirmarAsync(PdaTexts.ConfirmarVenta, $"{PdaTexts.ValorTotalPagar}\n{FormatoDinero.Pesos(draft.Total)}\n\n{PdaTexts.SinDatosComprador}", PdaTexts.AceptarYPagar, PdaTexts.Cancelar);
         if (!ok)
         {
@@ -380,6 +387,12 @@ public sealed class ConstruirApuestaPage : ContentPage
         }
 
         var disponibles = await _offline.ContarDisponiblesAsync();
+        if (!_sesion.Limites.PermitirJuegosOffline)
+        {
+            await this.AvisoAsync(PdaTexts.JuegoNuevo, VentaMessages.JuegosOfflineDeshabilitados, PdaTexts.Entendido);
+            return;
+        }
+
         if (PoliticaVentaPda.TrasFalloDeRed(disponibles) == CanalVenta.Bloqueado)
         {
             await this.AvisoAsync(PdaTexts.SinCodigosOffline, PdaTexts.BorradorConservado, PdaTexts.Entendido);
@@ -388,6 +401,12 @@ public sealed class ConstruirApuestaPage : ContentPage
 
         var continuar = await this.ConfirmarAsync(PdaTexts.ConexionNoDisponible, PdaTexts.ContinuarOfflinePregunta, PdaTexts.ContinuarOffline, PdaTexts.EsperarConexion);
         if (!continuar)
+        {
+            return;
+        }
+
+        var localTope = await ValidarTopesLocalAsync(draft);
+        if (!localTope)
         {
             return;
         }
@@ -402,7 +421,56 @@ public sealed class ConstruirApuestaPage : ContentPage
         var json = EvidenciaOffline.SobreParaSincronizar(codigo.Payload, codigo.Consecutivo, draft);
         var qr = EvidenciaOffline.QrTirilla(codigo.Payload, codigo.Consecutivo, draft);
         await _offline.GuardarVentaAsync(codigo.Consecutivo, json);
+        await _offline.SumarAcumuladosTopeAsync(draft);
         await MostrarTirillaAsync(codigo.Consecutivo, draft, true, qr);
+    }
+
+    private async Task<bool> ValidarTopesAntesDePagarAsync(TicketDraft draft)
+    {
+        try
+        {
+            using var sondeo = new CancellationTokenSource(PoliticaVentaPda.MsSondeoServidor);
+            var conexion = await _api.ConectarAsync(
+                PdaConexion.UrlsPara(DeviceInfo.Current.DeviceType == DeviceType.Virtual),
+                sondeo.Token);
+            if (conexion.IsSuccess)
+            {
+                var validacion = await _api.ValidarTopesAsync(
+                    new ValidarTopesRequest { Juegos = draft.ARequest().Juegos },
+                    CancellationToken.None);
+                if (!validacion.IsSuccess)
+                {
+                    await this.AvisoAsync(PdaTexts.JuegoNuevo, validacion.Message, PdaTexts.Entendido);
+                    return false;
+                }
+
+                if (validacion.Data is not null && !validacion.Data.Ok)
+                {
+                    await this.AvisoAsync(PdaTexts.JuegoNuevo, validacion.Data.Mensaje, PdaTexts.Entendido);
+                    return false;
+                }
+
+                return true;
+            }
+        }
+        catch (Exception)
+        {
+        }
+
+        return await ValidarTopesLocalAsync(draft);
+    }
+
+    private async Task<bool> ValidarTopesLocalAsync(TicketDraft draft)
+    {
+        var acumulados = await _offline.AcumuladosTopeHoyAsync();
+        var resultado = TopesPda.EvaluarLocal(draft, _sesion.Limites.TopesLoterias, acumulados);
+        if (resultado.Ok)
+        {
+            return true;
+        }
+
+        await this.AvisoAsync(PdaTexts.JuegoNuevo, resultado.Mensaje, PdaTexts.Entendido);
+        return false;
     }
 
     private async Task MostrarTirillaAsync(string codigo, TicketDraft draft, bool offline, string? qr = null)

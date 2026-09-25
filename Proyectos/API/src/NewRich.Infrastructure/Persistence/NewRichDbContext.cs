@@ -152,6 +152,7 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
             e.ToTable("Loterias");
             e.HasKey(x => x.LoteriaId);
             e.Property(x => x.Estado).HasConversion(estadoGeneral).HasMaxLength(20);
+            e.Property(x => x.Tope).HasColumnType("decimal(18,2)");
         });
 
         modelBuilder.Entity<LoteriaDiaSemana>(e =>

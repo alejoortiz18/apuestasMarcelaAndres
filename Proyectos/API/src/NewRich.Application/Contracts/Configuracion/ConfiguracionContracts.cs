@@ -24,9 +24,18 @@ public sealed class ConfiguracionOperativaResponse
     public int AlertaValorMinimo { get; set; } = 10000;
     public int CodigosOfflineCapacidad { get; set; } = 3000;
     public bool ReposicionDiariaOffline { get; set; } = true;
+    public bool PermitirJuegosOffline { get; set; } = true;
     public string SincronizacionModo { get; set; } = "Manual";
     public string LeyendaTirilla { get; set; } = string.Empty;
     public IReadOnlyList<string> NumerosRestringidos { get; set; } = [];
+    public IReadOnlyList<TopeLoteriaResponse> TopesLoterias { get; set; } = [];
+}
+
+public sealed class TopeLoteriaResponse
+{
+    public Guid LoteriaId { get; set; }
+    public string Nombre { get; set; } = string.Empty;
+    public decimal Tope { get; set; }
 }
 
 public sealed record GuardarConfiguracionOperativaRequest
@@ -41,6 +50,7 @@ public sealed record GuardarConfiguracionOperativaRequest
     public int AlertaValorMinimo { get; init; }
     public int CodigosOfflineCapacidad { get; init; }
     public bool ReposicionDiariaOffline { get; init; } = true;
+    public bool PermitirJuegosOffline { get; init; } = true;
     public string SincronizacionModo { get; init; } = string.Empty;
     public string LeyendaTirilla { get; init; } = string.Empty;
 }

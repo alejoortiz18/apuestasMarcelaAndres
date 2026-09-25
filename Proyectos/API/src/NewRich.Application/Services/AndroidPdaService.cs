@@ -25,6 +25,7 @@ public interface IAndroidPdaService
     Task<Result<ConfiguracionOperativaResponse>> ObtenerOperativaMobAsync(CancellationToken cancellationToken);
     Task<Result<IReadOnlyList<LoteriaResponse>>> LoteriasMobAsync(CancellationToken cancellationToken);
     Task<Result<VentaResponse>> ConfirmarVentaMobAsync(Guid vendedorId, Guid? dispositivoId, ConfirmarVentaRequest request, string? idempotencyKey, CancellationToken cancellationToken);
+    Task<Result<ValidarTopesResponse>> ValidarTopesMobAsync(ValidarTopesRequest request, CancellationToken cancellationToken);
     Task<Result<IReadOnlyList<VentaResponse>>> ConsultarVentasMobAsync(ConsultaVentasRequest request, Guid solicitanteId, bool soloPropias, CancellationToken cancellationToken);
     Task<Result<IReadOnlyList<ResultadoResponse>>> ResultadosMobAsync(DateOnly? fecha, Guid? loteriaId, CancellationToken cancellationToken);
     Task<Result<IReadOnlyList<BoletoListaResponse>>> GanadoresResultadoMobAsync(Guid numeroGanadorId, CancellationToken cancellationToken);
@@ -145,13 +146,17 @@ public sealed class AndroidPdaService : IAndroidPdaService
         // El vendedor solo vende loterias del dia en curso (Colombia), no de dias siguientes.
         var hoy = DiasVentaLoteria.DiaDe(_clock.LocalNow);
         IReadOnlyList<LoteriaResponse> delDia = resultado.Data
-            .Where(l => DiasVentaLoteria.SePuedeVender(l.Estado, l.DiasHabilitados, hoy))
+            .Where(l => DiasVentaLoteria.SePuedeVender(l.Estado, l.DiasHabilitados, hoy)
+                && ValidacionTope.LoteriaJugable(l.Tope))
             .ToList();
         return Result<IReadOnlyList<LoteriaResponse>>.Ok(delDia, resultado.Message);
     }
 
     public Task<Result<VentaResponse>> ConfirmarVentaMobAsync(Guid vendedorId, Guid? dispositivoId, ConfirmarVentaRequest request, string? idempotencyKey, CancellationToken cancellationToken) =>
         _ventas.ConfirmarAsync(vendedorId, dispositivoId, request, idempotencyKey, cancellationToken);
+
+    public Task<Result<ValidarTopesResponse>> ValidarTopesMobAsync(ValidarTopesRequest request, CancellationToken cancellationToken) =>
+        _ventas.ValidarTopesAsync(request, cancellationToken);
 
     public Task<Result<IReadOnlyList<VentaResponse>>> ConsultarVentasMobAsync(ConsultaVentasRequest request, Guid solicitanteId, bool soloPropias, CancellationToken cancellationToken) =>
         _ventas.ConsultarAsync(request, solicitanteId, soloPropias, cancellationToken);

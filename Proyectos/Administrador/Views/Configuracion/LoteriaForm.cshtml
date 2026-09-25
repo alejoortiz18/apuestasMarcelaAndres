@@ -16,6 +16,22 @@
             <input asp-for="Nombre" />
             <span asp-validation-for="Nombre"></span>
         </div>
+        <div class="field">
+            <label asp-for="Tope"></label>
+            <div class="money-input money-input-wide">
+                <span class="money-prefix" aria-hidden="true">@UiTexts.SimboloPesos</span>
+                <input type="text"
+                       class="money-visible"
+                       inputmode="numeric"
+                       autocomplete="off"
+                       data-miles
+                       value="@decimal.ToInt64(Math.Truncate(Model.Tope)).ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("es-CO"))"
+                       aria-label="@UiTexts.TopeLoteria" />
+                <input type="hidden" asp-for="Tope" />
+            </div>
+            <span class="field-help">@UiTexts.TopeLoteriaAyuda</span>
+            <span asp-validation-for="Tope"></span>
+        </div>
         @if (!Model.LoteriaId.HasValue)
         {
             <partial name="_DiasJuegoCampos" model="Model" />

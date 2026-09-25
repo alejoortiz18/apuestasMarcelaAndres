@@ -21,6 +21,7 @@ public sealed class ConfiguracionService : IConfiguracionService
         (ConfiguracionClaves.AlertaValorMinimo, "10000"),
         (ConfiguracionClaves.CodigosOfflineCapacidad, "3000"),
         (ConfiguracionClaves.ReposicionDiariaOffline, "true"),
+        (ConfiguracionClaves.PermitirJuegosOffline, "true"),
         (ConfiguracionClaves.SincronizacionModo, ConfiguracionClaves.ModoManual),
         (ConfiguracionClaves.LeyendaTirilla, TirillaCuerpo.CuerpoDefecto)
     ];
@@ -88,12 +89,23 @@ public sealed class ConfiguracionService : IConfiguracionService
             AlertaValorMinimo = Entero(mapa[ConfiguracionClaves.AlertaValorMinimo], 10000),
             CodigosOfflineCapacidad = Entero(mapa[ConfiguracionClaves.CodigosOfflineCapacidad], 3000),
             ReposicionDiariaOffline = Booleano(mapa[ConfiguracionClaves.ReposicionDiariaOffline], true),
+            PermitirJuegosOffline = Booleano(mapa[ConfiguracionClaves.PermitirJuegosOffline], true),
             SincronizacionModo = mapa[ConfiguracionClaves.SincronizacionModo],
             LeyendaTirilla = TirillaCuerpo.NormalizarCuerpo(mapa[ConfiguracionClaves.LeyendaTirilla]),
             NumerosRestringidos = await _db.NumerosRestringidos
                 .AsNoTracking()
                 .OrderBy(x => x.Numero)
                 .Select(x => x.Numero)
+                .ToListAsync(cancellationToken),
+            TopesLoterias = await _db.Loterias
+                .AsNoTracking()
+                .OrderBy(x => x.Nombre)
+                .Select(x => new TopeLoteriaResponse
+                {
+                    LoteriaId = x.LoteriaId,
+                    Nombre = x.Nombre,
+                    Tope = x.Tope
+                })
                 .ToListAsync(cancellationToken)
         }, SuccessMessages.OperacionExitosa);
     }
@@ -176,6 +188,7 @@ public sealed class ConfiguracionService : IConfiguracionService
         await GuardarClaveAsync(ConfiguracionClaves.AlertaValorMinimo, request.AlertaValorMinimo.ToString(), cancellationToken);
         await GuardarClaveAsync(ConfiguracionClaves.CodigosOfflineCapacidad, request.CodigosOfflineCapacidad.ToString(), cancellationToken);
         await GuardarClaveAsync(ConfiguracionClaves.ReposicionDiariaOffline, request.ReposicionDiariaOffline ? "true" : "false", cancellationToken);
+        await GuardarClaveAsync(ConfiguracionClaves.PermitirJuegosOffline, request.PermitirJuegosOffline ? "true" : "false", cancellationToken);
         await GuardarClaveAsync(ConfiguracionClaves.SincronizacionModo, modo, cancellationToken);
         await GuardarClaveAsync(ConfiguracionClaves.LeyendaTirilla, cuerpo, cancellationToken);
         await GuardarTipoAsync(ConfiguracionClaves.TipoCombinado, request.MaxJuegosCombinado, cancellationToken);
@@ -257,6 +270,7 @@ public sealed class ConfiguracionService : IConfiguracionService
         AlertaValorMinimo = actual.AlertaValorMinimo,
         CodigosOfflineCapacidad = actual.CodigosOfflineCapacidad,
         ReposicionDiariaOffline = actual.ReposicionDiariaOffline,
+        PermitirJuegosOffline = actual.PermitirJuegosOffline,
         SincronizacionModo = actual.SincronizacionModo,
         LeyendaTirilla = actual.LeyendaTirilla
     };
@@ -274,6 +288,7 @@ public sealed class ConfiguracionService : IConfiguracionService
             ConfiguracionClaves.AlertaValorMinimo when int.TryParse(valor, out var minimo) => request with { AlertaValorMinimo = minimo },
             ConfiguracionClaves.CodigosOfflineCapacidad when int.TryParse(valor, out var capacidad) => request with { CodigosOfflineCapacidad = capacidad },
             ConfiguracionClaves.ReposicionDiariaOffline => request with { ReposicionDiariaOffline = Booleano(valor, true) },
+            ConfiguracionClaves.PermitirJuegosOffline => request with { PermitirJuegosOffline = Booleano(valor, true) },
             ConfiguracionClaves.SincronizacionModo => request with { SincronizacionModo = valor },
             ConfiguracionClaves.LeyendaTirilla => request with { LeyendaTirilla = valor },
             _ => null

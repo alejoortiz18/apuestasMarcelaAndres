@@ -14,12 +14,13 @@ public class EstadoImpresoraTests
     }
 
     [Fact]
-    public void Cuando_imprime_confirma_y_recuerda_como_reimprimir()
+    public void Cuando_imprime_confirma_y_orienta_a_reportar()
     {
         EstadoImpresora.Aviso(true).Should().Be(PdaTexts.TirillaImpresa);
         EstadoImpresora.EsError(true).Should().BeFalse();
         PdaTexts.TirillaImpresa.Should().Contain("papel");
-        PdaTexts.TirillaImpresa.Should().Contain(PdaTexts.ReimprimirTirilla);
+        PdaTexts.TirillaImpresa.Should().Contain(PdaTexts.Reportar);
+        PdaTexts.TirillaImpresa.Should().NotContain("Reimprimir");
     }
 
     [Fact]

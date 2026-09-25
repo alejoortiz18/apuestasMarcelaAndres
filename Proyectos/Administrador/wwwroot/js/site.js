@@ -1208,5 +1208,80 @@ iniciarDiasVenta();
       window.location.href = enlace.getAttribute("href") || "#";
     });
   }, true);
+
+  function soloDigitos(texto) {
+    return String(texto || "").replace(/\D/g, "");
+  }
+
+  function conMiles(digitos) {
+    const limpio = soloDigitos(digitos);
+    if (!limpio) {
+      return "";
+    }
+    return limpio.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  }
+
+  function digitosAntesDelCursor(valor, cursor) {
+    return soloDigitos(valor.slice(0, Math.max(0, cursor || 0))).length;
+  }
+
+  function posicionDesdeDigitos(valorFormateado, cantidadDigitos) {
+    if (cantidadDigitos <= 0) {
+      return 0;
+    }
+    let vistos = 0;
+    for (let i = 0; i < valorFormateado.length; i++) {
+      if (/\d/.test(valorFormateado[i])) {
+        vistos++;
+        if (vistos === cantidadDigitos) {
+          return i + 1;
+        }
+      }
+    }
+    return valorFormateado.length;
+  }
+
+  function sincronizarMiles(visible) {
+    const grupo = visible.closest(".money-input") || visible.parentElement;
+    const oculto = grupo ? grupo.querySelector('input[type="hidden"]') : null;
+    const digitosAntes = digitosAntesDelCursor(visible.value, visible.selectionStart);
+    const digitos = soloDigitos(visible.value);
+    const formateado = conMiles(digitos);
+    visible.value = formateado;
+    if (oculto) {
+      oculto.value = digitos === "" ? "0" : digitos;
+    }
+    const nuevaPos = posicionDesdeDigitos(formateado, digitosAntes);
+    try {
+      visible.setSelectionRange(nuevaPos, nuevaPos);
+    } catch (error) {
+    }
+  }
+
+  function enlazarCampoMiles(visible) {
+    if (!(visible instanceof HTMLInputElement) || visible.dataset.milesListo === "1") {
+      return;
+    }
+    visible.dataset.milesListo = "1";
+    sincronizarMiles(visible);
+    visible.addEventListener("input", function () {
+      sincronizarMiles(visible);
+    });
+    visible.addEventListener("blur", function () {
+      sincronizarMiles(visible);
+    });
+  }
+
+  function enlazarCamposMiles(raiz) {
+    (raiz || document).querySelectorAll("input[data-miles]").forEach(enlazarCampoMiles);
+  }
+
+  enlazarCamposMiles(document);
+  document.addEventListener("focusin", function (event) {
+    const visible = event.target;
+    if (visible instanceof HTMLInputElement && visible.hasAttribute("data-miles")) {
+      enlazarCampoMiles(visible);
+    }
+  });
 })();
 

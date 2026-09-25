@@ -15,7 +15,7 @@ public static class ChatMessages
     public const string AvisoMensajeSoporte = "{0} escribió en soporte.";
     public const string AvisoMensajeSoporteTecnico = "{0} envió un reporte de soporte técnico.";
     public const string SoporteTecnicoSoloLectura = "El soporte técnico es de solo lectura para el vendedor.";
-    public const string ObservacionReporteRequerida = "El detalle del reporte es obligatorio.";
+    public const string ObservacionReporteRequerida = "La observación es obligatoria.";
     public const string PdfReporteRequerido = "El PDF de la tirilla es obligatorio.";
     public const string SuccessReporteTecnico = "Reporte enviado a soporte técnico.";
 

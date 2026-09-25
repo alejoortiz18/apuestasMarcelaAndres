@@ -55,6 +55,7 @@ public sealed class ConfiguracionController : AdminControllerBase
             Busqueda = q,
             Pagina = PagingHelper.Paginate(loterias, page, pageSize),
             DiasVenta = MapDias(todas),
+            Topes = todas.OrderBy(l => l.Nombre).ToList(),
             PaginaNumeros = PagingHelper.Paginate(numerosTask.Result.Data ?? [], pageNumeros, pageSizeNumeros)
         });
     }
@@ -88,6 +89,7 @@ public sealed class ConfiguracionController : AdminControllerBase
             AlertaValorMinimo = form.AlertaValorMinimo,
             CodigosOfflineCapacidad = form.CodigosOfflineCapacidad,
             ReposicionDiariaOffline = form.ReposicionDiariaOffline,
+            PermitirJuegosOffline = form.PermitirJuegosOffline,
             SincronizacionModo = form.SincronizacionModo,
             LeyendaTirilla = form.LeyendaTirilla
         }, cancellationToken);
@@ -169,6 +171,28 @@ public sealed class ConfiguracionController : AdminControllerBase
         return RedirectToAction(nameof(Index));
     }
 
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> GuardarTopes(List<TopeLoteriaFormItem> topes, CancellationToken cancellationToken)
+    {
+        var result = await _api.ActualizarTopesLoteriasAsync(new ActualizarTopesLoteriasRequest
+        {
+            Loterias = (topes ?? []).Select(item => new TopeLoteriaRequest
+            {
+                LoteriaId = item.LoteriaId,
+                Tope = item.Tope
+            }).ToList()
+        }, cancellationToken);
+        var denied = RedirectIfUnauthorized(result);
+        if (denied is not null)
+        {
+            return denied;
+        }
+
+        SetFlash(result.Success ? SuccessMessages.RegistroActualizado : result.Message, result.Success);
+        return RedirectToAction(nameof(Index));
+    }
+
     [HttpGet]
     public IActionResult CrearLoteria()
     {
@@ -189,6 +213,7 @@ public sealed class ConfiguracionController : AdminControllerBase
         var result = await _api.CrearLoteriaAsync(new CrearLoteriaRequest
         {
             Nombre = model.Nombre.Trim(),
+            Tope = model.Tope,
             DiasHabilitados = model.DiasHabilitados
         }, cancellationToken);
         var unauthorized = RedirectIfUnauthorized(result);
@@ -229,7 +254,8 @@ public sealed class ConfiguracionController : AdminControllerBase
         {
             LoteriaId = item.LoteriaId,
             Nombre = item.Nombre,
-            Estado = item.Estado
+            Estado = item.Estado,
+            Tope = item.Tope
         });
     }
 
@@ -246,7 +272,8 @@ public sealed class ConfiguracionController : AdminControllerBase
         var result = await _api.ActualizarLoteriaAsync(id, new ActualizarLoteriaRequest
         {
             Nombre = model.Nombre.Trim(),
-            Estado = model.Estado
+            Estado = model.Estado,
+            Tope = model.Tope
         }, cancellationToken);
         var unauthorized = RedirectIfUnauthorized(result);
         if (unauthorized is not null)
@@ -317,6 +344,7 @@ public sealed class ConfiguracionController : AdminControllerBase
             AlertaValorMinimo = data.AlertaValorMinimo,
             CodigosOfflineCapacidad = data.CodigosOfflineCapacidad,
             ReposicionDiariaOffline = data.ReposicionDiariaOffline,
+            PermitirJuegosOffline = data.PermitirJuegosOffline,
             SincronizacionModo = data.SincronizacionModo,
             LeyendaTirilla = string.IsNullOrWhiteSpace(data.LeyendaTirilla)
                 ? TirillaCuerpo.CuerpoDefecto
@@ -376,6 +404,7 @@ public sealed class ConfiguracionController : AdminControllerBase
             Form = form,
             Pagina = PagingHelper.Paginate(loterias.Data ?? [], 1, 5),
             DiasVenta = MapDias(loterias.Data ?? []),
+            Topes = (loterias.Data ?? []).OrderBy(l => l.Nombre).ToList(),
             PaginaNumeros = PagingHelper.Paginate(numeros.Data ?? [], 1, 5)
         });
     }

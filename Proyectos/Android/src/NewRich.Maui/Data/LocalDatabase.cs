@@ -40,6 +40,8 @@ public sealed class ReporteTecnicoLocal
 
     public string CodigoTicket { get; set; } = string.Empty;
 
+    public DateTime? FechaTicket { get; set; }
+
     public string NombreArchivo { get; set; } = string.Empty;
 
     public string RutaPdf { get; set; } = string.Empty;
@@ -63,6 +65,20 @@ public sealed class NumeroRestringidoLocal
 {
     [PrimaryKey]
     public string Numero { get; set; } = string.Empty;
+}
+
+public sealed class AcumuladoTopeLocal
+{
+    [PrimaryKey]
+    public string Clave { get; set; } = string.Empty;
+
+    public string LoteriaId { get; set; } = string.Empty;
+
+    public string Numero { get; set; } = string.Empty;
+
+    public string Dia { get; set; } = string.Empty;
+
+    public decimal Valor { get; set; }
 }
 
 public sealed class SesionLocal
@@ -100,6 +116,7 @@ public sealed class LocalDatabase
             await _db.CreateTableAsync<ReporteTecnicoLocal>();
             await _db.CreateTableAsync<DatoLocal>();
             await _db.CreateTableAsync<NumeroRestringidoLocal>();
+            await _db.CreateTableAsync<AcumuladoTopeLocal>();
         }
         finally
         {
@@ -301,6 +318,50 @@ public sealed class LocalDatabase
         var db = await ConexionAsync();
         var filas = await db.Table<NumeroRestringidoLocal>().OrderBy(n => n.Numero).ToListAsync();
         return filas.Select(n => n.Numero).ToArray();
+    }
+
+    public async Task<IReadOnlyList<NewRich.Domain.Services.ValidacionTope.Acumulado>> AcumuladosTopeHoyAsync()
+    {
+        var dia = DateTime.Now.ToString("yyyy-MM-dd");
+        var db = await ConexionAsync();
+        var filas = await db.Table<AcumuladoTopeLocal>().Where(a => a.Dia == dia).ToListAsync();
+        return filas
+            .Where(f => Guid.TryParse(f.LoteriaId, out _))
+            .Select(f => new NewRich.Domain.Services.ValidacionTope.Acumulado(
+                Guid.Parse(f.LoteriaId),
+                f.Numero,
+                f.Valor))
+            .ToArray();
+    }
+
+    public async Task SumarAcumuladosTopeAsync(TicketDraft draft)
+    {
+        var dia = DateTime.Now.ToString("yyyy-MM-dd");
+        var db = await ConexionAsync();
+        foreach (var linea in draft.Lineas)
+        {
+            foreach (var loteriaId in linea.LoteriaIds)
+            {
+                var clave = $"{loteriaId:N}|{linea.Numero}|{dia}";
+                var fila = await db.FindAsync<AcumuladoTopeLocal>(clave);
+                if (fila is null)
+                {
+                    await db.InsertAsync(new AcumuladoTopeLocal
+                    {
+                        Clave = clave,
+                        LoteriaId = loteriaId.ToString("D"),
+                        Numero = linea.Numero,
+                        Dia = dia,
+                        Valor = linea.Valor
+                    });
+                }
+                else
+                {
+                    fila.Valor += linea.Valor;
+                    await db.UpdateAsync(fila);
+                }
+            }
+        }
     }
 
     public async Task GuardarSesionAsync(SesionLocal sesion) =>

@@ -74,6 +74,13 @@
                 </label>
             </div>
             <div class="field">
+                <label asp-for="Form.PermitirJuegosOffline"></label>
+                <label class="check">
+                    <input asp-for="Form.PermitirJuegosOffline" />
+                    <span>@UiTexts.PermitirJuegosOfflineAyuda</span>
+                </label>
+            </div>
+            <div class="field">
                 <label asp-for="Form.DiasInactividadEliminarPda"></label>
                 <input asp-for="Form.DiasInactividadEliminarPda" type="number" min="1" />
                 <span class="field-help">@UiTexts.DiasInactividadEliminarPdaAyuda</span>
@@ -162,6 +169,71 @@
             </div>
         }
     </section>
+</form>
+<form asp-action="GuardarTopes" method="post" class="panel topes-panel" data-protected-action="@AccionesProtegidas.ConfiguracionTopes">
+    @Html.AntiForgeryToken()
+    <div class="panel-head">
+        <div>
+            <h2>@UiTexts.ConfigTopes</h2>
+            <div class="panel-sub">@UiTexts.ConfigTopesSub</div>
+        </div>
+    </div>
+    @if (!Model.Topes.Any())
+    {
+        <div class="empty">@UiTexts.Vacio</div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table class="topes-tabla">
+                <thead>
+                <tr>
+                    <th>@UiTexts.Loteria</th>
+                    <th class="topes-col-valor">@UiTexts.TopeLoteria</th>
+                    <th class="topes-col-estado">@UiTexts.Estado</th>
+                </tr>
+                </thead>
+                <tbody>
+                @for (var i = 0; i < Model.Topes.Count; i++)
+                {
+                    var item = Model.Topes[i];
+                    var topeEntero = decimal.ToInt64(Math.Truncate(item.Tope));
+                    var topeVisible = topeEntero.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("es-CO"));
+                    <tr>
+                        <td><strong>@item.Nombre</strong></td>
+                        <td class="topes-col-valor">
+                            <input type="hidden" name="topes[@i].LoteriaId" value="@item.LoteriaId" />
+                            <div class="money-input">
+                                <span class="money-prefix" aria-hidden="true">@UiTexts.SimboloPesos</span>
+                                <input type="text"
+                                       class="money-visible"
+                                       inputmode="numeric"
+                                       autocomplete="off"
+                                       data-miles
+                                       value="@topeVisible"
+                                       aria-label="@UiTexts.TopeLoteria @item.Nombre" />
+                                <input type="hidden" name="topes[@i].Tope" value="@topeEntero" />
+                            </div>
+                        </td>
+                        <td class="topes-col-estado">
+                            @if (item.Tope <= 0)
+                            {
+                                <span class="pill info">@UiTexts.TopeSinUso</span>
+                            }
+                            else
+                            {
+                                <span class="pill ok">@UiTexts.TopeEnUso</span>
+                            }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        <div class="config-save">
+            <button class="primary" type="submit">@UiTexts.GuardarTopes</button>
+        </div>
+    }
 </form>
 <div class="panel">
     <div class="panel-head">

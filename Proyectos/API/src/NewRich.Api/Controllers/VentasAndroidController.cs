@@ -23,6 +23,13 @@ public sealed class VentasAndroidController : ApiControllerBase
         return From(await _pda.ConfirmarVentaMobAsync(UsuarioId, DispositivoId, request, idempotencyKey, cancellationToken));
     }
 
+    [Authorize(Roles = "Vendedor")]
+    [HttpPost("ValidarTopesMob")]
+    public async Task<IActionResult> ValidarTopesMob([FromBody] ValidarTopesRequest request, CancellationToken cancellationToken)
+    {
+        return From(await _pda.ValidarTopesMobAsync(request, cancellationToken));
+    }
+
     [HttpGet("ConsultarMob")]
     public async Task<IActionResult> ConsultarMob([FromQuery] ConsultaVentasRequest request, CancellationToken cancellationToken)
     {

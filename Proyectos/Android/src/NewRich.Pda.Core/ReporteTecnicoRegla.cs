@@ -14,7 +14,7 @@ public static class ReporteTecnicoRegla
     {
         if (string.IsNullOrWhiteSpace(observacion))
         {
-            return PdaTexts.DetalleReporteObligatorio;
+            return PdaTexts.ObservacionReporteObligatoria;
         }
 
         return null;

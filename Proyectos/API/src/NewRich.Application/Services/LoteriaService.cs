@@ -60,6 +60,11 @@ public sealed class LoteriaService : ILoteriaService
             return Result<LoteriaResponse>.Fail(ValidationMessages.DiasLoteriaRequeridos);
         }
 
+        if (request.Tope < 0)
+        {
+            return Result<LoteriaResponse>.Fail(VentaMessages.TopeNegativo);
+        }
+
         if (await _db.Loterias.AnyAsync(x => x.Nombre == request.Nombre.Trim(), cancellationToken))
         {
             return Result<LoteriaResponse>.Fail(VentaMessages.LoteriaNombreDuplicado, 409);
@@ -70,6 +75,7 @@ public sealed class LoteriaService : ILoteriaService
             LoteriaId = Guid.NewGuid(),
             Nombre = request.Nombre.Trim(),
             Estado = EstadoGeneral.Activo,
+            Tope = request.Tope,
             FechaCreacion = _clock.UtcNow
         };
         _db.Loterias.Add(loteria);
@@ -93,6 +99,16 @@ public sealed class LoteriaService : ILoteriaService
 
         loteria.Nombre = request.Nombre.Trim();
         loteria.Estado = request.Estado;
+        if (request.Tope.HasValue)
+        {
+            if (request.Tope.Value < 0)
+            {
+                return Result<LoteriaResponse>.Fail(VentaMessages.TopeNegativo);
+            }
+
+            loteria.Tope = request.Tope.Value;
+        }
+
         await _db.SaveChangesAsync(cancellationToken);
         var dias = await CargarDiasAsync([loteriaId], cancellationToken);
         return Result<LoteriaResponse>.Ok(Map(loteria, null, null, dias.GetValueOrDefault(loteriaId)), SuccessMessages.RegistroActualizado);
@@ -113,6 +129,32 @@ public sealed class LoteriaService : ILoteriaService
         foreach (var cambio in cambios)
         {
             ReemplazarDias(cambio.LoteriaId, DiasVentaLoteria.Normalizar(cambio.DiasHabilitados));
+        }
+
+        await _db.SaveChangesAsync(cancellationToken);
+        return await ListarAsync(cancellationToken);
+    }
+
+    public async Task<Result<IReadOnlyList<LoteriaResponse>>> ActualizarTopesAsync(
+        ActualizarTopesLoteriasRequest request,
+        CancellationToken cancellationToken)
+    {
+        var cambios = request.Loterias ?? [];
+        if (cambios.Any(c => c.Tope < 0))
+        {
+            return Result<IReadOnlyList<LoteriaResponse>>.Fail(VentaMessages.TopeNegativo);
+        }
+
+        var ids = cambios.Select(x => x.LoteriaId).Distinct().ToList();
+        var loterias = await _db.Loterias.Where(l => ids.Contains(l.LoteriaId)).ToListAsync(cancellationToken);
+        if (loterias.Count != ids.Count)
+        {
+            return Result<IReadOnlyList<LoteriaResponse>>.Fail(VentaMessages.LoteriaNoEncontrada, 404);
+        }
+
+        foreach (var cambio in cambios)
+        {
+            loterias.Single(l => l.LoteriaId == cambio.LoteriaId).Tope = cambio.Tope;
         }
 
         await _db.SaveChangesAsync(cancellationToken);
@@ -198,6 +240,7 @@ public sealed class LoteriaService : ILoteriaService
         LoteriaId = loteria.LoteriaId,
         Nombre = loteria.Nombre,
         Estado = loteria.Estado,
+        Tope = loteria.Tope,
         HoraCierre = horaCierre,
         NumeroJugado = resumen?.NumeroJugado,
         BoletosVendidos = resumen?.BoletosVendidos ?? 0,

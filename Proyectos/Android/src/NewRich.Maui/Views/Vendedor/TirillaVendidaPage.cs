@@ -24,7 +24,7 @@ public sealed class TirillaVendidaPage : ContentPage
     private bool _impresionAutomaticaHecha;
     private bool _escuchandoLector;
     private Label? _avisoImpresion;
-    private Button? _reimprimir;
+    private Button? _reportar;
     private Label? _estadoReporte;
     private VerticalStackLayout? _formularioReporte;
     private Entry? _detalleReporte;
@@ -80,8 +80,8 @@ public sealed class TirillaVendidaPage : ContentPage
             IsVisible = false
         };
 
-        _reimprimir = Ui.Secundario(PdaTexts.ReimprimirTirilla);
-        _reimprimir.Clicked += async (_, _) => await ImprimirAsync(tirilla);
+        _reportar = Ui.Secundario(PdaTexts.Reportar);
+        _reportar.Clicked += (_, _) => MostrarFormularioReporte(true);
 
         var cuerpo = new VerticalStackLayout { Spacing = 12 };
         cuerpo.Add(new Label
@@ -93,7 +93,6 @@ public sealed class TirillaVendidaPage : ContentPage
         });
         cuerpo.Add(Recibo(tirilla));
         cuerpo.Add(_avisoImpresion);
-        cuerpo.Add(_reimprimir);
 
         var cerrar = Ui.Secundario(PdaTexts.Cerrar);
         cerrar.Clicked += async (_, _) => await CerrarAsync();
@@ -112,7 +111,7 @@ public sealed class TirillaVendidaPage : ContentPage
 
         _detalleReporte = new Entry
         {
-            Placeholder = PdaTexts.DetalleReporte,
+            Placeholder = PdaTexts.ObservacionReportePlaceholder,
             BackgroundColor = Colors.White,
             TextColor = Ui.Ink,
             FontSize = 15,
@@ -130,7 +129,7 @@ public sealed class TirillaVendidaPage : ContentPage
             {
                 new Label
                 {
-                    Text = PdaTexts.DetalleReporte,
+                    Text = $"{PdaTexts.ObservacionReporte} *",
                     FontAttributes = FontAttributes.Bold,
                     TextColor = Ui.Ink
                 },
@@ -140,16 +139,13 @@ public sealed class TirillaVendidaPage : ContentPage
             }
         };
 
-        var generarReporte = Ui.Primario(PdaTexts.GenerarReporte);
-        generarReporte.Clicked += (_, _) => MostrarFormularioReporte(true);
-
         var pdf = Ui.Secundario(PdaTexts.GenerarPdf);
         pdf.Clicked += async (_, _) => await GenerarPdfAsync(tirilla);
 
-        cuerpo.Add(cerrar);
-        cuerpo.Add(generarReporte);
+        cuerpo.Add(_reportar);
         cuerpo.Add(_formularioReporte);
         cuerpo.Add(_estadoReporte);
+        cuerpo.Add(cerrar);
         cuerpo.Add(pdf);
 
         if (tirilla.Offline)
@@ -368,6 +364,11 @@ public sealed class TirillaVendidaPage : ContentPage
         }
 
         _formularioReporte.IsVisible = visible;
+        if (_reportar is not null)
+        {
+            _reportar.IsVisible = !visible;
+        }
+
         if (visible)
         {
             _detalleReporte.Focus();
@@ -389,7 +390,7 @@ public sealed class TirillaVendidaPage : ContentPage
         }
 
         MostrarAviso(string.Empty);
-        _cargando.Mostrar(PdaTexts.GenerarReporte);
+        _cargando.Mostrar(PdaTexts.EnviandoReporte);
         try
         {
             var pdf = TirillaPdf.Generar(tirilla.ARespuesta());
@@ -398,6 +399,7 @@ public sealed class TirillaVendidaPage : ContentPage
             {
                 Observacion = detalle!.Trim(),
                 CodigoTicket = tirilla.CodigoImpreso,
+                FechaTicket = tirilla.Fecha,
                 NombreArchivo = nombre,
                 ContenidoBase64 = Convert.ToBase64String(pdf)
             };
@@ -445,6 +447,7 @@ public sealed class TirillaVendidaPage : ContentPage
             Id = id,
             Observacion = observacion,
             CodigoTicket = tirilla.CodigoImpreso,
+            FechaTicket = tirilla.Fecha,
             NombreArchivo = nombre,
             RutaPdf = ruta,
             Enviado = false,
@@ -466,7 +469,6 @@ public sealed class TirillaVendidaPage : ContentPage
 
     private async Task ImprimirAsync(TirillaVenta tirilla)
     {
-        HabilitarReimpresion(false);
         MostrarAviso(EstadoImpresora.Aviso(null), EstadoImpresora.EsError(null));
         try
         {
@@ -483,20 +485,6 @@ public sealed class TirillaVendidaPage : ContentPage
         {
             MostrarAviso(EstadoImpresora.Aviso(false), EstadoImpresora.EsError(false));
         }
-        finally
-        {
-            HabilitarReimpresion(true);
-        }
-    }
-
-    private void HabilitarReimpresion(bool habilitado)
-    {
-        if (_reimprimir is null)
-        {
-            return;
-        }
-
-        MainThread.BeginInvokeOnMainThread(() => _reimprimir.IsEnabled = habilitado);
     }
 
     private async Task GenerarPdfAsync(TirillaVenta tirilla)

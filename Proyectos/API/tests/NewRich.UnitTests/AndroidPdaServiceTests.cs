@@ -199,18 +199,21 @@ public sealed class AndroidPdaServiceTests
                     {
                         Nombre = "Cali",
                         Estado = EstadoGeneral.Activo,
+                        Tope = 1000,
                         DiasHabilitados = [DiaSemana.Domingo]
                     },
                     new LoteriaResponse
                     {
                         Nombre = "Pasto",
                         Estado = EstadoGeneral.Activo,
+                        Tope = 1000,
                         DiasHabilitados = [DiaSemana.Lunes]
                     },
                     new LoteriaResponse
                     {
                         Nombre = "Bogotá",
                         Estado = EstadoGeneral.Activo,
+                        Tope = 1000,
                         DiasHabilitados = [DiaSemana.Domingo, DiaSemana.Jueves]
                     }
                 ],

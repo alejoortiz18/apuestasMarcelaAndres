@@ -31,7 +31,7 @@ public sealed class PdaConexionTests
         PdaConexion.UrlRedLocal.Should().NotContain("10.0.2.2");
         PdaConexion.UrlRedLocal.Should().Contain(":5295");
         // IP del PC que publica la API en la red del local.
-        PdaConexion.UrlRedLocal.Should().Be("http://192.168.1.19:5295/");
+        PdaConexion.UrlRedLocal.Should().Be("http://192.168.20.27:5295/");
     }
 
     [Fact]

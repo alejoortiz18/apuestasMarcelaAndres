@@ -65,6 +65,7 @@ public sealed class ReporteTecnicoRequest
 {
     public string Observacion { get; set; } = string.Empty;
     public string CodigoTicket { get; set; } = string.Empty;
+    public DateTime? FechaTicket { get; set; }
     public string NombreArchivo { get; set; } = string.Empty;
     public string ContenidoBase64 { get; set; } = string.Empty;
 }

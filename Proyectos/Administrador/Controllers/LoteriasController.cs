@@ -114,6 +114,7 @@ public sealed class LoteriasController : AdminControllerBase
         var result = await _api.CrearLoteriaAsync(new CrearLoteriaRequest
         {
             Nombre = model.Nombre.Trim(),
+            Tope = model.Tope,
             DiasHabilitados = model.DiasHabilitados
         }, cancellationToken);
         var unauthorized = RedirectIfUnauthorized(result);
@@ -154,7 +155,8 @@ public sealed class LoteriasController : AdminControllerBase
         {
             LoteriaId = item.LoteriaId,
             Nombre = item.Nombre,
-            Estado = item.Estado
+            Estado = item.Estado,
+            Tope = item.Tope
         });
     }
 
@@ -171,7 +173,8 @@ public sealed class LoteriasController : AdminControllerBase
         var result = await _api.ActualizarLoteriaAsync(id, new ActualizarLoteriaRequest
         {
             Nombre = model.Nombre.Trim(),
-            Estado = model.Estado
+            Estado = model.Estado,
+            Tope = model.Tope
         }, cancellationToken);
 
         var unauthorized = RedirectIfUnauthorized(result);

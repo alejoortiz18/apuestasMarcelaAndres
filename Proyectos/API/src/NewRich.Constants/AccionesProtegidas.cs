@@ -31,6 +31,7 @@ public static class AccionesProtegidas
     public const string ConfiguracionGuardar = "configuracion.guardar";
     public const string ConfiguracionDias = "configuracion.dias";
     public const string ConfiguracionNumerosRestringidos = "configuracion.numeros-restringidos";
+    public const string ConfiguracionTopes = "configuracion.topes";
     public const string SoporteCerrar = "soporte.cerrar";
     public const string LlaveRegistrar = "llave.registrar";
 }

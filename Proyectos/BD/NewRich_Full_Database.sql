@@ -213,6 +213,7 @@ BEGIN
         LoteriaId       UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
         Nombre          NVARCHAR(100)    NOT NULL,
         Estado          NVARCHAR(20)     NOT NULL DEFAULT 'Activo',
+        Tope            DECIMAL(18, 2)   NOT NULL DEFAULT 1000,
         FechaCreacion   DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
         CONSTRAINT PK_Loterias PRIMARY KEY (LoteriaId),
         CONSTRAINT UQ_Loterias_Nombre UNIQUE (Nombre),

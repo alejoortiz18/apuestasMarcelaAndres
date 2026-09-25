@@ -297,7 +297,8 @@ public sealed class ChatService : IChatService
                 _clock.LocalNow,
                 vendedor.NombreCompleto,
                 request.CodigoTicket,
-                observacion);
+                observacion,
+                request.FechaTicket);
         }
         catch (ArgumentException)
         {

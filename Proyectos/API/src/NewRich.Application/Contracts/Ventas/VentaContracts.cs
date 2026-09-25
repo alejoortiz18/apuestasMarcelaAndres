@@ -15,6 +15,18 @@ public sealed class ConfirmarVentaRequest
     public IReadOnlyList<LineaJuegoRequest> Juegos { get; set; } = [];
 }
 
+public sealed class ValidarTopesRequest
+{
+    public IReadOnlyList<LineaJuegoRequest> Juegos { get; set; } = [];
+}
+
+public sealed class ValidarTopesResponse
+{
+    public bool Ok { get; set; }
+    public decimal Disponible { get; set; }
+    public string Mensaje { get; set; } = string.Empty;
+}
+
 public sealed class ConsultaVentasRequest
 {
     public Guid? VendedorId { get; set; }

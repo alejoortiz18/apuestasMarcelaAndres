@@ -10,6 +10,7 @@ public static class ConfiguracionClaves
     public const string AlertaValorMinimo = "AlertaValorMinimo";
     public const string CodigosOfflineCapacidad = "CodigosOfflineCapacidad";
     public const string ReposicionDiariaOffline = "ReposicionDiariaOffline";
+    public const string PermitirJuegosOffline = "PermitirJuegosOffline";
     public const string SincronizacionModo = "SincronizacionModo";
     public const string LeyendaTirilla = "LeyendaTirilla";
     public const string TipoCombinado = "COMBINADO";
