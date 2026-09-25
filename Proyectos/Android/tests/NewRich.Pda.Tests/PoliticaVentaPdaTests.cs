@@ -12,6 +12,12 @@ public class PoliticaVentaPdaTests
     }
 
     [Fact]
+    public void El_sondeo_al_servidor_no_hace_esperar_al_vendedor()
+    {
+        PoliticaVentaPda.MsSondeoServidor.Should().BeInRange(1000, 4000);
+    }
+
+    [Fact]
     public void Sin_servidor_y_sin_codigos_bloquea_la_venta()
     {
         PoliticaVentaPda.TrasFalloDeRed(0).Should().Be(CanalVenta.Bloqueado);

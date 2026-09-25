@@ -35,27 +35,52 @@ public sealed class ConstruirApuestaPage : ContentPage
     {
         base.OnAppearing();
         await CargarRestringidosAsync();
+        _loterias = LoteriasDelDia.FiltrarHoy(await LoteriasGuardadasAsync());
+        Render();
+        await RefrescarLoteriasAsync();
+    }
+
+    private async Task<IReadOnlyList<LoteriaResponse>> LoteriasGuardadasAsync()
+    {
         try
         {
-            IReadOnlyList<LoteriaResponse> lote = [];
-            var loterias = await _api.LoteriasAsync(CancellationToken.None);
-            if (loterias.IsSuccess && loterias.Data is not null)
+            return await _offline.LoteriasAsync();
+        }
+        catch (Exception)
+        {
+            return [];
+        }
+    }
+
+    /// <summary>Busca loterias frescas sin bloquear la pantalla y solo repinta si cambiaron.</summary>
+    private async Task RefrescarLoteriasAsync()
+    {
+        if (!CargaLoterias.DebeConsultarApi(Connectivity.Current.NetworkAccess == NetworkAccess.Internet))
+        {
+            return;
+        }
+
+        try
+        {
+            using var corte = new CancellationTokenSource(CargaLoterias.MsEspera);
+            var loterias = await _api.LoteriasAsync(corte.Token);
+            if (!loterias.IsSuccess || loterias.Data is null)
             {
-                lote = loterias.Data;
-                await _offline.GuardarLoteriasAsync(lote);
-            }
-            else
-            {
-                lote = await _offline.LoteriasAsync();
+                return;
             }
 
-            _loterias = LoteriasDelDia.FiltrarHoy(lote);
+            await _offline.GuardarLoteriasAsync(loterias.Data);
+            var frescas = LoteriasDelDia.FiltrarHoy(loterias.Data);
+            if (CargaLoterias.SonIguales(frescas, _loterias))
+            {
+                return;
+            }
+
+            _loterias = frescas;
             Render();
         }
         catch (Exception)
         {
-            _loterias = LoteriasDelDia.FiltrarHoy(await _offline.LoteriasAsync());
-            Render();
         }
     }
 
@@ -324,9 +349,10 @@ public sealed class ConstruirApuestaPage : ContentPage
         {
             try
             {
+                using var sondeo = new CancellationTokenSource(PoliticaVentaPda.MsSondeoServidor);
                 var conexion = await _api.ConectarAsync(
                     PdaConexion.UrlsPara(DeviceInfo.Current.DeviceType == DeviceType.Virtual),
-                    CancellationToken.None);
+                    sondeo.Token);
                 if (conexion.IsSuccess)
                 {
                     var venta = await _api.ConfirmarVentaAsync(draft.ARequest(), Guid.NewGuid().ToString("N"), CancellationToken.None);

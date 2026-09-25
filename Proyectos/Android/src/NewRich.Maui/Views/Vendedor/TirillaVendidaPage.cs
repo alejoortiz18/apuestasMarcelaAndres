@@ -236,7 +236,8 @@ public sealed class TirillaVendidaPage : ContentPage
             byte[] png = [];
             try
             {
-                png = QrImagen.Png(tirilla.QrContenido);
+                // Version liviana: el QR en pantalla se ve a 128 puntos y el grande tardaba en generarse.
+                png = QrImagen.PngParaTirilla(tirilla.QrContenido, 384);
             }
             catch (Exception)
             {
@@ -501,8 +502,11 @@ public sealed class TirillaVendidaPage : ContentPage
             return;
         }
 
-        _avisoImpresion.Text = mensaje;
-        _avisoImpresion.IsVisible = !string.IsNullOrWhiteSpace(mensaje);
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            _avisoImpresion.Text = mensaje;
+            _avisoImpresion.IsVisible = !string.IsNullOrWhiteSpace(mensaje);
+        });
     }
 
     protected override void OnDisappearing()
