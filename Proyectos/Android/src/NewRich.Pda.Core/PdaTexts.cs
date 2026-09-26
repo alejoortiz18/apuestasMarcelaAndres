@@ -216,7 +216,7 @@ public static class PdaTexts
     public const string KpiPorVendedor = "Quién vendió más";
     public const string KpiMovimientos = "Movimientos por día";
     public const string KpiPicoDelPeriodo = "Día de mayor venta";
-    public const string KpiValorMasAltoApostado = "Valor más alto apostado";
+    public const string KpiValorMasAltoApostado = "Valor más apostado";
     public const string KpiFrenteAnterior = "frente al periodo anterior";
     public const string KpiAyudaTablero = "Compara el periodo con el anterior, mira la curva de todos los vendedores y entra a un usuario para ver sus movimientos.";
     public static string KpiLecturaSubieron(string porcentaje) =>

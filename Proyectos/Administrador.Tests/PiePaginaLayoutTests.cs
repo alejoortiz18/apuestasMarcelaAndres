@@ -19,6 +19,20 @@ public sealed class PiePaginaLayoutTests
         chat.Should().Contain("overflow: hidden");
     }
 
+    /// <summary>
+    /// Sin ancla, los textos solo para lectores de pantalla (position: absolute) se ubican
+    /// respecto al body, escapan del recorte del layout y estiran la pagina con espacio vacio
+    /// en las vistas largas como Configuracion.
+    /// </summary>
+    [Fact]
+    public void El_contenedor_principal_ancla_los_elementos_absolutos()
+    {
+        var css = File.ReadAllText(RutaCss());
+        var principal = Bloque(css, "main {");
+
+        principal.Should().Contain("position: relative");
+    }
+
     [Fact]
     public void El_pie_queda_en_el_flujo_del_layout_sin_superponerse()
     {

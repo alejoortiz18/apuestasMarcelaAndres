@@ -162,6 +162,26 @@ public sealed class KpiServiceTests
         result.Data.ValorMasAltoApostado.Should().Be(15000);
     }
 
+    [Fact]
+    public async Task ConsultarAsync_elige_el_valor_que_mas_se_apuesta_aunque_no_sea_el_mas_alto()
+    {
+        var (sut, db) = CreateSut();
+        var vendedor = await AgregarUsuarioAsync(db, "Camila Rojas", RolUsuario.Vendedor);
+        await AgregarVentaConJuegoAsync(db, vendedor, "1111", 10000, "Bogota");
+        await AgregarVentaConJuegoAsync(db, vendedor, "2222", 5000, "Cali");
+        await AgregarVentaConJuegoAsync(db, vendedor, "3333", 20000, "Medellin");
+        await AgregarVentaConJuegoAsync(db, vendedor, "4444", 5000, "Pasto");
+        await AgregarVentaConJuegoAsync(db, vendedor, "5555", 5000, "Armenia");
+
+        var result = await sut.ConsultarAsync(new KpiRequest
+        {
+            FechaInicial = new DateTime(2026, 8, 1),
+            FechaFinal = new DateTime(2026, 8, 30)
+        }, CancellationToken.None);
+
+        result.Data!.ValorMasAltoApostado.Should().Be(5000);
+    }
+
     private static (KpiService Sut, NewRichDbContext Db) CreateSut()
     {
         var options = new DbContextOptionsBuilder<NewRichDbContext>()

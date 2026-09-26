@@ -80,7 +80,12 @@ public sealed class KpiService : IKpiService
             .ThenBy(g => g.Key)
             .Select(g => g.Key)
             .FirstOrDefault();
-        var valorMasAltoApostado = juegos.Count == 0 ? 0 : juegos.Max(j => j.Valor);
+        var valorMasAltoApostado = juegos
+            .GroupBy(j => j.Valor)
+            .OrderByDescending(g => g.Count())
+            .ThenByDescending(g => g.Key)
+            .Select(g => g.Key)
+            .FirstOrDefault();
         var ganadores = boletos.Count(b =>
             b.EstadoBoleto is EstadoBoleto.Ganador or EstadoBoleto.PremioEntregado or EstadoBoleto.PagadoCobrado);
 

@@ -358,7 +358,7 @@ public static class UiTexts
     public const string IngresosRegistrados = "Ingresos registrados";
     public const string VentasConfirmadas = "Ventas confirmadas";
     public const string NumeroMasJugado = "Número más jugado";
-    public const string ValorMasAltoApostado = "Valor más alto apostado";
+    public const string ValorMasAltoApostado = "Valor más apostado";
     public const string BoletosGanadores = "Boletos ganadores";
     public const string IngresosPorGrupo = "Ingresos por grupo";
     public const string IngresosPorPersona = "Ingresos por persona";
