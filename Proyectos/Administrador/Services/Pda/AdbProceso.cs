@@ -9,15 +9,17 @@ namespace NewRich.Admin.Services.Pda;
 public sealed class AdbProceso : IAdb
 {
     private readonly OpcionesRegistroPda _opciones;
+    private readonly IHostEnvironment _entorno;
 
-    public AdbProceso(IOptions<OpcionesRegistroPda> opciones)
+    public AdbProceso(IOptions<OpcionesRegistroPda> opciones, IHostEnvironment entorno)
     {
         _opciones = opciones.Value;
+        _entorno = entorno;
     }
 
     public async Task<AdbResultado> EjecutarAsync(IReadOnlyList<string> argumentos, CancellationToken cancellationToken)
     {
-        var inicio = new ProcessStartInfo(_opciones.RutaAdb)
+        var inicio = new ProcessStartInfo(RutaEnContenido.Resolver(_opciones.RutaAdb, _entorno.ContentRootPath))
         {
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -76,9 +78,7 @@ public sealed class ApkPdaEnDisco : IApkPda
             return null;
         }
 
-        var ruta = Path.IsPathRooted(_opciones.RutaApk)
-            ? _opciones.RutaApk
-            : Path.GetFullPath(Path.Combine(_entorno.ContentRootPath, _opciones.RutaApk));
+        var ruta = RutaEnContenido.Resolver(_opciones.RutaApk, _entorno.ContentRootPath);
 
         return File.Exists(ruta) ? ruta : null;
     }

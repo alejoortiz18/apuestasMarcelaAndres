@@ -7,8 +7,8 @@ public sealed class OpcionesRegistroPda
 {
     public const string Seccion = "RegistroPda";
 
-    /// <summary>Ejecutable de adb. Basta con "adb" cuando esta en el PATH del computador.</summary>
-    public string RutaAdb { get; set; } = "adb";
+    /// <summary>Ejecutable de adb. Ruta relativa al proyecto, junto al APK.</summary>
+    public string RutaAdb { get; set; } = "wwwroot/android/adb.exe";
 
     /// <summary>Instalador de la aplicacion del PDA. Ruta relativa al proyecto, dentro de wwwroot/android.</summary>
     public string RutaApk { get; set; } = "wwwroot/android/com.newrich.pda-Signed.apk";

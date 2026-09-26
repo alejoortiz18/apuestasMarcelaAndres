@@ -217,7 +217,7 @@ Esto está definido en:
 La parte importante aquí es:
 
 - `RutaApk` apunta a la ruta del APK del PDA
-- `RutaAdb` usa `adb`
+- `RutaAdb` apunta a `wwwroot/android/adb.exe`, que viaja con el administrador
 - `Paquete` esperado es `com.newrich.pda`
 
 ### 5.2. Configuración actual esperada por el sistema
@@ -226,7 +226,7 @@ La app admin está configurada para buscar este APK:
 
 ```json
 "RegistroPda": {
-  "RutaAdb": "adb",
+  "RutaAdb": "wwwroot/android/adb.exe",
   "RutaApk": "wwwroot/android/com.newrich.pda-Signed.apk",
   "PuertoPuenteUsb": 5295
 }
@@ -241,7 +241,7 @@ Para que el administrador pueda instalarlos desde la app a un PDA o celular Andr
 1. APK válido generado por compilación de Android/Maui
 2. Firma correcta del paquete Android
 3. Nombre de paquete consistente con el proyecto
-4. `adb` instalado y accesible en PATH
+4. `adb.exe` junto con `AdbWinApi.dll` y `AdbWinUsbApi.dll` en `wwwroot/android`
 5. El dispositivo conectado por USB con depuración USB habilitada
 6. El archivo APK ubicado en una ruta accesible por el administrador
 
