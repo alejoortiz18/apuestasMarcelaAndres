@@ -10,8 +10,8 @@ public sealed class OpcionesRegistroPda
     /// <summary>Ejecutable de adb. Basta con "adb" cuando esta en el PATH del computador.</summary>
     public string RutaAdb { get; set; } = "adb";
 
-    /// <summary>Instalador de la aplicacion del PDA. Admite ruta absoluta o relativa al proyecto.</summary>
-    public string RutaApk { get; set; } = string.Empty;
+    /// <summary>Instalador de la aplicacion del PDA. Ruta relativa al proyecto, dentro de wwwroot/android.</summary>
+    public string RutaApk { get; set; } = "wwwroot/android/com.newrich.pda-Signed.apk";
 
     /// <summary>Paquete de la aplicacion, usado para verificar que la instalacion quedo en el equipo.</summary>
     public string Paquete { get; set; } = ProvisionPda.Paquete;

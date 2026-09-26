@@ -15,6 +15,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- El APK viaja con el proyecto para instalar el PDA, pero no se publica como archivo web. -->
+    <Content Remove="wwwroot\android\**" />
+    <None Include="wwwroot\android\**" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="QuestPDF" Version="2025.7.3" />
     <PackageReference Include="System.Management" Version="10.0.0" />
   </ItemGroup>

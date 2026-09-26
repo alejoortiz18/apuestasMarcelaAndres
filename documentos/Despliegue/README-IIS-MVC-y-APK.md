@@ -227,7 +227,7 @@ La app admin está configurada para buscar este APK:
 ```json
 "RegistroPda": {
   "RutaAdb": "adb",
-  "RutaApk": "..\\Android\\src\\NewRich.Maui\\bin\\Release\\net10.0-android\\com.newrich.pda-Signed.apk",
+  "RutaApk": "wwwroot/android/com.newrich.pda-Signed.apk",
   "PuertoPuenteUsb": 5295
 }
 ```
@@ -263,19 +263,13 @@ Por tanto, el archivo APK final debe corresponder a ese paquete para que la inst
 
 #### Opción recomendada
 
-Publicar el proyecto Android desde el proyecto MAUI con Release y verificar que el APK se genera en:
+Copiar el APK firmado a la carpeta del administrador:
 
 ```text
-D:\Proyectos\NewRich\apuestasMarcelaAndres\Proyectos\Android\src\NewRich.Maui\bin\Release\net10.0-android\
+Proyectos/Administrador/wwwroot/android/com.newrich.pda-Signed.apk
 ```
 
-Y que el archivo tenga nombre similar a:
-
-```text
-com.newrich.pda-Signed.apk
-```
-
-Luego ajustar la ruta en `appsettings.json` si el nombre o la ubicación cambian.
+Esa ruta es relativa al proyecto. Se conserva al pasar el repositorio a otra máquina y al publicar el administrador. El archivo supera el límite de GitHub para archivos normales, así que queda marcado con Git LFS.
 
 #### Verificación mínima antes de instalar
 
