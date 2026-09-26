@@ -112,7 +112,7 @@ public static class PdaTexts
     public const string SyncAyudaAutomatica = "La sincronización automática se ejecuta sola al detectar conexión. Usa el botón solo si necesitas reintentar.";
     public const string SyncTodoAlDia = "Todo al día";
     public const string CerrarSesion = "Cerrar sesión";
-    public const string SesionCerradaPorInactividad = "La sesión se cerró por un minuto de inactividad. Vuelva a iniciar sesión.";
+    public const string SesionCerradaPorInactividad = "La sesión se cerró por inactividad. Vuelva a iniciar sesión.";
     public const string CerrarSesionAyuda = "Salir del PDA";
     public const string JuegosCerrados = "LOS JUEGOS ESTÁN CERRADOS.";
     public const string JuegosCerradosDetalle = "No se pueden iniciar nuevas apuestas hasta la próxima apertura de horario.";

@@ -41,4 +41,14 @@ public sealed class RelojInactividadTests
         reloj.Detener();
         reloj.DebeCerrar(Inicio.AddMinutes(5)).Should().BeFalse();
     }
+
+    [Fact]
+    public void Respeta_los_minutos_configurados_en_el_administrador()
+    {
+        var reloj = new RelojInactividad();
+        reloj.Iniciar(Inicio, 3);
+
+        reloj.DebeCerrar(Inicio.AddMinutes(1)).Should().BeFalse();
+        reloj.DebeCerrar(Inicio.AddMinutes(3)).Should().BeTrue();
+    }
 }

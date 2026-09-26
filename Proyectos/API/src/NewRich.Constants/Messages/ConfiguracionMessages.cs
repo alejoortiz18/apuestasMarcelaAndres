@@ -9,6 +9,7 @@ public static class ConfiguracionMessages
     public const string HorarioPdaViolaLoterias = "No puede cambiar el horario del PDA. Las loterías no pueden quedar por encima ni por debajo del horario de actividad.";
     public const string VigenciaInvalida = "La vigencia de premios debe ser un número entero mayor que cero.";
     public const string DiasInactividadEliminarPdaInvalido = "Los días de inactividad para eliminar un PDA deben ser un número entero mayor que cero.";
+    public const string MinutosInactividadSesionInvalido = "Los minutos de inactividad para cerrar la sesión deben estar entre 1 y 480.";
     public const string EnteroInvalido = "El valor debe ser un número entero mayor que cero.";
     public const string LineasIndividualInvalidas = "El máximo de líneas individuales debe estar entre 1 y 6.";
     public const string ModoSincronizacionInvalido = "El modo de sincronización debe ser Manual o Automatica.";

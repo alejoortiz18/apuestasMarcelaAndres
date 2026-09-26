@@ -46,6 +46,8 @@ builder.Services.AddSingleton<IInventarioUsb, InventarioUsbWindows>();
 builder.Services.AddSingleton<IPreparadorLlaveUsb, PreparadorLlaveUsbWindows>();
 builder.Services.AddSingleton<ILectorLlaveUsb, LectorLlaveUsb>();
 builder.Services.AddSignalR();
+builder.Services.AddMemoryCache();
+builder.Services.AddScoped<MinutosInactividadSesion>();
 
 var app = builder.Build();
 
@@ -57,6 +59,7 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseRouting();
+app.UseMiddleware<MinutosInactividadMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapStaticAssets();

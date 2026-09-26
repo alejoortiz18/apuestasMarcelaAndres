@@ -28,6 +28,7 @@ public sealed class ConfiguracionServiceTests
         result.Data.HoraCierre.Should().Be("20:00:00");
         result.Data.VigenciaPremiosDias.Should().Be(30);
         result.Data.DiasInactividadEliminarPda.Should().Be(30);
+        result.Data.MinutosInactividadSesion.Should().Be(1);
         result.Data.MaxJuegosCombinado.Should().Be(1);
         result.Data.MaxLineasIndividual.Should().Be(6);
         result.Data.AlertaRepeticionNumero.Should().Be(10);
@@ -40,7 +41,7 @@ public sealed class ConfiguracionServiceTests
         result.Data.LeyendaTirilla.Should().Contain("{vigenciaDias}");
         result.Data.LeyendaTirilla.Should().NotContain("GRACIAS POR SU COMPRA");
         result.Data.MensajeSuperacionTope.Should().Be(ValidacionTope.PlantillaSuperacionDefecto);
-        db.Configuraciones.Should().HaveCount(12);
+        db.Configuraciones.Should().HaveCount(13);
         db.ConfiguracionesTipoApuesta.Should().Contain(t => t.TipoApuesta == "COMBINADO" && t.Maximo == 1);
         db.ConfiguracionesTipoApuesta.Should().Contain(t => t.TipoApuesta == "INDIVIDUAL" && t.Maximo == 6);
     }
@@ -284,6 +285,30 @@ public sealed class ConfiguracionServiceTests
 
         result.IsSuccess.Should().BeFalse();
         result.Message.Should().Be(ConfiguracionMessages.DiasInactividadEliminarPdaInvalido);
+    }
+
+    [Fact]
+    public async Task GuardarOperativaAsync_persiste_los_minutos_de_inactividad_de_la_sesion()
+    {
+        var (sut, _) = CreateSut();
+        await sut.ObtenerOperativaAsync(CancellationToken.None);
+
+        var result = await sut.GuardarOperativaAsync(RequestValida() with { MinutosInactividadSesion = 4 }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.MinutosInactividadSesion.Should().Be(4);
+    }
+
+    [Fact]
+    public async Task GuardarOperativaAsync_rechaza_minutos_de_inactividad_invalidos()
+    {
+        var (sut, _) = CreateSut();
+        await sut.ObtenerOperativaAsync(CancellationToken.None);
+
+        var result = await sut.GuardarOperativaAsync(RequestValida() with { MinutosInactividadSesion = 0 }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Message.Should().Be(ConfiguracionMessages.MinutosInactividadSesionInvalido);
     }
 
     private static GuardarConfiguracionOperativaRequest RequestValida() => new()

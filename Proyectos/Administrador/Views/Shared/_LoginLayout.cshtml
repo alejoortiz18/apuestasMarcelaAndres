@@ -12,7 +12,7 @@
 </head>
 @{
     var inactividad = User.Identity?.IsAuthenticated == true
-        ? ((int)NewRich.Shared.Helpers.InactividadSesion.Limite.TotalMilliseconds).ToString()
+        ? (NewRich.Admin.Services.MinutosInactividadSesion.De(Context) * 60 * 1000).ToString()
         : null;
 }
 <body class="login-body" data-inactividad-ms="@inactividad">

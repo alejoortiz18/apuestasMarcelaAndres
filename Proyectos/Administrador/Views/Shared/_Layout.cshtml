@@ -8,6 +8,7 @@
     var avisoModal = TempData["AvisoModal"] as string;
     string NavClass(string key) => nav == key ? "active" : "";
     var enVentas = ViewData["VentasVista"] is string;
+    var inactividadMs = NewRich.Admin.Services.MinutosInactividadSesion.De(Context) * 60 * 1000;
 }
 <!DOCTYPE html>
 <html lang="es-CO" data-no-results="@UiTexts.SinResultadosOpcion" data-search-option="@UiTexts.BuscarOpcion" data-notif-conexion="@Url.Action("Conexion", "Notificaciones")" data-confirmacion-url="@Url.Action("Confirmar", "Seguridad")" data-confirmacion-error="@NewRich.Constants.Messages.AuthMessages.ContrasenaAccionNoValidada">
@@ -20,7 +21,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Manrope:wght@400;600;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
-<body data-nav="@nav" data-inactividad-ms="@((int)NewRich.Shared.Helpers.InactividadSesion.Limite.TotalMilliseconds)">
+<body data-nav="@nav" data-inactividad-ms="@inactividadMs">
 <div class="app">
     <aside class="side">
         <span class="side-marco" aria-hidden="true"></span>

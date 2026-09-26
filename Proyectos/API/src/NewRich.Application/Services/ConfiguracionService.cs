@@ -5,6 +5,7 @@ using NewRich.Constants;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
 using NewRich.Domain.Services;
+using NewRich.Shared.Helpers;
 using NewRich.Shared.Results;
 
 namespace NewRich.Application.Services;
@@ -17,6 +18,7 @@ public sealed class ConfiguracionService : IConfiguracionService
         (ConfiguracionClaves.HoraCierre, "20:00:00"),
         (ConfiguracionClaves.VigenciaPremiosDias, "30"),
         (ConfiguracionClaves.DiasInactividadEliminarPda, "30"),
+        (ConfiguracionClaves.MinutosInactividadSesion, InactividadSesion.MinutosPorDefecto.ToString()),
         (ConfiguracionClaves.AlertaRepeticionNumero, "10"),
         (ConfiguracionClaves.AlertaValorMinimo, "10000"),
         (ConfiguracionClaves.CodigosOfflineCapacidad, "3000"),
@@ -86,6 +88,7 @@ public sealed class ConfiguracionService : IConfiguracionService
             HoraCierre = mapa[ConfiguracionClaves.HoraCierre],
             VigenciaPremiosDias = Entero(mapa[ConfiguracionClaves.VigenciaPremiosDias], 30),
             DiasInactividadEliminarPda = Entero(mapa[ConfiguracionClaves.DiasInactividadEliminarPda], InactividadPda.DiasSinActividadPorDefecto),
+            MinutosInactividadSesion = Entero(mapa[ConfiguracionClaves.MinutosInactividadSesion], InactividadSesion.MinutosPorDefecto),
             MaxJuegosCombinado = combinado.Maximo,
             MaxLineasIndividual = individual.Maximo,
             AlertaRepeticionNumero = Entero(mapa[ConfiguracionClaves.AlertaRepeticionNumero], 10),
@@ -150,6 +153,11 @@ public sealed class ConfiguracionService : IConfiguracionService
             return Result<ConfiguracionOperativaResponse>.Fail(ConfiguracionMessages.DiasInactividadEliminarPdaInvalido);
         }
 
+        if (request.MinutosInactividadSesion is < 1 or > InactividadSesion.MinutosMaximo)
+        {
+            return Result<ConfiguracionOperativaResponse>.Fail(ConfiguracionMessages.MinutosInactividadSesionInvalido);
+        }
+
         if (request.MaxJuegosCombinado <= 0 || request.AlertaRepeticionNumero <= 0)
         {
             return Result<ConfiguracionOperativaResponse>.Fail(ConfiguracionMessages.EnteroInvalido);
@@ -208,6 +216,7 @@ public sealed class ConfiguracionService : IConfiguracionService
         await GuardarClaveAsync(ConfiguracionClaves.HoraCierre, cierre.ToString(@"hh\:mm\:ss"), cancellationToken);
         await GuardarClaveAsync(ConfiguracionClaves.VigenciaPremiosDias, request.VigenciaPremiosDias.ToString(), cancellationToken);
         await GuardarClaveAsync(ConfiguracionClaves.DiasInactividadEliminarPda, request.DiasInactividadEliminarPda.ToString(), cancellationToken);
+        await GuardarClaveAsync(ConfiguracionClaves.MinutosInactividadSesion, request.MinutosInactividadSesion.ToString(), cancellationToken);
         await GuardarClaveAsync(ConfiguracionClaves.AlertaRepeticionNumero, request.AlertaRepeticionNumero.ToString(), cancellationToken);
         await GuardarClaveAsync(ConfiguracionClaves.AlertaValorMinimo, request.AlertaValorMinimo.ToString(), cancellationToken);
         await GuardarClaveAsync(ConfiguracionClaves.CodigosOfflineCapacidad, request.CodigosOfflineCapacidad.ToString(), cancellationToken);
@@ -290,6 +299,7 @@ public sealed class ConfiguracionService : IConfiguracionService
         HoraCierre = actual.HoraCierre,
         VigenciaPremiosDias = actual.VigenciaPremiosDias,
         DiasInactividadEliminarPda = actual.DiasInactividadEliminarPda,
+        MinutosInactividadSesion = actual.MinutosInactividadSesion,
         MaxJuegosCombinado = actual.MaxJuegosCombinado,
         MaxLineasIndividual = actual.MaxLineasIndividual,
         AlertaRepeticionNumero = actual.AlertaRepeticionNumero,
@@ -311,6 +321,7 @@ public sealed class ConfiguracionService : IConfiguracionService
             ConfiguracionClaves.HoraCierre => request with { HoraCierre = valor },
             ConfiguracionClaves.VigenciaPremiosDias when int.TryParse(valor, out var vigencia) => request with { VigenciaPremiosDias = vigencia },
             ConfiguracionClaves.DiasInactividadEliminarPda when int.TryParse(valor, out var dias) => request with { DiasInactividadEliminarPda = dias },
+            ConfiguracionClaves.MinutosInactividadSesion when int.TryParse(valor, out var minutos) => request with { MinutosInactividadSesion = minutos },
             ConfiguracionClaves.AlertaRepeticionNumero when int.TryParse(valor, out var repeticion) => request with { AlertaRepeticionNumero = repeticion },
             ConfiguracionClaves.AlertaValorMinimo when int.TryParse(valor, out var minimo) => request with { AlertaValorMinimo = minimo },
             ConfiguracionClaves.CodigosOfflineCapacidad when int.TryParse(valor, out var capacidad) => request with { CodigosOfflineCapacidad = capacidad },

@@ -62,13 +62,15 @@ public sealed class VigilanteInactividad
             return;
         }
 
+        var minutos = _sesion.Limites.MinutosInactividadSesion;
         if (!_enSesion)
         {
-            _reloj.Iniciar(ahora);
+            _reloj.Iniciar(ahora, minutos);
             _enSesion = true;
             return;
         }
 
+        _reloj.ActualizarMinutos(minutos);
         if (!_reloj.DebeCerrar(ahora) || Interlocked.CompareExchange(ref _cerrando, 1, 0) != 0)
         {
             return;

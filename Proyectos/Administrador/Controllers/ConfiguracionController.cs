@@ -14,10 +14,12 @@ namespace NewRich.Admin.Controllers;
 public sealed class ConfiguracionController : AdminControllerBase
 {
     private readonly IAdminApiClient _api;
+    private readonly MinutosInactividadSesion _inactividad;
 
-    public ConfiguracionController(IAdminApiClient api)
+    public ConfiguracionController(IAdminApiClient api, MinutosInactividadSesion inactividad)
     {
         _api = api;
+        _inactividad = inactividad;
     }
 
     public async Task<IActionResult> Index(
@@ -83,6 +85,7 @@ public sealed class ConfiguracionController : AdminControllerBase
             HoraCierre = form.HoraCierre,
             VigenciaPremiosDias = form.VigenciaPremiosDias,
             DiasInactividadEliminarPda = form.DiasInactividadEliminarPda,
+            MinutosInactividadSesion = form.MinutosInactividadSesion,
             MaxJuegosCombinado = form.MaxJuegosCombinado,
             MaxLineasIndividual = form.MaxLineasIndividual,
             AlertaRepeticionNumero = form.AlertaRepeticionNumero,
@@ -115,6 +118,7 @@ public sealed class ConfiguracionController : AdminControllerBase
         }
 
         SetFlash(SuccessMessages.RegistroActualizado);
+        _inactividad.Olvidar();
         return RedirectToAction(nameof(Index));
     }
 
@@ -347,6 +351,7 @@ public sealed class ConfiguracionController : AdminControllerBase
             HoraCierre = FormatoHoraInput(data.HoraCierre, "20:00"),
             VigenciaPremiosDias = data.VigenciaPremiosDias,
             DiasInactividadEliminarPda = data.DiasInactividadEliminarPda,
+            MinutosInactividadSesion = data.MinutosInactividadSesion < 1 ? 1 : data.MinutosInactividadSesion,
             MaxJuegosCombinado = data.MaxJuegosCombinado,
             MaxLineasIndividual = data.MaxLineasIndividual,
             AlertaRepeticionNumero = data.AlertaRepeticionNumero,

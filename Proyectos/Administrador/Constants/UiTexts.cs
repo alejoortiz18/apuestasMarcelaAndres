@@ -453,6 +453,9 @@ public static class UiTexts
     public const string ConfigSub = "Define el cierre de los PDA, la vigencia de premios, los límites de apuesta, las alertas, los códigos offline, el texto de la tirilla, los números restringidos y los días de venta de cada lotería.";
     public const string GuardarConfiguracion = "Guardar configuración";
     public const string ConfigHorarioPremios = "Premios";
+    public const string ConfigSesion = "Sesión";
+    public const string MinutosInactividadSesion = "Minutos de inactividad para cerrar la sesión";
+    public const string MinutosInactividadSesionAyuda = "Si el administrador o el PDA no se usan durante estos minutos, la sesión se cierra. El PDA toma el valor cuando descarga la configuración.";
     public const string ConfigDiasVenta = "Días de venta";
     public const string ConfigDiasVentaSub = "Marque las loterías que el vendedor puede vender cada día. El PDA solo muestra las de hoy.";
     public const string GuardarDiasVenta = "Guardar días de venta";

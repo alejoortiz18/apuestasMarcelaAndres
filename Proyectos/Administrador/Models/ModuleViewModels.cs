@@ -289,6 +289,10 @@ public sealed class ConfiguracionOperativaFormViewModel
     [Range(1, 3650, ErrorMessage = ValidationMessages.CampoRequerido)]
     public int DiasInactividadEliminarPda { get; set; } = 30;
 
+    [Display(Name = UiTexts.MinutosInactividadSesion)]
+    [Range(1, 480, ErrorMessage = ValidationMessages.CampoRequerido)]
+    public int MinutosInactividadSesion { get; set; } = 1;
+
     [Display(Name = UiTexts.MaxJuegosCombinado)]
     [Range(1, 99, ErrorMessage = ValidationMessages.CampoRequerido)]
     public int MaxJuegosCombinado { get; set; } = 1;

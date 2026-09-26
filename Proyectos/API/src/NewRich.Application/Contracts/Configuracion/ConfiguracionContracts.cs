@@ -18,6 +18,7 @@ public sealed class ConfiguracionOperativaResponse
     public string HoraCierre { get; set; } = "20:00:00";
     public int VigenciaPremiosDias { get; set; } = 30;
     public int DiasInactividadEliminarPda { get; set; } = 30;
+    public int MinutosInactividadSesion { get; set; } = 1;
     public int MaxJuegosCombinado { get; set; } = 1;
     public int MaxLineasIndividual { get; set; } = 6;
     public int AlertaRepeticionNumero { get; set; } = 10;
@@ -47,6 +48,7 @@ public sealed record GuardarConfiguracionOperativaRequest
     public string HoraCierre { get; init; } = string.Empty;
     public int VigenciaPremiosDias { get; init; }
     public int DiasInactividadEliminarPda { get; init; }
+    public int MinutosInactividadSesion { get; init; } = 1;
     public int MaxJuegosCombinado { get; init; }
     public int MaxLineasIndividual { get; init; }
     public int AlertaRepeticionNumero { get; init; }
