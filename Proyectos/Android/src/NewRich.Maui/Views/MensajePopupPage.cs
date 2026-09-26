@@ -87,6 +87,38 @@ public sealed class MensajePopupPage : ContentPage
             botones.Add(ok);
         }
 
+        var cuerpoTarjeta = new VerticalStackLayout
+        {
+            Spacing = 12,
+            Children = { icono, titulo, cuerpo, botones }
+        };
+
+        View contenido = cuerpoTarjeta;
+        if (mensaje.MuestraEquis)
+        {
+            var cerrar = new Button
+            {
+                Style = null,
+                Text = "X",
+                BackgroundColor = Colors.Transparent,
+                TextColor = Oro,
+                FontAttributes = FontAttributes.Bold,
+                FontSize = 18,
+                WidthRequest = 44,
+                HeightRequest = 44,
+                HorizontalOptions = LayoutOptions.End,
+                Padding = new Thickness(0),
+                Margin = new Thickness(0, -6, -8, 0)
+            };
+            SemanticProperties.SetDescription(cerrar, PdaTexts.Cerrar);
+            cerrar.Clicked += (_, _) => Completar(false);
+            contenido = new VerticalStackLayout
+            {
+                Spacing = 0,
+                Children = { cerrar, cuerpoTarjeta }
+            };
+        }
+
         var tarjeta = new Border
         {
             Style = null,
@@ -94,15 +126,11 @@ public sealed class MensajePopupPage : ContentPage
             Stroke = Color.FromArgb("#66e8c56b"),
             StrokeThickness = 1.2,
             StrokeShape = new RoundRectangle { CornerRadius = 22 },
-            Padding = new Thickness(22, 24, 22, 18),
+            Padding = new Thickness(22, mensaje.MuestraEquis ? 12 : 24, 22, 18),
             Margin = new Thickness(28, 0),
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center,
-            Content = new VerticalStackLayout
-            {
-                Spacing = 12,
-                Children = { icono, titulo, cuerpo, botones }
-            }
+            Content = contenido
         };
 
         Content = tarjeta;
@@ -154,6 +182,9 @@ public static class PaginaMensajes
 {
     public static Task AvisoAsync(this Page pagina, string titulo, string cuerpo, string boton) =>
         MostrarAsync(pagina, MensajeEmergente.Aviso(titulo, cuerpo, boton));
+
+    public static Task<bool> AvisoConEquisAsync(this Page pagina, string titulo, string cuerpo, string boton) =>
+        MostrarAsync(pagina, MensajeEmergente.AvisoConEquis(titulo, cuerpo, boton));
 
     public static Task<bool> ConfirmarAsync(this Page pagina, string titulo, string cuerpo, string principal, string secundario) =>
         MostrarAsync(pagina, MensajeEmergente.Confirmar(titulo, cuerpo, principal, secundario));

@@ -12,6 +12,14 @@ public sealed class IdentidadDispositivoTests
     }
 
     [Fact]
+    public void Si_el_ajuste_global_no_se_puede_leer_usa_el_archivo_de_identidad()
+    {
+        PdaConexion.DesdeFuentes("PDA-9F3A2B7C", null, "H10").Should().Be("PDA-9F3A2B7C");
+        PdaConexion.DesdeFuentes("null", "PDA-0002BBBB", "H10").Should().Be("PDA-0002BBBB");
+        PdaConexion.DesdeFuentes(null, null, "H10").Should().Be("CEL-H10");
+    }
+
+    [Fact]
     public void Dos_equipos_del_mismo_modelo_conservan_identidades_distintas()
     {
         var primero = PdaConexion.Resolver("PDA-0001AAAA", "H10");

@@ -427,3 +427,6 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Local build, publish, and probe output (includes APK copies over GitHub's 100 MB limit)
+tmp/

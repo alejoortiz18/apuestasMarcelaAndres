@@ -120,6 +120,18 @@ public sealed class RegistroGuiadoPdaTests
     }
 
     [Fact]
+    public async Task El_registro_deja_el_codigo_en_un_archivo_que_la_aplicacion_puede_leer()
+    {
+        var sut = CrearServicio(out var adb, out _);
+
+        var resultado = await sut.RegistrarAsync(TipoDispositivo.Vendedor, Silencio(), CancellationToken.None);
+
+        resultado.Exitoso.Should().BeTrue();
+        adb.Ejecutados.Should().ContainSingle(c =>
+            c == $"-s {Serie} shell mkdir -p /sdcard/Android/data/com.newrich.pda/files; echo {CodigoGenerado} > /sdcard/Android/data/com.newrich.pda/files/identidad.txt");
+    }
+
+    [Fact]
     public async Task El_registro_instala_la_aplicacion_en_el_equipo_detectado()
     {
         var sut = CrearServicio(out var adb, out _);
@@ -292,6 +304,7 @@ public sealed class RegistroGuiadoPdaTests
             Responder($"-s {serie} shell settings put global newrich_codigo_dispositivo {CodigoGenerado}", string.Empty);
             Responder($"-s {serie} install -r C:\\apk\\NewRich.apk", "Success");
             Responder($"-s {serie} shell pm path com.newrich.pda", "package:/data/app/com.newrich.pda/base.apk");
+            Responder($"-s {serie} shell mkdir -p /sdcard/Android/data/com.newrich.pda/files; echo {CodigoGenerado} > /sdcard/Android/data/com.newrich.pda/files/identidad.txt", string.Empty);
             Responder($"-s {serie} reverse tcp:5295 tcp:5295", string.Empty);
             return this;
         }

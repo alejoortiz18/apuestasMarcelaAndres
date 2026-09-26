@@ -4,6 +4,7 @@ using NewRich.Pda.Core;
 using NewRich.Pda.Core.Api;
 using NewRich.Pda.Core.Auth;
 using NewRich.Maui.Services;
+using NewRich.Maui.Views;
 
 namespace NewRich.Maui.Views.Shared;
 
@@ -28,6 +29,9 @@ public sealed class PasswordPage : ContentPage
     private readonly Entry _actual;
     private readonly Entry _nueva;
     private readonly Entry _confirma;
+    private readonly CargandoOverlay _cargando = new();
+    private Button _guardar = null!;
+    private bool _guardando;
     private readonly Label _error = new()
     {
         TextColor = Color.FromArgb("#e8a0a0"),
@@ -166,7 +170,8 @@ public sealed class PasswordPage : ContentPage
                             }
                         }
                     }
-                }
+                },
+                _cargando
             }
         };
     }
@@ -179,7 +184,7 @@ public sealed class PasswordPage : ContentPage
 
     private View BotonGuardar()
     {
-        var boton = new Button
+        _guardar = new Button
         {
             Style = null,
             Text = PdaTexts.GuardarYContinuar,
@@ -191,14 +196,14 @@ public sealed class PasswordPage : ContentPage
             HeightRequest = 48,
             Padding = new Thickness(12, 0, 48, 0)
         };
-        boton.Clicked += async (_, _) => await GuardarAsync();
+        _guardar.Clicked += async (_, _) => await GuardarAsync();
 
         return new Grid
         {
             HeightRequest = 48,
             Children =
             {
-                boton,
+                _guardar,
                 new Image
                 {
                     Source = "login_icon_arrow.png",
@@ -295,15 +300,25 @@ public sealed class PasswordPage : ContentPage
 
     private async Task GuardarAsync()
     {
+        if (_guardando)
+        {
+            return;
+        }
+
+        _guardando = true;
+        _guardar.IsEnabled = false;
         _error.Text = string.Empty;
+        _cargando.Mostrar(PdaTexts.GuardandoContrasena);
+        var entro = false;
         try
         {
+            using var espera = new CancellationTokenSource(TimeSpan.FromSeconds(CambioPasswordEspera.Segundos));
             var resultado = await _api.CambiarPasswordAsync(new CambiarPasswordRequest
             {
                 PasswordActual = _actual.Text ?? string.Empty,
                 PasswordNuevo = _nueva.Text ?? string.Empty,
                 PasswordConfirmacion = _confirma.Text ?? string.Empty
-            }, CancellationToken.None);
+            }, espera.Token);
 
             if (!resultado.IsSuccess || resultado.Data is null)
             {
@@ -320,20 +335,38 @@ public sealed class PasswordPage : ContentPage
                 return;
             }
 
-            await _enVivo.AsegurarSesionAsync(CancellationToken.None);
+            if (CambioPasswordEspera.EsperarSincronizacionAntesDeEntrar)
+            {
+                await _enVivo.AsegurarSesionAsync(CancellationToken.None);
+                if (shell.Data == ShellPda.Vendedor)
+                {
+                    await _offline.SincronizarEnSilencioAsync(true, resultado.Data.Rol, false, CancellationToken.None);
+                }
+            }
+
             if (shell.Data == ShellPda.Vendedor)
             {
-                await _offline.SincronizarEnSilencioAsync(true, resultado.Data.Rol, false, CancellationToken.None);
                 _nav.IrAVendedor();
             }
             else
             {
                 _nav.IrAObservador();
             }
+
+            entro = true;
         }
         catch (Exception)
         {
             _error.Text = PdaTexts.SinConexionServidor;
+        }
+        finally
+        {
+            if (!entro)
+            {
+                _cargando.Ocultar();
+                _guardar.IsEnabled = true;
+                _guardando = false;
+            }
         }
     }
 }

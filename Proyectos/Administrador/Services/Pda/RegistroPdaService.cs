@@ -136,6 +136,19 @@ public sealed class RegistroPdaService : IRegistroPdaService
             return new ResultadoRegistroPda(false, UiTexts.PdaInstalacionNoVerificada, modeloEquipo);
         }
 
+        // Android 14 no deja que la aplicacion lea un ajuste global propio. El archivo vive en
+        // el almacenamiento del paquete, que si puede leer despues de instalarse.
+        if (!CodigoGrabable(registro.Data.CodigoDispositivo))
+        {
+            return new ResultadoRegistroPda(false, UiTexts.PdaFalloGrabarIdentidad, modeloEquipo);
+        }
+
+        var archivo = await EjecutarAsync(dispositivo, cancellationToken, "shell", ComandoArchivoIdentidad(registro.Data.CodigoDispositivo));
+        if (!archivo.Exitoso)
+        {
+            return new ResultadoRegistroPda(false, UiTexts.PdaFalloGrabarIdentidad, modeloEquipo);
+        }
+
         // El puente USB permite que la aplicacion alcance la API mientras el equipo sigue conectado.
         // Si no queda disponible la aplicacion usa la red local, asi que no detiene el registro.
         await avance.ReportarAsync(new AvanceRegistroPda(97, UiTexts.PdaProgresoFinalizando), cancellationToken);
@@ -181,5 +194,15 @@ public sealed class RegistroPdaService : IRegistroPdaService
     {
         var limpio = salida.Trim();
         return limpio.Length > 0 ? limpio : alterno;
+    }
+
+    private static bool CodigoGrabable(string codigo) =>
+        codigo.Length is > 0 and <= ProvisionPda.LargoMaximoCodigo
+        && codigo.All(c => char.IsAsciiLetterOrDigit(c) || c == '-');
+
+    private static string ComandoArchivoIdentidad(string codigo)
+    {
+        var directorio = "/sdcard/Android/data/" + ProvisionPda.Paquete + "/files";
+        return $"mkdir -p {directorio}; echo {codigo} > {directorio}/{ProvisionPda.ArchivoIdentidad}";
     }
 }

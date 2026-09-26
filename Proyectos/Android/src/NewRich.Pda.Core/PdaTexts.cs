@@ -21,6 +21,7 @@ public static class PdaTexts
     public const string NuevaContrasena = "Nueva contraseña";
     public const string ConfirmarContrasena = "Confirmar contraseña";
     public const string GuardarYContinuar = "Guardar y continuar";
+    public const string GuardandoContrasena = "Guardando la contraseña...";
     public const string PlaceholderContrasenaActual = "Ingresa tu contraseña actual";
     public const string PlaceholderNuevaContrasena = "Ingresa tu nueva contraseña";
     public const string PlaceholderConfirmarContrasena = "Confirma tu nueva contraseña";

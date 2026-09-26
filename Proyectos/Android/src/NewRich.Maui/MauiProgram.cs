@@ -27,13 +27,16 @@ public static class MauiProgram
 #endif
 
         builder.Services.AddSingleton<SesionPda>();
-        PdaConexion.CodigoDispositivo = PdaConexion.Resolver(CodigoProvisionado(), DeviceInfo.Current.Model);
+        PdaConexion.CodigoDispositivo = PdaConexion.DesdeFuentes(
+            LeerArchivoIdentidad(),
+            LeerAjusteGlobal(),
+            DeviceInfo.Current.Model);
         builder.Services.AddSingleton<ApiOpciones>(_ => new ApiOpciones
         {
             BaseUrl = PdaConexion.BaseUrl(DeviceInfo.Current.DeviceType == DeviceType.Virtual)
         });
         builder.Services.AddSingleton<ITokenStore, SecureTokenStore>();
-        builder.Services.AddSingleton(_ => new HttpClient { Timeout = TimeSpan.FromSeconds(30) });
+        builder.Services.AddSingleton(_ => new HttpClient(ConexionHttpPda.CrearControlador()) { Timeout = TimeSpan.FromSeconds(30) });
         builder.Services.AddSingleton<NewRichApiClient>();
         builder.Services.AddSingleton<LocalDatabase>();
         builder.Services.AddSingleton<SincronizacionOfflineServicio>();
@@ -79,10 +82,39 @@ public static class MauiProgram
     }
 
     /// <summary>
-    /// Identidad que el registro de PDA del administrador dejó grabada en el equipo. Vive fuera de
-    /// la app para que sobreviva a una reinstalación o al borrado de datos.
+    /// Identidad que el registro deja en el almacenamiento del paquete. En Android 14 la
+    /// aplicación no puede leer el ajuste global donde también se intenta grabar.
     /// </summary>
-    private static string? CodigoProvisionado()
+    private static string? LeerArchivoIdentidad()
+    {
+#if ANDROID
+        try
+        {
+            var externas = global::Android.App.Application.Context?.GetExternalFilesDir(null)?.AbsolutePath;
+            var rutas = new List<string>();
+            if (!string.IsNullOrWhiteSpace(externas))
+            {
+                rutas.Add(Path.Combine(externas, PdaConexion.ArchivoIdentidad));
+            }
+
+            rutas.Add(PdaConexion.RutaArchivoIdentidad);
+            foreach (var ruta in rutas)
+            {
+                if (File.Exists(ruta))
+                {
+                    return File.ReadAllText(ruta);
+                }
+            }
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+#endif
+        return null;
+    }
+
+    private static string? LeerAjusteGlobal()
     {
 #if ANDROID
         try

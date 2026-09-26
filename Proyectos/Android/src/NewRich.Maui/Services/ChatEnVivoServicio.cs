@@ -17,11 +17,7 @@ public sealed class ChatEnVivoServicio : IAsyncDisposable
 
     public async Task AsegurarConectadoAsync(string baseUrl, string token, CancellationToken cancellationToken)
     {
-        if (_hub is not null
-            && _token == token
-            && (_hub.State == HubConnectionState.Connected
-                || _hub.State == HubConnectionState.Connecting
-                || _hub.State == HubConnectionState.Reconnecting))
+        if (_hub is not null && _token == token && _hub.State == HubConnectionState.Connected)
         {
             return;
         }
@@ -39,6 +35,8 @@ public sealed class ChatEnVivoServicio : IAsyncDisposable
                 opciones.AccessTokenProvider = () => Task.FromResult<string?>(_token);
             })
             .WithAutomaticReconnect()
+            .WithServerTimeout(TimeSpan.FromMinutes(2))
+            .WithKeepAliveInterval(TimeSpan.FromSeconds(15))
             .Build();
         _hub.On<MensajeChatEnVivoResponse>(HubRutas.EventoMensajeChat, aviso =>
         {

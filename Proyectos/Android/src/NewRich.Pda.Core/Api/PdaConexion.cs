@@ -9,6 +9,8 @@ public static class PdaConexion
 
     /// <summary>Ajuste global donde el registro del administrador deja la identidad del equipo.</summary>
     public const string ClaveCodigoProvisionado = ProvisionPda.ClaveCodigoDispositivo;
+    public const string ArchivoIdentidad = ProvisionPda.ArchivoIdentidad;
+    public const string RutaArchivoIdentidad = ProvisionPda.RutaArchivoIdentidad;
 
     /// <summary>Tope de la columna CodigoDispositivo en la base.</summary>
     public const int LargoMaximoCodigo = ProvisionPda.LargoMaximoCodigo;
@@ -16,6 +18,9 @@ public static class PdaConexion
     public static string CodigoDispositivo { get; set; } = CodigoDispositivoPredeterminado;
     public const string UrlProduccion = "https://api-ventas-prod-ffh4dmdhgpcsapda.westus3-01.azurewebsites.net/";
     public const string RutaHubChat = "/hubs/chat";
+
+    /// <summary>Sondeo liviano. No descarga el documento de swagger.</summary>
+    public const string RutaSondeo = "api/salud";
 
     public static string BaseUrl(bool emulador) => UrlProduccion;
 
@@ -48,6 +53,15 @@ public static class PdaConexion
     /// </summary>
     public static string Resolver(string? codigoProvisionado, string? modelo) =>
         Normalizar(codigoProvisionado) ?? CodigoDe(modelo);
+
+    /// <summary>
+    /// El ajuste global de Android 14 no es legible para la aplicación. El archivo lo escribe
+    /// el registro del administrador en el almacenamiento externo del paquete.
+    /// </summary>
+    public static string DesdeFuentes(string? archivo, string? ajusteGlobal, string? modelo) =>
+        Normalizar(archivo) is not null
+            ? Resolver(archivo, modelo)
+            : Resolver(ajusteGlobal, modelo);
 
     public static string? Normalizar(string? codigo)
     {

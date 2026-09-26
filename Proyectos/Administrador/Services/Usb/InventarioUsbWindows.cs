@@ -180,15 +180,24 @@ public sealed class PreparadorLlaveUsbWindows : IPreparadorLlaveUsb
             return LlaveMessages.UsbNoDetectada;
         }
 
+        if (!PreparacionVolumenUsb.DebeFormatear(disco.SistemaArchivos))
+        {
+            return PreparacionVolumenUsb.Vaciar(letra + "\\");
+        }
+
+        return EjecutarFormato(letra);
+    }
+
+    private static string? EjecutarFormato(string letra)
+    {
+        var registro = Path.Combine(Path.GetTempPath(), "newrich-formato-" + Guid.NewGuid().ToString("N") + ".log");
         try
         {
             var proceso = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
             {
-                FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "format.com"),
-                Arguments = $"{letra} /FS:NTFS /Q /Y /V:NEWRICH",
+                FileName = Path.Combine(Environment.SystemDirectory, "cmd.exe"),
+                Arguments = "/c format " + letra + " /FS:NTFS /Q /X /Y /V:NEWRICH > \"" + registro + "\" 2>&1",
                 UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
                 CreateNoWindow = true
             });
             if (proceso is null)
@@ -196,12 +205,37 @@ public sealed class PreparadorLlaveUsbWindows : IPreparadorLlaveUsb
                 return LlaveMessages.FormatoFallido;
             }
 
-            proceso.WaitForExit(120_000);
+            if (!proceso.WaitForExit(120_000))
+            {
+                try
+                {
+                    proceso.Kill(entireProcessTree: true);
+                }
+                catch (InvalidOperationException)
+                {
+                }
+
+                return LlaveMessages.FormatoFallido;
+            }
+
             return proceso.ExitCode == 0 ? null : LlaveMessages.FormatoFallido;
         }
         catch (Exception)
         {
             return LlaveMessages.FormatoFallido;
+        }
+        finally
+        {
+            try
+            {
+                if (File.Exists(registro))
+                {
+                    File.Delete(registro);
+                }
+            }
+            catch (IOException)
+            {
+            }
         }
     }
 

@@ -67,21 +67,22 @@ public sealed class NewRichApiClient
     {
         foreach (var url in urls)
         {
-            try
+            for (var intento = 0; intento < 2; intento++)
             {
-                _opciones.BaseUrl = url;
-                using var request = Crear(HttpMethod.Get, "swagger/v1/swagger.json", null, null);
-                using var response = await _http.SendAsync(request, ct);
-                return Result.Ok(SuccessMessages.OperacionExitosa);
-            }
-            catch (HttpRequestException)
-            {
-            }
-            catch (TaskCanceledException)
-            {
-            }
-            catch (Exception)
-            {
+                try
+                {
+                    _opciones.BaseUrl = url;
+                    using var request = Crear(HttpMethod.Get, PdaConexion.RutaSondeo, null, null);
+                    using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+                    return Result.Ok(SuccessMessages.OperacionExitosa);
+                }
+                catch (Exception ex) when (intento == 0 && ReintentoConexionHttp.DebeReintentar(ex, ct))
+                {
+                }
+                catch (Exception)
+                {
+                    break;
+                }
             }
         }
 
@@ -303,60 +304,72 @@ public sealed class NewRichApiClient
     private async Task<Result<AdjuntoDescargado>> DescargarArchivoAsync(string ruta, CancellationToken ct)
     {
         var token = await _tokens.ObtenerAsync();
-        using var request = Crear(HttpMethod.Get, ruta, null, token);
-        try
+        for (var intento = 0; intento < 2; intento++)
         {
-            using var response = await _http.SendAsync(request, ct);
-            if (!response.IsSuccessStatusCode)
+            using var request = Crear(HttpMethod.Get, ruta, null, token);
+            try
             {
-                return Result<AdjuntoDescargado>.Fail(ChatMessages.AdjuntoNoEncontrado, (int)response.StatusCode);
+                using var response = await _http.SendAsync(request, ct);
+                if (!response.IsSuccessStatusCode)
+                {
+                    return Result<AdjuntoDescargado>.Fail(ChatMessages.AdjuntoNoEncontrado, (int)response.StatusCode);
+                }
+
+                var nombre = response.Content.Headers.ContentDisposition?.FileNameStar
+                    ?? response.Content.Headers.ContentDisposition?.FileName?.Trim('"')
+                    ?? "adjunto";
+                var bytes = await response.Content.ReadAsByteArrayAsync(ct);
+                return Result<AdjuntoDescargado>.Ok(new AdjuntoDescargado(bytes, nombre), SuccessMessages.OperacionExitosa);
             }
+            catch (Exception ex) when (intento == 0 && ReintentoConexionHttp.DebeReintentar(ex, ct))
+            {
+            }
+            catch (Exception)
+            {
+                return Result<AdjuntoDescargado>.Fail(PdaTexts.SinConexionServidor);
+            }
+        }
 
-            var nombre = response.Content.Headers.ContentDisposition?.FileNameStar
-                ?? response.Content.Headers.ContentDisposition?.FileName?.Trim('"')
-                ?? "adjunto";
-            var bytes = await response.Content.ReadAsByteArrayAsync(ct);
-            return Result<AdjuntoDescargado>.Ok(new AdjuntoDescargado(bytes, nombre), SuccessMessages.OperacionExitosa);
-        }
-        catch (Exception)
-        {
-            return Result<AdjuntoDescargado>.Fail(PdaTexts.SinConexionServidor);
-        }
+        return Result<AdjuntoDescargado>.Fail(PdaTexts.SinConexionServidor);
     }
 
-    private async Task<Result<T>> EnviarAnonimo<T>(HttpMethod method, string relative, object? body, CancellationToken ct)
-    {
-        using var request = Crear(method, relative, body, null);
-        return await Leer<T>(request, ct);
-    }
+    private async Task<Result<T>> EnviarAnonimo<T>(HttpMethod method, string relative, object? body, CancellationToken ct) =>
+        await Leer<T>(method, relative, body, null, ct);
 
     private async Task<Result<T>> Enviar<T>(HttpMethod method, string relative, object? body, CancellationToken ct, string? idempotency = null)
     {
         var token = await _tokens.ObtenerAsync();
-        using var request = Crear(method, relative, body, token, idempotency);
-        return await Leer<T>(request, ct);
+        return await Leer<T>(method, relative, body, token, ct, idempotency);
     }
 
     private async Task<Result> EnviarSinDatos(HttpMethod method, string relative, object? body, CancellationToken ct)
     {
         var token = await _tokens.ObtenerAsync();
-        try
+        for (var intento = 0; intento < 2; intento++)
         {
             using var request = Crear(method, relative, body, token);
-            using var response = await _http.SendAsync(request, ct);
-            var json = await response.Content.ReadAsStringAsync(ct);
-            var envelope = JsonSerializer.Deserialize<ApiEnvelope>(json, Json);
-            if (envelope is null)
+            try
             {
-                return Result.Fail("No se pudo leer la respuesta del servidor.", (int)response.StatusCode);
-            }
+                using var response = await _http.SendAsync(request, ct);
+                var json = await response.Content.ReadAsStringAsync(ct);
+                var envelope = JsonSerializer.Deserialize<ApiEnvelope>(json, Json);
+                if (envelope is null)
+                {
+                    return Result.Fail("No se pudo leer la respuesta del servidor.", (int)response.StatusCode);
+                }
 
-            return envelope.Success ? Result.Ok(envelope.Message) : Result.Fail(envelope.Message, (int)response.StatusCode);
+                return envelope.Success ? Result.Ok(envelope.Message) : Result.Fail(envelope.Message, (int)response.StatusCode);
+            }
+            catch (Exception ex) when (intento == 0 && ReintentoConexionHttp.DebeReintentar(ex, ct))
+            {
+            }
+            catch (Exception)
+            {
+                return Result.Fail(PdaTexts.SinConexionServidor);
+            }
         }
-        catch (Exception)
-        {
-            return Result.Fail(PdaTexts.SinConexionServidor);
-        }
+
+        return Result.Fail(PdaTexts.SinConexionServidor);
     }
 
     private HttpRequestMessage Crear(HttpMethod method, string relative, object? body, string? token, string? idempotency = null)
@@ -381,35 +394,44 @@ public sealed class NewRichApiClient
         return request;
     }
 
-    private async Task<Result<T>> Leer<T>(HttpRequestMessage request, CancellationToken ct)
+    private async Task<Result<T>> Leer<T>(HttpMethod method, string relative, object? body, string? token, CancellationToken ct, string? idempotency = null)
     {
-        try
+        for (var intento = 0; intento < 2; intento++)
         {
-            using var response = await _http.SendAsync(request, ct);
-            var json = await response.Content.ReadAsStringAsync(ct);
-            var envelope = JsonSerializer.Deserialize<ApiEnvelope>(json, Json);
-            if (envelope is null)
+            using var request = Crear(method, relative, body, token, idempotency);
+            try
             {
-                return Result<T>.Fail("No se pudo leer la respuesta del servidor.", (int)response.StatusCode);
-            }
+                using var response = await _http.SendAsync(request, ct);
+                var json = await response.Content.ReadAsStringAsync(ct);
+                var envelope = JsonSerializer.Deserialize<ApiEnvelope>(json, Json);
+                if (envelope is null)
+                {
+                    return Result<T>.Fail("No se pudo leer la respuesta del servidor.", (int)response.StatusCode);
+                }
 
-            if (!envelope.Success)
+                if (!envelope.Success)
+                {
+                    return Result<T>.Fail(envelope.Message, (int)response.StatusCode);
+                }
+
+                T? data = default;
+                if (envelope.Data.ValueKind is not JsonValueKind.Undefined and not JsonValueKind.Null)
+                {
+                    data = envelope.Data.Deserialize<T>(Json);
+                }
+
+                return Result<T>.Ok(data!, envelope.Message);
+            }
+            catch (Exception ex) when (intento == 0 && ReintentoConexionHttp.DebeReintentar(ex, ct))
             {
-                return Result<T>.Fail(envelope.Message, (int)response.StatusCode);
             }
-
-            T? data = default;
-            if (envelope.Data.ValueKind is not JsonValueKind.Undefined and not JsonValueKind.Null)
+            catch (Exception)
             {
-                data = envelope.Data.Deserialize<T>(Json);
+                return Result<T>.Fail(PdaTexts.SinConexionServidor);
             }
-
-            return Result<T>.Ok(data!, envelope.Message);
         }
-        catch (Exception)
-        {
-            return Result<T>.Fail(PdaTexts.SinConexionServidor);
-        }
+
+        return Result<T>.Fail(PdaTexts.SinConexionServidor);
     }
 
     private sealed class ApiEnvelope

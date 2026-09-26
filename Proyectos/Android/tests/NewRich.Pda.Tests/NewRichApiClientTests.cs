@@ -20,7 +20,7 @@ public sealed class NewRichApiClientTests
 
         resultado.IsSuccess.Should().BeTrue();
         opciones.BaseUrl.Should().Be("http://localhost:5295/");
-        handler.UltimaRuta.Should().Contain("swagger/v1/swagger.json");
+        handler.UltimaRuta.Should().Contain("api/salud");
     }
 
     [Fact]
@@ -73,6 +73,64 @@ public sealed class NewRichApiClientTests
         resultado.Message.Should().Be(NewRich.Pda.Core.PdaTexts.SinConexionServidor);
     }
 
+    [Fact]
+    public async Task Un_corte_breve_de_la_conexion_no_se_informa_como_servidor_perdido()
+    {
+        var handler = new CortaLuegoRespondeHandler("""
+            {"success":true,"message":"ok","data":[]}
+            """);
+        var tokens = new MemoriaTokens();
+        await tokens.GuardarAsync("t");
+        var client = new NewRichApiClient(new HttpClient(handler), tokens, new ApiOpciones { BaseUrl = "http://localhost:5295/" });
+
+        var resultado = await client.LoteriasAsync(CancellationToken.None);
+
+        resultado.IsSuccess.Should().BeTrue();
+        handler.Intentos.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Dos_cortes_seguidos_siguen_avisando_sin_conexion()
+    {
+        var handler = new SiempreCortadaHandler();
+        var client = new NewRichApiClient(new HttpClient(handler), new MemoriaTokens(), new ApiOpciones { BaseUrl = "http://localhost:5295/" });
+
+        var resultado = await client.LoteriasAsync(CancellationToken.None);
+
+        resultado.IsSuccess.Should().BeFalse();
+        resultado.Message.Should().Be(NewRich.Pda.Core.PdaTexts.SinConexionServidor);
+        handler.Intentos.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Si_el_usuario_cancela_no_reintenta_la_llamada()
+    {
+        var handler = new SiempreCortadaHandler();
+        var client = new NewRichApiClient(new HttpClient(handler), new MemoriaTokens(), new ApiOpciones { BaseUrl = "http://localhost:5295/" });
+        using var corte = new CancellationTokenSource();
+        corte.Cancel();
+
+        var resultado = await client.LoteriasAsync(corte.Token);
+
+        resultado.IsSuccess.Should().BeFalse();
+        handler.Intentos.Should().BeLessThan(2);
+    }
+
+    [Fact]
+    public async Task El_sondeo_usa_una_ruta_corta_y_reintenta_un_corte()
+    {
+        var handler = new CortaLuegoRespondeHandler("{}", HttpStatusCode.NoContent);
+        var opciones = new ApiOpciones { BaseUrl = "http://falla:1/" };
+        var client = new NewRichApiClient(new HttpClient(handler), new MemoriaTokens(), opciones);
+
+        var resultado = await client.ConectarAsync(["http://localhost:5295/"], CancellationToken.None);
+
+        resultado.IsSuccess.Should().BeTrue();
+        handler.Intentos.Should().Be(2);
+        handler.UltimaRuta.Should().Contain("api/salud");
+        handler.UltimaRuta.Should().NotContain("swagger");
+    }
+
     private sealed class FallaHandler : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
@@ -101,6 +159,48 @@ public sealed class NewRichApiClientTests
             {
                 Content = new StringContent(_json, Encoding.UTF8, "application/json")
             });
+        }
+    }
+
+    private sealed class CortaLuegoRespondeHandler : HttpMessageHandler
+    {
+        private readonly string _json;
+        private readonly HttpStatusCode _codigo;
+        public int Intentos { get; private set; }
+        public string UltimaRuta { get; private set; } = string.Empty;
+
+        public CortaLuegoRespondeHandler(string json, HttpStatusCode codigo = HttpStatusCode.OK)
+        {
+            _json = json;
+            _codigo = codigo;
+        }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            UltimaRuta = request.RequestUri?.PathAndQuery ?? string.Empty;
+            Intentos++;
+            if (Intentos == 1)
+            {
+                throw new HttpRequestException("conexion reiniciada");
+            }
+
+            return Task.FromResult(new HttpResponseMessage(_codigo)
+            {
+                Content = new StringContent(_json, Encoding.UTF8, "application/json")
+            });
+        }
+    }
+
+    private sealed class SiempreCortadaHandler : HttpMessageHandler
+    {
+        public int Intentos { get; private set; }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Intentos++;
+            throw new HttpRequestException("conexion reiniciada");
         }
     }
 }

@@ -17,7 +17,7 @@ public static class PoliticaVentaPda
     /// Tope para el sondeo de urls antes de ofrecer la venta offline. Sin esto cada url
     /// agotaba el timeout del HttpClient y el vendedor esperaba medio minuto en blanco.
     /// </summary>
-    public const int MsSondeoServidor = 2500;
+    public const int MsSondeoServidor = 4000;
 
     public static CanalVenta TrasFalloDeRed(int codigosOffline) =>
         codigosOffline > 0 ? CanalVenta.OfrecerOffline : CanalVenta.Bloqueado;

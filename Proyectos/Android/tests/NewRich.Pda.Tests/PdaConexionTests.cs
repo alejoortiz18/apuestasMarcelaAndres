@@ -36,6 +36,15 @@ public sealed class PdaConexionTests
     }
 
     [Fact]
+    public void La_conexion_ociosa_se_suelta_antes_de_que_la_red_la_corte()
+    {
+        ConexionHttpPda.OcioMaximo.Should().BePositive();
+        ConexionHttpPda.OcioMaximo.Should().BeLessThan(TimeSpan.FromSeconds(60));
+        using var controlador = ConexionHttpPda.CrearControlador();
+        controlador.PooledConnectionIdleTimeout.Should().Be(ConexionHttpPda.OcioMaximo);
+    }
+
+    [Fact]
     public void Hub_de_chat_cuelga_de_la_misma_base_de_la_api()
     {
         PdaConexion.HubChat(PdaConexion.UrlProduccion).Should().Be(

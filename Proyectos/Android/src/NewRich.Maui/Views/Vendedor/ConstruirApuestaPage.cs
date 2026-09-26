@@ -23,6 +23,7 @@ public sealed class ConstruirApuestaPage : ContentPage
     private readonly LoteriasEnVivoServicio _loteriasVivo;
     private IReadOnlyList<LoteriaResponse> _loterias = [];
     private IReadOnlyList<string> _restringidos = [];
+    private LineaBorrador? _correccion;
 
     public ConstruirApuestaPage(
         NewRichApiClient api,
@@ -185,6 +186,34 @@ public sealed class ConstruirApuestaPage : ContentPage
             }
         }
 
+        if (_correccion is not null)
+        {
+            numero.Text = _correccion.Numero;
+            valor.Text = decimal.Truncate(_correccion.Valor).ToString(System.Globalization.CultureInfo.InvariantCulture);
+            if (combinada)
+            {
+                foreach (var par in checks)
+                {
+                    par.Value.IsChecked = _correccion.LoteriaIds.Contains(par.Key);
+                }
+            }
+            else if (picker is not null)
+            {
+                var id = _correccion.LoteriaIds.FirstOrDefault();
+                var indiceLoteria = 0;
+                foreach (var loteria in _loterias)
+                {
+                    if (loteria.LoteriaId == id)
+                    {
+                        picker.SelectedIndex = indiceLoteria;
+                        break;
+                    }
+
+                    indiceLoteria++;
+                }
+            }
+        }
+
         var agregar = Ui.Primario(draft.AlMaximo
             ? (combinada ? PdaTexts.MaximoJuegos : PdaTexts.MaximoLineas)
             : (combinada ? PdaTexts.AgregarJuego : PdaTexts.AgregarLinea));
@@ -229,6 +258,7 @@ public sealed class ConstruirApuestaPage : ContentPage
                 return;
             }
 
+            _correccion = null;
             Render();
         };
 
@@ -471,7 +501,7 @@ public sealed class ConstruirApuestaPage : ContentPage
 
                 if (validacion.Data is not null && !validacion.Data.Ok)
                 {
-                    await this.AvisoAsync(PdaTexts.JuegoNuevo, validacion.Data.Mensaje, PdaTexts.Entendido);
+                    await AvisarSuperacionAsync(draft, validacion.Data.Mensaje, validacion.Data.Disponible);
                     return false;
                 }
 
@@ -494,8 +524,32 @@ public sealed class ConstruirApuestaPage : ContentPage
             return true;
         }
 
-        await this.AvisoAsync(PdaTexts.JuegoNuevo, resultado.Mensaje, PdaTexts.Entendido);
+        await AvisarSuperacionAsync(draft, resultado.Mensaje, resultado.Disponible);
         return false;
+    }
+
+    private async Task AvisarSuperacionAsync(TicketDraft draft, string mensaje, decimal disponible)
+    {
+        if (disponible <= 0m)
+        {
+            await this.AvisoAsync(PdaTexts.JuegoNuevo, mensaje, PdaTexts.Entendido);
+            return;
+        }
+
+        var entendido = await this.AvisoConEquisAsync(PdaTexts.JuegoNuevo, mensaje, PdaTexts.Entendido);
+        if (entendido)
+        {
+            return;
+        }
+
+        var devuelta = CorreccionTope.DevolverAlFormulario(draft, mensaje);
+        if (devuelta is null)
+        {
+            return;
+        }
+
+        _correccion = devuelta;
+        Render();
     }
 
     private async Task MostrarTirillaAsync(string codigo, TicketDraft draft, bool offline, string? qr = null)

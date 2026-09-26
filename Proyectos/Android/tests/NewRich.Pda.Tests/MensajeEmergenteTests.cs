@@ -15,6 +15,17 @@ public sealed class MensajeEmergenteTests
         mensaje.Principal.Should().Be(PdaTexts.Cerrar);
         mensaje.Secundario.Should().BeNull();
         mensaje.EsConfirmacion.Should().BeFalse();
+        mensaje.MuestraEquis.Should().BeFalse();
+    }
+
+    [Fact]
+    public void El_aviso_de_tope_muestra_la_equis_para_cerrar()
+    {
+        var mensaje = MensajeEmergente.AvisoConEquis("Juego nuevo", "Supera el tope", PdaTexts.Entendido);
+
+        mensaje.MuestraEquis.Should().BeTrue();
+        mensaje.Principal.Should().Be(PdaTexts.Entendido);
+        mensaje.EsConfirmacion.Should().BeFalse();
     }
 
     [Fact]

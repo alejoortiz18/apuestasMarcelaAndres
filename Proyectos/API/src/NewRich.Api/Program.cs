@@ -116,6 +116,7 @@ app.UseCors("Admin");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapGet("/", () => Results.Redirect("/swagger"));
+app.MapGet("/api/salud", () => Results.NoContent());
 app.MapControllers();
 app.MapHub<NotificacionesHub>(NotificacionesHub.Ruta).RequireCors("Admin");
 app.MapHub<ChatHub>(ChatHub.Ruta).RequireCors("Admin");
