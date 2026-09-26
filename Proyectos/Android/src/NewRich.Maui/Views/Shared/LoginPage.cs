@@ -233,6 +233,18 @@ public sealed class LoginPage : ContentPage
         };
     }
 
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+        if (string.IsNullOrWhiteSpace(_sesion.AvisoInactividad))
+        {
+            return;
+        }
+
+        _error.Text = _sesion.AvisoInactividad;
+        _sesion.AvisoInactividad = null;
+    }
+
     private async Task IngresarAsync()
     {
         _error.Text = string.Empty;

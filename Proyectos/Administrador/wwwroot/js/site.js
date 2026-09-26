@@ -527,11 +527,27 @@
     }
     const rolConGrupo = grupo.getAttribute("data-usuario-grupo");
     function sincronizar() {
-      grupo.hidden = rol.value !== rolConGrupo;
+      const conGrupo = rol.value === rolConGrupo;
+      grupo.hidden = !conGrupo;
+      const select = grupo.querySelector("select");
+      if (!select) {
+        return;
+      }
+      select.disabled = !conGrupo;
+      if (!conGrupo) {
+        select.value = "";
+      }
+      const input = grupo.querySelector(".search-select-input");
+      if (input) {
+        const option = select.options[select.selectedIndex];
+        input.value = option ? option.text : "";
+      }
     }
     rol.addEventListener("change", sincronizar);
     sincronizar();
   }
+
+  document.querySelectorAll("[data-usuario-form]").forEach(bindUsuarioGrupo);
 
   async function enviarUsuario(form) {
     const boton = form.querySelector("button[type=submit]");

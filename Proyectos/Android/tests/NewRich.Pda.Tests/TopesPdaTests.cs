@@ -18,9 +18,11 @@ public class TopesPdaTests
         var resultado = TopesPda.EvaluarLocal(
             draft,
             [new TopeLoteriaResponse { LoteriaId = loteriaId, Nombre = "Medellín", Tope = 50_000m }],
-            [new ValidacionTope.Acumulado(loteriaId, "1234", 45_000m)]);
+            [new ValidacionTope.Acumulado(loteriaId, "1234", 45_000m)],
+            "Quedan {valorDisponible} para {numero}.");
 
         resultado.Ok.Should().BeFalse();
         resultado.Disponible.Should().Be(5_000m);
+        resultado.Mensaje.Should().Contain("Quedan 5.000");
     }
 }

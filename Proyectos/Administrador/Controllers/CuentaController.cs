@@ -130,10 +130,15 @@ public sealed class CuentaController : Controller
     [HttpPost]
     [Authorize(AuthenticationSchemes = AuthCookieNames.Scheme)]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Salir(CancellationToken cancellationToken)
+    public async Task<IActionResult> Salir(string? motivo, CancellationToken cancellationToken)
     {
         await _api.LogoutAsync(cancellationToken);
         await _session.SignOutAsync(HttpContext);
+        if (motivo == "inactividad")
+        {
+            TempData["AvisoIngreso"] = UiTexts.SesionExpiradaVista;
+        }
+
         return RedirectToAction(nameof(Ingresar));
     }
 

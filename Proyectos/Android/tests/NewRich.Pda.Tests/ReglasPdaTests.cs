@@ -41,11 +41,29 @@ public sealed class ReglasPdaTests
     }
 
     [Fact]
-    public void El_vendedor_consulta_numeros_bloqueados()
+    public void El_inicio_del_vendedor_no_muestra_numeros_bloqueados()
     {
-        PdaTexts.NumerosBloqueados.Should().Be("Números bloqueados");
-        PdaTexts.NumerosBloqueadosAyuda.Should().Be("Consulta los números que no se pueden jugar");
-        PdaTexts.SinNumerosBloqueados.Should().Be("No hay números bloqueados.");
+        var inicio = File.ReadAllText(RutaMaui("Views", "Vendedor", "VendedorHomePage.cs"));
+
+        inicio.Should().NotContain("NumerosBloqueados");
+        inicio.Should().Contain("PdaTexts.ResultadosTitulo");
+        inicio.Should().Contain("PdaTexts.ValidarTicket");
+    }
+
+    [Fact]
+    public void El_pda_vendedor_no_registra_la_pantalla_de_numeros_bloqueados()
+    {
+        var arranque = File.ReadAllText(RutaMaui("MauiProgram.cs"));
+
+        arranque.Should().NotContain("NumerosBloqueadosPage");
+    }
+
+    private static string RutaMaui(params string[] partes)
+    {
+        var ruta = Path.GetFullPath(Path.Combine(
+            [AppContext.BaseDirectory, "..", "..", "..", "..", "..", "src", "NewRich.Maui", .. partes]));
+        File.Exists(ruta).Should().BeTrue($"se esperaba el archivo en {ruta}");
+        return ruta;
     }
 
     [Fact]

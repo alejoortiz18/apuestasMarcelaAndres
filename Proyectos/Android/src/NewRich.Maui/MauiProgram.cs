@@ -46,6 +46,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<IEscanerQrObservador, EscanerQrObservadorServicio>();
         builder.Services.AddSingleton<ILectorQrFotoObservador, LectorQrFotoObservadorServicio>();
         builder.Services.AddSingleton<NavegadorApp>();
+        builder.Services.AddSingleton<VigilanteInactividad>();
 
         builder.Services.AddSingleton<ChatEnVivoServicio>();
         builder.Services.AddSingleton<CodigosOfflineEnVivoServicio>();
@@ -59,7 +60,6 @@ public static class MauiProgram
         builder.Services.AddTransient<TirillaVendidaPage>();
         builder.Services.AddTransient<HistoricoPage>();
         builder.Services.AddTransient<ResultadosPage>();
-        builder.Services.AddTransient<NumerosBloqueadosPage>();
         builder.Services.AddTransient<ValidarTicketPage>();
         builder.Services.AddTransient<SoportePage>();
         builder.Services.AddTransient<SoporteTecnicoPage>();

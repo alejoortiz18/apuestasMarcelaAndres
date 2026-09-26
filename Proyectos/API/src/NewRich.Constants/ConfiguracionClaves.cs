@@ -13,6 +13,7 @@ public static class ConfiguracionClaves
     public const string PermitirJuegosOffline = "PermitirJuegosOffline";
     public const string SincronizacionModo = "SincronizacionModo";
     public const string LeyendaTirilla = "LeyendaTirilla";
+    public const string MensajeSuperacionTope = "MensajeSuperacionTope";
     public const string TipoCombinado = "COMBINADO";
     public const string TipoIndividual = "INDIVIDUAL";
     public const string ModoManual = "Manual";

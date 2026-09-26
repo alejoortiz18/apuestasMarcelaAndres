@@ -91,7 +91,8 @@ public sealed class ConfiguracionController : AdminControllerBase
             ReposicionDiariaOffline = form.ReposicionDiariaOffline,
             PermitirJuegosOffline = form.PermitirJuegosOffline,
             SincronizacionModo = form.SincronizacionModo,
-            LeyendaTirilla = form.LeyendaTirilla
+            LeyendaTirilla = form.LeyendaTirilla,
+            MensajeSuperacionTope = form.MensajeSuperacionTope
         }, cancellationToken);
         var denied = RedirectIfUnauthorized(result);
         if (denied is not null)
@@ -356,7 +357,10 @@ public sealed class ConfiguracionController : AdminControllerBase
             SincronizacionModo = data.SincronizacionModo,
             LeyendaTirilla = string.IsNullOrWhiteSpace(data.LeyendaTirilla)
                 ? TirillaCuerpo.CuerpoDefecto
-                : data.LeyendaTirilla
+                : data.LeyendaTirilla,
+            MensajeSuperacionTope = string.IsNullOrWhiteSpace(data.MensajeSuperacionTope)
+                ? ValidacionTope.PlantillaSuperacionDefecto
+                : data.MensajeSuperacionTope
         };
     }
 

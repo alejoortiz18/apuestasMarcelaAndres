@@ -9,7 +9,8 @@ public static class TopesPda
     public static ValidacionTope.Resultado EvaluarLocal(
         TicketDraft draft,
         IReadOnlyList<TopeLoteriaResponse> topes,
-        IReadOnlyList<ValidacionTope.Acumulado> acumulados)
+        IReadOnlyList<ValidacionTope.Acumulado> acumulados,
+        string? plantillaSuperacion = null)
     {
         var aportes = draft.Lineas
             .SelectMany(l => l.LoteriaIds.Select((id, i) =>
@@ -24,6 +25,6 @@ public static class TopesPda
             .Select(t => new ValidacionTope.TopeLoteria(t.LoteriaId, t.Nombre, t.Tope))
             .ToList();
 
-        return ValidacionTope.Evaluar(aportes, mapaTopes, acumulados);
+        return ValidacionTope.Evaluar(aportes, mapaTopes, acumulados, plantillaSuperacion);
     }
 }

@@ -1,4 +1,5 @@
 using NewRich.Admin.Constants;
+using NewRich.Shared.Helpers;
 using NewRich.Admin.Filters;
 using NewRich.Admin.Hubs;
 using NewRich.Admin.Services;
@@ -18,7 +19,7 @@ builder.Services.AddAuthentication(AuthCookieNames.Scheme)
     {
         options.LoginPath = "/Cuenta/Ingresar";
         options.AccessDeniedPath = "/Cuenta/Ingresar";
-        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.ExpireTimeSpan = InactividadSesion.Limite;
         options.SlidingExpiration = true;
         options.Cookie.Name = "nr.admin.auth";
         options.Cookie.HttpOnly = true;
@@ -26,7 +27,7 @@ builder.Services.AddAuthentication(AuthCookieNames.Scheme)
     });
 builder.Services.AddAuthorization();
 
-var apiBase = builder.Configuration["Api:BaseUrl"] ?? "http://localhost:5295/";
+var apiBase = builder.Configuration["Api:BaseUrl"] ?? "https://api-ventas-prod-ffh4dmdhgpcsapda.westus3-01.azurewebsites.net/";
 builder.Services.AddHttpClient<IAdminApiClient, AdminApiClient>(client =>
 {
     client.BaseAddress = new Uri(apiBase);

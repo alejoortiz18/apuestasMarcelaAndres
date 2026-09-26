@@ -503,6 +503,8 @@ public static class UiTexts
     public const string ModoAutomatica = "Automática";
     public const string LeyendaTirilla = "Texto de la tirilla (excepto GRACIAS POR SU COMPRA)";
     public const string LeyendaTirillaAyuda = "GRACIAS POR SU COMPRA permanece fijo al inicio. Use {vigenciaDias} para mostrar los días de vigencia. El resto del texto sí se puede cambiar.";
+    public const string MensajeSuperacionTope = "Mensaje al superar el tope";
+    public const string MensajeSuperacionTopeAyuda = "Se muestra en el PDA cuando el valor supera el tope, también sin conexión. Use {numero}, {loteria}, {valorIngresado} y {valorDisponible}.";
     public const string CatalogoLoteriasSub = "Loterías que el administrador habilita para que aparezcan en los PDA.";
     public const string AgregarLoteria = "Agregar lotería";
     public const string Deshabilitar = "Deshabilitar";

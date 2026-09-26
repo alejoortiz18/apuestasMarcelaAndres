@@ -7,6 +7,7 @@ using NewRich.Constants;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
 using NewRich.Domain.Enums;
+using NewRich.Domain.Services;
 using NewRich.Infrastructure.Persistence;
 
 namespace NewRich.UnitTests;
@@ -38,7 +39,8 @@ public sealed class ConfiguracionServiceTests
         result.Data.LeyendaTirilla.Should().Be(TirillaCuerpo.CuerpoDefecto);
         result.Data.LeyendaTirilla.Should().Contain("{vigenciaDias}");
         result.Data.LeyendaTirilla.Should().NotContain("GRACIAS POR SU COMPRA");
-        db.Configuraciones.Should().HaveCount(11);
+        result.Data.MensajeSuperacionTope.Should().Be(ValidacionTope.PlantillaSuperacionDefecto);
+        db.Configuraciones.Should().HaveCount(12);
         db.ConfiguracionesTipoApuesta.Should().Contain(t => t.TipoApuesta == "COMBINADO" && t.Maximo == 1);
         db.ConfiguracionesTipoApuesta.Should().Contain(t => t.TipoApuesta == "INDIVIDUAL" && t.Maximo == 6);
     }
@@ -102,7 +104,8 @@ public sealed class ConfiguracionServiceTests
             ReposicionDiariaOffline = false,
             PermitirJuegosOffline = false,
             SincronizacionModo = "Automatica",
-            LeyendaTirilla = TirillaCuerpo.CuerpoDefecto
+            LeyendaTirilla = TirillaCuerpo.CuerpoDefecto,
+            MensajeSuperacionTope = ValidacionTope.PlantillaSuperacionDefecto
         }, CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
@@ -135,6 +138,32 @@ public sealed class ConfiguracionServiceTests
         result.IsSuccess.Should().BeTrue();
         result.Data!.LeyendaTirilla.Should().Be(cuerpo);
         db.Configuraciones.Single(c => c.Clave == ConfiguracionClaves.LeyendaTirilla).Valor.Should().Be(cuerpo);
+    }
+
+    [Fact]
+    public async Task GuardarOperativaAsync_persiste_el_mensaje_al_superar_el_tope()
+    {
+        var (sut, db) = CreateSut();
+        await sut.ObtenerOperativaAsync(CancellationToken.None);
+        var plantilla = "El número {numero} en {loteria} solo admite {valorDisponible}.";
+
+        var result = await sut.GuardarOperativaAsync(RequestValida() with { MensajeSuperacionTope = "  " + plantilla + "  " }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.MensajeSuperacionTope.Should().Be(plantilla);
+        db.Configuraciones.Single(c => c.Clave == ConfiguracionClaves.MensajeSuperacionTope).Valor.Should().Be(plantilla);
+    }
+
+    [Fact]
+    public async Task GuardarOperativaAsync_rechaza_mensaje_de_tope_vacio()
+    {
+        var (sut, _) = CreateSut();
+        await sut.ObtenerOperativaAsync(CancellationToken.None);
+
+        var result = await sut.GuardarOperativaAsync(RequestValida() with { MensajeSuperacionTope = "   " }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Message.Should().Be(ConfiguracionMessages.MensajeSuperacionTopeRequerido);
     }
 
     [Fact]
@@ -271,7 +300,8 @@ public sealed class ConfiguracionServiceTests
         ReposicionDiariaOffline = true,
         PermitirJuegosOffline = true,
         SincronizacionModo = "Manual",
-        LeyendaTirilla = TirillaCuerpo.CuerpoDefecto
+        LeyendaTirilla = TirillaCuerpo.CuerpoDefecto,
+        MensajeSuperacionTope = ValidacionTope.PlantillaSuperacionDefecto
     };
 
     private static (ConfiguracionService Sut, NewRichDbContext Db) CreateSut(ILoteriasTiempoReal? vivo = null)

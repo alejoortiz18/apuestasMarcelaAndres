@@ -16,6 +16,7 @@ public sealed class SesionPda
     public TicketDraft? Borrador { get; set; }
     public TirillaVenta? Tirilla { get; set; }
     public bool HorarioCerrado { get; set; }
+    public string? AvisoInactividad { get; set; }
 }
 
 public sealed class TirillaVenta

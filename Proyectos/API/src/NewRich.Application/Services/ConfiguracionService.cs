@@ -23,7 +23,8 @@ public sealed class ConfiguracionService : IConfiguracionService
         (ConfiguracionClaves.ReposicionDiariaOffline, "true"),
         (ConfiguracionClaves.PermitirJuegosOffline, "true"),
         (ConfiguracionClaves.SincronizacionModo, ConfiguracionClaves.ModoManual),
-        (ConfiguracionClaves.LeyendaTirilla, TirillaCuerpo.CuerpoDefecto)
+        (ConfiguracionClaves.LeyendaTirilla, TirillaCuerpo.CuerpoDefecto),
+        (ConfiguracionClaves.MensajeSuperacionTope, ValidacionTope.PlantillaSuperacionDefecto)
     ];
 
     private readonly INewRichDbContext _db;
@@ -94,6 +95,7 @@ public sealed class ConfiguracionService : IConfiguracionService
             PermitirJuegosOffline = Booleano(mapa[ConfiguracionClaves.PermitirJuegosOffline], true),
             SincronizacionModo = mapa[ConfiguracionClaves.SincronizacionModo],
             LeyendaTirilla = TirillaCuerpo.NormalizarCuerpo(mapa[ConfiguracionClaves.LeyendaTirilla]),
+            MensajeSuperacionTope = ValidacionTope.NormalizarPlantilla(mapa[ConfiguracionClaves.MensajeSuperacionTope]),
             NumerosRestringidos = await _db.NumerosRestringidos
                 .AsNoTracking()
                 .OrderBy(x => x.Numero)
@@ -179,6 +181,17 @@ public sealed class ConfiguracionService : IConfiguracionService
             return Result<ConfiguracionOperativaResponse>.Fail(ConfiguracionMessages.LeyendaTirillaDemasiadoLarga);
         }
 
+        if (string.IsNullOrWhiteSpace(request.MensajeSuperacionTope))
+        {
+            return Result<ConfiguracionOperativaResponse>.Fail(ConfiguracionMessages.MensajeSuperacionTopeRequerido);
+        }
+
+        var mensajeTope = ValidacionTope.NormalizarPlantilla(request.MensajeSuperacionTope);
+        if (mensajeTope.Length > 4000)
+        {
+            return Result<ConfiguracionOperativaResponse>.Fail(ConfiguracionMessages.MensajeSuperacionTopeDemasiadoLargo);
+        }
+
         var modo = (request.SincronizacionModo ?? string.Empty).Trim();
         if (!modo.Equals(ConfiguracionClaves.ModoManual, StringComparison.OrdinalIgnoreCase)
             && !modo.Equals(ConfiguracionClaves.ModoAutomatica, StringComparison.OrdinalIgnoreCase))
@@ -202,6 +215,7 @@ public sealed class ConfiguracionService : IConfiguracionService
         await GuardarClaveAsync(ConfiguracionClaves.PermitirJuegosOffline, request.PermitirJuegosOffline ? "true" : "false", cancellationToken);
         await GuardarClaveAsync(ConfiguracionClaves.SincronizacionModo, modo, cancellationToken);
         await GuardarClaveAsync(ConfiguracionClaves.LeyendaTirilla, cuerpo, cancellationToken);
+        await GuardarClaveAsync(ConfiguracionClaves.MensajeSuperacionTope, mensajeTope, cancellationToken);
         await GuardarTipoAsync(ConfiguracionClaves.TipoCombinado, request.MaxJuegosCombinado, cancellationToken);
         await GuardarTipoAsync(ConfiguracionClaves.TipoIndividual, request.MaxLineasIndividual, cancellationToken);
 
@@ -284,7 +298,8 @@ public sealed class ConfiguracionService : IConfiguracionService
         ReposicionDiariaOffline = actual.ReposicionDiariaOffline,
         PermitirJuegosOffline = actual.PermitirJuegosOffline,
         SincronizacionModo = actual.SincronizacionModo,
-        LeyendaTirilla = actual.LeyendaTirilla
+        LeyendaTirilla = actual.LeyendaTirilla,
+        MensajeSuperacionTope = actual.MensajeSuperacionTope
     };
 
     private static GuardarConfiguracionOperativaRequest? AplicarClave(ConfiguracionOperativaResponse actual, string clave, string valor)
@@ -303,6 +318,7 @@ public sealed class ConfiguracionService : IConfiguracionService
             ConfiguracionClaves.PermitirJuegosOffline => request with { PermitirJuegosOffline = Booleano(valor, true) },
             ConfiguracionClaves.SincronizacionModo => request with { SincronizacionModo = valor },
             ConfiguracionClaves.LeyendaTirilla => request with { LeyendaTirilla = valor },
+            ConfiguracionClaves.MensajeSuperacionTope => request with { MensajeSuperacionTope = valor },
             _ => null
         };
     }

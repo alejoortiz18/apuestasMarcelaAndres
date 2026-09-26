@@ -323,6 +323,11 @@ public sealed class ConfiguracionOperativaFormViewModel
     [Required(ErrorMessage = ValidationMessages.CampoRequerido)]
     [MaxLength(4000, ErrorMessage = ConfiguracionMessages.LeyendaTirillaDemasiadoLarga)]
     public string LeyendaTirilla { get; set; } = TirillaCuerpo.CuerpoDefecto;
+
+    [Display(Name = UiTexts.MensajeSuperacionTope)]
+    [Required(ErrorMessage = ValidationMessages.CampoRequerido)]
+    [MaxLength(4000, ErrorMessage = ConfiguracionMessages.MensajeSuperacionTopeDemasiadoLargo)]
+    public string MensajeSuperacionTope { get; set; } = ValidacionTope.PlantillaSuperacionDefecto;
 }
 
 public sealed class TirillaViewModel

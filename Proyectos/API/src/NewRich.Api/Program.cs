@@ -98,17 +98,14 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
+app.UseSwagger();
+app.UseSwaggerUI(options =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(options =>
-    {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "New Rich API v1");
-        options.RoutePrefix = "swagger";
-        options.DocumentTitle = "New Rich API";
-        options.EnablePersistAuthorization();
-    });
-}
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "New Rich API v1");
+    options.RoutePrefix = "swagger";
+    options.DocumentTitle = "New Rich API";
+    options.EnablePersistAuthorization();
+});
 
 if (!app.Environment.IsDevelopment())
 {
@@ -118,6 +115,7 @@ if (!app.Environment.IsDevelopment())
 app.UseCors("Admin");
 app.UseAuthentication();
 app.UseAuthorization();
+app.MapGet("/", () => Results.Redirect("/swagger"));
 app.MapControllers();
 app.MapHub<NotificacionesHub>(NotificacionesHub.Ruta).RequireCors("Admin");
 app.MapHub<ChatHub>(ChatHub.Ruta).RequireCors("Admin");

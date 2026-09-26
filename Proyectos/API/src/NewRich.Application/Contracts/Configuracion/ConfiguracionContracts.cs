@@ -27,6 +27,7 @@ public sealed class ConfiguracionOperativaResponse
     public bool PermitirJuegosOffline { get; set; } = true;
     public string SincronizacionModo { get; set; } = "Manual";
     public string LeyendaTirilla { get; set; } = string.Empty;
+    public string MensajeSuperacionTope { get; set; } = string.Empty;
     public IReadOnlyList<string> NumerosRestringidos { get; set; } = [];
     public IReadOnlyList<TopeLoteriaResponse> TopesLoterias { get; set; } = [];
 }
@@ -55,4 +56,5 @@ public sealed record GuardarConfiguracionOperativaRequest
     public bool PermitirJuegosOffline { get; init; } = true;
     public string SincronizacionModo { get; init; } = string.Empty;
     public string LeyendaTirilla { get; init; } = string.Empty;
+    public string MensajeSuperacionTope { get; init; } = string.Empty;
 }

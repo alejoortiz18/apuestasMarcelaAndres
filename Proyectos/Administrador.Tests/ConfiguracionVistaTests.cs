@@ -49,6 +49,14 @@ public sealed class ConfiguracionVistaTests
     }
 
     [Fact]
+    public void El_formulario_pide_el_mensaje_al_superar_el_tope()
+    {
+        var vista = File.ReadAllText(RutaVista());
+        vista.Should().Contain("Form.MensajeSuperacionTope");
+        UiTexts.MensajeSuperacionTope.Should().Be("Mensaje al superar el tope");
+    }
+
+    [Fact]
     public void El_maximo_de_juegos_se_llama_modo_combo()
     {
         UiTexts.MaxJuegosCombinado.Should().Be("Juegos máximos en modo combo");

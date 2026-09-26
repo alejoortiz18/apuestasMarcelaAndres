@@ -20,7 +20,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Manrope:wght@400;600;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
-<body data-nav="@nav">
+<body data-nav="@nav" data-inactividad-ms="@((int)NewRich.Shared.Helpers.InactividadSesion.Limite.TotalMilliseconds)">
 <div class="app">
     <aside class="side">
         <span class="side-marco" aria-hidden="true"></span>
@@ -104,7 +104,8 @@
                         <svg viewBox="0 0 24 24" width="18" height="18"><path d="M9 7V5H5v14h4v-2M10 12h10M16 8l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     </span>
                 </summary>
-                <form asp-controller="Cuenta" asp-action="Salir" method="post">
+                <form asp-controller="Cuenta" asp-action="Salir" method="post" data-cerrar-sesion>
+                    <input type="hidden" name="motivo" value="" />
                     <button class="side-salir" type="submit">@UiTexts.CerrarSesion</button>
                 </form>
             </details>
@@ -133,7 +134,8 @@
                         <span class="top-user-name">@User.NombreMostrado()</span>
                         <div class="avatar" aria-hidden="true">@User.Iniciales()</div>
                     </summary>
-                    <form asp-controller="Cuenta" asp-action="Salir" method="post">
+                    <form asp-controller="Cuenta" asp-action="Salir" method="post" data-cerrar-sesion>
+                        <input type="hidden" name="motivo" value="" />
                         <button class="side-salir" type="submit">@UiTexts.CerrarSesion</button>
                     </form>
                 </details>
@@ -200,6 +202,7 @@
 </div>
 <script src="~/lib/signalr/signalr.min.js" asp-append-version="true"></script>
 <script src="~/js/site.js" asp-append-version="true"></script>
+<script src="~/js/inactividad.js" asp-append-version="true"></script>
 @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

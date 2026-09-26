@@ -9,6 +9,11 @@ public static class ValidacionTope
 {
     public const decimal TopeInicialExistentes = 1_000m;
 
+    public const string PlantillaSuperacionDefecto =
+        "El valor ingresado supera el tope permitido para el número {numero} en la lotería {loteria}."
+        + "\n\nValor ingresado: {valorIngresado}\nValor disponible: {valorDisponible}"
+        + "\n\nReduzca el valor de la apuesta para poder continuar.";
+
     private static readonly CultureInfo Cultura = CultureInfo.GetCultureInfo("es-CO");
 
     public sealed record TopeLoteria(Guid LoteriaId, string Nombre, decimal Tope);
@@ -30,7 +35,8 @@ public static class ValidacionTope
     public static Resultado Evaluar(
         IReadOnlyList<Aporte> aportes,
         IReadOnlyList<TopeLoteria> topes,
-        IReadOnlyList<Acumulado> acumulados)
+        IReadOnlyList<Acumulado> acumulados,
+        string? plantillaSuperacion = null)
     {
         var mapaTopes = topes.ToDictionary(t => t.LoteriaId);
         var mapaAcumulado = acumulados
@@ -71,10 +77,26 @@ public static class ValidacionTope
             return new Resultado(
                 false,
                 disponible,
-                $"El valor ingresado supera el tope permitido para el número {aporte.Numero} en la lotería {aporte.LoteriaNombre}.{Environment.NewLine}{Environment.NewLine}Valor ingresado: {Pesos(aporte.Valor)}{Environment.NewLine}Valor disponible: {Pesos(disponible)}{Environment.NewLine}{Environment.NewLine}Reduzca el valor de la apuesta para poder continuar.");
+                CompletarPlantilla(plantillaSuperacion, aporte, disponible));
         }
 
         return new Resultado(true, 0m, string.Empty);
+    }
+
+    public static string NormalizarPlantilla(string? plantilla)
+    {
+        var texto = string.IsNullOrWhiteSpace(plantilla) ? PlantillaSuperacionDefecto : plantilla.Trim();
+        return texto.Replace("\r\n", "\n").Replace('\r', '\n');
+    }
+
+    public static string CompletarPlantilla(string? plantilla, Aporte aporte, decimal disponible)
+    {
+        var texto = NormalizarPlantilla(plantilla).Replace("\n", Environment.NewLine);
+        return texto
+            .Replace("{numero}", aporte.Numero ?? string.Empty, StringComparison.Ordinal)
+            .Replace("{loteria}", aporte.LoteriaNombre ?? string.Empty, StringComparison.Ordinal)
+            .Replace("{valorIngresado}", Pesos(aporte.Valor), StringComparison.Ordinal)
+            .Replace("{valorDisponible}", Pesos(disponible), StringComparison.Ordinal);
     }
 
     private static string Clave(Guid loteriaId, string numero) =>

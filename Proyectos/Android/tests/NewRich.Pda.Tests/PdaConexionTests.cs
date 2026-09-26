@@ -24,33 +24,21 @@ public sealed class PdaConexionTests
     }
 
     [Fact]
-    public void Url_de_dispositivo_fisico_usa_la_red_local_y_no_el_emulador()
+    public void Dispositivo_fisico_y_emulador_usan_el_api_de_produccion()
     {
-        PdaConexion.BaseUrl(emulador: false).Should().Be(PdaConexion.UrlRedLocal);
-        PdaConexion.UrlRedLocal.Should().StartWith("http://");
-        PdaConexion.UrlRedLocal.Should().NotContain("10.0.2.2");
-        PdaConexion.UrlRedLocal.Should().Contain(":5295");
-        // IP del PC que publica la API en la red del local.
-        PdaConexion.UrlRedLocal.Should().Be("http://192.168.20.27:5295/");
-    }
+        const string produccion = "https://api-ventas-prod-ffh4dmdhgpcsapda.westus3-01.azurewebsites.net/";
 
-    [Fact]
-    public void Url_de_emulador_usa_el_alias_del_host()
-    {
-        PdaConexion.BaseUrl(emulador: true).Should().Be("http://10.0.2.2:5295/");
-    }
-
-    [Fact]
-    public void Dispositivo_fisico_prueba_primero_el_puente_usb_y_luego_la_red_local()
-    {
-        PdaConexion.UrlsPara(emulador: false).Should().Equal(
-            PdaConexion.UrlRedLocal,
-            PdaConexion.UrlPuenteUsb);
+        PdaConexion.BaseUrl(emulador: false).Should().Be(produccion);
+        PdaConexion.BaseUrl(emulador: true).Should().Be(produccion);
+        PdaConexion.UrlsPara(emulador: false).Should().Equal(produccion);
+        PdaConexion.UrlsPara(emulador: true).Should().Equal(produccion);
+        PdaConexion.UrlProduccion.Should().StartWith("https://");
     }
 
     [Fact]
     public void Hub_de_chat_cuelga_de_la_misma_base_de_la_api()
     {
-        PdaConexion.HubChat("http://127.0.0.1:5295/").Should().Be("http://127.0.0.1:5295/hubs/chat");
+        PdaConexion.HubChat(PdaConexion.UrlProduccion).Should().Be(
+            "https://api-ventas-prod-ffh4dmdhgpcsapda.westus3-01.azurewebsites.net/hubs/chat");
     }
 }

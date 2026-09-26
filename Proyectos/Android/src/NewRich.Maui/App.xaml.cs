@@ -12,6 +12,9 @@ public partial class App : Microsoft.Maui.Controls.Application
 
     protected override Window CreateWindow(IActivationState? activationState)
     {
-        return new Window(_services.GetRequiredService<Views.Shared.ArranquePage>());
+        var ventana = new Window(_services.GetRequiredService<Views.Shared.ArranquePage>());
+        ventana.Created += (_, _) =>
+            _services.GetRequiredService<Services.VigilanteInactividad>().Iniciar(ventana.Dispatcher);
+        return ventana;
     }
 }

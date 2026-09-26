@@ -8,7 +8,7 @@
 </div>
 <div class="panel">
     <div asp-validation-summary="ModelOnly" class="notice error"></div>
-    <form method="post" data-protected-action="@(Model.UsuarioId.HasValue ? AccionesProtegidas.UsuariosEditar : AccionesProtegidas.UsuariosCrear)">
+    <form method="post" data-usuario-form data-protected-action="@(Model.UsuarioId.HasValue ? AccionesProtegidas.UsuariosEditar : AccionesProtegidas.UsuariosCrear)">
         <partial name="_CamposUsuario" model="Model" />
         <div class="text-center-actions">
             <button class="primary" type="submit">@UiTexts.Guardar</button>

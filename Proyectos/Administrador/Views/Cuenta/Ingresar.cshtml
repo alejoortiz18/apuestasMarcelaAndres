@@ -17,6 +17,10 @@
         <div class="login-box">
             <h1>@UiTexts.IniciarSesion</h1>
             <p>@UiTexts.LoginAyuda</p>
+            @if (TempData["AvisoIngreso"] is string avisoIngreso)
+            {
+                <div class="notice error" role="alert">@avisoIngreso</div>
+            }
             <form asp-action="Ingresar" method="post">
                 <div class="field">
                     <label asp-for="Usuario"></label>

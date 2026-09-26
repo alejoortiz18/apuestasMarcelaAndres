@@ -91,6 +91,12 @@
                 <span class="field-help">@UiTexts.LeyendaTirillaAyuda</span>
                 <span asp-validation-for="Form.LeyendaTirilla"></span>
             </div>
+            <div class="field">
+                <label asp-for="Form.MensajeSuperacionTope"></label>
+                <textarea asp-for="Form.MensajeSuperacionTope" rows="6" maxlength="4000"></textarea>
+                <span class="field-help">@UiTexts.MensajeSuperacionTopeAyuda</span>
+                <span asp-validation-for="Form.MensajeSuperacionTope"></span>
+            </div>
         </section>
     </div>
     <div class="config-save">

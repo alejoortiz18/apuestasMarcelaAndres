@@ -107,7 +107,7 @@ public sealed class NotificacionesController : AdminControllerBase
             return Unauthorized();
         }
 
-        var baseUrl = _config["Api:BaseUrl"] ?? "http://localhost:5295/";
+        var baseUrl = _config["Api:BaseUrl"] ?? "https://api-ventas-prod-ffh4dmdhgpcsapda.westus3-01.azurewebsites.net/";
         var hubUrl = HubNotificacionesUrl.Resolver(baseUrl, Request.Host.Host, UiTexts.HubNotificaciones);
         var chatHubUrl = HubNotificacionesUrl.Resolver(baseUrl, Request.Host.Host, UiTexts.HubChat);
         return Json(new { token, hubUrl, chatHubUrl });

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using NewRich.Application.Abstractions;
 using NewRich.Application.Contracts.Offline;
 using NewRich.Application.Contracts.Ventas;
+using NewRich.Constants;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
 using NewRich.Domain.Enums;
@@ -315,7 +316,12 @@ public sealed class VentaService : IVentaService
         var topes = loterias
             .Select(l => new ValidacionTope.TopeLoteria(l.LoteriaId, l.Nombre, l.Tope))
             .ToList();
-        return ValidacionTope.Evaluar(aportes, topes, acumulados);
+        var plantilla = await _db.Configuraciones
+            .AsNoTracking()
+            .Where(c => c.Clave == ConfiguracionClaves.MensajeSuperacionTope)
+            .Select(c => c.Valor)
+            .FirstOrDefaultAsync(cancellationToken);
+        return ValidacionTope.Evaluar(aportes, topes, acumulados, plantilla);
     }
 
     public async Task<Result<IReadOnlyList<VentaResponse>>> ConsultarAsync(

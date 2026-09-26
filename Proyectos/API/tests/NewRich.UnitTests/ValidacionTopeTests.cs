@@ -20,6 +20,32 @@ public sealed class ValidacionTopeTests
     }
 
     [Fact]
+    public void Superar_el_tope_usa_la_plantilla_configurada()
+    {
+        var topes = new[] { new ValidacionTope.TopeLoteria(Id("a"), "Medellín", 50_000m) };
+        var acumulados = new[] { new ValidacionTope.Acumulado(Id("a"), "1234", 48_000m) };
+        var aportes = new[] { new ValidacionTope.Aporte(Id("a"), "Medellín", "1234", 5_000m) };
+
+        var resultado = ValidacionTope.Evaluar(
+            aportes,
+            topes,
+            acumulados,
+            "Tope en {loteria} número {numero}. Ingresó {valorIngresado}. Quedan {valorDisponible}.");
+
+        resultado.Ok.Should().BeFalse();
+        resultado.Mensaje.Should().Be("Tope en Medellín número 1234. Ingresó 5.000. Quedan 2.000.");
+    }
+
+    [Fact]
+    public void Superar_el_tope_sin_plantilla_usa_el_mensaje_por_defecto()
+    {
+        ValidacionTope.PlantillaSuperacionDefecto.Should().Contain("{numero}");
+        ValidacionTope.PlantillaSuperacionDefecto.Should().Contain("{loteria}");
+        ValidacionTope.PlantillaSuperacionDefecto.Should().Contain("{valorIngresado}");
+        ValidacionTope.PlantillaSuperacionDefecto.Should().Contain("{valorDisponible}");
+    }
+
+    [Fact]
     public void Superar_el_tope_no_esta_permitido()
     {
         ValidacionTope.PuedeJugar(50_000m, 50_000m, 2_000m).Should().BeFalse();

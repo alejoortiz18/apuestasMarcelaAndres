@@ -10,7 +10,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Manrope:wght@400;600;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
-<body class="login-body">
+@{
+    var inactividad = User.Identity?.IsAuthenticated == true
+        ? ((int)NewRich.Shared.Helpers.InactividadSesion.Limite.TotalMilliseconds).ToString()
+        : null;
+}
+<body class="login-body" data-inactividad-ms="@inactividad">
 @RenderBody()
+@if (User.Identity?.IsAuthenticated == true)
+{
+    <script src="~/js/inactividad.js" asp-append-version="true"></script>
+}
 </body>
 </html>

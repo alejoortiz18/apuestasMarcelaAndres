@@ -488,7 +488,7 @@ public sealed class ConstruirApuestaPage : ContentPage
     private async Task<bool> ValidarTopesLocalAsync(TicketDraft draft)
     {
         var acumulados = await _offline.AcumuladosTopeHoyAsync();
-        var resultado = TopesPda.EvaluarLocal(draft, _sesion.Limites.TopesLoterias, acumulados);
+        var resultado = TopesPda.EvaluarLocal(draft, _sesion.Limites.TopesLoterias, acumulados, _sesion.Limites.MensajeSuperacionTope);
         if (resultado.Ok)
         {
             return true;
