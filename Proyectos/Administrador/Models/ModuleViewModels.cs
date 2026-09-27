@@ -14,6 +14,7 @@ using NewRich.Application.Contracts.Premios;
 using NewRich.Application.Contracts.Resultados;
 using NewRich.Application.Contracts.Usuarios;
 using NewRich.Application.Contracts.Ventas;
+using NewRich.Application.Contracts.Versiones;
 using NewRich.Application.Services;
 using NewRich.Constants;
 using NewRich.Constants.Messages;
@@ -255,6 +256,8 @@ public sealed class ConfiguracionIndexViewModel
     public IReadOnlyList<LoteriaResponse> Topes { get; set; } = [];
     public PagedViewModel<NumeroRestringidoResponse> PaginaNumeros { get; init; } = new();
     public string NuevoNumeroRestringido { get; set; } = string.Empty;
+    public IReadOnlyList<VersionAplicacionResponse> Versiones { get; init; } = [];
+    public string? AvisoVersiones { get; init; }
 }
 
 public sealed class DiasLoteriaFormItem

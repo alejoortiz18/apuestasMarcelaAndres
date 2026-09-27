@@ -15,6 +15,7 @@ using NewRich.Application.Contracts.Premios;
 using NewRich.Application.Contracts.Resultados;
 using NewRich.Application.Contracts.Usuarios;
 using NewRich.Application.Contracts.Ventas;
+using NewRich.Application.Contracts.Versiones;
 using NewRich.Constants.Messages;
 using NewRich.Shared.Results;
 
@@ -300,6 +301,41 @@ public sealed class NewRichApiClient
 
     public Task<Result<AdjuntoDescargado>> DescargarEvidenciaPremioAsync(Guid casoId, Guid evidenciaId, CancellationToken ct) =>
         DescargarArchivoAsync($"api/PremiosAndroid/EvidenciaMob/{casoId}/{evidenciaId}", ct);
+
+    public Task<Result<VersionAplicacionResponse>> VersionVigenteAsync(CancellationToken ct) =>
+        Enviar<VersionAplicacionResponse>(HttpMethod.Get, "api/VersionesAplicacion/vigente", null, ct);
+
+    public async Task<Result> DescargarVersionVigenteAsync(string rutaDestino, CancellationToken ct)
+    {
+        var token = await _tokens.ObtenerAsync();
+        using var cliente = new HttpClient(ConexionHttpPda.CrearControlador())
+        {
+            Timeout = TimeSpan.FromMinutes(5)
+        };
+        using var request = Crear(HttpMethod.Get, "api/VersionesAplicacion/vigente/archivo", null, token);
+        try
+        {
+            using var response = await cliente.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+            if (!response.IsSuccessStatusCode)
+            {
+                return Result.Fail(PdaTexts.ActualizacionNoDescargada, (int)response.StatusCode);
+            }
+
+            var carpeta = Path.GetDirectoryName(rutaDestino);
+            if (!string.IsNullOrWhiteSpace(carpeta))
+            {
+                Directory.CreateDirectory(carpeta);
+            }
+
+            await using var destino = File.Create(rutaDestino);
+            await response.Content.CopyToAsync(destino, ct);
+            return Result.Ok(SuccessMessages.OperacionExitosa);
+        }
+        catch (Exception)
+        {
+            return Result.Fail(PdaTexts.ActualizacionNoDescargada);
+        }
+    }
 
     private async Task<Result<AdjuntoDescargado>> DescargarArchivoAsync(string ruta, CancellationToken ct)
     {

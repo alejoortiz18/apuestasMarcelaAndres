@@ -452,8 +452,21 @@ public static class UiTexts
 
     public const string ConfigKicker = "Parámetros";
     public const string ConfigTitulo = "Configuración operativa";
-    public const string ConfigSub = "Define el cierre de los PDA, la vigencia de premios, los límites de apuesta, las alertas, los códigos offline, el texto de la tirilla, los números restringidos y los días de venta de cada lotería.";
+    public const string ConfigSub = "Define el cierre de los PDA, la vigencia de premios, los límites de apuesta, las alertas, los códigos offline, el texto de la tirilla, los números restringidos, los días de venta de cada lotería y la versión de la aplicación.";
     public const string GuardarConfiguracion = "Guardar configuración";
+    public const string ConfigVersionAplicacion = "Versión de la aplicación";
+    public const string ConfigVersionAplicacionSub = "Sube el APK que usan los vendedores y los observadores. Se conserva la última publicación y, como máximo, las tres versiones más recientes. Al subir la cuarta se elimina la más antigua. El registro de PDA por USB no cambia.";
+    public const string ArchivoApk = "Archivo APK";
+    public const string ArchivoApkAyuda = "Seleccione el APK firmado. El tamaño máximo es 200 MB.";
+    public const string NombreVersion = "Nombre de versión";
+    public const string NombreVersionAyuda = "Es el nombre visible de la aplicación, por ejemplo 1.0. Solo letras, números, punto y guion.";
+    public const string NumeroCompilacion = "Número de compilación";
+    public const string NumeroCompilacionAyuda = "Es el número entero de compilación de la aplicación. Debe ser distinto al de las versiones que siguen guardadas.";
+    public const string PublicarVersion = "Publicar versión";
+    public const string VacioVersionesAplicacion = "Todavía no hay una versión publicada. Suba el APK para que los dispositivos puedan actualizarse.";
+    public const string VersionVigente = "Vigente";
+    public const string Compilacion = "Compilación";
+    public const string PublicadaEl = "Publicada";
     public const string ConfigHorarioPremios = "Premios";
     public const string ConfigSesion = "Sesión";
     public const string MinutosInactividadSesion = "Minutos de inactividad para cerrar la sesión";

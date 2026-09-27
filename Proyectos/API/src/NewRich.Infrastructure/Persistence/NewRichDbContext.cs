@@ -42,6 +42,7 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
     public DbSet<EntregaGanador> EntregasGanadores => Set<EntregaGanador>();
     public DbSet<EvidenciaGanador> EvidenciasGanador => Set<EvidenciaGanador>();
     public DbSet<LlaveAdministrador> LlavesAdministrador => Set<LlaveAdministrador>();
+    public DbSet<VersionAplicacion> VersionesAplicacion => Set<VersionAplicacion>();
 
     public async Task ExecuteInTransactionAsync(Func<CancellationToken, Task> action, CancellationToken cancellationToken = default)
     {
@@ -338,6 +339,15 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
             e.Property(x => x.MotivoRevocacion).HasMaxLength(200);
             e.HasOne(x => x.Usuario).WithMany().HasForeignKey(x => x.UsuarioId).OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(x => x.Codigo).IsUnique();
+        });
+
+        modelBuilder.Entity<VersionAplicacion>(e =>
+        {
+            e.ToTable("VersionesAplicacion");
+            e.HasKey(x => x.VersionAplicacionId);
+            e.Property(x => x.NombreVersion).HasMaxLength(20);
+            e.Property(x => x.NombreArchivo).HasMaxLength(32);
+            e.HasIndex(x => x.NumeroCompilacion).IsUnique();
         });
     }
 

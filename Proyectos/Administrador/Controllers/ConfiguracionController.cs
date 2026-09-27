@@ -4,7 +4,9 @@ using NewRich.Admin.Models;
 using NewRich.Admin.Services;
 using NewRich.Application.Contracts.Configuracion;
 using NewRich.Application.Contracts.Loterias;
+using NewRich.Application.Contracts.Versiones;
 using NewRich.Application.Services;
+using NewRich.Constants;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Enums;
 using NewRich.Domain.Services;
@@ -34,10 +36,12 @@ public sealed class ConfiguracionController : AdminControllerBase
         var configTask = _api.ObtenerConfiguracionOperativaAsync(cancellationToken);
         var loteriasTask = _api.ListarLoteriasAsync(cancellationToken);
         var numerosTask = _api.ListarNumerosRestringidosAsync(cancellationToken);
-        await Task.WhenAll(configTask, loteriasTask, numerosTask);
+        var versionesTask = _api.ListarVersionesAplicacionAsync(cancellationToken);
+        await Task.WhenAll(configTask, loteriasTask, numerosTask, versionesTask);
         var unauthorized = RedirectIfUnauthorized(configTask.Result)
             ?? RedirectIfUnauthorized(loteriasTask.Result)
-            ?? RedirectIfUnauthorized(numerosTask.Result);
+            ?? RedirectIfUnauthorized(numerosTask.Result)
+            ?? RedirectIfUnauthorized(versionesTask.Result);
         if (unauthorized is not null)
         {
             return unauthorized;
@@ -58,7 +62,9 @@ public sealed class ConfiguracionController : AdminControllerBase
             Pagina = PagingHelper.Paginate(loterias, page, pageSize),
             DiasVenta = MapDias(todas),
             Topes = todas.OrderBy(l => l.Nombre).ToList(),
-            PaginaNumeros = PagingHelper.Paginate(numerosTask.Result.Data ?? [], pageNumeros, pageSizeNumeros)
+            PaginaNumeros = PagingHelper.Paginate(numerosTask.Result.Data ?? [], pageNumeros, pageSizeNumeros),
+            Versiones = versionesTask.Result.Success ? versionesTask.Result.Data ?? [] : [],
+            AvisoVersiones = versionesTask.Result.Success ? null : versionesTask.Result.Message
         });
     }
 
@@ -119,6 +125,40 @@ public sealed class ConfiguracionController : AdminControllerBase
 
         SetFlash(SuccessMessages.RegistroActualizado);
         _inactividad.Olvidar();
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [RequestSizeLimit(VersionAplicacionLimites.TamanoMaximoBytes)]
+    [RequestFormLimits(MultipartBodyLengthLimit = VersionAplicacionLimites.TamanoMaximoBytes)]
+    public async Task<IActionResult> PublicarVersion(
+        IFormFile? archivo,
+        string? nombreVersion,
+        int numeroCompilacion,
+        CancellationToken cancellationToken)
+    {
+        SetNav("configuracion", UiTexts.NavConfiguracion);
+        if (archivo is null || archivo.Length == 0)
+        {
+            SetFlash(VersionAplicacionMessages.ArchivoVacio, false);
+            return RedirectToAction(nameof(Index));
+        }
+
+        await using var contenido = archivo.OpenReadStream();
+        var result = await _api.PublicarVersionAplicacionAsync(
+            contenido,
+            archivo.FileName,
+            nombreVersion ?? string.Empty,
+            numeroCompilacion,
+            cancellationToken);
+        var denied = RedirectIfUnauthorized(result);
+        if (denied is not null)
+        {
+            return denied;
+        }
+
+        SetFlash(result.Message, result.Success);
         return RedirectToAction(nameof(Index));
     }
 
@@ -416,13 +456,22 @@ public sealed class ConfiguracionController : AdminControllerBase
             return unauthorized;
         }
 
+        var versiones = await _api.ListarVersionesAplicacionAsync(cancellationToken);
+        unauthorized = RedirectIfUnauthorized(versiones);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
         return View("Index", new ConfiguracionIndexViewModel
         {
             Form = form,
             Pagina = PagingHelper.Paginate(loterias.Data ?? [], 1, 5),
             DiasVenta = MapDias(loterias.Data ?? []),
             Topes = (loterias.Data ?? []).OrderBy(l => l.Nombre).ToList(),
-            PaginaNumeros = PagingHelper.Paginate(numeros.Data ?? [], 1, 5)
+            PaginaNumeros = PagingHelper.Paginate(numeros.Data ?? [], 1, 5),
+            Versiones = versiones.Success ? versiones.Data ?? [] : [],
+            AvisoVersiones = versiones.Success ? null : versiones.Message
         });
     }
 

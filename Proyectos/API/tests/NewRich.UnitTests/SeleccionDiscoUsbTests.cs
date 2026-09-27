@@ -44,6 +44,16 @@ public sealed class SeleccionDiscoUsbTests
         elegido.Should().Be(f);
     }
 
+    [Fact]
+    public void Una_usb_reconectada_con_otra_letra_se_sigue_eligiendo()
+    {
+        var disco = Disco("F:");
+        var resultado = SeleccionDiscoUsb.Elegir([disco], "E:", out var elegido);
+
+        resultado.Should().Be(ResultadoSeleccionUsb.Ok);
+        elegido.Should().Be(disco);
+    }
+
     private static DiscoUsbInfo Disco(string letra) =>
         new(letra, "USB", "SERIE", "VOL", "NTFS", true);
 }

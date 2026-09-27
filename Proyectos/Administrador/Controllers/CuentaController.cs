@@ -62,7 +62,7 @@ public sealed class CuentaController : Controller
             return View(model);
         }
 
-        var prueba = ResolverPrueba(model.Usuario.Trim(), model.LetraUsb, model.Discos);
+        var prueba = ResolverPrueba(model.Usuario.Trim().ToLowerInvariant(), model.LetraUsb, model.Discos);
         var result = await _api.LoginAsync(new LoginRequest
         {
             Usuario = model.Usuario.Trim(),

@@ -49,6 +49,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<VigilanteInactividad>();
 
         builder.Services.AddSingleton<ChatEnVivoServicio>();
+        builder.Services.AddSingleton<ActualizacionEnVivoServicio>();
         builder.Services.AddSingleton<CodigosOfflineEnVivoServicio>();
         builder.Services.AddSingleton<LoteriasEnVivoServicio>();
         builder.Services.AddTransient<ArranquePage>();
@@ -75,7 +76,9 @@ public static class MauiProgram
         builder.Services.AddTransient<CasosPage>();
         builder.Services.AddTransient<ObservadorShell>();
 
-        return builder.Build();
+        var app = builder.Build();
+        _ = app.Services.GetRequiredService<ActualizacionEnVivoServicio>();
+        return app;
     }
 
     public static void RecargarIdentidad()

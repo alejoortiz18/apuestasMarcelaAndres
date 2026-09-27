@@ -30,6 +30,19 @@ public sealed class LlaveUsbCriptografiaTests
         LlaveUsbCriptografia.Verificar(material.ClavePublica, payload, firma).Should().BeTrue();
         LlaveUsbCriptografia.Verificar(material.ClavePublica, payload + "x", firma).Should().BeFalse();
     }
+
+    [Fact]
+    public void La_firma_no_depende_de_mayusculas_ni_espacios_del_usuario_digitado()
+    {
+        var material = LlaveUsbCriptografia.Generar("KEY-71B42D55", "SERIE-A", "VOL-1");
+        const long unix = 1_790_000_000;
+
+        PruebaLlaveUsb.TryFirmarLogin(material.SecretoEnvuelto, "SERIE-A", "VOL-1", material.Codigo, " Admin ", unix, out var firma, out var huella)
+            .Should().BeTrue();
+
+        var payloadServidor = LlaveUsbCriptografia.PayloadLogin(material.Codigo, "admin", huella, unix);
+        LlaveUsbCriptografia.Verificar(material.ClavePublica, payloadServidor, firma).Should().BeTrue();
+    }
 }
 
 public sealed class DiscoExternoUsbTests

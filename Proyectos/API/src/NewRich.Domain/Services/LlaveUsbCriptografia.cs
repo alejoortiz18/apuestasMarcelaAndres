@@ -77,8 +77,12 @@ public static class LlaveUsbCriptografia
         }
     }
 
+    /// <summary>
+    /// El usuario se compara sin distinguir mayúsculas al iniciar sesión; el texto firmado
+    /// usa la misma forma para que la llave no falle según cómo se digite el usuario.
+    /// </summary>
     public static string PayloadLogin(string codigo, string usuario, string huella, long unix) =>
-        $"{codigo}|{usuario}|{huella}|{unix}";
+        $"{codigo}|{(usuario ?? string.Empty).Trim().ToLowerInvariant()}|{huella}|{unix}";
 
     public static string Huella(string serialUsb, string volumen)
     {
@@ -165,6 +169,12 @@ public static class SeleccionDiscoUsb
         }
 
         elegido = discos.FirstOrDefault(d => string.Equals(d.Letra, normalizada, StringComparison.OrdinalIgnoreCase));
+        if (elegido is null && discos.Count == 1)
+        {
+            // La USB se desconectó y volvió con otra letra: la única conectada es la llave.
+            elegido = discos[0];
+        }
+
         return elegido is null ? ResultadoSeleccionUsb.Ninguna : ResultadoSeleccionUsb.Ok;
     }
 }

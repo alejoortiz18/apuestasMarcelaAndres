@@ -21,6 +21,7 @@ builder.Services.AddScoped<INotificacionTiempoReal, SignalRNotificacionTiempoRea
 builder.Services.AddScoped<IChatTiempoReal, SignalRChatTiempoReal>();
 builder.Services.AddScoped<ICodigosOfflineTiempoReal, SignalRCodigosOfflineTiempoReal>();
 builder.Services.AddScoped<ILoteriasTiempoReal, SignalRLoteriasTiempoReal>();
+builder.Services.AddScoped<IVersionesTiempoReal, SignalRVersionesTiempoReal>();
 builder.Services.AddControllers(options =>
 {
     options.Filters.Add<SesionYPasswordActionFilter>();

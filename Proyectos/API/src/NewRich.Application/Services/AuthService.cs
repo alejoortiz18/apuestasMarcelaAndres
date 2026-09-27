@@ -36,10 +36,11 @@ public sealed class AuthService : IAuthService
             return Result<LoginResponse>.Fail(AuthMessages.CredencialesInvalidas, 401);
         }
 
+        var nombreIngreso = request.Usuario.Trim().ToLowerInvariant();
         var usuario = await _db.Usuarios
             .Include(u => u.DispositivosUsuarios)
             .ThenInclude(d => d.Dispositivo)
-            .FirstOrDefaultAsync(u => u.NombreUsuario == request.Usuario, cancellationToken);
+            .FirstOrDefaultAsync(u => u.NombreUsuario.ToLower() == nombreIngreso, cancellationToken);
 
         if (usuario is null)
         {
@@ -333,19 +334,9 @@ public sealed class AuthService : IAuthService
             return Result.Fail(AuthMessages.LlaveNoCorresponde, 403);
         }
 
-        var unixAhora = new DateTimeOffset(_clock.UtcNow).ToUnixTimeSeconds();
-        if (Math.Abs(unixAhora - prueba.Unix) > 300)
-        {
-            return Result.Fail(AuthMessages.LlavePruebaInvalida, 403);
-        }
-
         if (!string.Equals(prueba.HuellaDispositivo, activa.HuellaDispositivo, StringComparison.OrdinalIgnoreCase))
         {
-            activa.Estado = EstadoLlaveAdministrador.Comprometida;
-            activa.FechaRevocacion = _clock.UtcNow;
-            activa.MotivoRevocacion = "Huella de dispositivo no coincide";
-            await _db.SaveChangesAsync(cancellationToken);
-            return Result.Fail(AuthMessages.LlaveNoValida, 403);
+            return Result.Fail(AuthMessages.LlavePruebaInvalida, 403);
         }
 
         var payload = LlaveUsbCriptografia.PayloadLogin(activa.Codigo, usuario.NombreUsuario, activa.HuellaDispositivo, prueba.Unix);

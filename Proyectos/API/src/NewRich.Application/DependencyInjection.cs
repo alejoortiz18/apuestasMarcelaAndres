@@ -27,6 +27,8 @@ public static class DependencyInjection
         services.AddScoped<IChatTiempoReal, ChatTiempoRealNulo>();
         services.AddScoped<ICodigosOfflineTiempoReal, CodigosOfflineTiempoRealNulo>();
         services.AddScoped<ILoteriasTiempoReal, LoteriasTiempoRealNulo>();
+        services.AddScoped<IVersionesTiempoReal, VersionesTiempoRealNulo>();
+        services.AddScoped<IVersionAplicacionService, VersionAplicacionService>();
         services.AddScoped<IChatService, ChatService>();
         services.AddScoped<IOfflineService, OfflineService>();
         services.AddScoped<IPremioService, PremioService>();

@@ -25,15 +25,16 @@ public sealed class PdaConexionTests
     }
 
     [Fact]
-    public void Dispositivo_fisico_y_emulador_usan_el_api_de_produccion()
+    public void Dispositivo_fisico_y_emulador_usan_el_api_local()
     {
-        const string produccion = "https://api-ventas-prod-ffh4dmdhgpcsapda.westus3-01.azurewebsites.net/";
+        const string local = "http://192.168.20.26:5295/";
 
-        PdaConexion.BaseUrl(emulador: false).Should().Be(produccion);
-        PdaConexion.BaseUrl(emulador: true).Should().Be(produccion);
-        PdaConexion.UrlsPara(emulador: false).Should().Equal(produccion);
-        PdaConexion.UrlsPara(emulador: true).Should().Equal(produccion);
+        PdaConexion.BaseUrl(emulador: false).Should().Be(local);
+        PdaConexion.BaseUrl(emulador: true).Should().Be(local);
+        PdaConexion.UrlsPara(emulador: false).Should().Equal(local);
+        PdaConexion.UrlsPara(emulador: true).Should().Equal(local);
         PdaConexion.UrlProduccion.Should().StartWith("https://");
+        local.Should().NotBe(PdaConexion.UrlProduccion);
     }
 
     [Fact]

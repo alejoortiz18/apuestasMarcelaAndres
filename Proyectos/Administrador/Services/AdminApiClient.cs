@@ -20,6 +20,7 @@ using NewRich.Application.Contracts.Premios;
 using NewRich.Application.Contracts.Resultados;
 using NewRich.Application.Contracts.Usuarios;
 using NewRich.Application.Contracts.Ventas;
+using NewRich.Application.Contracts.Versiones;
 using NewRich.Application.Services;
 using NewRich.Constants;
 using NewRich.Constants.Messages;
@@ -111,6 +112,14 @@ public interface IAdminApiClient
     Task<ApiCallResult<List<UsuarioResponseMini>>> ListarAdministradoresLlaveAsync(CancellationToken cancellationToken);
     Task<ApiCallResult<LlaveAdministradorEstadoResponse>> EstadoLlaveAsync(Guid usuarioId, CancellationToken cancellationToken);
     Task<ApiCallResult<GenerarLlaveAdministradorResponse>> GenerarLlaveAsync(GenerarLlaveAdministradorRequest request, CancellationToken cancellationToken);
+
+    Task<ApiCallResult<List<VersionAplicacionResponse>>> ListarVersionesAplicacionAsync(CancellationToken cancellationToken);
+    Task<ApiCallResult<VersionAplicacionResponse>> PublicarVersionAplicacionAsync(
+        Stream contenido,
+        string nombreArchivo,
+        string nombreVersion,
+        int numeroCompilacion,
+        CancellationToken cancellationToken);
 }
 
 public sealed class AdminApiClient : IAdminApiClient
@@ -434,6 +443,81 @@ public sealed class AdminApiClient : IAdminApiClient
 
     public Task<ApiCallResult<GenerarLlaveAdministradorResponse>> GenerarLlaveAsync(GenerarLlaveAdministradorRequest request, CancellationToken cancellationToken) =>
         SendAsync<GenerarLlaveAdministradorResponse>(HttpMethod.Post, "api/LlavesAdministrador", request, true, cancellationToken);
+
+    public Task<ApiCallResult<List<VersionAplicacionResponse>>> ListarVersionesAplicacionAsync(CancellationToken cancellationToken) =>
+        SendAsync<List<VersionAplicacionResponse>>(HttpMethod.Get, "api/VersionesAplicacion", null, true, cancellationToken);
+
+    public async Task<ApiCallResult<VersionAplicacionResponse>> PublicarVersionAplicacionAsync(
+        Stream contenido,
+        string nombreArchivo,
+        string nombreVersion,
+        int numeroCompilacion,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var cliente = new HttpClient
+            {
+                BaseAddress = _http.BaseAddress,
+                Timeout = TimeSpan.FromMinutes(5)
+            };
+            using var request = new HttpRequestMessage(HttpMethod.Post, "api/VersionesAplicacion");
+            var token = _httpContextAccessor.HttpContext?.Request.Cookies[AuthCookieNames.AccessToken];
+            if (!string.IsNullOrWhiteSpace(token))
+            {
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+
+            AdjuntarConfirmacion(request);
+            var formulario = new MultipartFormDataContent();
+            var archivo = new StreamContent(contenido);
+            archivo.Headers.ContentType = new MediaTypeHeaderValue("application/vnd.android.package-archive");
+            formulario.Add(archivo, "archivo", Path.GetFileName(nombreArchivo));
+            formulario.Add(new StringContent(nombreVersion), "nombreVersion");
+            formulario.Add(new StringContent(numeroCompilacion.ToString(System.Globalization.CultureInfo.InvariantCulture)), "numeroCompilacion");
+            request.Content = formulario;
+
+            using var response = await cliente.SendAsync(request, cancellationToken);
+            var json = await response.Content.ReadAsStringAsync(cancellationToken);
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                return SinContrato<VersionAplicacionResponse>(response);
+            }
+
+            ApiEnvelope<VersionAplicacionResponse>? envelope;
+            try
+            {
+                envelope = JsonSerializer.Deserialize<ApiEnvelope<VersionAplicacionResponse>>(json, JsonOptions);
+            }
+            catch (JsonException)
+            {
+                return SinContrato<VersionAplicacionResponse>(response);
+            }
+
+            if (envelope is null)
+            {
+                return SinContrato<VersionAplicacionResponse>(response);
+            }
+
+            if (!envelope.Success)
+            {
+                return ApiCallResult<VersionAplicacionResponse>.Fail(
+                    string.IsNullOrWhiteSpace(envelope.Message) ? UiTexts.ApiNoDisponible : envelope.Message,
+                    (int)response.StatusCode,
+                    response.StatusCode == HttpStatusCode.Unauthorized);
+            }
+
+            return ApiCallResult<VersionAplicacionResponse>.Ok(envelope.Data, envelope.Message, (int)response.StatusCode);
+        }
+        catch (HttpRequestException)
+        {
+            return ApiCallResult<VersionAplicacionResponse>.Fail(UiTexts.ApiNoDisponible, 0);
+        }
+        catch (TaskCanceledException)
+        {
+            return ApiCallResult<VersionAplicacionResponse>.Fail(UiTexts.ApiNoDisponible, 0);
+        }
+    }
 
     private async Task<ApiCallResult<ArchivoChat>> DescargarImagenPremioAsync(string ruta, CancellationToken cancellationToken)
     {

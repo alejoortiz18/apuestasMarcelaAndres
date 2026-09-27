@@ -21,6 +21,7 @@ public static class DependencyInjection
         services.AddSingleton<IQrCryptoService, AesGcmQrCryptoService>();
         services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton<IChatFileStorage, LocalChatFileStorage>();
+        services.AddSingleton<IApkAlmacen, AzureFilesApkAlmacen>();
         return services;
     }
 }

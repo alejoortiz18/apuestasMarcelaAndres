@@ -132,6 +132,76 @@ public sealed class AuthServiceTests
     }
 
     [Fact]
+    public async Task LoginAsync_la_misma_llave_sirve_en_cada_ingreso_despues_de_cerrar_sesion()
+    {
+        var (sut, db, usuario, _, reloj) = await CreateSutConAdminAsync("Admin123");
+        var material = await RegistrarMaterialLlaveAsync(db, usuario, reloj);
+
+        for (var intento = 0; intento < 5; intento++)
+        {
+            reloj.Avanzar(TimeSpan.FromMinutes(15));
+            var login = await sut.LoginAsync(new LoginRequest
+            {
+                Usuario = "Admin",
+                Password = "Admin123",
+                PruebaLlave = FirmarPrueba(material, "Admin", reloj)
+            }, CancellationToken.None);
+
+            login.IsSuccess.Should().BeTrue(login.Message);
+            var sesion = await db.Sesiones.OrderByDescending(s => s.FechaInicio).FirstAsync(s => s.Activa);
+            (await sut.LogoutAsync(sesion.SesionId, CancellationToken.None)).IsSuccess.Should().BeTrue();
+        }
+
+        var llave = await db.LlavesAdministrador.SingleAsync();
+        llave.Estado.Should().Be(EstadoLlaveAdministrador.Activa);
+        llave.FechaUltimoUso.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task LoginAsync_no_revoca_la_llave_si_un_intento_no_demuestra_la_usb()
+    {
+        var (sut, db, usuario, _, reloj) = await CreateSutConAdminAsync("Admin123");
+        var material = await RegistrarMaterialLlaveAsync(db, usuario, reloj);
+        var prueba = FirmarPrueba(material, usuario.NombreUsuario, reloj);
+        prueba.Firma = Convert.ToBase64String(new byte[64]);
+
+        var fallido = await sut.LoginAsync(new LoginRequest
+        {
+            Usuario = usuario.NombreUsuario,
+            Password = "Admin123",
+            PruebaLlave = prueba
+        }, CancellationToken.None);
+
+        fallido.IsSuccess.Should().BeFalse();
+        var llave = await db.LlavesAdministrador.SingleAsync();
+        llave.Estado.Should().Be(EstadoLlaveAdministrador.Activa);
+
+        var ok = await sut.LoginAsync(new LoginRequest
+        {
+            Usuario = usuario.NombreUsuario,
+            Password = "Admin123",
+            PruebaLlave = FirmarPrueba(material, usuario.NombreUsuario, reloj)
+        }, CancellationToken.None);
+        ok.IsSuccess.Should().BeTrue(ok.Message);
+    }
+
+    [Fact]
+    public async Task LoginAsync_acepta_la_llave_aunque_el_usuario_se_digite_con_otras_mayusculas()
+    {
+        var (sut, db, usuario, _, reloj) = await CreateSutConAdminAsync("Admin123");
+        var prueba = await RegistrarLlaveAsync(db, usuario, reloj, usuarioDigitado: "ADMIN");
+
+        var result = await sut.LoginAsync(new LoginRequest
+        {
+            Usuario = usuario.NombreUsuario,
+            Password = "Admin123",
+            PruebaLlave = prueba
+        }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue(result.Message);
+    }
+
+    [Fact]
     public async Task LoginAsync_marca_debe_cambiar_password_cuando_estado_validado()
     {
         var (sut, db, usuario, _, reloj) = await CreateSutConAdminAsync("Admin123", estadoValidado: true);
@@ -377,7 +447,20 @@ public sealed class AuthServiceTests
         return (sut, db, usuario, store, reloj);
     }
 
-    private static async Task<PruebaLlaveAdministradorRequest> RegistrarLlaveAsync(NewRichDbContext db, Usuario usuario, RelojFijo reloj)
+    private static async Task<PruebaLlaveAdministradorRequest> RegistrarLlaveAsync(
+        NewRichDbContext db,
+        Usuario usuario,
+        RelojFijo reloj,
+        string? usuarioDigitado = null)
+    {
+        var material = await RegistrarMaterialLlaveAsync(db, usuario, reloj);
+        return FirmarPrueba(material, usuarioDigitado ?? usuario.NombreUsuario, reloj);
+    }
+
+    private static async Task<MaterialLlaveUsb> RegistrarMaterialLlaveAsync(
+        NewRichDbContext db,
+        Usuario usuario,
+        RelojFijo reloj)
     {
         var material = LlaveUsbCriptografia.Generar("KEY-TEST01", "SERIE-A", "VOL-1");
         db.LlavesAdministrador.Add(new LlaveAdministrador
@@ -392,9 +475,14 @@ public sealed class AuthServiceTests
             FechaActivacion = reloj.UtcNow
         });
         await db.SaveChangesAsync();
+        return material;
+    }
+
+    private static PruebaLlaveAdministradorRequest FirmarPrueba(MaterialLlaveUsb material, string usuarioDigitado, RelojFijo reloj)
+    {
         LlaveUsbCriptografia.TryDesenvolver(material.SecretoEnvuelto, "SERIE-A", "VOL-1", out var privada).Should().BeTrue();
-        var unix = new DateTimeOffset(reloj.UtcNow).ToUnixTimeSeconds();
-        var payload = LlaveUsbCriptografia.PayloadLogin(material.Codigo, usuario.NombreUsuario, material.Huella, unix);
+        var unix = new DateTimeOffset(DateTime.SpecifyKind(reloj.UtcNow, DateTimeKind.Utc)).ToUnixTimeSeconds();
+        var payload = LlaveUsbCriptografia.PayloadLogin(material.Codigo, usuarioDigitado, material.Huella, unix);
         return new PruebaLlaveAdministradorRequest
         {
             Codigo = material.Codigo,
@@ -428,7 +516,8 @@ public sealed class AuthServiceTests
     private sealed class RelojFijo : IClock
     {
         public RelojFijo(DateTime utcNow) => UtcNow = utcNow;
-        public DateTime UtcNow { get; }
+        public DateTime UtcNow { get; private set; }
         public DateTime LocalNow => UtcNow;
+        public void Avanzar(TimeSpan cuanto) => UtcNow = UtcNow.Add(cuanto);
     }
 }

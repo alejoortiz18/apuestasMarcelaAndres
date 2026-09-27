@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Http.Features;
 using NewRich.Admin.Constants;
 using NewRich.Shared.Helpers;
 using NewRich.Admin.Filters;
@@ -6,8 +7,12 @@ using NewRich.Admin.Hubs;
 using NewRich.Admin.Services;
 using NewRich.Admin.Services.Pda;
 using NewRich.Admin.Services.Usb;
+using NewRich.Constants;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.WebHost.ConfigureKestrel(opciones => opciones.Limits.MaxRequestBodySize = VersionAplicacionLimites.TamanoMaximoBytes);
+builder.Services.Configure<FormOptions>(opciones => opciones.MultipartBodyLengthLimit = VersionAplicacionLimites.TamanoMaximoBytes);
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddControllersWithViews(options =>
