@@ -68,4 +68,15 @@ public sealed class IdentidadDispositivoTests
     {
         PdaConexion.ClaveCodigoProvisionado.Should().Be("newrich_codigo_dispositivo");
     }
+
+    [Fact]
+    public void El_archivo_interno_del_paquete_va_primero_porque_el_celular_no_lee_el_que_escribe_adb()
+    {
+        var rutas = PdaConexion.RutasArchivoIdentidad(@"C:\data\files", @"C:\sdcard\files");
+
+        rutas.Should().Equal(
+            @"C:\data\files\identidad.txt",
+            @"C:\sdcard\files\identidad.txt",
+            PdaConexion.RutaArchivoIdentidad);
+    }
 }

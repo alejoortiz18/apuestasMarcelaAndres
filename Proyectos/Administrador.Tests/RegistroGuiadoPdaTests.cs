@@ -18,6 +18,9 @@ public sealed class RegistroGuiadoPdaTests
 {
     private const string Serie = "TCDUAAVWV4KVGI8L";
     private const string CodigoGenerado = "PDA-4F2A9C10";
+    private const string ComandoInstalacionDirecta = $"-s {Serie} install -r -t -d --no-incremental C:\\apk\\NewRich.apk";
+    private const string ComandoIdentidadInterna = $"-s {Serie} shell run-as com.newrich.pda sh -c 'echo {CodigoGenerado} > files/identidad.txt'";
+    private const string ComandoSerieInterna = $"-s {Serie} shell run-as com.newrich.pda sh -c 'echo {Serie} > files/serie.txt'";
 
     [Fact]
     public async Task Verificar_confirma_el_equipo_listo_antes_de_continuar()
@@ -120,6 +123,73 @@ public sealed class RegistroGuiadoPdaTests
     }
 
     [Fact]
+    public async Task Si_el_equipo_rechaza_el_ajuste_global_el_registro_sigue_e_instala()
+    {
+        var adb = new AdbFalso().ConEquipoListo(Serie);
+        adb.Responder(
+            $"-s {Serie} shell settings put global newrich_codigo_dispositivo {CodigoGenerado}",
+            string.Empty,
+            255,
+            "SecurityException: Permission denial");
+        var sut = CrearServicio(adb, ApiQueRegistra().Object);
+
+        var resultado = await sut.RegistrarAsync(TipoDispositivo.Observador, Silencio(), CancellationToken.None);
+
+        resultado.Exitoso.Should().BeTrue();
+        resultado.Mensaje.Should().Be(UiTexts.PdaRegistroCompletado);
+        adb.Ejecutados.Should().Contain(c => c == ComandoInstalacionDirecta);
+        adb.Ejecutados.Should().Contain(c =>
+            c == ComandoIdentidadInterna);
+    }
+
+    [Fact]
+    public async Task Si_el_celular_bloquea_install_el_registro_copia_el_apk_y_usa_el_instalador_del_sistema()
+    {
+        var adb = new AdbFalso().ConEquipoListo(Serie);
+        adb.Responder(ComandoInstalacionDirecta, string.Empty, 1, "Failure [INSTALL_FAILED_USER_RESTRICTED: Install canceled by user]");
+        adb.Responder($"-s {Serie} push C:\\apk\\NewRich.apk {InstalacionApk.RutaTemporal}", "1 file pushed");
+        adb.Responder($"-s {Serie} shell pm install -r -t -d {InstalacionApk.RutaTemporal}", "Success");
+        var sut = CrearServicio(adb, ApiQueRegistra().Object);
+
+        var resultado = await sut.RegistrarAsync(TipoDispositivo.Observador, Silencio(), CancellationToken.None);
+
+        resultado.Exitoso.Should().BeTrue();
+        adb.Ejecutados.Should().Contain(c => c == $"-s {Serie} push C:\\apk\\NewRich.apk {InstalacionApk.RutaTemporal}");
+        adb.Ejecutados.Should().Contain(c => c == $"-s {Serie} shell pm install -r -t -d {InstalacionApk.RutaTemporal}");
+    }
+
+    [Fact]
+    public async Task Si_el_celular_tiene_otra_firma_desinstala_y_vuelve_a_instalar()
+    {
+        var adb = new AdbFalso().ConEquipoListo(Serie);
+        adb.Responder(ComandoInstalacionDirecta, string.Empty, 1, "Failure [INSTALL_FAILED_UPDATE_INCOMPATIBLE: Existing package signatures do not match]");
+        adb.ResponderSiguiente(ComandoInstalacionDirecta, "Success");
+        adb.Responder($"-s {Serie} uninstall com.newrich.pda", "Success");
+        var sut = CrearServicio(adb, ApiQueRegistra().Object);
+
+        var resultado = await sut.RegistrarAsync(TipoDispositivo.Observador, Silencio(), CancellationToken.None);
+
+        resultado.Exitoso.Should().BeTrue();
+        adb.Ejecutados.Should().Contain(c => c == $"-s {Serie} uninstall com.newrich.pda");
+        adb.Ejecutados.Count(c => c == ComandoInstalacionDirecta).Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Si_el_celular_tambien_bloquea_el_instalador_del_sistema_explica_el_permiso()
+    {
+        var adb = new AdbFalso().ConEquipoListo(Serie);
+        adb.Responder(ComandoInstalacionDirecta, string.Empty, 1, "Failure [INSTALL_FAILED_USER_RESTRICTED: Install canceled by user]");
+        adb.Responder($"-s {Serie} push C:\\apk\\NewRich.apk {InstalacionApk.RutaTemporal}", "1 file pushed");
+        adb.Responder($"-s {Serie} shell pm install -r -t -d {InstalacionApk.RutaTemporal}", string.Empty, 1, "Failure [INSTALL_FAILED_USER_RESTRICTED]");
+        var sut = CrearServicio(adb, ApiQueRegistra().Object);
+
+        var resultado = await sut.RegistrarAsync(TipoDispositivo.Observador, Silencio(), CancellationToken.None);
+
+        resultado.Exitoso.Should().BeFalse();
+        resultado.Mensaje.Should().Be(UiTexts.PdaFalloInstalacionCelular);
+    }
+
+    [Fact]
     public async Task El_registro_deja_el_codigo_en_un_archivo_que_la_aplicacion_puede_leer()
     {
         var sut = CrearServicio(out var adb, out _);
@@ -127,7 +197,25 @@ public sealed class RegistroGuiadoPdaTests
         var resultado = await sut.RegistrarAsync(TipoDispositivo.Vendedor, Silencio(), CancellationToken.None);
 
         resultado.Exitoso.Should().BeTrue();
-        adb.Ejecutados.Should().ContainSingle(c =>
+        adb.Ejecutados.Should().ContainSingle(c => c == ComandoIdentidadInterna);
+        adb.Ejecutados.Should().ContainSingle(c => c == ComandoSerieInterna);
+    }
+
+    [Fact]
+    public async Task Si_run_as_no_puede_escribir_deja_el_archivo_en_el_almacenamiento_externo()
+    {
+        var adb = new AdbFalso().ConEquipoListo(Serie);
+        adb.Responder(
+            ComandoIdentidadInterna,
+            string.Empty,
+            1,
+            "run-as: package not debuggable");
+        var sut = CrearServicio(adb, ApiQueRegistra().Object);
+
+        var resultado = await sut.RegistrarAsync(TipoDispositivo.Observador, Silencio(), CancellationToken.None);
+
+        resultado.Exitoso.Should().BeTrue();
+        adb.Ejecutados.Should().Contain(c =>
             c == $"-s {Serie} shell mkdir -p /sdcard/Android/data/com.newrich.pda/files; echo {CodigoGenerado} > /sdcard/Android/data/com.newrich.pda/files/identidad.txt");
     }
 
@@ -138,7 +226,7 @@ public sealed class RegistroGuiadoPdaTests
 
         await sut.RegistrarAsync(TipoDispositivo.Vendedor, Silencio(), CancellationToken.None);
 
-        adb.Ejecutados.Should().ContainSingle(c => c == $"-s {Serie} install -r C:\\apk\\NewRich.apk");
+        adb.Ejecutados.Should().ContainSingle(c => c == ComandoInstalacionDirecta);
     }
 
     [Fact]
@@ -293,7 +381,8 @@ public sealed class RegistroGuiadoPdaTests
     /// <summary>Doble de adb: guarda cada comando y devuelve respuestas preparadas.</summary>
     private sealed class AdbFalso : IAdb
     {
-        private readonly Dictionary<string, AdbResultado> _respuestas = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, List<AdbResultado>> _respuestas = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, int> _usos = new(StringComparer.Ordinal);
 
         public List<string> Ejecutados { get; } = [];
 
@@ -302,23 +391,40 @@ public sealed class RegistroGuiadoPdaTests
             Responder("devices -l", $"List of devices attached\n{serie}\tdevice product:RMX3710 model:RMX3710 transport_id:1\n");
             Responder($"-s {serie} shell getprop ro.product.model", "RMX3710");
             Responder($"-s {serie} shell settings put global newrich_codigo_dispositivo {CodigoGenerado}", string.Empty);
-            Responder($"-s {serie} install -r C:\\apk\\NewRich.apk", "Success");
+            Responder($"-s {serie} install -r -t -d --no-incremental C:\\apk\\NewRich.apk", "Success");
             Responder($"-s {serie} shell pm path com.newrich.pda", "package:/data/app/com.newrich.pda/base.apk");
+            Responder($"-s {serie} shell run-as com.newrich.pda sh -c 'echo {CodigoGenerado} > files/identidad.txt'", string.Empty);
+            Responder($"-s {serie} shell run-as com.newrich.pda sh -c 'echo {serie} > files/serie.txt'", string.Empty);
             Responder($"-s {serie} shell mkdir -p /sdcard/Android/data/com.newrich.pda/files; echo {CodigoGenerado} > /sdcard/Android/data/com.newrich.pda/files/identidad.txt", string.Empty);
             Responder($"-s {serie} reverse tcp:5295 tcp:5295", string.Empty);
             return this;
         }
 
-        public void Responder(string comando, string salida) =>
-            _respuestas[comando] = new AdbResultado(0, salida, string.Empty);
+        public void Responder(string comando, string salida, int codigo = 0, string error = "") =>
+            _respuestas[comando] = [new AdbResultado(codigo, salida, error)];
+
+        public void ResponderSiguiente(string comando, string salida, int codigo = 0, string error = "")
+        {
+            if (!_respuestas.ContainsKey(comando))
+            {
+                _respuestas[comando] = [];
+            }
+
+            _respuestas[comando].Add(new AdbResultado(codigo, salida, error));
+        }
 
         public Task<AdbResultado> EjecutarAsync(IReadOnlyList<string> argumentos, CancellationToken cancellationToken)
         {
             var comando = string.Join(" ", argumentos);
             Ejecutados.Add(comando);
-            return Task.FromResult(_respuestas.TryGetValue(comando, out var resultado)
-                ? resultado
-                : new AdbResultado(1, string.Empty, $"Comando sin respuesta preparada: {comando}"));
+            if (!_respuestas.TryGetValue(comando, out var lista) || lista.Count == 0)
+            {
+                return Task.FromResult(new AdbResultado(1, string.Empty, $"Comando sin respuesta preparada: {comando}"));
+            }
+
+            var indice = _usos.GetValueOrDefault(comando);
+            _usos[comando] = indice + 1;
+            return Task.FromResult(lista[Math.Min(indice, lista.Count - 1)]);
         }
     }
 }

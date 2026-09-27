@@ -4,6 +4,7 @@ $dotnet = "C:\Program Files\dotnet\dotnet.exe"
 $csproj = "D:\Proyectos\NewRich\apuestasMarcelaAndres\Proyectos\Administrador\NewRich.Admin.csproj"
 $staging = "D:\Proyectos\NewRich\apuestasMarcelaAndres\Proyectos\Administrador\bin\publish-iis"
 $dest = "C:\inetpub\rich"
+$claves = "C:\inetpub\rich-keys"
 $siteName = "rich"
 $poolName = "rich"
 $port = 8080
@@ -38,6 +39,9 @@ if (-not (Test-Path (Join-Path $staging "web.config"))) {
 
 Write-Log "Asegurando carpeta destino $dest"
 New-Item -ItemType Directory -Path $dest -Force | Out-Null
+Write-Log "Asegurando carpeta de claves $claves"
+New-Item -ItemType Directory -Path $claves -Force | Out-Null
+& icacls.exe $claves /grant "IIS APPPOOL\${poolName}:(OI)(CI)M" /C | Out-Null
 
 $poolExists = $false
 $siteExists = $false

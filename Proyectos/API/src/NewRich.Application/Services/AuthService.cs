@@ -80,14 +80,12 @@ public sealed class AuthService : IAuthService
         Guid? dispositivoId = null;
         if (usuario.Rol is RolUsuario.Vendedor or RolUsuario.Observador)
         {
-            if (string.IsNullOrWhiteSpace(request.CodigoDispositivo))
+            if (string.IsNullOrWhiteSpace(request.CodigoDispositivo) && string.IsNullOrWhiteSpace(request.NumeroSerie))
             {
-                return Result<LoginResponse>.Fail(AuthMessages.DispositivoNoRegistrado, 403);
+                return Result<LoginResponse>.Fail(AuthMessages.DispositivoSinIdentidad, 403);
             }
 
-            var dispositivo = await _db.Dispositivos
-                .FirstOrDefaultAsync(d => d.CodigoDispositivo == request.CodigoDispositivo, cancellationToken);
-
+            var dispositivo = await BuscarDispositivoAsync(request, cancellationToken);
             if (dispositivo is null)
             {
                 return Result<LoginResponse>.Fail(AuthMessages.DispositivoNoRegistrado, 403);
@@ -231,6 +229,29 @@ public sealed class AuthService : IAuthService
             DispositivoId = sesion.DispositivoId,
             FechaExpiracion = sesion.FechaExpiracion
         }, SuccessMessages.PasswordCambiado);
+    }
+
+    private async Task<Dispositivo?> BuscarDispositivoAsync(LoginRequest request, CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrWhiteSpace(request.CodigoDispositivo))
+        {
+            var codigo = request.CodigoDispositivo.Trim();
+            var porCodigo = await _db.Dispositivos
+                .FirstOrDefaultAsync(d => d.CodigoDispositivo == codigo, cancellationToken);
+            if (porCodigo is not null)
+            {
+                return porCodigo;
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(request.NumeroSerie))
+        {
+            return null;
+        }
+
+        var serie = request.NumeroSerie.Trim();
+        return await _db.Dispositivos
+            .FirstOrDefaultAsync(d => d.NumeroSerie == serie, cancellationToken);
     }
 
     public async Task<Result> LogoutAsync(Guid sesionId, CancellationToken cancellationToken)

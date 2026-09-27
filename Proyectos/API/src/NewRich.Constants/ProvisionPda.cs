@@ -14,6 +14,7 @@ public static class ProvisionPda
     /// leer un ajuste global propio, asi que el registro tambien deja el codigo aqui.
     /// </summary>
     public const string ArchivoIdentidad = "identidad.txt";
+    public const string ArchivoSerie = "serie.txt";
 
     /// <summary>Ruta que adb escribe y la aplicacion lee despues de instalarse.</summary>
     public const string RutaArchivoIdentidad = "/sdcard/Android/data/" + Paquete + "/files/" + ArchivoIdentidad;

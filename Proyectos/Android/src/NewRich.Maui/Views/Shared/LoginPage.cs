@@ -267,6 +267,7 @@ public sealed class LoginPage : ContentPage
                 return;
             }
 
+            MauiProgram.RecargarIdentidad();
             var resultado = await _api.LoginAsync(
                 PdaConexion.Login(_usuario.Text?.Trim() ?? string.Empty, _password.Text ?? string.Empty),
                 CancellationToken.None);

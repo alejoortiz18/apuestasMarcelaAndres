@@ -27,10 +27,7 @@ public static class MauiProgram
 #endif
 
         builder.Services.AddSingleton<SesionPda>();
-        PdaConexion.CodigoDispositivo = PdaConexion.DesdeFuentes(
-            LeerArchivoIdentidad(),
-            LeerAjusteGlobal(),
-            DeviceInfo.Current.Model);
+        RecargarIdentidad();
         builder.Services.AddSingleton<ApiOpciones>(_ => new ApiOpciones
         {
             BaseUrl = PdaConexion.BaseUrl(DeviceInfo.Current.DeviceType == DeviceType.Virtual)
@@ -81,6 +78,15 @@ public static class MauiProgram
         return builder.Build();
     }
 
+    public static void RecargarIdentidad()
+    {
+        PdaConexion.CodigoDispositivo = PdaConexion.DesdeFuentes(
+            LeerArchivoIdentidad(),
+            LeerAjusteGlobal(),
+            DeviceInfo.Current.Model);
+        PdaConexion.NumeroSerie = LeerArchivoSerie();
+    }
+
     /// <summary>
     /// Identidad que el registro deja en el almacenamiento del paquete. En Android 14 la
     /// aplicación no puede leer el ajuste global donde también se intenta grabar.
@@ -90,19 +96,15 @@ public static class MauiProgram
 #if ANDROID
         try
         {
-            var externas = global::Android.App.Application.Context?.GetExternalFilesDir(null)?.AbsolutePath;
-            var rutas = new List<string>();
-            if (!string.IsNullOrWhiteSpace(externas))
+            var contexto = global::Android.App.Application.Context;
+            var internas = contexto?.FilesDir?.AbsolutePath;
+            var externas = contexto?.GetExternalFilesDir(null)?.AbsolutePath;
+            foreach (var ruta in PdaConexion.RutasArchivoIdentidad(internas, externas))
             {
-                rutas.Add(Path.Combine(externas, PdaConexion.ArchivoIdentidad));
-            }
-
-            rutas.Add(PdaConexion.RutaArchivoIdentidad);
-            foreach (var ruta in rutas)
-            {
-                if (File.Exists(ruta))
+                var texto = LeerSiExiste(ruta);
+                if (texto is not null)
                 {
-                    return File.ReadAllText(ruta);
+                    return texto;
                 }
             }
         }
@@ -130,5 +132,42 @@ public static class MauiProgram
 #else
         return null;
 #endif
+    }
+
+    private static string? LeerArchivoSerie()
+    {
+#if ANDROID
+        try
+        {
+            var contexto = global::Android.App.Application.Context;
+            foreach (var ruta in PdaConexion.RutasArchivoSerie(
+                contexto?.FilesDir?.AbsolutePath,
+                contexto?.GetExternalFilesDir(null)?.AbsolutePath))
+            {
+                var texto = LeerSiExiste(ruta);
+                if (!string.IsNullOrWhiteSpace(texto))
+                {
+                    return texto.Trim();
+                }
+            }
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+#endif
+        return null;
+    }
+
+    private static string? LeerSiExiste(string ruta)
+    {
+        try
+        {
+            return File.Exists(ruta) ? File.ReadAllText(ruta) : null;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
     }
 }

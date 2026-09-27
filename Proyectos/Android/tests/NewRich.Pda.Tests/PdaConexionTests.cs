@@ -21,6 +21,7 @@ public sealed class PdaConexionTests
         request.Usuario.Should().Be("alejitoo");
         request.CodigoDispositivo.Should().Be(PdaConexion.CodigoDispositivo);
         request.CodigoDispositivo.Should().NotBeNullOrWhiteSpace();
+        request.NumeroSerie.Should().Be(PdaConexion.NumeroSerie);
     }
 
     [Fact]

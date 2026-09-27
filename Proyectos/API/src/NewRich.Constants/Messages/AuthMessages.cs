@@ -14,6 +14,7 @@ public static class AuthMessages
     public const string PasswordNuevoIgualActual = "La nueva contraseña no puede ser igual a la contraseña actual.";
     public const string PasswordConfirmacionNoCoincide = "La nueva contraseña y su confirmación no coinciden.";
 
+    public const string DispositivoSinIdentidad = "Este equipo no tiene identificación. Regístrelo otra vez desde el administrador.";
     public const string DispositivoNoRegistrado = "El dispositivo no está registrado en el sistema.";
     public const string DispositivoInactivo = "El dispositivo se encuentra inactivo.";
     public const string DispositivoNoAsociado = "El dispositivo no está asociado al usuario.";

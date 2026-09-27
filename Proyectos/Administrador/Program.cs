@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection;
 using NewRich.Admin.Constants;
 using NewRich.Shared.Helpers;
 using NewRich.Admin.Filters;
@@ -26,6 +27,17 @@ builder.Services.AddAuthentication(AuthCookieNames.Scheme)
         options.Cookie.SameSite = SameSiteMode.Lax;
     });
 builder.Services.AddAuthorization();
+
+var carpetaClaves = ClavesProteccionDatos.Resolver(
+    builder.Configuration["DataProtection:KeysPath"],
+    builder.Environment.IsDevelopment());
+if (!string.IsNullOrWhiteSpace(carpetaClaves))
+{
+    Directory.CreateDirectory(carpetaClaves);
+    builder.Services.AddDataProtection()
+        .PersistKeysToFileSystem(new DirectoryInfo(carpetaClaves))
+        .SetApplicationName("NewRich.Admin");
+}
 
 var apiBase = builder.Configuration["Api:BaseUrl"] ?? "https://api-ventas-prod-ffh4dmdhgpcsapda.westus3-01.azurewebsites.net/";
 builder.Services.AddHttpClient<IAdminApiClient, AdminApiClient>(client =>

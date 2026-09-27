@@ -115,18 +115,16 @@ public sealed class RegistroPdaService : IRegistroPdaService
         }
 
         await avance.ReportarAsync(new AvanceRegistroPda(60, UiTexts.PdaProgresoRegistrando), cancellationToken);
-        var identidad = await EjecutarAsync(dispositivo, cancellationToken,
+        // HyperOS y Android 14+ niegan WRITE_SECURE_SETTINGS al shell, así que este ajuste
+        // puede fallar. La aplicación lee el archivo de identidad; el ajuste solo se intenta.
+        await EjecutarAsync(dispositivo, cancellationToken,
             "shell", "settings", "put", "global", ProvisionPda.ClaveCodigoDispositivo, registro.Data.CodigoDispositivo);
-        if (!identidad.Exitoso)
-        {
-            return new ResultadoRegistroPda(false, UiTexts.PdaFalloGrabarIdentidad, modeloEquipo);
-        }
 
         await avance.ReportarAsync(new AvanceRegistroPda(75, UiTexts.PdaProgresoInstalando), cancellationToken);
-        var instalacion = await EjecutarAsync(dispositivo, cancellationToken, "install", "-r", rutaApk);
+        var instalacion = await InstalarAsync(dispositivo, rutaApk, cancellationToken);
         if (!instalacion.Exitoso)
         {
-            return new ResultadoRegistroPda(false, UiTexts.PdaFalloInstalacion, modeloEquipo);
+            return new ResultadoRegistroPda(false, InstalacionApk.MensajeFallo(instalacion), modeloEquipo);
         }
 
         await avance.ReportarAsync(new AvanceRegistroPda(90, UiTexts.PdaProgresoVerificando), cancellationToken);
@@ -143,11 +141,20 @@ public sealed class RegistroPdaService : IRegistroPdaService
             return new ResultadoRegistroPda(false, UiTexts.PdaFalloGrabarIdentidad, modeloEquipo);
         }
 
-        var archivo = await EjecutarAsync(dispositivo, cancellationToken, "shell", ComandoArchivoIdentidad(registro.Data.CodigoDispositivo));
-        if (!archivo.Exitoso)
+        var interna = await EjecutarAsync(dispositivo, cancellationToken,
+            InstalacionApk.ArgumentosIdentidadInterna(registro.Data.CodigoDispositivo));
+        if (!interna.Exitoso)
         {
-            return new ResultadoRegistroPda(false, UiTexts.PdaFalloGrabarIdentidad, modeloEquipo);
+            var externa = await EjecutarAsync(dispositivo, cancellationToken,
+                "shell", InstalacionApk.ComandoIdentidadExterna(registro.Data.CodigoDispositivo));
+            if (!externa.Exitoso)
+            {
+                return new ResultadoRegistroPda(false, UiTexts.PdaFalloGrabarIdentidad, modeloEquipo);
+            }
         }
+
+        await EjecutarAsync(dispositivo, cancellationToken,
+            InstalacionApk.ArgumentosSerieInterna(dispositivo.NumeroSerie));
 
         // El puente USB permite que la aplicacion alcance la API mientras el equipo sigue conectado.
         // Si no queda disponible la aplicacion usa la red local, asi que no detiene el registro.
@@ -187,6 +194,38 @@ public sealed class RegistroPdaService : IRegistroPdaService
         };
     }
 
+    private async Task<AdbResultado> InstalarAsync(DispositivoAdb dispositivo, string rutaApk, CancellationToken cancellationToken)
+    {
+        var directa = await EjecutarAsync(dispositivo, cancellationToken, InstalacionApk.ArgumentosDirectos(rutaApk));
+        if (directa.Exitoso)
+        {
+            return directa;
+        }
+
+        if (InstalacionApk.DebeReemplazarPaquete(directa))
+        {
+            await EjecutarAsync(dispositivo, cancellationToken, InstalacionApk.ArgumentosDesinstalar(_opciones.Paquete));
+            directa = await EjecutarAsync(dispositivo, cancellationToken, InstalacionApk.ArgumentosDirectos(rutaApk));
+            if (directa.Exitoso)
+            {
+                return directa;
+            }
+        }
+
+        if (!InstalacionApk.DebeReintentarComoCelular(directa))
+        {
+            return directa;
+        }
+
+        var copia = await EjecutarAsync(dispositivo, cancellationToken, InstalacionApk.ArgumentosCopia(rutaApk));
+        if (!copia.Exitoso)
+        {
+            return directa;
+        }
+
+        return await EjecutarAsync(dispositivo, cancellationToken, InstalacionApk.ArgumentosSistema());
+    }
+
     private Task<AdbResultado> EjecutarAsync(DispositivoAdb dispositivo, CancellationToken cancellationToken, params string[] argumentos) =>
         _adb.EjecutarAsync(["-s", dispositivo.NumeroSerie, .. argumentos], cancellationToken);
 
@@ -200,9 +239,4 @@ public sealed class RegistroPdaService : IRegistroPdaService
         codigo.Length is > 0 and <= ProvisionPda.LargoMaximoCodigo
         && codigo.All(c => char.IsAsciiLetterOrDigit(c) || c == '-');
 
-    private static string ComandoArchivoIdentidad(string codigo)
-    {
-        var directorio = "/sdcard/Android/data/" + ProvisionPda.Paquete + "/files";
-        return $"mkdir -p {directorio}; echo {codigo} > {directorio}/{ProvisionPda.ArchivoIdentidad}";
-    }
 }

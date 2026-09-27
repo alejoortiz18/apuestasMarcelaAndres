@@ -1,9 +1,30 @@
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using NewRich.Admin.Constants;
 using NewRich.Admin.Services;
 
 namespace NewRich.Admin.Filters;
+
+/// <summary>
+/// El ingreso valida el formulario, pero un token de una publicación anterior no debe
+/// dejar la pantalla en blanco con HTTP 400. Vuelve a mostrar el ingreso.
+/// </summary>
+public sealed class ValidarFormularioIngresoAttribute : Attribute, IAsyncAuthorizationFilter
+{
+    public async Task OnAuthorizationAsync(AuthorizationFilterContext context)
+    {
+        var antiforgery = context.HttpContext.RequestServices.GetRequiredService<IAntiforgery>();
+        try
+        {
+            await antiforgery.ValidateRequestAsync(context.HttpContext);
+        }
+        catch (AntiforgeryValidationException)
+        {
+            context.Result = new RedirectToActionResult("Ingresar", "Cuenta", null);
+        }
+    }
+}
 
 public sealed class DebeCambiarPasswordFilter : IAsyncActionFilter
 {

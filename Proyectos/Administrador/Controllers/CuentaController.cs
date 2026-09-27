@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NewRich.Admin.Constants;
+using NewRich.Admin.Filters;
 using NewRich.Admin.Models;
 using NewRich.Admin.Services;
 using NewRich.Admin.Services.Usb;
@@ -52,7 +53,7 @@ public sealed class CuentaController : Controller
 
     [HttpPost]
     [AllowAnonymous]
-    [ValidateAntiForgeryToken]
+    [ValidarFormularioIngreso]
     public async Task<IActionResult> Ingresar(LoginViewModel model, CancellationToken cancellationToken)
     {
         model.Discos = _inventario.Listar();

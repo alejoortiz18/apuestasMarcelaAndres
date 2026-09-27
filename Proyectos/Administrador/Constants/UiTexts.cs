@@ -265,6 +265,8 @@ public static class UiTexts
     public const string PdaFalloValidacion = "No fue posible leer la configuración del dispositivo. Verifique que la depuración USB siga autorizada.";
     public const string PdaFalloGrabarIdentidad = "No fue posible guardar la identificación en el dispositivo.";
     public const string PdaFalloInstalacion = "No fue posible instalar la aplicación en el dispositivo.";
+    public const string PdaFalloInstalacionCelular = "El celular bloqueó la instalación por USB. En Opciones de desarrollador active Depuración USB (ajustes de seguridad) e Instalar vía USB. Si aparece un aviso, pulse Permitir.";
+    public const string RegistroPdaInstruccion9 = "En un celular active también Depuración USB (ajustes de seguridad) e Instalar vía USB. Si pide permiso, pulse Permitir.";
     public const string PdaInstalacionNoVerificada = "La aplicación no quedó instalada en el dispositivo.";
     public const string PdaRegistroEnCurso = "Ya hay un registro de PDA en curso. Espere a que termine.";
     public const string PdaErrorComunicacion = "No fue posible completar la operación. Actualice la página e intente de nuevo.";

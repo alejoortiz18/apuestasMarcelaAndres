@@ -16,6 +16,38 @@ namespace NewRich.UnitTests;
 public sealed class AuthServiceTests
 {
     [Fact]
+    public async Task LoginAsync_observador_entra_por_serie_si_el_codigo_del_celular_quedo_desfasado()
+    {
+        var (sut, _, usuario) = await CreateSutConObservadorAsync("Obs12345!", "PDA-8279866F", "a6hy7l99cizhlbtw");
+
+        var result = await sut.LoginAsync(new LoginRequest
+        {
+            Usuario = usuario.NombreUsuario,
+            Password = "Obs12345!",
+            CodigoDispositivo = "PDA-459E606E",
+            NumeroSerie = "a6hy7l99cizhlbtw"
+        }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Rol.Should().Be(RolUsuario.Observador);
+    }
+
+    [Fact]
+    public async Task LoginAsync_observador_sin_identidad_lo_explica_distinto_a_no_registrado()
+    {
+        var (sut, _, usuario) = await CreateSutConObservadorAsync("Obs12345!", "PDA-8279866F", "a6hy7l99cizhlbtw");
+
+        var result = await sut.LoginAsync(new LoginRequest
+        {
+            Usuario = usuario.NombreUsuario,
+            Password = "Obs12345!"
+        }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Message.Should().Be(AuthMessages.DispositivoSinIdentidad);
+    }
+
+    [Fact]
     public async Task LoginAsync_super_ingresa_sin_llave_usb()
     {
         var options = new DbContextOptionsBuilder<NewRichDbContext>()
@@ -267,6 +299,52 @@ public sealed class AuthServiceTests
         store.Consumir(result.Data!.Token, usuario.UsuarioId, AccionesProtegidas.PdaBloquear).Should().BeTrue();
         store.Consumir(result.Data.Token, usuario.UsuarioId, AccionesProtegidas.PdaBloquear).Should().BeTrue();
         store.Consumir(result.Data.Token, usuario.UsuarioId, AccionesProtegidas.PdaBloquear).Should().BeFalse();
+    }
+
+    private static async Task<(AuthService Sut, NewRichDbContext Db, Usuario Usuario)> CreateSutConObservadorAsync(
+        string password,
+        string codigoDispositivo,
+        string numeroSerie)
+    {
+        var options = new DbContextOptionsBuilder<NewRichDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+        var db = new NewRichDbContext(options);
+        var hasher = new Pbkdf2PasswordHasher();
+        var hashed = hasher.Hash(password);
+        var dispositivo = new Dispositivo
+        {
+            DispositivoId = Guid.NewGuid(),
+            CodigoDispositivo = codigoDispositivo,
+            Tipo = TipoDispositivo.Observador,
+            Estado = EstadoGeneral.Activo,
+            Modelo = "2510DRA23L",
+            NumeroSerie = numeroSerie,
+            FechaRegistro = DateTime.UtcNow
+        };
+        var usuario = new Usuario
+        {
+            UsuarioId = Guid.NewGuid(),
+            NombreCompleto = "Observador",
+            NombreUsuario = "observador",
+            PasswordHash = hashed.Hash,
+            PasswordSalt = hashed.Salt,
+            Rol = RolUsuario.Observador,
+            Estado = EstadoUsuario.Activo,
+            FechaCreacion = DateTime.UtcNow
+        };
+        db.Dispositivos.Add(dispositivo);
+        db.Usuarios.Add(usuario);
+        db.DispositivosUsuarios.Add(new DispositivoUsuario
+        {
+            DispositivoId = dispositivo.DispositivoId,
+            UsuarioId = usuario.UsuarioId,
+            FechaAsociacion = DateTime.UtcNow,
+            Activo = true
+        });
+        await db.SaveChangesAsync();
+        var sut = new AuthService(db, hasher, new JwtFalso(), new RelojFijo(new DateTime(2026, 9, 19, 20, 0, 0, DateTimeKind.Utc)), new ConfirmacionAccionMemoria());
+        return (sut, db, usuario);
     }
 
     private static async Task<(AuthService Sut, NewRichDbContext Db, Usuario Usuario, ConfirmacionAccionMemoria Store, RelojFijo Reloj)> CreateSutConAdminAsync(
