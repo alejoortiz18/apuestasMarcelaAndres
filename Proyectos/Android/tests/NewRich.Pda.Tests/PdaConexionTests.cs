@@ -25,12 +25,13 @@ public sealed class PdaConexionTests
     }
 
     [Fact]
-    public void Dispositivo_fisico_y_emulador_usan_el_api_de_produccion()
+    public void Dispositivo_fisico_y_emulador_usan_el_api_local()
     {
-        PdaConexion.BaseUrl(emulador: false).Should().Be(PdaConexion.UrlProduccion);
-        PdaConexion.BaseUrl(emulador: true).Should().Be(PdaConexion.UrlProduccion);
-        PdaConexion.UrlsPara(emulador: false).Should().Equal(PdaConexion.UrlProduccion);
-        PdaConexion.UrlsPara(emulador: true).Should().Equal(PdaConexion.UrlProduccion);
+        PdaConexion.UrlLocal.Should().Be("http://192.168.1.29:5295/");
+        PdaConexion.BaseUrl(emulador: false).Should().Be(PdaConexion.UrlLocal);
+        PdaConexion.BaseUrl(emulador: true).Should().Be(PdaConexion.UrlLocal);
+        PdaConexion.UrlsPara(emulador: false).Should().Equal(PdaConexion.UrlLocal);
+        PdaConexion.UrlsPara(emulador: true).Should().Equal(PdaConexion.UrlLocal);
     }
 
     [Fact]

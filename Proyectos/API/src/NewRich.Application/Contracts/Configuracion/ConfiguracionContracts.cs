@@ -24,6 +24,8 @@ public sealed class ConfiguracionOperativaResponse
     public int AlertaRepeticionNumero { get; set; } = 10;
     public int AlertaValorMinimo { get; set; } = 10000;
     public int CodigosOfflineCapacidad { get; set; } = 3000;
+    public int MesesMaximosRetencion { get; set; } = 6;
+    public int MesesAEliminar { get; set; } = 1;
     public bool ReposicionDiariaOffline { get; set; } = true;
     public bool PermitirJuegosOffline { get; set; } = true;
     public string SincronizacionModo { get; set; } = "Manual";
@@ -54,6 +56,7 @@ public sealed record GuardarConfiguracionOperativaRequest
     public int AlertaRepeticionNumero { get; init; }
     public int AlertaValorMinimo { get; init; }
     public int CodigosOfflineCapacidad { get; init; }
+    public int MesesAEliminar { get; init; } = 1;
     public bool ReposicionDiariaOffline { get; init; } = true;
     public bool PermitirJuegosOffline { get; init; } = true;
     public string SincronizacionModo { get; init; } = string.Empty;

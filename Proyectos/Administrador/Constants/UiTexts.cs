@@ -498,6 +498,11 @@ public static class UiTexts
     public const string ConfigApuestas = "Límites de apuesta";
     public const string ConfigAlertas = "Alertas de jugada";
     public const string ConfigOffline = "Códigos offline";
+    public const string ConfigRetencion = "Retención de históricos";
+    public const string MesesMaximosRetencion = "Meses máximos de retención";
+    public const string MesesMaximosRetencionAyuda = "Valor fijo. No se puede modificar.";
+    public const string MesesAEliminar = "Meses a eliminar";
+    public const string MesesAEliminarAyuda = "Se conservan como máximo 6 meses. Cuando corresponde depurar, se eliminan 1, 2 o 3 meses calendario completos, empezando por el más antiguo. Nunca se eliminan el mes en curso ni los dos meses anteriores.";
     public const string HoraAperturaPda = "Hora de apertura del PDA";
     public const string HoraAperturaPdaAyuda = "Desde esta hora el PDA puede vender. No puede ser igual a la hora de cierre.";
     public const string HoraCierrePda = "Hora de cierre o desconexión del PDA";

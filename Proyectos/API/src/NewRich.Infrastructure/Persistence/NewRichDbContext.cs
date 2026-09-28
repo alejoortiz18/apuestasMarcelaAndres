@@ -1,4 +1,6 @@
+using System.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NewRich.Application.Abstractions;
 using NewRich.Domain.Entities;
@@ -43,6 +45,47 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
     public DbSet<EvidenciaGanador> EvidenciasGanador => Set<EvidenciaGanador>();
     public DbSet<LlaveAdministrador> LlavesAdministrador => Set<LlaveAdministrador>();
     public DbSet<VersionAplicacion> VersionesAplicacion => Set<VersionAplicacion>();
+    public DbSet<AuditoriaRetencion> AuditoriasRetencion => Set<AuditoriaRetencion>();
+
+    public async Task AsegurarEsquemaRetencionAsync(CancellationToken cancellationToken = default)
+    {
+        if (!Database.IsRelational())
+        {
+            return;
+        }
+
+        await Database.ExecuteSqlRawAsync(EsquemaAuditoriaRetencion, cancellationToken);
+    }
+
+    public async Task<bool> IntentarBloquearRetencionAsync(CancellationToken cancellationToken = default)
+    {
+        if (!Database.IsRelational())
+        {
+            return true;
+        }
+
+        var conexion = Database.GetDbConnection();
+        if (conexion.State != ConnectionState.Open)
+        {
+            await conexion.OpenAsync(cancellationToken);
+        }
+
+        await using var comando = conexion.CreateCommand();
+        comando.Transaction = Database.CurrentTransaction?.GetDbTransaction();
+        comando.CommandText = """
+            DECLARE @resultado int;
+            EXEC @resultado = sp_getapplock
+                @Resource = N'RetencionHistorica',
+                @LockMode = N'Exclusive',
+                @LockOwner = N'Transaction',
+                @LockTimeout = 0;
+            SELECT @resultado;
+            """;
+        var escalar = await comando.ExecuteScalarAsync(cancellationToken);
+        return escalar is not null && Convert.ToInt32(escalar) >= 0;
+    }
+
+    public void DescartarCambios() => ChangeTracker.Clear();
 
     public async Task ExecuteInTransactionAsync(Func<CancellationToken, Task> action, CancellationToken cancellationToken = default)
     {
@@ -349,7 +392,40 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
             e.Property(x => x.NombreArchivo).HasMaxLength(32);
             e.HasIndex(x => x.NumeroCompilacion).IsUnique();
         });
+
+        modelBuilder.Entity<AuditoriaRetencion>(e =>
+        {
+            e.ToTable("AuditoriaRetencion");
+            e.HasKey(x => x.AuditoriaRetencionId);
+            e.Property(x => x.PeriodosEvaluados).HasMaxLength(200);
+            e.Property(x => x.PeriodosEliminados).HasMaxLength(200);
+            e.Property(x => x.Resultado).HasMaxLength(20);
+            e.Property(x => x.MensajeError).HasMaxLength(500);
+            e.HasIndex(x => x.FechaEjecucionUtc);
+        });
     }
+
+    private const string EsquemaAuditoriaRetencion = """
+        IF OBJECT_ID(N'dbo.AuditoriaRetencion', N'U') IS NULL
+        BEGIN
+            CREATE TABLE dbo.AuditoriaRetencion (
+                AuditoriaRetencionId UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
+                FechaEjecucionUtc     DATETIME2        NOT NULL,
+                MesesMaximos          INT              NOT NULL,
+                MesesAEliminar        INT              NULL,
+                PeriodosEvaluados     NVARCHAR(200)    NOT NULL,
+                PeriodosEliminados    NVARCHAR(200)    NOT NULL,
+                VentasEliminadas      INT              NOT NULL,
+                PremiosEliminados     INT              NOT NULL,
+                PagosEliminados       INT              NOT NULL,
+                JuegosEliminados      INT              NOT NULL,
+                Resultado             NVARCHAR(20)     NOT NULL,
+                MensajeError          NVARCHAR(500)    NULL,
+                CONSTRAINT PK_AuditoriaRetencion PRIMARY KEY (AuditoriaRetencionId)
+            );
+            CREATE INDEX IX_AuditoriaRetencion_FechaEjecucionUtc ON dbo.AuditoriaRetencion(FechaEjecucionUtc);
+        END
+        """;
 
     private static string EstadoBoletoToString(EstadoBoleto value) => value switch
     {
