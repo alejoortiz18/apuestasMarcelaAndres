@@ -316,6 +316,10 @@ public sealed class ConfiguracionOperativaFormViewModel
     [Range(1, int.MaxValue, ErrorMessage = ValidationMessages.CapacidadCodigosOfflineRango)]
     public int CodigosOfflineCapacidad { get; set; } = 3000;
 
+    [Display(Name = UiTexts.MesesAEliminar)]
+    [Range(1, 3, ErrorMessage = ConfiguracionMessages.MesesAEliminarInvalidos)]
+    public int MesesAEliminar { get; set; } = 1;
+
     [Display(Name = UiTexts.ReposicionDiariaOffline)]
     public bool ReposicionDiariaOffline { get; set; } = true;
 

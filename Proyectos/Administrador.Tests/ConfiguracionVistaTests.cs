@@ -62,6 +62,25 @@ public sealed class ConfiguracionVistaTests
         UiTexts.MaxJuegosCombinado.Should().Be("Juegos máximos en modo combo");
     }
 
+    [Fact]
+    public void La_retencion_queda_junto_a_codigos_offline()
+    {
+        var vista = File.ReadAllText(RutaVista());
+        var offline = vista.IndexOf("ConfigOffline", StringComparison.Ordinal);
+        var retencion = vista.IndexOf("ConfigRetencion", StringComparison.Ordinal);
+        var tirilla = vista.IndexOf("ConfigTirilla", StringComparison.Ordinal);
+
+        offline.Should().BePositive();
+        retencion.Should().BeGreaterThan(offline);
+        tirilla.Should().BeGreaterThan(retencion);
+        vista.Should().Contain("meses-maximos-retencion");
+        vista.Should().Contain("readonly disabled");
+        vista.Should().Contain("Form.MesesAEliminar");
+        vista.Should().NotContain("días a eliminar");
+        UiTexts.ConfigRetencion.Should().Be("Retención de históricos");
+        UiTexts.MesesAEliminar.Should().Be("Meses a eliminar");
+    }
+
     private static string RutaVista()
     {
         var ruta = Path.GetFullPath(Path.Combine(

@@ -34,6 +34,8 @@ public sealed class ConfiguracionServiceTests
         result.Data.AlertaRepeticionNumero.Should().Be(10);
         result.Data.AlertaValorMinimo.Should().Be(10000);
         result.Data.CodigosOfflineCapacidad.Should().Be(3000);
+        result.Data.MesesMaximosRetencion.Should().Be(6);
+        result.Data.MesesAEliminar.Should().Be(1);
         result.Data.ReposicionDiariaOffline.Should().BeTrue();
         result.Data.PermitirJuegosOffline.Should().BeTrue();
         result.Data.SincronizacionModo.Should().Be("Manual");
@@ -41,7 +43,7 @@ public sealed class ConfiguracionServiceTests
         result.Data.LeyendaTirilla.Should().Contain("{vigenciaDias}");
         result.Data.LeyendaTirilla.Should().NotContain("GRACIAS POR SU COMPRA");
         result.Data.MensajeSuperacionTope.Should().Be(ValidacionTope.PlantillaSuperacionDefecto);
-        db.Configuraciones.Should().HaveCount(13);
+        db.Configuraciones.Should().HaveCount(15);
         db.ConfiguracionesTipoApuesta.Should().Contain(t => t.TipoApuesta == "COMBINADO" && t.Maximo == 1);
         db.ConfiguracionesTipoApuesta.Should().Contain(t => t.TipoApuesta == "INDIVIDUAL" && t.Maximo == 6);
     }
@@ -309,6 +311,33 @@ public sealed class ConfiguracionServiceTests
 
         result.IsSuccess.Should().BeFalse();
         result.Message.Should().Be(ConfiguracionMessages.MinutosInactividadSesionInvalido);
+    }
+
+    [Fact]
+    public async Task GuardarOperativaAsync_rechaza_meses_a_eliminar_fuera_de_1_2_o_3()
+    {
+        var (sut, db) = CreateSut();
+        await sut.ObtenerOperativaAsync(CancellationToken.None);
+
+        var result = await sut.GuardarOperativaAsync(RequestValida() with { MesesAEliminar = 4 }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Message.Should().Be(ConfiguracionMessages.MesesAEliminarInvalidos);
+        db.Configuraciones.Single(c => c.Clave == ConfiguracionClaves.MesesAEliminar).Valor.Should().Be("1");
+        db.Configuraciones.Single(c => c.Clave == ConfiguracionClaves.MesesMaximosRetencion).Valor.Should().Be("6");
+    }
+
+    [Fact]
+    public async Task GuardarOperativaAsync_persiste_los_meses_a_eliminar_y_deja_fijo_el_maximo()
+    {
+        var (sut, _) = CreateSut();
+        await sut.ObtenerOperativaAsync(CancellationToken.None);
+
+        var result = await sut.GuardarOperativaAsync(RequestValida() with { MesesAEliminar = 2 }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.MesesAEliminar.Should().Be(2);
+        result.Data.MesesMaximosRetencion.Should().Be(6);
     }
 
     private static GuardarConfiguracionOperativaRequest RequestValida() => new()
