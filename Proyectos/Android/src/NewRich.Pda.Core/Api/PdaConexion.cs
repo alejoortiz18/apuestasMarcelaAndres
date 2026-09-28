@@ -25,9 +25,9 @@ public static class PdaConexion
     /// <summary>Sondeo liviano. No descarga el documento de swagger.</summary>
     public const string RutaSondeo = "api/salud";
 
-    public static string BaseUrl(bool emulador) => UrlLocal;
+    public static string BaseUrl(bool emulador) => UrlProduccion;
 
-    public static IReadOnlyList<string> UrlsPara(bool emulador) => [UrlLocal];
+    public static IReadOnlyList<string> UrlsPara(bool emulador) => [UrlProduccion];
 
     public static string HubChat(string baseUrl) => baseUrl.TrimEnd('/') + RutaHubChat;
 

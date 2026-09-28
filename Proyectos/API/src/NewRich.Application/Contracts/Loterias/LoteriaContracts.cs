@@ -32,6 +32,19 @@ public sealed class ActualizarTopesLoteriasRequest
     public List<TopeLoteriaRequest> Loterias { get; set; } = [];
 }
 
+public sealed class HorarioLoteriaRequest
+{
+    public Guid LoteriaId { get; set; }
+    public string HoraInicio { get; set; } = string.Empty;
+    public string HoraFin { get; set; } = string.Empty;
+}
+
+/// <summary>Guarda de una sola vez el horario de varias loterias.</summary>
+public sealed class ActualizarHorariosLoteriasRequest
+{
+    public List<HorarioLoteriaRequest> Loterias { get; set; } = [];
+}
+
 public sealed class LoteriaResponse
 {
     public Guid LoteriaId { get; set; }

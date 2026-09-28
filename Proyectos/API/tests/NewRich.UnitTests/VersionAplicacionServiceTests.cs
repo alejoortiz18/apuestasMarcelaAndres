@@ -19,6 +19,8 @@ public sealed class VersionAplicacionServiceTests
         ActualizacionAplicacion.RequiereDescarga(77, 78).Should().BeTrue();
         ActualizacionAplicacion.RequiereDescarga(78, 78).Should().BeFalse();
         ActualizacionAplicacion.RequiereDescarga(80, 78).Should().BeTrue();
+        ActualizacionAplicacion.PermiteIngresar(descargando: true).Should().BeFalse();
+        ActualizacionAplicacion.PermiteIngresar(descargando: false).Should().BeTrue();
     }
 
     [Fact]

@@ -337,6 +337,102 @@ public sealed class LoteriaServiceTests
     }
 
     [Fact]
+    public async Task ActualizarHorariosAsync_guarda_el_horario_de_las_loterias()
+    {
+        var (sut, _) = CreateSut();
+        var cali = await sut.CrearAsync(RequestCrear("Cali"), CancellationToken.None);
+        var pasto = await sut.CrearAsync(RequestCrear("Pasto"), CancellationToken.None);
+
+        var result = await sut.ActualizarHorariosAsync(
+            new ActualizarHorariosLoteriasRequest
+            {
+                Loterias =
+                [
+                    new HorarioLoteriaRequest { LoteriaId = cali.Data!.LoteriaId, HoraInicio = "11:00", HoraFin = "14:00" },
+                    new HorarioLoteriaRequest { LoteriaId = pasto.Data!.LoteriaId, HoraInicio = "12:00", HoraFin = "15:00" }
+                ]
+            },
+            CancellationToken.None);
+        var listado = await sut.ListarAsync(CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue(result.Message);
+        listado.Data!.Single(l => l.Nombre == "Cali").HoraInicio.Should().Be("11:00");
+        listado.Data!.Single(l => l.Nombre == "Cali").HoraFin.Should().Be("14:00");
+        listado.Data!.Single(l => l.Nombre == "Pasto").HoraInicio.Should().Be("12:00");
+        listado.Data!.Single(l => l.Nombre == "Pasto").HoraFin.Should().Be("15:00");
+    }
+
+    [Fact]
+    public async Task ActualizarHorariosAsync_no_guarda_nada_si_el_inicio_no_es_menor_que_el_fin()
+    {
+        var (sut, _) = CreateSut();
+        var cali = await sut.CrearAsync(RequestCrear("Cali"), CancellationToken.None);
+        var pasto = await sut.CrearAsync(RequestCrear("Pasto"), CancellationToken.None);
+
+        var result = await sut.ActualizarHorariosAsync(
+            new ActualizarHorariosLoteriasRequest
+            {
+                Loterias =
+                [
+                    new HorarioLoteriaRequest { LoteriaId = cali.Data!.LoteriaId, HoraInicio = "11:00", HoraFin = "14:00" },
+                    new HorarioLoteriaRequest { LoteriaId = pasto.Data!.LoteriaId, HoraInicio = "15:00", HoraFin = "14:00" }
+                ]
+            },
+            CancellationToken.None);
+        var listado = await sut.ListarAsync(CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Message.Should().Be(ValidationMessages.HorarioLoteriaInicioMayorQueFin);
+        listado.Data!.Should().OnlyContain(l => l.HoraInicio == "10:00" && l.HoraFin == "13:00");
+    }
+
+    [Fact]
+    public async Task ActualizarHorariosAsync_no_guarda_nada_si_un_horario_esta_fuera_del_pda()
+    {
+        var (sut, _) = CreateSut();
+        var cali = await sut.CrearAsync(RequestCrear("Cali"), CancellationToken.None);
+        var pasto = await sut.CrearAsync(RequestCrear("Pasto"), CancellationToken.None);
+
+        var result = await sut.ActualizarHorariosAsync(
+            new ActualizarHorariosLoteriasRequest
+            {
+                Loterias =
+                [
+                    new HorarioLoteriaRequest { LoteriaId = cali.Data!.LoteriaId, HoraInicio = "11:00", HoraFin = "14:00" },
+                    new HorarioLoteriaRequest { LoteriaId = pasto.Data!.LoteriaId, HoraInicio = "09:00", HoraFin = "12:00" }
+                ]
+            },
+            CancellationToken.None);
+        var listado = await sut.ListarAsync(CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Message.Should().Be(ValidationMessages.HorarioLoteriaFueraDePda);
+        listado.Data!.Should().OnlyContain(l => l.HoraInicio == "10:00" && l.HoraFin == "13:00");
+    }
+
+    [Fact]
+    public async Task ActualizarHorariosAsync_avisa_a_los_pdas_en_tiempo_real()
+    {
+        var vivo = new LoteriasVivoSpy();
+        var (sut, _) = CreateSut(vivo);
+        var creada = await sut.CrearAsync(RequestCrear("Cali"), CancellationToken.None);
+        vivo.Avisos = 0;
+
+        var result = await sut.ActualizarHorariosAsync(
+            new ActualizarHorariosLoteriasRequest
+            {
+                Loterias =
+                [
+                    new HorarioLoteriaRequest { LoteriaId = creada.Data!.LoteriaId, HoraInicio = "11:00", HoraFin = "14:00" }
+                ]
+            },
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue(result.Message);
+        vivo.Avisos.Should().Be(1);
+    }
+
+    [Fact]
     public async Task CrearAsync_avisa_a_los_pdas_en_tiempo_real()
     {
         var vivo = new LoteriasVivoSpy();

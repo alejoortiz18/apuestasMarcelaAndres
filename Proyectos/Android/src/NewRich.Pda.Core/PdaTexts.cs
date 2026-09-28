@@ -372,7 +372,13 @@ public static class PdaTexts
     public const string ActualizacionDescargar = "Descargar e instalar";
     public const string ActualizacionNoDescargada = "No se pudo descargar la actualización. Inténtalo de nuevo cuando tengas conexión.";
     public const string ActualizacionPermiso = "Para instalar la actualización, permite que este dispositivo instale aplicaciones de New Rich.";
+    public const string ActualizacionPreparando = "Preparando la descarga";
+    public const string ActualizacionDescargando = "Descargando la actualización: {0}%";
+    public const string ActualizacionInstalando = "Abriendo el instalador";
 
     public static string ActualizacionMensaje(string nombreVersion, int numeroCompilacion) =>
         $"Hay una versión nueva ({nombreVersion}, compilación {numeroCompilacion}). Descárgala e instálala en este dispositivo.";
+
+    public static string VersionInstalada(string nombreVersion, int numeroCompilacion) =>
+        $"Compilación {numeroCompilacion}";
 }

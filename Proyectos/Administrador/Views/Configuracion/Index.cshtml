@@ -112,7 +112,7 @@
         <button class="primary" type="submit">@UiTexts.GuardarConfiguracion</button>
     </div>
 </form>
-<form asp-action="PublicarVersion" method="post" enctype="multipart/form-data" class="config-form" id="version-aplicacion" data-protected-action="@AccionesProtegidas.ConfiguracionVersionAplicacion">
+<form asp-action="PublicarVersion" method="post" enctype="multipart/form-data" class="config-form" id="version-aplicacion" data-protected-action="@AccionesProtegidas.ConfiguracionVersionAplicacion" data-msg-subiendo="@UiTexts.SubiendoArchivo" data-msg-guardando="@UiTexts.GuardandoVersion" data-msg-lista="@UiTexts.VersionLista" data-msg-error="@UiTexts.ErrorAlPublicarVersion" data-msg-tamano="@UiTexts.ArchivoSuperaTamano" data-msg-sesion="@UiTexts.SesionExpiradaAlPublicar" data-tamano-maximo="209715200">
     @Html.AntiForgeryToken()
     <section class="kpi-section kpi-section-wide">
         <h2>@UiTexts.ConfigVersionAplicacion</h2>
@@ -157,6 +157,12 @@
             <label for="numero-compilacion">@UiTexts.NumeroCompilacion</label>
             <input id="numero-compilacion" name="numeroCompilacion" type="number" min="1" step="1" required />
             <span class="field-help">@UiTexts.NumeroCompilacionAyuda</span>
+        </div>
+        <div id="version-progreso" class="version-progreso" hidden>
+            <p id="version-progreso-texto" role="status" aria-live="polite"></p>
+            <div class="version-progreso-pista">
+                <span id="version-progreso-barra" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-labelledby="version-progreso-texto"></span>
+            </div>
         </div>
         <div class="config-save">
             <button class="primary" type="submit">@UiTexts.PublicarVersion</button>
@@ -411,31 +417,56 @@
     }
     else
     {
-        <div class="table-wrap">
-            <table data-table-select="config-loterias">
-                <thead>
-                <tr>
-                    <th class="col-check"><span class="visually-hidden">@UiTexts.SeleccionarFila</span></th>
-                    <th>@UiTexts.Loteria</th>
-                    <th>@UiTexts.HorarioHabilitado</th>
-                    <th>@UiTexts.Estado</th>
-                </tr>
-                </thead>
-                <tbody>
-                @foreach (var item in Model.Pagina.Items)
-                {
-                    var flag = item.Estado == EstadoGeneral.Activo ? "activo" : "inactivo";
-                    <tr tabindex="0" data-row-id="@item.LoteriaId" data-flags="@flag">
-                        <td class="col-check">
-                            <input class="row-check" type="checkbox" value="@item.LoteriaId" aria-label="@UiTexts.SeleccionarFila @item.Nombre" />
-                        </td>
-                        <td><strong>@item.Nombre</strong></td>
-                        <td>@item.HoraInicio - @item.HoraFin</td>
-                        <td><span class="pill @(item.Estado == EstadoGeneral.Activo ? "ok" : "info")">@item.Estado</span></td>
+        <form asp-action="GuardarHorarios" method="post" id="horarios-loterias" data-protected-action="@AccionesProtegidas.LoteriasGuardar">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="q" value="@Model.Busqueda" />
+            <input type="hidden" name="page" value="@Model.Pagina.Page" />
+            <input type="hidden" name="pageSize" value="@Model.Pagina.PageSize" />
+            <div class="table-wrap">
+                <table data-table-select="config-loterias">
+                    <thead>
+                    <tr>
+                        <th class="col-check"><span class="visually-hidden">@UiTexts.SeleccionarFila</span></th>
+                        <th>@UiTexts.Loteria</th>
+                        <th>@UiTexts.HorarioHabilitado</th>
+                        <th>@UiTexts.Estado</th>
                     </tr>
-                }
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                    @for (var i = 0; i < Model.Pagina.Items.Count; i++)
+                    {
+                        var item = Model.Pagina.Items[i];
+                        var flag = item.Estado == EstadoGeneral.Activo ? "activo" : "inactivo";
+                        <tr tabindex="0" data-row-id="@item.LoteriaId" data-flags="@flag">
+                            <td class="col-check">
+                                <input class="row-check" type="checkbox" value="@item.LoteriaId" aria-label="@UiTexts.SeleccionarFila @item.Nombre" />
+                            </td>
+                            <td><strong>@item.Nombre</strong></td>
+                            <td>
+                                <input type="hidden" name="horarios[@i].LoteriaId" value="@item.LoteriaId" />
+                                <div class="horario-celda">
+                                    <input type="time"
+                                           name="horarios[@i].HoraInicio"
+                                           value="@item.HoraInicio"
+                                           step="60"
+                                           aria-label="@UiTexts.HoraInicioLoteria @item.Nombre" />
+                                    <span class="horario-sep" aria-hidden="true">-</span>
+                                    <input type="time"
+                                           name="horarios[@i].HoraFin"
+                                           value="@item.HoraFin"
+                                           step="60"
+                                           aria-label="@UiTexts.HoraFinLoteria @item.Nombre" />
+                                </div>
+                            </td>
+                            <td><span class="pill @(item.Estado == EstadoGeneral.Activo ? "ok" : "info")">@item.Estado</span></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </form>
+        <div class="config-save">
+            <button class="primary" type="submit" form="horarios-loterias">@UiTexts.GuardarHorarios</button>
         </div>
         <partial name="_Pager" model="Model.Pagina" />
         <div class="table-actions" data-table-panel="config-loterias">

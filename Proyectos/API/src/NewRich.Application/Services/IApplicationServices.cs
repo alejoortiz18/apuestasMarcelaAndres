@@ -56,6 +56,7 @@ public interface ILoteriaService
     Task<Result<LoteriaResponse>> CrearAsync(CrearLoteriaRequest request, CancellationToken cancellationToken);
     Task<Result<LoteriaResponse>> ActualizarAsync(Guid loteriaId, ActualizarLoteriaRequest request, CancellationToken cancellationToken);
     Task<Result<IReadOnlyList<LoteriaResponse>>> ActualizarTopesAsync(ActualizarTopesLoteriasRequest request, CancellationToken cancellationToken);
+    Task<Result<IReadOnlyList<LoteriaResponse>>> ActualizarHorariosAsync(ActualizarHorariosLoteriasRequest request, CancellationToken cancellationToken);
     Task<Result<IReadOnlyList<LoteriaResponse>>> ActualizarDiasAsync(ActualizarDiasLoteriasRequest request, CancellationToken cancellationToken);
 }
 

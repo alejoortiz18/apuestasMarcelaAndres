@@ -370,6 +370,12 @@ public sealed class LocalDatabase
     public async Task<SesionLocal?> SesionAsync() =>
         await LeerJsonAsync<SesionLocal>("sesion");
 
+    public async Task BorrarSesionAsync()
+    {
+        var db = await ConexionAsync();
+        await db.DeleteAsync<DatoLocal>("sesion");
+    }
+
     public async Task GuardarCredencialAsync(CredencialLocalRegistro credencial) =>
         await GuardarJsonAsync("credencial", credencial);
 

@@ -58,6 +58,68 @@ public sealed class UsuarioEliminacionTests
         db.Mensajes.Should().BeEmpty();
     }
 
+    [Fact]
+    public async Task EliminarAsync_quita_la_llave_y_suelta_el_boleto_del_caso()
+    {
+        var (sut, db) = CreateSut();
+        var solicitante = await AgregarUsuarioAsync(db, "Solicitante", RolUsuario.Administrador);
+        var admin = await AgregarUsuarioAsync(db, "Admin", RolUsuario.Administrador);
+        var vendedor = await AgregarUsuarioAsync(db, "Vendedor", RolUsuario.Vendedor);
+        var pda = await AgregarPdaAsync(db);
+        var venta = new Venta
+        {
+            VentaId = Guid.NewGuid(),
+            UsuarioId = vendedor.UsuarioId,
+            DispositivoId = pda.DispositivoId,
+            FechaVenta = DateTime.UtcNow,
+            TipoApuesta = TipoApuesta.INDIVIDUAL
+        };
+        var boleto = new Boleto
+        {
+            BoletoId = Guid.NewGuid(),
+            VentaId = venta.VentaId,
+            CodigoPublico = "ABC1234",
+            ClaveValidacionHash = "hash",
+            QrCifrado = "qr",
+            EstadoBoleto = EstadoBoleto.Ganador,
+            FechaCreacion = DateTime.UtcNow
+        };
+        var caso = new CasoGanador
+        {
+            CasoId = Guid.NewGuid(),
+            BoletoId = boleto.BoletoId,
+            TicketCode = "ABC1234",
+            Estado = EstadoCasoGanador.Validado,
+            FechaReporte = DateTime.UtcNow,
+            VendedorQueReporto = vendedor.UsuarioId,
+            AdminQueValido = admin.UsuarioId
+        };
+        boleto.CasoGanadorId = caso.CasoId;
+        db.Ventas.Add(venta);
+        db.Boletos.Add(boleto);
+        db.CasosGanadores.Add(caso);
+        db.LlavesAdministrador.Add(new LlaveAdministrador
+        {
+            LlaveId = Guid.NewGuid(),
+            UsuarioId = admin.UsuarioId,
+            Codigo = "LLAVE-1",
+            Estado = EstadoLlaveAdministrador.Activa,
+            ClavePublica = "pub",
+            HuellaDispositivo = "huella",
+            FechaCreacion = DateTime.UtcNow,
+            FechaActivacion = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+
+        var result = await sut.EliminarAsync(admin.UsuarioId, solicitante.UsuarioId, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        db.LlavesAdministrador.Should().BeEmpty();
+        db.CasosGanadores.Should().BeEmpty();
+        db.Boletos.Single().CasoGanadorId.Should().BeNull();
+        db.Usuarios.Any(u => u.UsuarioId == vendedor.UsuarioId).Should().BeTrue();
+    }
+
     private static (UsuarioService Sut, NewRichDbContext Db) CreateSut()
     {
         var options = new DbContextOptionsBuilder<NewRichDbContext>()

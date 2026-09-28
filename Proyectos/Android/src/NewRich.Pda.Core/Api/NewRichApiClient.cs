@@ -17,6 +17,7 @@ using NewRich.Application.Contracts.Usuarios;
 using NewRich.Application.Contracts.Ventas;
 using NewRich.Application.Contracts.Versiones;
 using NewRich.Constants.Messages;
+using NewRich.Pda.Core;
 using NewRich.Shared.Results;
 
 namespace NewRich.Pda.Core.Api;
@@ -305,7 +306,10 @@ public sealed class NewRichApiClient
     public Task<Result<VersionAplicacionResponse>> VersionVigenteAsync(CancellationToken ct) =>
         Enviar<VersionAplicacionResponse>(HttpMethod.Get, "api/VersionesAplicacion/vigente", null, ct);
 
-    public async Task<Result> DescargarVersionVigenteAsync(string rutaDestino, CancellationToken ct)
+    public async Task<Result> DescargarVersionVigenteAsync(string rutaDestino, CancellationToken ct) =>
+        await DescargarVersionVigenteAsync(rutaDestino, null, ct);
+
+    public async Task<Result> DescargarVersionVigenteAsync(string rutaDestino, IProgress<ProgresoBytes>? avance, CancellationToken ct)
     {
         var token = await _tokens.ObtenerAsync();
         using var cliente = new HttpClient(ConexionHttpPda.CrearControlador())
@@ -327,8 +331,19 @@ public sealed class NewRichApiClient
                 Directory.CreateDirectory(carpeta);
             }
 
+            var total = response.Content.Headers.ContentLength;
+            await using var origen = await response.Content.ReadAsStreamAsync(ct);
             await using var destino = File.Create(rutaDestino);
-            await response.Content.CopyToAsync(destino, ct);
+            var buffer = new byte[64 * 1024];
+            long leidos = 0;
+            int n;
+            while ((n = await origen.ReadAsync(buffer, ct)) > 0)
+            {
+                await destino.WriteAsync(buffer.AsMemory(0, n), ct);
+                leidos += n;
+                avance?.Report(new ProgresoBytes(leidos, total));
+            }
+
             return Result.Ok(SuccessMessages.OperacionExitosa);
         }
         catch (Exception)

@@ -35,7 +35,14 @@ public sealed class ObservadorMasPage : ContentPage
             return b;
         }
 
-        Content = new VerticalStackLayout
+        Label PieVersion()
+        {
+            var pie = VersionInstaladaPie.Crear();
+            Grid.SetRow(pie, 1);
+            return pie;
+        }
+
+        var menu = new VerticalStackLayout
         {
             Padding = 16,
             Spacing = 10,
@@ -53,6 +60,19 @@ public sealed class ObservadorMasPage : ContentPage
                     sesion.Borrador = null;
                     nav.IrALogin();
                 })
+            }
+        };
+        Content = new Grid
+        {
+            RowDefinitions =
+            {
+                new RowDefinition(GridLength.Star),
+                new RowDefinition(GridLength.Auto)
+            },
+            Children =
+            {
+                menu,
+                PieVersion()
             }
         };
     }

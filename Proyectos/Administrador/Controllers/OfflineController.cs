@@ -57,6 +57,10 @@ public sealed class OfflineController : AdminControllerBase
         Guid dispositivoId,
         DateTime? fechaInicial,
         DateTime? fechaFinal,
+        string? estado,
+        string? consecutivo,
+        string? orden,
+        string? dir,
         int page = 1,
         int pageSize = 5,
         CancellationToken cancellationToken = default)
@@ -79,7 +83,8 @@ public sealed class OfflineController : AdminControllerBase
             return RedirectToAction(nameof(Index));
         }
 
-        var filtrados = OfflineAgrupacion.EnRango(delLote, fechaInicial, fechaFinal);
+        var delPeriodo = OfflineAgrupacion.EnRango(delLote, fechaInicial, fechaFinal);
+        var filtrados = OfflineAgrupacion.ConsultarLote(delLote, fechaInicial, fechaFinal, estado, consecutivo, orden, dir);
         var primero = delLote[0];
         return View(new OfflineLoteViewModel
         {
@@ -89,7 +94,11 @@ public sealed class OfflineController : AdminControllerBase
             Pda = primero.Pda,
             FechaInicial = fechaInicial,
             FechaFinal = fechaFinal,
-            Resumen = OfflineAgrupacion.Resumen(filtrados),
+            Estado = estado,
+            Consecutivo = consecutivo,
+            Orden = OfflineAgrupacion.NormalizarOrden(orden),
+            Direccion = OfflineAgrupacion.EsAscendente(dir) ? "asc" : "desc",
+            Resumen = OfflineAgrupacion.Resumen(delPeriodo),
             Pagina = PagingHelper.Paginate(filtrados, page, pageSize)
         });
     }

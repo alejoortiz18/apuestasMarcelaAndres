@@ -30,6 +30,7 @@ public sealed class LoginPage : ContentPage
     private readonly LocalDatabase _local;
     private readonly CodigosOfflineEnVivoServicio _enVivo;
     private readonly LoteriasEnVivoServicio _loteriasVivo;
+    private readonly ActualizacionEnVivoServicio _actualizacion;
     private readonly Entry _usuario;
     private readonly Entry _password;
     private readonly ImageButton _verClave;
@@ -50,7 +51,8 @@ public sealed class LoginPage : ContentPage
         SincronizacionOfflineServicio offline,
         LocalDatabase local,
         CodigosOfflineEnVivoServicio enVivo,
-        LoteriasEnVivoServicio loteriasVivo)
+        LoteriasEnVivoServicio loteriasVivo,
+        ActualizacionEnVivoServicio actualizacion)
     {
         _api = api;
         _tokens = tokens;
@@ -60,6 +62,7 @@ public sealed class LoginPage : ContentPage
         _local = local;
         _enVivo = enVivo;
         _loteriasVivo = loteriasVivo;
+        _actualizacion = actualizacion;
         Title = string.Empty;
         NavigationPage.SetHasNavigationBar(this, false);
         Shell.SetNavBarIsVisible(this, false);
@@ -114,7 +117,16 @@ public sealed class LoginPage : ContentPage
                     CampoConIcono("login_icon_user.png", _usuario),
                     CampoConIcono("login_icon_lock.png", _password, _verClave),
                     _ingresar,
-                    _error
+                    _error,
+                    new Label
+                    {
+                        Style = null,
+                        Text = PdaTexts.VersionInstalada(AppInfo.Current.VersionString, CompilacionInstalada()),
+                        FontSize = 12,
+                        TextColor = Color.FromArgb("#E8D5A3"),
+                        HorizontalTextAlignment = TextAlignment.Center,
+                        Margin = new Thickness(0, 8, 0, 0)
+                    }
                 }
             }
         };
@@ -179,6 +191,9 @@ public sealed class LoginPage : ContentPage
         boton.Clicked += async (_, _) => await IngresarAsync();
         return boton;
     }
+
+    private static int CompilacionInstalada() =>
+        int.TryParse(AppInfo.Current.BuildString, out var numero) ? numero : 0;
 
     private static Entry CampoTexto(string placeholder, bool password = false) => new()
     {
@@ -321,14 +336,20 @@ public sealed class LoginPage : ContentPage
                 return;
             }
 
+            await _enVivo.AsegurarSesionAsync(CancellationToken.None);
+            await _loteriasVivo.AsegurarSesionAsync(CancellationToken.None);
+            var descargando = !await _actualizacion.RevisarAhoraAsync();
+            if (!ActualizacionAplicacion.PermiteIngresar(descargando))
+            {
+                return;
+            }
+
             if (resultado.Data.DebeCambiarPassword)
             {
                 _nav.IrAPassword();
                 return;
             }
 
-            await _enVivo.AsegurarSesionAsync(CancellationToken.None);
-            await _loteriasVivo.AsegurarSesionAsync(CancellationToken.None);
             if (shell.Data == ShellPda.Vendedor)
             {
                 await _offline.SincronizarEnSilencioAsync(true, resultado.Data.Rol, false, CancellationToken.None);

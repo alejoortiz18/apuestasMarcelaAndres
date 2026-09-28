@@ -183,6 +183,41 @@ public sealed class LoteriaService : ILoteriaService
         return await ListarAsync(cancellationToken);
     }
 
+    public async Task<Result<IReadOnlyList<LoteriaResponse>>> ActualizarHorariosAsync(
+        ActualizarHorariosLoteriasRequest request,
+        CancellationToken cancellationToken)
+    {
+        var cambios = request.Loterias ?? [];
+        var ids = cambios.Select(x => x.LoteriaId).Distinct().ToList();
+        var loterias = await _db.Loterias.Where(l => ids.Contains(l.LoteriaId)).ToListAsync(cancellationToken);
+        if (loterias.Count != ids.Count)
+        {
+            return Result<IReadOnlyList<LoteriaResponse>>.Fail(VentaMessages.LoteriaNoEncontrada, 404);
+        }
+
+        var resueltos = new List<(Loteria Loteria, TimeSpan Inicio, TimeSpan Fin)>();
+        foreach (var cambio in cambios)
+        {
+            var horario = await ResolverHorarioAsync(cambio.HoraInicio, cambio.HoraFin, cancellationToken);
+            if (!horario.IsSuccess || horario.Data is null)
+            {
+                return Result<IReadOnlyList<LoteriaResponse>>.Fail(horario.Message);
+            }
+
+            resueltos.Add((loterias.Single(l => l.LoteriaId == cambio.LoteriaId), horario.Data.Inicio, horario.Data.Fin));
+        }
+
+        foreach (var (loteria, inicio, fin) in resueltos)
+        {
+            loteria.HoraInicio = inicio;
+            loteria.HoraFin = fin;
+        }
+
+        await _db.SaveChangesAsync(cancellationToken);
+        await _vivo.AvisarCatalogoActualizadoAsync(cancellationToken);
+        return await ListarAsync(cancellationToken);
+    }
+
     private async Task<Dictionary<Guid, IReadOnlyList<DiaSemana>>> CargarDiasAsync(
         IReadOnlyList<Guid> loteriaIds,
         CancellationToken cancellationToken)

@@ -12,6 +12,8 @@ public static class ActualizacionAplicacion
     public static bool RequiereDescarga(int compilacionInstalada, int compilacionVigente) =>
         compilacionInstalada != compilacionVigente;
 
+    public static bool PermiteIngresar(bool descargando) => !descargando;
+
     public static string NombreArchivo(int numeroCompilacion) => $"{numeroCompilacion}.apk";
 
     public static bool EsApk(string? nombreOriginal)

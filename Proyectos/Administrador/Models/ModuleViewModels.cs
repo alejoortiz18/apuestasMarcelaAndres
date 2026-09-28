@@ -359,6 +359,10 @@ public sealed class OfflineLoteViewModel
     public string Pda { get; init; } = string.Empty;
     public DateTime? FechaInicial { get; init; }
     public DateTime? FechaFinal { get; init; }
+    public string? Estado { get; init; }
+    public string? Consecutivo { get; init; }
+    public string Orden { get; init; } = "consecutivo";
+    public string Direccion { get; init; } = "desc";
     public OfflineResumenLoteResponse Resumen { get; init; } = new();
     public PagedViewModel<CodigoOfflineResponse> Pagina { get; init; } = new();
 }

@@ -5,7 +5,9 @@ alwaysApply: true
 
 # Reinstalar la app móvil
 
-Cuando se implemente, corrija o compile código de la aplicación móvil (`Proyectos/Android`, NewRich.Maui, NewRich.Pda.Core), **siempre reinstalar** el APK en el celular conectado por USB antes de dar el trabajo por listo. El usuario necesita ver el cambio en el dispositivo.
+Cuando se implemente, corrija o compile código de la aplicación móvil (`Proyectos/Android`, NewRich.Maui, NewRich.Pda.Core) para verlo de inmediato en el celular, **reinstalar** el APK en el dispositivo conectado por USB antes de dar el trabajo por listo.
+
+Si el trabajo es una compilación nueva para que el usuario la suba, no instalarla en el celular. Seguir la regla de versión del APK: dejar el archivo en `documentos\APKTrest` y actualizar los instaladores del administrador.
 
 Comando habitual (ajustar solo si cambian SDK, JDK o serie del equipo):
 

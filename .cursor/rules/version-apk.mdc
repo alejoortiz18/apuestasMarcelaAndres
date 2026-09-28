@@ -1,0 +1,15 @@
+---
+description: Al crear una versión nueva del APK, actualizar los instaladores del administrador y dejar el archivo para subida manual
+alwaysApply: true
+---
+
+# Versión nueva del APK
+
+Cuando se cree una compilación nueva de la app móvil (`ApplicationVersion` en `NewRich.Maui.csproj`), hacer estas dos cosas antes de dar el trabajo por listo. No instalar esa compilación en el celular y no publicarla en el blob ni en SQL: el usuario la sube.
+
+1. Dejar el APK para subida manual en `documentos\APKTrest\newrich-{nombre}-{compilacion}.apk`. El nombre de versión es `ApplicationDisplayVersion` (hoy `1.0`) y el número de compilación es `ApplicationVersion`.
+2. Copiar ese mismo archivo sobre los instaladores del administrador, para que el registro USB instale esa versión:
+   - `Proyectos/Administrador/wwwroot/android/com.newrich.pda-Signed.apk`
+   - `C:\inetpub\rich\wwwroot\android\com.newrich.pda-Signed.apk`
+
+Comprobar con `aapt dump badging` que los tres archivos tengan el mismo `versionCode` y `versionName`. Si IIS no deja escribir, copiar con PowerShell elevado y no afirmar que el sitio ya sirve la versión nueva.

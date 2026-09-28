@@ -8,6 +8,36 @@
     string Formato(DateTime? fecha) => fecha.HasValue
         ? fecha.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
         : UiTexts.NoAplica;
+    string UrlOrden(string columna)
+    {
+        var siguiente = OfflineAgrupacion.SiguienteDireccion(columna, Model.Orden, Model.Direccion);
+        return Url.Action("Codigos", new
+        {
+            usuarioId = Model.UsuarioId,
+            dispositivoId = Model.DispositivoId,
+            fechaInicial = Model.FechaInicial?.ToString("yyyy-MM-dd"),
+            fechaFinal = Model.FechaFinal?.ToString("yyyy-MM-dd"),
+            estado = Model.Estado,
+            consecutivo = Model.Consecutivo,
+            orden = columna,
+            dir = siguiente,
+            pageSize = Model.Pagina.PageSize
+        }) ?? "#";
+    }
+    string MarcaOrden(string columna)
+    {
+        if (!string.Equals(Model.Orden, columna, StringComparison.OrdinalIgnoreCase))
+        {
+            return "↕";
+        }
+
+        return OfflineAgrupacion.EsAscendente(Model.Direccion) ? "↑" : "↓";
+    }
+    string EtiquetaOrden(string columna, string nombre)
+    {
+        var siguiente = OfflineAgrupacion.SiguienteDireccion(columna, Model.Orden, Model.Direccion);
+        return string.Format(siguiente == "asc" ? UiTexts.OrdenarColumnaAsc : UiTexts.OrdenarColumnaDesc, nombre);
+    }
 }
 <div class="heading">
     <div>
@@ -58,6 +88,22 @@
             <label for="fechaFinal">@UiTexts.FechaFinal</label>
             <input id="fechaFinal" name="fechaFinal" type="date" value="@(Model.FechaFinal?.ToString("yyyy-MM-dd"))" />
         </div>
+        <input type="hidden" name="orden" value="@Model.Orden" />
+        <input type="hidden" name="dir" value="@Model.Direccion" />
+        <div class="field">
+            <label for="estado">@UiTexts.EstadoDelCodigo</label>
+            <select id="estado" name="estado" class="searchable">
+                <option value="">@UiTexts.TodosLosEstados</option>
+                @foreach (var estado in Enum.GetNames<EstadoCodigoOffline>())
+                {
+                    <option value="@estado" @(string.Equals(Model.Estado, estado, StringComparison.OrdinalIgnoreCase) ? "selected" : null)>@estado</option>
+                }
+            </select>
+        </div>
+        <div class="field">
+            <label for="consecutivo">@UiTexts.Consecutivo</label>
+            <input id="consecutivo" name="consecutivo" value="@Model.Consecutivo" placeholder="@UiTexts.PlaceholderConsecutivo" autocomplete="off" />
+        </div>
         <div class="field">
             <label for="pageSize">@UiTexts.FilasPorPagina</label>
             <select id="pageSize" name="pageSize" class="searchable">
@@ -104,9 +150,21 @@
             <table>
                 <thead>
                 <tr>
-                    <th>@UiTexts.Consecutivo</th>
-                    <th>@UiTexts.FechaVenta</th>
-                    <th>@UiTexts.EstadoDelCodigo</th>
+                    <th>
+                        <a class="table-sort" href="@UrlOrden("consecutivo")" aria-label="@EtiquetaOrden("consecutivo", UiTexts.Consecutivo)">
+                            @UiTexts.Consecutivo <span aria-hidden="true">@MarcaOrden("consecutivo")</span>
+                        </a>
+                    </th>
+                    <th>
+                        <a class="table-sort" href="@UrlOrden("fechaventa")" aria-label="@EtiquetaOrden("fechaventa", UiTexts.FechaVenta)">
+                            @UiTexts.FechaVenta <span aria-hidden="true">@MarcaOrden("fechaventa")</span>
+                        </a>
+                    </th>
+                    <th>
+                        <a class="table-sort" href="@UrlOrden("estado")" aria-label="@EtiquetaOrden("estado", UiTexts.EstadoDelCodigo)">
+                            @UiTexts.EstadoDelCodigo <span aria-hidden="true">@MarcaOrden("estado")</span>
+                        </a>
+                    </th>
                     <th>@UiTexts.Accion</th>
                 </tr>
                 </thead>

@@ -6,20 +6,20 @@ using NewRich.Infrastructure.Storage;
 
 namespace NewRich.UnitTests;
 
-public sealed class OpcionesAzureFilesTests
+public sealed class OpcionesAzureBlobTests
 {
     [Fact]
-    public void Si_falta_el_recurso_el_mensaje_nombra_la_clave_y_no_el_secreto()
+    public void Si_falta_el_contenedor_el_mensaje_nombra_la_clave_y_no_el_secreto()
     {
         var config = new ConfigIndice(new Dictionary<string, string?>
         {
-            [OpcionesAzureFiles.ClaveConexion] = "DefaultEndpointsProtocol=https;AccountKey=SECRETO;"
+            [OpcionesAzureBlob.ClaveConexion] = "DefaultEndpointsProtocol=https;AccountKey=SECRETO;"
         });
 
-        var resultado = OpcionesAzureFiles.Leer(config);
+        var resultado = OpcionesAzureBlob.Leer(config);
 
         resultado.IsSuccess.Should().BeFalse();
-        resultado.Message.Should().Be(string.Format(VersionAplicacionMessages.ConfiguracionFaltante, OpcionesAzureFiles.ClaveRecurso));
+        resultado.Message.Should().Be(string.Format(VersionAplicacionMessages.ConfiguracionFaltante, OpcionesAzureBlob.ClaveContenedor));
         resultado.Message.Should().NotContain("SECRETO");
         resultado.Message.Should().NotContain("AccountKey");
     }
@@ -27,10 +27,10 @@ public sealed class OpcionesAzureFilesTests
     [Fact]
     public void Si_falta_la_conexion_el_mensaje_nombra_esa_clave()
     {
-        var resultado = OpcionesAzureFiles.Leer(new ConfigIndice([]));
+        var resultado = OpcionesAzureBlob.Leer(new ConfigIndice([]));
 
         resultado.IsSuccess.Should().BeFalse();
-        resultado.Message.Should().Be(string.Format(VersionAplicacionMessages.ConfiguracionFaltante, OpcionesAzureFiles.ClaveConexion));
+        resultado.Message.Should().Be(string.Format(VersionAplicacionMessages.ConfiguracionFaltante, OpcionesAzureBlob.ClaveConexion));
     }
 
     private sealed class ConfigIndice : IConfiguration

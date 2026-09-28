@@ -6,6 +6,7 @@ using NewRich.Pda.Core.Api;
 using NewRich.Pda.Core.Auth;
 using NewRich.Maui.Data;
 using NewRich.Maui.Services;
+using NewRich.Maui.Views;
 
 namespace NewRich.Maui.Views.Vendedor;
 
@@ -107,7 +108,8 @@ public sealed class VendedorHomePage : ContentPage
                     },
                     new Label { Text = PdaTexts.AccesosRapidos, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink },
                     Menu(PdaTexts.ResultadosTitulo, PdaTexts.ResultadosAyuda, async () => await Navigation.PushAsync(_services.GetRequiredService<ResultadosPage>())),
-                    Menu(PdaTexts.ValidarTicket, PdaTexts.ValidarTicketAyuda, async () => await Navigation.PushAsync(_services.GetRequiredService<ValidarTicketPage>()))
+                    Menu(PdaTexts.ValidarTicket, PdaTexts.ValidarTicketAyuda, async () => await Navigation.PushAsync(_services.GetRequiredService<ValidarTicketPage>())),
+                    VersionInstaladaPie.Crear()
                 }
             }
         };

@@ -1619,6 +1619,9 @@ a[data-offline-associate][hidden] { display: none; }
 .kpi-sort { display: inline-flex; align-items: center; gap: 5px; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; font-weight: 700; cursor: pointer; }
 .kpi-sort span { color: var(--muted); font-size: 13px; }
 .kpi-sort:hover, .kpi-sort:focus-visible { color: var(--green); }
+.table-sort { display: inline-flex; align-items: center; gap: 6px; color: inherit; text-decoration: none; font: inherit; letter-spacing: inherit; text-transform: inherit; }
+.table-sort span { color: var(--gold); font-size: 12px; }
+.table-sort:hover, .table-sort:focus-visible { color: var(--ink); }
 .kpi-note { padding: 11px; background: var(--paper); border-radius: 8px; color: var(--muted); font-size: 11px; margin-top: 15px; }
 .kpi-table-wrap { overflow: auto; }
 .metric-grid-2 { grid-template-columns: 1fr 1fr; }
@@ -1640,6 +1643,38 @@ a[data-offline-associate][hidden] { display: none; }
   border: 1px solid var(--line);
   border-radius: 12px;
   background: #fffdf8;
+}
+.version-progreso { margin: 4px 0 14px; }
+.version-progreso-texto { margin: 0 0 8px; font-size: 13px; }
+.version-progreso.is-error .version-progreso-texto { color: var(--red); }
+.version-progreso.is-ok .version-progreso-texto { color: var(--green); }
+.version-progreso-pista {
+  height: 10px;
+  border-radius: 8px;
+  background: #f4ead0;
+  overflow: hidden;
+}
+.version-progreso-barra {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--green);
+  border-radius: 8px;
+}
+.version-progreso.is-guardando .version-progreso-barra {
+  width: 35%;
+  animation: version-progreso-avance 1.2s ease-in-out infinite;
+}
+@keyframes version-progreso-avance {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(320%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .version-progreso.is-guardando .version-progreso-barra {
+    animation: none;
+    width: 100%;
+    opacity: 0.55;
+  }
 }
 .config-grid {
   display: grid;
@@ -1672,8 +1707,31 @@ label.check input {
   margin: 0 0 18px;
 }
 .catalogo-horario-save { padding-bottom: 2px; }
+.horario-celda {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.horario-celda input[type="time"] {
+  width: 8.5rem;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffdf8;
+  color: var(--ink);
+}
+.horario-celda input[type="time"]:focus {
+  outline: 2px solid #e8c56b;
+  border-color: var(--gold);
+}
+.horario-sep { color: var(--muted); }
 @media (max-width: 800px) {
   .catalogo-horario { grid-template-columns: 1fr; }
+  .horario-celda { flex-direction: column; align-items: stretch; }
+  .horario-celda input[type="time"] { width: 100%; }
+  .horario-sep { display: none; }
 }
 
 .dias-venta { margin: 0 0 22px; }

@@ -25,16 +25,12 @@ public sealed class PdaConexionTests
     }
 
     [Fact]
-    public void Dispositivo_fisico_y_emulador_usan_el_api_local()
+    public void Dispositivo_fisico_y_emulador_usan_el_api_de_produccion()
     {
-        const string local = "http://192.168.20.26:5295/";
-
-        PdaConexion.BaseUrl(emulador: false).Should().Be(local);
-        PdaConexion.BaseUrl(emulador: true).Should().Be(local);
-        PdaConexion.UrlsPara(emulador: false).Should().Equal(local);
-        PdaConexion.UrlsPara(emulador: true).Should().Equal(local);
-        PdaConexion.UrlProduccion.Should().StartWith("https://");
-        local.Should().NotBe(PdaConexion.UrlProduccion);
+        PdaConexion.BaseUrl(emulador: false).Should().Be(PdaConexion.UrlProduccion);
+        PdaConexion.BaseUrl(emulador: true).Should().Be(PdaConexion.UrlProduccion);
+        PdaConexion.UrlsPara(emulador: false).Should().Equal(PdaConexion.UrlProduccion);
+        PdaConexion.UrlsPara(emulador: true).Should().Equal(PdaConexion.UrlProduccion);
     }
 
     [Fact]

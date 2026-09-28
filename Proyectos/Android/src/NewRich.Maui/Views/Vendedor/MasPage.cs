@@ -36,29 +36,48 @@ public sealed class MasPage : ContentPage
             return b;
         }
 
-        Content = new ScrollView
+        Label PieVersion()
         {
-            Content = new VerticalStackLayout
+            var pie = VersionInstaladaPie.Crear();
+            Grid.SetRow(pie, 1);
+            return pie;
+        }
+
+        Content = new Grid
+        {
+            RowDefinitions =
             {
-                Padding = 16,
-                Spacing = 10,
-                Children =
+                new RowDefinition(GridLength.Star),
+                new RowDefinition(GridLength.Auto)
+            },
+            Children =
+            {
+                new ScrollView
                 {
-                    Item(PdaTexts.SincronizacionTitulo, PdaTexts.SincronizacionAyuda, () => Navigation.PushAsync(services.GetRequiredService<SincronizacionPage>())),
-                    Item(PdaTexts.SoporteTecnico, PdaTexts.SoporteTecnicoAyuda, () => Navigation.PushAsync(services.GetRequiredService<SoporteTecnicoPage>())),
-                    Item(PdaTexts.ResultadosTitulo, PdaTexts.ResultadosSoloLectura, () => Navigation.PushAsync(services.GetRequiredService<ResultadosPage>())),
-                    Item(PdaTexts.ValidarTicket, PdaTexts.ValidarTicketAyudaCorta, () => Navigation.PushAsync(services.GetRequiredService<ValidarTicketPage>())),
-                    Item(PdaTexts.ConfiguracionSync, PdaTexts.ConfiguracionSyncAyuda, () => Navigation.PushAsync(services.GetRequiredService<ConfiguracionPage>())),
-                    Item(PdaTexts.CerrarSesion, PdaTexts.CerrarSesionAyuda, async () =>
+                    Content = new VerticalStackLayout
                     {
-                        await enVivo.DesconectarAsync();
-                        await api.LogoutAsync(CancellationToken.None);
-                        await tokens.BorrarAsync();
-                        sesion.Usuario = null;
-                        sesion.Borrador = null;
-                        nav.IrALogin();
-                    })
-                }
+                        Padding = 16,
+                        Spacing = 10,
+                        Children =
+                        {
+                            Item(PdaTexts.SincronizacionTitulo, PdaTexts.SincronizacionAyuda, () => Navigation.PushAsync(services.GetRequiredService<SincronizacionPage>())),
+                            Item(PdaTexts.SoporteTecnico, PdaTexts.SoporteTecnicoAyuda, () => Navigation.PushAsync(services.GetRequiredService<SoporteTecnicoPage>())),
+                            Item(PdaTexts.ResultadosTitulo, PdaTexts.ResultadosSoloLectura, () => Navigation.PushAsync(services.GetRequiredService<ResultadosPage>())),
+                            Item(PdaTexts.ValidarTicket, PdaTexts.ValidarTicketAyudaCorta, () => Navigation.PushAsync(services.GetRequiredService<ValidarTicketPage>())),
+                            Item(PdaTexts.ConfiguracionSync, PdaTexts.ConfiguracionSyncAyuda, () => Navigation.PushAsync(services.GetRequiredService<ConfiguracionPage>())),
+                            Item(PdaTexts.CerrarSesion, PdaTexts.CerrarSesionAyuda, async () =>
+                            {
+                                await enVivo.DesconectarAsync();
+                                await api.LogoutAsync(CancellationToken.None);
+                                await tokens.BorrarAsync();
+                                sesion.Usuario = null;
+                                sesion.Borrador = null;
+                                nav.IrALogin();
+                            })
+                        }
+                    }
+                },
+                PieVersion()
             }
         };
     }

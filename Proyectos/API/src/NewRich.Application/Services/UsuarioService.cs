@@ -213,6 +213,7 @@ public sealed class UsuarioService : IUsuarioService
                 .Select(e => e.EntregaId)
                 .ToListAsync(ct);
 
+            await SoltarBoletosDeCasosAsync(casosIds, ct);
             _db.EvidenciasGanador.RemoveRange(
                 await _db.EvidenciasGanador.Where(e => entregasCasos.Contains(e.EntregaId)).ToListAsync(ct));
             _db.EntregasGanadores.RemoveRange(
@@ -244,6 +245,7 @@ public sealed class UsuarioService : IUsuarioService
                 .ToListAsync(ct);
             if (casosPorBoleto.Count > 0)
             {
+                await SoltarBoletosDeCasosAsync(casosPorBoleto, ct);
                 var entregasBoleto = await _db.EntregasGanadores
                     .Where(e => casosPorBoleto.Contains(e.CasoId))
                     .Select(e => e.EntregaId)
@@ -265,7 +267,9 @@ public sealed class UsuarioService : IUsuarioService
 
             _db.CodigosPreventaOffline.RemoveRange(
                 await _db.CodigosPreventaOffline
-                    .Where(c => c.UsuarioId == usuarioId || c.AdminQueRegistro == usuarioId)
+                    .Where(c => c.UsuarioId == usuarioId
+                        || c.AdminQueRegistro == usuarioId
+                        || (c.VentaId != null && ventas.Contains(c.VentaId.Value)))
                     .ToListAsync(ct));
             _db.Sesiones.RemoveRange(await _db.Sesiones.Where(x => x.UsuarioId == usuarioId).ToListAsync(ct));
             _db.IntentosFallidos.RemoveRange(await _db.IntentosFallidos.Where(x => x.UsuarioId == usuarioId).ToListAsync(ct));
@@ -273,11 +277,36 @@ public sealed class UsuarioService : IUsuarioService
             _db.UsuariosGrupos.RemoveRange(await _db.UsuariosGrupos.Where(x => x.UsuarioId == usuarioId).ToListAsync(ct));
             _db.UsuariosRoles.RemoveRange(await _db.UsuariosRoles.Where(x => x.UsuarioId == usuarioId).ToListAsync(ct));
             _db.Notificaciones.RemoveRange(await _db.Notificaciones.Where(x => x.UsuarioId == usuarioId).ToListAsync(ct));
+            _db.LlavesAdministrador.RemoveRange(
+                await _db.LlavesAdministrador.Where(l => l.UsuarioId == usuarioId).ToListAsync(ct));
             _db.Usuarios.Remove(usuario);
             await _db.SaveChangesAsync(ct);
         }, cancellationToken);
 
         return Result.Ok(SuccessMessages.UsuarioEliminado);
+    }
+
+    private async Task SoltarBoletosDeCasosAsync(List<Guid> casosIds, CancellationToken cancellationToken)
+    {
+        if (casosIds.Count == 0)
+        {
+            return;
+        }
+
+        var boletos = await _db.Boletos
+            .Where(b => b.CasoGanadorId != null && casosIds.Contains(b.CasoGanadorId.Value))
+            .ToListAsync(cancellationToken);
+        if (boletos.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var boleto in boletos)
+        {
+            boleto.CasoGanadorId = null;
+        }
+
+        await _db.SaveChangesAsync(cancellationToken);
     }
 
     public async Task<Result<RestablecerPasswordResponse>> RestablecerPasswordAsync(Guid usuarioId, CancellationToken cancellationToken)

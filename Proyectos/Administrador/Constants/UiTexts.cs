@@ -280,6 +280,7 @@ public static class UiTexts
     public const string PlaceholderLoteria = "Nombre o número";
     public const string CatalogoLoterias = "Catálogo de loterías";
     public const string HorarioHabilitado = "Horario habilitado";
+    public const string GuardarHorarios = "Guardar horarios";
     public const string HoraInicioLoteria = "Hora de inicio";
     public const string HoraFinLoteria = "Hora de fin";
     public const string HorarioLoteriaAyuda = "Debe estar dentro del horario de actividad del PDA. La hora de inicio debe ser menor que la hora de fin.";
@@ -463,6 +464,12 @@ public static class UiTexts
     public const string NumeroCompilacion = "Número de compilación";
     public const string NumeroCompilacionAyuda = "Es el número entero de compilación de la aplicación. Debe ser distinto al de las versiones que siguen guardadas.";
     public const string PublicarVersion = "Publicar versión";
+    public const string SubiendoArchivo = "Subiendo el archivo: {0}%";
+    public const string GuardandoVersion = "Guardando la versión. Esto puede tardar unos minutos.";
+    public const string VersionLista = "Versión publicada.";
+    public const string ErrorAlPublicarVersion = "No se pudo publicar la versión. Inténtelo de nuevo.";
+    public const string ArchivoSuperaTamano = "El archivo supera el tamaño máximo de 200 MB.";
+    public const string SesionExpiradaAlPublicar = "La sesión expiró. Vuelva a ingresar para publicar la versión.";
     public const string VacioVersionesAplicacion = "Todavía no hay una versión publicada. Suba el APK para que los dispositivos puedan actualizarse.";
     public const string VersionVigente = "Vigente";
     public const string Compilacion = "Compilación";
@@ -568,6 +575,9 @@ public static class UiTexts
     public const string BuscarUsuarioOPda = "Buscar usuario o PDA";
     public const string PlaceholderOffline = "Nombre o PDA";
     public const string Consecutivo = "Consecutivo";
+    public const string PlaceholderConsecutivo = "OFF-000123";
+    public const string OrdenarColumnaAsc = "Ordenar {0} de menor a mayor";
+    public const string OrdenarColumnaDesc = "Ordenar {0} de mayor a menor";
     public const string Pda = "PDA";
     public const string FechaVenta = "Fecha de venta";
     public const string CantidadCodigos = "Cantidad de códigos";

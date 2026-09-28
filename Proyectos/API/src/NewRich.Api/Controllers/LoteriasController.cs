@@ -54,4 +54,12 @@ public sealed class LoteriasController : ApiControllerBase
     {
         return From(await _loteriaService.ActualizarTopesAsync(request, cancellationToken));
     }
+
+    [Authorize(Roles = "Administrador")]
+    [RequiereConfirmacion(AccionesProtegidas.LoteriasGuardar)]
+    [HttpPut("horarios")]
+    public async Task<IActionResult> ActualizarHorarios([FromBody] ActualizarHorariosLoteriasRequest request, CancellationToken cancellationToken)
+    {
+        return From(await _loteriaService.ActualizarHorariosAsync(request, cancellationToken));
+    }
 }

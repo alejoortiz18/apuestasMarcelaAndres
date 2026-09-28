@@ -71,6 +71,60 @@ public sealed class OfflineAgrupacionTests
     }
 
     [Fact]
+    public void ConsultarLote_filtra_por_estado_del_codigo()
+    {
+        var usuario = Guid.NewGuid();
+        var pda = Guid.NewGuid();
+        var items = new[]
+        {
+            Codigo(usuario, "Ana", pda, "PDA-01", EstadoCodigoOffline.Generado, consecutivo: "OFF-000001"),
+            Codigo(usuario, "Ana", pda, "PDA-01", EstadoCodigoOffline.Utilizado, consecutivo: "OFF-000002"),
+            Codigo(usuario, "Ana", pda, "PDA-01", EstadoCodigoOffline.Registrado, consecutivo: "OFF-000003")
+        };
+
+        var filtrados = OfflineAgrupacion.ConsultarLote(items, null, null, nameof(EstadoCodigoOffline.Utilizado), null, null, null);
+
+        filtrados.Should().ContainSingle();
+        filtrados[0].Consecutivo.Should().Be("OFF-000002");
+    }
+
+    [Fact]
+    public void ConsultarLote_busca_el_consecutivo_aunque_solo_se_escriban_numeros()
+    {
+        var usuario = Guid.NewGuid();
+        var pda = Guid.NewGuid();
+        var items = new[]
+        {
+            Codigo(usuario, "Ana", pda, "PDA-01", EstadoCodigoOffline.Generado, consecutivo: "OFF-000120"),
+            Codigo(usuario, "Ana", pda, "PDA-01", EstadoCodigoOffline.Generado, consecutivo: "OFF-000121")
+        };
+
+        var filtrados = OfflineAgrupacion.ConsultarLote(items, null, null, null, "121", null, null);
+
+        filtrados.Should().ContainSingle();
+        filtrados[0].Consecutivo.Should().Be("OFF-000121");
+    }
+
+    [Fact]
+    public void ConsultarLote_ordena_por_estado_ascendente_y_luego_descendente()
+    {
+        var usuario = Guid.NewGuid();
+        var pda = Guid.NewGuid();
+        var items = new[]
+        {
+            Codigo(usuario, "Ana", pda, "PDA-01", EstadoCodigoOffline.Utilizado, consecutivo: "OFF-000003"),
+            Codigo(usuario, "Ana", pda, "PDA-01", EstadoCodigoOffline.Descargado, consecutivo: "OFF-000002"),
+            Codigo(usuario, "Ana", pda, "PDA-01", EstadoCodigoOffline.Generado, consecutivo: "OFF-000001")
+        };
+
+        var asc = OfflineAgrupacion.ConsultarLote(items, null, null, null, null, "estado", "asc");
+        var desc = OfflineAgrupacion.ConsultarLote(items, null, null, null, null, "estado", "desc");
+
+        asc.Select(c => c.Estado).Should().Equal("Descargado", "Generado", "Utilizado");
+        desc.Select(c => c.Estado).Should().Equal("Utilizado", "Generado", "Descargado");
+    }
+
+    [Fact]
     public void Tiene_tirilla_vendida_solo_en_utilizado_y_registrado()
     {
         OfflineAgrupacion.TieneTirillaVendida(nameof(EstadoCodigoOffline.Utilizado)).Should().BeTrue();
@@ -86,11 +140,12 @@ public sealed class OfflineAgrupacionTests
         Guid dispositivoId,
         string pda,
         EstadoCodigoOffline estado,
-        DateTime? creacion = null) =>
+        DateTime? creacion = null,
+        string? consecutivo = null) =>
         new()
         {
             CodigoId = Guid.NewGuid(),
-            Consecutivo = Guid.NewGuid().ToString("N")[..8],
+            Consecutivo = consecutivo ?? Guid.NewGuid().ToString("N")[..8],
             UsuarioId = usuarioId,
             Usuario = usuario,
             DispositivoId = dispositivoId,

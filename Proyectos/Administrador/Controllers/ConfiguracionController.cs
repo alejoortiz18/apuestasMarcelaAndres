@@ -187,6 +187,30 @@ public sealed class ConfiguracionController : AdminControllerBase
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    public async Task<IActionResult> GuardarHorarios(
+        List<HorarioLoteriaRequest> horarios,
+        string? q,
+        int page = 1,
+        int pageSize = 5,
+        CancellationToken cancellationToken = default)
+    {
+        SetNav("configuracion", UiTexts.NavConfiguracion);
+        var result = await _api.ActualizarHorariosLoteriasAsync(new ActualizarHorariosLoteriasRequest
+        {
+            Loterias = horarios ?? []
+        }, cancellationToken);
+        var denied = RedirectIfUnauthorized(result);
+        if (denied is not null)
+        {
+            return denied;
+        }
+
+        SetFlash(result.Success ? SuccessMessages.RegistroActualizado : result.Message, result.Success);
+        return RedirectToAction(nameof(Index), new { q, page, pageSize });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> AgregarNumeroRestringido(string numero, CancellationToken cancellationToken)
     {
         SetNav("configuracion", UiTexts.NavConfiguracion);

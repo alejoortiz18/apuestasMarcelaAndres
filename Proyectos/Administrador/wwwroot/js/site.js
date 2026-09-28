@@ -1301,3 +1301,128 @@ iniciarDiasVenta();
   });
 })();
 
+(function () {
+  const form = document.getElementById("version-aplicacion");
+  if (!form) {
+    return;
+  }
+
+  const caja = document.getElementById("version-progreso");
+  const texto = document.getElementById("version-progreso-texto");
+  const barra = document.getElementById("version-progreso-barra");
+  const boton = form.querySelector('button[type="submit"]');
+  const maximo = Number(form.getAttribute("data-tamano-maximo")) || 0;
+
+  function mensaje(clave, valor) {
+    const plantilla = form.getAttribute(clave) || "";
+    return plantilla.replace("{0}", valor == null ? "" : String(valor));
+  }
+
+  function mostrar(porcentaje, leyenda, estado) {
+    if (!caja || !texto || !barra) {
+      return;
+    }
+    caja.hidden = false;
+    caja.classList.remove("is-guardando", "is-error", "is-ok");
+    if (estado) {
+      caja.classList.add(estado);
+    }
+    texto.textContent = leyenda;
+    const ancho = Math.max(0, Math.min(100, porcentaje));
+    barra.style.width = ancho + "%";
+    barra.setAttribute("aria-valuenow", String(Math.round(ancho)));
+  }
+
+  function liberar() {
+    form.dataset.subiendo = "";
+    form.dataset.protegidoOk = "";
+    form.removeAttribute("aria-busy");
+    if (boton) {
+      boton.disabled = false;
+    }
+  }
+
+  form.addEventListener("submit", function (event) {
+    if (form.dataset.protegidoOk !== "1" || form.dataset.subiendo === "1") {
+      return;
+    }
+
+    const archivo = form.querySelector('input[type="file"]');
+    const elegido = archivo && archivo.files && archivo.files[0];
+    if (elegido && maximo > 0 && elegido.size > maximo) {
+      event.preventDefault();
+      event.stopPropagation();
+      mostrar(0, mensaje("data-msg-tamano"), "is-error");
+      liberar();
+      return;
+    }
+
+    if (typeof form.reportValidity === "function" && !form.reportValidity()) {
+      event.preventDefault();
+      liberar();
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    form.dataset.subiendo = "1";
+    form.setAttribute("aria-busy", "true");
+    if (boton) {
+      boton.disabled = true;
+    }
+    mostrar(0, mensaje("data-msg-subiendo", 0), "");
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", form.action);
+    xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+    xhr.upload.addEventListener("progress", function (progreso) {
+      if (!progreso.lengthComputable || progreso.total <= 0) {
+        return;
+      }
+      const porcentaje = Math.min(99, Math.round((progreso.loaded / progreso.total) * 100));
+      mostrar(porcentaje, mensaje("data-msg-subiendo", porcentaje), "");
+    });
+    xhr.upload.addEventListener("load", function () {
+      mostrar(100, mensaje("data-msg-guardando"), "is-guardando");
+    });
+    xhr.addEventListener("load", function () {
+      const cuerpo = xhr.responseText || "";
+      const esIngreso = cuerpo.indexOf('id="login-password"') >= 0 || xhr.status === 401;
+      if (esIngreso) {
+        mostrar(0, mensaje("data-msg-sesion"), "is-error");
+        liberar();
+        return;
+      }
+      if (xhr.status === 413) {
+        mostrar(0, mensaje("data-msg-tamano"), "is-error");
+        liberar();
+        return;
+      }
+      if (xhr.status < 200 || xhr.status >= 400) {
+        mostrar(0, mensaje("data-msg-error"), "is-error");
+        liberar();
+        return;
+      }
+      const doc = new DOMParser().parseFromString(cuerpo, "text/html");
+      const error = doc.querySelector(".notice.error");
+      const ok = doc.querySelector(".notice.ok");
+      if (error && !ok) {
+        mostrar(0, error.textContent.trim() || mensaje("data-msg-error"), "is-error");
+        liberar();
+        return;
+      }
+      mostrar(100, mensaje("data-msg-lista"), "is-ok");
+      window.setTimeout(function () {
+        document.open();
+        document.write(cuerpo);
+        document.close();
+      }, 400);
+    });
+    xhr.addEventListener("error", function () {
+      mostrar(0, mensaje("data-msg-error"), "is-error");
+      liberar();
+    });
+    xhr.send(new FormData(form));
+  });
+})();
+
