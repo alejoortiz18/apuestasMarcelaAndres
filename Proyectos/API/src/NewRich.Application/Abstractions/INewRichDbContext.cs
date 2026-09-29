@@ -37,6 +37,11 @@ public interface INewRichDbContext
     DbSet<LlaveAdministrador> LlavesAdministrador { get; }
     DbSet<VersionAplicacion> VersionesAplicacion { get; }
     DbSet<AuditoriaRetencion> AuditoriasRetencion { get; }
+    DbSet<AsignacionGrupoRecaudo> AsignacionesGrupoRecaudo { get; }
+    DbSet<AsignacionVendedorRecaudo> AsignacionesVendedorRecaudo { get; }
+    DbSet<ObligacionRecaudo> ObligacionesRecaudo { get; }
+    DbSet<PagoRegistradoRecaudo> PagosRecaudo { get; }
+    DbSet<TirillaCobroRecaudo> TirillasCobroRecaudo { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     Task ExecuteInTransactionAsync(Func<CancellationToken, Task> action, CancellationToken cancellationToken = default);

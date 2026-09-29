@@ -245,6 +245,7 @@ public sealed class RegistroGuiadoPdaTests
     [Theory]
     [InlineData(TipoDispositivo.Vendedor)]
     [InlineData(TipoDispositivo.Observador)]
+    [InlineData(TipoDispositivo.Recaudador)]
     public async Task El_tipo_de_usuario_que_elige_el_administrador_queda_en_el_dispositivo(TipoDispositivo tipo)
     {
         var api = ApiQueRegistra();

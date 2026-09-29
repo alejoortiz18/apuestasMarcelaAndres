@@ -99,6 +99,18 @@ public sealed class UsuarioCreacionTests
         result.Data!.GrupoId.Should().BeNull();
     }
 
+    [Fact]
+    public async Task CrearAsync_permite_recaudador_sin_grupo()
+    {
+        var (sut, _) = CreateSut();
+
+        var result = await sut.CrearAsync(Solicitud(RolUsuario.Recaudador), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Rol.Should().Be(RolUsuario.Recaudador);
+        result.Data.GrupoId.Should().BeNull();
+    }
+
     private static CrearUsuarioRequest Solicitud(RolUsuario rol) => new()
     {
         NombreCompleto = "Ana Vendedora",

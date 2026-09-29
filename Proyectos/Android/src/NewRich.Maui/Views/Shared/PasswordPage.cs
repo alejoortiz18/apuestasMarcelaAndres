@@ -348,6 +348,10 @@ public sealed class PasswordPage : ContentPage
             {
                 _nav.IrAVendedor();
             }
+            else if (shell.Data == ShellPda.Recaudador)
+            {
+                _nav.IrARecaudador();
+            }
             else
             {
                 _nav.IrAObservador();

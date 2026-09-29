@@ -14,12 +14,12 @@ Todo el desarrollo y la prueba ocurren en este equipo.
 | --- | --- |
 | API | `http://localhost:5295`, perfil Development |
 | Sitio administrativo | `http://localhost:5274`, perfil Development, API en `http://localhost:5295/` |
-| Base de datos | `Server=LAPTOP-CQSL6T3I;Database=NewRich`, autenticación de Windows |
+| Base de datos | `Server=localhost;Database=NewRich` en este equipo (`DESKTOP-JLLF9LK`), autenticación de Windows |
 | APK | Compilación Debug en el dispositivo USB, solo cuando el corte del PDA esté listo para probarse |
 
 El archivo `Proyectos/Administrador/appsettings.json` sigue apuntando a la API de Azure. No se edita. El sitio local usa `appsettings.Development.json`.
 
-No se ejecuta SQL fuera de `LAPTOP-CQSL6T3I`. No se copia el APK a `C:\inetpub`, al blob ni a `documentos\APKTrest`. No se cambia la cadena de conexión de producción ni se publican sitios.
+No se ejecuta SQL fuera de `localhost` en `DESKTOP-JLLF9LK`. No se copia el APK a `C:\inetpub`, al blob ni a `documentos\APKTrest`. No se cambia la cadena de conexión de producción ni se publican sitios.
 
 Antes de cada script se comprueba el servidor:
 
@@ -27,7 +27,7 @@ Antes de cada script se comprueba el servidor:
 SELECT @@SERVERNAME
 ```
 
-El resultado esperado es el equipo local. Si el nombre no corresponde, el script no se ejecuta.
+El resultado esperado es `DESKTOP-JLLF9LK`. Si el nombre no corresponde, el script no se ejecuta.
 
 ## 2. Cómo entra el módulo al sistema actual
 
@@ -117,7 +117,7 @@ La prueba de aceptación de este corte: con ventas reales de la base local, el t
 5. El pago queda inalterable.
 6. La tirilla de cobro se guarda con recaudador, vendedor, fecha y hora, valor recibido, saldo que queda y consecutivo. El texto completo de la tirilla se define más adelante.
 
-Prueba local: el ejemplo de $50.000 anteriores + $80.000 de hoy, con un pago de $30.000, deja $90.000.
+Prueba local: el ejemplo de $50.000 anteriores + $80.000 de hoy, con un pago de $30.000, deja $100.000.
 
 ### Corte 5. Consultas del administrador
 

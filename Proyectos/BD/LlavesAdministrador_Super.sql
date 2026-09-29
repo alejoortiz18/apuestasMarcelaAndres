@@ -4,7 +4,7 @@ BEGIN
     ALTER TABLE dbo.Usuarios DROP CONSTRAINT CK_Usuarios_Rol;
 END
 GO
-ALTER TABLE dbo.Usuarios ADD CONSTRAINT CK_Usuarios_Rol CHECK (Rol IN (N'Administrador', N'Vendedor', N'Observador', N'Super'));
+ALTER TABLE dbo.Usuarios ADD CONSTRAINT CK_Usuarios_Rol CHECK (Rol IN (N'Administrador', N'Vendedor', N'Observador', N'Super', N'Recaudador'));
 GO
 
 IF NOT EXISTS (SELECT 1 FROM dbo.Roles WHERE Nombre = N'Super')

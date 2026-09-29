@@ -375,6 +375,32 @@ public static class PdaTexts
     public const string ActualizacionPreparando = "Preparando la descarga";
     public const string ActualizacionDescargando = "Descargando la actualización: {0}%";
     public const string ActualizacionInstalando = "Abriendo el instalador";
+    public const string Recaudo = "Recaudo";
+    public const string HistorialRecaudo = "Historial";
+    public const string MetricasRecaudo = "Métricas";
+    public const string Pendientes = "Pendientes";
+    public const string Cobrados = "Cobrados";
+    public const string Todos = "Todos";
+    public const string PdaRecaudador = "PDA recaudador";
+    public const string RegistrarCobro = "Registrar cobro";
+    public const string ValorRecibido = "Valor recibido";
+    public const string TotalPendiente = "Total pendiente";
+    public const string SaldoQueQueda = "Saldo que queda";
+    public const string ConfirmarCobro = "Confirmar cobro";
+    public const string PagoRecaudoInvalido = "El valor debe ser un peso entero mayor que cero.";
+    public const string PagoRecaudoExcede = "El valor no puede ser mayor que el pendiente.";
+    public const string DebeIngresarAGrupo = "Debe ingresar a un grupo";
+    public const string SinAsignadosHoy = "No hay vendedores por cobrar en este periodo.";
+    public const string SinCobrosHistorial = "No hay cobros registrados en este periodo.";
+    public const string SincronizarRecaudo = "Sincronizar recaudo";
+    public const string SincronizarRecaudoAyuda = "Sube los cobros pendientes y actualiza las obligaciones.";
+    public const string SyncPagosPendientes = "{0} pagos siguen pendientes.";
+    public const string RecaudoDelDia = "Recaudo del día";
+    public const string PorCobrarHoy = "Por cobrar";
+    public const string RecaudadoHoy = "Recaudado";
+    public const string PendienteHoy = "Pendiente";
+    public const string DeudaAcumulada = "Deuda acumulada";
+    public const string OrdenarPor = "Ordenar";
 
     public static string ActualizacionMensaje(string nombreVersion, int numeroCompilacion) =>
         $"Hay una versión nueva ({nombreVersion}, compilación {numeroCompilacion}). Descárgala e instálala en este dispositivo.";

@@ -79,7 +79,7 @@ Every data table created in the MVC application must include pagination. A table
 
 ### Side menu o menu lateral
 
-- The side menu groups navigation by task and uses clear labels and familiar icons.
+- The side menu groups navigation by task and uses clear labels and familiar icons. Ventas y Recaudo son acordeones compactos: el encabezado es una fila con borde dorado y no se estira para llenar el alto del lateral. El espacio sobrante queda debajo de los grupos cerrados.
 - Highlight the current section with text and a visual state; do not rely on color alone.
 - Support collapsed and mobile states without trapping keyboard focus.
 - En el pie del menu el globo dorado queda detras de las ultimas opciones y la tarjeta de cuenta con icono de salida. **Cerrar sesion** se confirma al abrir la cuenta. No mostrar la frase de disciplina en el menu.

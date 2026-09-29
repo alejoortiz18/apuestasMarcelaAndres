@@ -62,7 +62,7 @@ BEGIN
         Email               NVARCHAR(100)    NULL,
         PasswordHash        NVARCHAR(200)    NOT NULL,
         PasswordSalt        NVARCHAR(100)    NOT NULL,
-        Rol                 NVARCHAR(20)     NOT NULL DEFAULT 'Vendedor', -- Administrador, Vendedor, Observador
+        Rol                 NVARCHAR(20)     NOT NULL DEFAULT 'Vendedor', -- Administrador, Vendedor, Observador, Super, Recaudador
         Estado              NVARCHAR(20)     NOT NULL DEFAULT 'Activo',   -- Activo, Inactivo
         EstadoValidado      BIT              NOT NULL DEFAULT 1,          -- true = debe cambiar password
         EstadoBloqueado     BIT              NOT NULL DEFAULT 0,          -- true = bloqueado por 3 intentos
@@ -71,11 +71,22 @@ BEGIN
         FechaUltimoAcceso   DATETIME2        NULL,
         CONSTRAINT PK_Usuarios PRIMARY KEY (UsuarioId),
         CONSTRAINT UQ_Usuarios_Usuario UNIQUE (Usuario),
-        CONSTRAINT UQ_Usuarios_Documento UNIQUE (Documento),
-        CONSTRAINT CK_Usuarios_Rol CHECK (Rol IN ('Administrador', 'Vendedor', 'Observador', 'Super')),
+        CONSTRAINT CK_Usuarios_Rol CHECK (Rol IN ('Administrador', 'Vendedor', 'Observador', 'Super', 'Recaudador')),
         CONSTRAINT CK_Usuarios_Estado CHECK (Estado IN ('Activo', 'Inactivo'))
     );
     PRINT 'Tabla Usuarios creada.';
+END
+GO
+
+/* El documento es opcional; se exige único solo cuando viene informado, porque una
+   restricción UNIQUE normal trataría dos nulos como repetidos. */
+IF NOT EXISTS (SELECT 1 FROM sys.indexes
+               WHERE name = 'UX_Usuarios_Documento' AND object_id = OBJECT_ID(N'dbo.Usuarios'))
+BEGIN
+    CREATE UNIQUE INDEX UX_Usuarios_Documento
+        ON dbo.Usuarios (Documento)
+        WHERE Documento IS NOT NULL;
+    PRINT 'Índice UX_Usuarios_Documento creado.';
 END
 GO
 
@@ -148,7 +159,7 @@ BEGIN
     CREATE TABLE dbo.Dispositivos (
         DispositivoId            UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
         CodigoDispositivo        NVARCHAR(20)     NOT NULL,
-        Tipo                     NVARCHAR(20)     NOT NULL DEFAULT 'Vendedor', -- Vendedor, Observador
+        Tipo                     NVARCHAR(20)     NOT NULL DEFAULT 'Vendedor', -- Vendedor, Observador, Recaudador
         Estado                   NVARCHAR(20)     NOT NULL DEFAULT 'Activo',   -- Activo, Inactivo
         Modelo                   NVARCHAR(100)    NULL,
         NumeroSerie              NVARCHAR(100)    NULL,
@@ -157,7 +168,7 @@ BEGIN
         CONSTRAINT PK_Dispositivos PRIMARY KEY (DispositivoId),
         CONSTRAINT UQ_Dispositivos_Codigo UNIQUE (CodigoDispositivo),
         CONSTRAINT UQ_Dispositivos_NumeroSerie UNIQUE (NumeroSerie),
-        CONSTRAINT CK_Dispositivos_Tipo CHECK (Tipo IN ('Vendedor', 'Observador')),
+        CONSTRAINT CK_Dispositivos_Tipo CHECK (Tipo IN ('Vendedor', 'Observador', 'Recaudador')),
         CONSTRAINT CK_Dispositivos_Estado CHECK (Estado IN ('Activo', 'Inactivo')),
         CONSTRAINT CK_Dispositivos_Capacidad CHECK (CapacidadCodigosOffline >= 1)
     );
@@ -1324,6 +1335,8 @@ IF NOT EXISTS (SELECT 1 FROM dbo.Roles WHERE Nombre = 'Vendedor')
     INSERT INTO dbo.Roles (Nombre, Descripcion) VALUES ('Vendedor', 'Responsable de registrar y vender apuestas');
 IF NOT EXISTS (SELECT 1 FROM dbo.Roles WHERE Nombre = 'Observador')
     INSERT INTO dbo.Roles (Nombre, Descripcion) VALUES ('Observador', 'Supervisa la operacion y valida boletos');
+IF NOT EXISTS (SELECT 1 FROM dbo.Roles WHERE Nombre = 'Recaudador')
+    INSERT INTO dbo.Roles (Nombre, Descripcion) VALUES ('Recaudador', 'Recoge el dinero que los vendedores deben entregar');
 GO
 PRINT 'Datos maestros de Roles insertados.';
 

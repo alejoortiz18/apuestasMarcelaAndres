@@ -98,4 +98,16 @@ public sealed class ReglasPdaTests
     {
         NavegacionPorRol.Para(RolUsuario.Observador).Data.Should().Be(ShellPda.Observador);
     }
+
+    [Fact]
+    public void Recaudador_abre_shell_recaudador()
+    {
+        NavegacionPorRol.Para(RolUsuario.Recaudador).Data.Should().Be(ShellPda.Recaudador);
+    }
+
+    [Fact]
+    public void Super_no_puede_entrar_al_pda()
+    {
+        NavegacionPorRol.Para(RolUsuario.Super).IsSuccess.Should().BeFalse();
+    }
 }

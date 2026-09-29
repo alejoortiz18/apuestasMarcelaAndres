@@ -30,13 +30,84 @@ public interface ILectorLlaveUsb
 [SupportedOSPlatform("windows")]
 public sealed class InventarioUsbWindows : IInventarioUsb
 {
+    // Cada recorrido consulta WMI por disco y cuesta cientos de milisegundos, y el ingreso
+    // lo pide dos veces seguidas (al dibujar el formulario y al enviarlo). Se reutiliza el
+    // último recorrido mientras las unidades se vean iguales: conectar, retirar o formatear
+    // una memoria cambia la firma y obliga a leer de nuevo.
+    private static readonly TimeSpan VigenciaMaxima = TimeSpan.FromMinutes(1);
+    private static readonly object Candado = new();
+    private static IReadOnlyList<DiscoUsbInfo>? _ultimoResultado;
+    private static string _ultimaFirma = string.Empty;
+    private static DateTime _ultimaLectura = DateTime.MinValue;
+
     public IReadOnlyList<DiscoUsbInfo> Listar()
+    {
+        var firma = FirmaUnidades();
+        lock (Candado)
+        {
+            if (_ultimoResultado is not null
+                && firma == _ultimaFirma
+                && DateTime.UtcNow - _ultimaLectura < VigenciaMaxima)
+            {
+                return _ultimoResultado;
+            }
+
+            _ultimoResultado = Recorrer();
+            _ultimaFirma = firma;
+            _ultimaLectura = DateTime.UtcNow;
+            return _ultimoResultado;
+        }
+    }
+
+    /// <summary>
+    /// Datos que Windows entrega sin consultar WMI, suficientes para notar que las unidades cambiaron.
+    /// </summary>
+    private static string FirmaUnidades()
+    {
+        // Una unidad que no responde deja esta lectura esperando; si eso pasa se recorre de
+        // nuevo, que es el camino que ya limita el tiempo por disco.
+        var consulta = Task.Run(ArmarFirma);
+        return consulta.Wait(TimeSpan.FromSeconds(2))
+            ? consulta.Result
+            : Guid.NewGuid().ToString();
+    }
+
+    private static string ArmarFirma()
+    {
+        var partes = new List<string>();
+        foreach (var disco in DriveInfo.GetDrives())
+        {
+            if (disco.DriveType is not (DriveType.Removable or DriveType.Fixed))
+            {
+                continue;
+            }
+
+            try
+            {
+                partes.Add(disco.IsReady
+                    ? $"{disco.Name}|{disco.DriveType}|{disco.DriveFormat}|{disco.VolumeLabel}|{disco.TotalSize}"
+                    : $"{disco.Name}|vacia");
+            }
+            catch (IOException)
+            {
+                partes.Add($"{disco.Name}|error");
+            }
+            catch (UnauthorizedAccessException)
+            {
+                partes.Add($"{disco.Name}|error");
+            }
+        }
+
+        return string.Join(";", partes);
+    }
+
+    private static IReadOnlyList<DiscoUsbInfo> Recorrer()
     {
         var sistema = DiscoExternoUsb.NormalizarLetra(Path.GetPathRoot(Environment.SystemDirectory));
         var resultado = new List<DiscoUsbInfo>();
         foreach (var disco in DriveInfo.GetDrives())
         {
-            if (!disco.IsReady)
+            if (disco.DriveType is not (DriveType.Removable or DriveType.Fixed))
             {
                 continue;
             }
@@ -47,77 +118,90 @@ public sealed class InventarioUsbWindows : IInventarioUsb
                 continue;
             }
 
-            var bus = ConsultarBus(letra);
-            var esUsb = string.Equals(bus, "USB", StringComparison.OrdinalIgnoreCase)
-                || (disco.DriveType == DriveType.Removable && bus == "DESCONOCIDO");
-            if (!DiscoExternoUsb.EsApto(esUsb ? "USB" : bus, esDiscoSistema: false))
+            var info = DescribirConLimite(disco, letra);
+            if (info is not null)
             {
-                continue;
+                resultado.Add(info);
             }
-
-            var serial = ConsultarSerial(letra);
-            var volumen = disco.VolumeSerialNumber();
-            var fs = disco.DriveFormat;
-            resultado.Add(new DiscoUsbInfo(
-                letra,
-                string.IsNullOrWhiteSpace(disco.VolumeLabel) ? letra : disco.VolumeLabel,
-                string.IsNullOrWhiteSpace(serial) ? volumen : serial,
-                volumen,
-                fs,
-                DiscoExternoUsb.EsNtfs(fs)));
         }
 
         return resultado;
     }
 
-    private static string ConsultarBus(string letra)
+    private static DiscoUsbInfo? DescribirConLimite(DriveInfo disco, string letra)
     {
-        try
+        // Una lectora vacía o un disco de red deja IsReady y WMI esperando, y la pantalla de ingreso no llega a dibujarse.
+        var consulta = Task.Run(() => Describir(disco, letra));
+        if (!consulta.Wait(TimeSpan.FromSeconds(2)))
         {
-            var deviceId = ConsultarDeviceId(letra);
-            if (string.IsNullOrWhiteSpace(deviceId))
-            {
-                return "DESCONOCIDO";
-            }
-
-            using var busqueda = new ManagementObjectSearcher(
-                "SELECT InterfaceType FROM Win32_DiskDrive WHERE DeviceID = '" + Escapar(deviceId) + "'");
-            foreach (var item in busqueda.Get())
-            {
-                return item["InterfaceType"]?.ToString() ?? "DESCONOCIDO";
-            }
-        }
-        catch (ManagementException)
-        {
-            return "DESCONOCIDO";
+            return null;
         }
 
-        return "DESCONOCIDO";
+        return consulta.Result;
     }
 
-    private static string ConsultarSerial(string letra)
+    private static DiscoUsbInfo? Describir(DriveInfo disco, string letra)
+    {
+        try
+        {
+            if (!disco.IsReady)
+            {
+                return null;
+            }
+
+            var (bus, serial) = ConsultarDisco(letra);
+            var esUsb = string.Equals(bus, "USB", StringComparison.OrdinalIgnoreCase)
+                || (disco.DriveType == DriveType.Removable && bus == "DESCONOCIDO");
+            if (!DiscoExternoUsb.EsApto(esUsb ? "USB" : bus, esDiscoSistema: false))
+            {
+                return null;
+            }
+
+            var volumen = disco.VolumeSerialNumber();
+            var fs = disco.DriveFormat;
+            return new DiscoUsbInfo(
+                letra,
+                string.IsNullOrWhiteSpace(disco.VolumeLabel) ? letra : disco.VolumeLabel,
+                string.IsNullOrWhiteSpace(serial) ? volumen : serial,
+                volumen,
+                fs,
+                DiscoExternoUsb.EsNtfs(fs));
+        }
+        catch (IOException)
+        {
+            return null;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
+    private static (string Bus, string Serial) ConsultarDisco(string letra)
     {
         try
         {
             var deviceId = ConsultarDeviceId(letra);
             if (string.IsNullOrWhiteSpace(deviceId))
             {
-                return string.Empty;
+                return ("DESCONOCIDO", string.Empty);
             }
 
             using var busqueda = new ManagementObjectSearcher(
-                "SELECT SerialNumber FROM Win32_DiskDrive WHERE DeviceID = '" + Escapar(deviceId) + "'");
+                "SELECT InterfaceType, SerialNumber FROM Win32_DiskDrive WHERE DeviceID = '" + Escapar(deviceId) + "'");
             foreach (var item in busqueda.Get())
             {
-                return (item["SerialNumber"]?.ToString() ?? string.Empty).Trim();
+                return (
+                    item["InterfaceType"]?.ToString() ?? "DESCONOCIDO",
+                    (item["SerialNumber"]?.ToString() ?? string.Empty).Trim());
             }
         }
         catch (ManagementException)
         {
-            return string.Empty;
+            return ("DESCONOCIDO", string.Empty);
         }
 
-        return string.Empty;
+        return ("DESCONOCIDO", string.Empty);
     }
 
     private static string ConsultarDeviceId(string letra)

@@ -77,6 +77,19 @@ public sealed class RegistroAutomaticoPdaTests
     }
 
     [Fact]
+    public async Task El_registro_de_un_pda_de_recaudador_guarda_ese_tipo()
+    {
+        var sut = CreateSut();
+        var solicitud = Solicitud("SERIE-RECAUDO");
+        solicitud.Tipo = TipoDispositivo.Recaudador;
+
+        var result = await sut.RegistrarAutomaticoAsync(solicitud, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Tipo.Should().Be(TipoDispositivo.Recaudador);
+    }
+
+    [Fact]
     public async Task Exige_el_numero_de_serie_del_equipo()
     {
         var sut = CreateSut();

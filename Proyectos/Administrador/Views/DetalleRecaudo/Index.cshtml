@@ -1,0 +1,110 @@
+@using NewRich.Admin.Constants
+@using NewRich.Admin.Models
+@model DetalleRecaudoViewModel
+@{
+    string Estado(string valor) => valor switch
+    {
+        "AlDia" => UiTexts.EstadoAlDia,
+        "Deudado" => UiTexts.EstadoDeudado,
+        "PorCobrar" => UiTexts.EstadoPorCobrar,
+        _ => valor
+    };
+    string Color(string valor) => valor.ToLowerInvariant() switch
+    {
+        "verde" => "verde",
+        "rojo" => "rojo",
+        "azul" => "azul",
+        _ => string.Empty
+    };
+}
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.RecaudoKicker</div>
+        <h1>@Model.Nombre</h1>
+        <p>@UiTexts.DetalleRecaudoSub</p>
+    </div>
+</div>
+<div class="panel">
+    <form class="toolbar" method="get">
+        <input type="hidden" name="id" value="@Model.RecaudadorId" />
+        <div class="field">
+            <label for="desde">@UiTexts.Desde</label>
+            <input id="desde" name="desde" type="date" value="@Model.Desde.ToString("yyyy-MM-dd")" />
+        </div>
+        <div class="field">
+            <label for="hasta">@UiTexts.Hasta</label>
+            <input id="hasta" name="hasta" type="date" value="@Model.Hasta.ToString("yyyy-MM-dd")" />
+        </div>
+        <div class="field">
+            <label for="pageSize">@UiTexts.FilasPorPagina</label>
+            <select id="pageSize" name="pageSize">
+                @foreach (var size in PagingHelper.PageSizes)
+                {
+                    <option value="@size" selected="@(Model.Vendedores.PageSize == size)">@size</option>
+                }
+            </select>
+        </div>
+        <button class="primary" type="submit">@UiTexts.Aplicar</button>
+    </form>
+</div>
+<div class="recaudo-metricas">
+    <article class="recaudo-metrica"><span>@UiTexts.TotalPorRecaudar</span><strong class="recaudo-cifra">@FormatoPesos.De(Model.TotalPorRecaudar)</strong></article>
+    <article class="recaudo-metrica"><span>@UiTexts.TotalRecaudado</span><strong class="recaudo-cifra">@FormatoPesos.De(Model.TotalRecaudado)</strong></article>
+    <article class="recaudo-metrica"><span>@UiTexts.SaldoPendiente</span><strong class="recaudo-cifra">@FormatoPesos.De(Model.SaldoPendiente)</strong></article>
+    <article class="recaudo-metrica"><span>@UiTexts.PorcentajeRecaudado</span><strong class="recaudo-cifra">@Model.PorcentajeRecaudado %</strong></article>
+</div>
+<div class="panel">
+    <div class="panel-head">
+        <div>
+            <h2>@UiTexts.DetalleRecaudoTitulo</h2>
+            <div class="panel-sub">@Model.Vendedores.TotalCount registros</div>
+        </div>
+    </div>
+    @if (!Model.Vendedores.Items.Any())
+    {
+        <div class="empty">@UiTexts.Vacio</div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                <tr>
+                    <th>@UiTexts.Vendedor</th>
+                    <th>@UiTexts.Grupo</th>
+                    <th>@UiTexts.TotalVendido</th>
+                    <th>@UiTexts.TotalPorRecaudar</th>
+                    <th>@UiTexts.SaldoPendiente</th>
+                    <th>@UiTexts.TotalRecaudado</th>
+                    <th>@UiTexts.Estado</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var fila in Model.Vendedores.Items)
+                {
+                    <tr>
+                        <td>
+                            <strong>@fila.Nombre</strong>
+                            @if (!string.IsNullOrWhiteSpace(fila.Alias))
+                            {
+                                <div class="panel-sub">@fila.Alias</div>
+                            }
+                            @if (fila.SenalSinGrupo)
+                            {
+                                <div class="panel-sub">@UiTexts.SenalDebeGrupo</div>
+                            }
+                        </td>
+                        <td>@fila.Grupo</td>
+                        <td>@FormatoPesos.De(fila.TotalVendido)</td>
+                        <td class="recaudo-cifra">@FormatoPesos.De(fila.ValorACobrar)</td>
+                        <td>@FormatoPesos.De(fila.TotalPendiente)</td>
+                        <td class="recaudo-cifra">@FormatoPesos.De(fila.PagosHoy)</td>
+                        <td><span class="estado-cobro @Color(fila.Color)">@Estado(fila.Estado)</span></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        <partial name="_Pager" model="Model.Vendedores" />
+    }
+</div>

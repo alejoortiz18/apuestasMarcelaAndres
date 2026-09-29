@@ -46,6 +46,11 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
     public DbSet<LlaveAdministrador> LlavesAdministrador => Set<LlaveAdministrador>();
     public DbSet<VersionAplicacion> VersionesAplicacion => Set<VersionAplicacion>();
     public DbSet<AuditoriaRetencion> AuditoriasRetencion => Set<AuditoriaRetencion>();
+    public DbSet<AsignacionGrupoRecaudo> AsignacionesGrupoRecaudo => Set<AsignacionGrupoRecaudo>();
+    public DbSet<AsignacionVendedorRecaudo> AsignacionesVendedorRecaudo => Set<AsignacionVendedorRecaudo>();
+    public DbSet<ObligacionRecaudo> ObligacionesRecaudo => Set<ObligacionRecaudo>();
+    public DbSet<PagoRegistradoRecaudo> PagosRecaudo => Set<PagoRegistradoRecaudo>();
+    public DbSet<TirillaCobroRecaudo> TirillasCobroRecaudo => Set<TirillaCobroRecaudo>();
 
     public async Task AsegurarEsquemaRetencionAsync(CancellationToken cancellationToken = default)
     {
@@ -402,6 +407,46 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
             e.Property(x => x.Resultado).HasMaxLength(20);
             e.Property(x => x.MensajeError).HasMaxLength(500);
             e.HasIndex(x => x.FechaEjecucionUtc);
+        });
+
+        modelBuilder.Entity<AsignacionGrupoRecaudo>(e =>
+        {
+            e.ToTable("AsignacionesGrupo", "recaudo");
+            e.HasKey(x => x.AsignacionId);
+            e.Property(x => x.Estado).HasMaxLength(20);
+        });
+        modelBuilder.Entity<AsignacionVendedorRecaudo>(e =>
+        {
+            e.ToTable("AsignacionesVendedor", "recaudo");
+            e.HasKey(x => x.AsignacionId);
+            e.Property(x => x.Estado).HasMaxLength(20);
+        });
+        modelBuilder.Entity<ObligacionRecaudo>(e =>
+        {
+            e.ToTable("Obligaciones", "recaudo");
+            e.HasKey(x => x.ObligacionId);
+            e.Property(x => x.Fecha).HasColumnType("date");
+            e.Property(x => x.TotalVendido).HasColumnType("decimal(18,2)");
+            e.Property(x => x.ValorGenerado).HasColumnType("decimal(18,2)");
+            e.Property(x => x.SaldoAnterior).HasColumnType("decimal(18,2)");
+        });
+        modelBuilder.Entity<PagoRegistradoRecaudo>(e =>
+        {
+            e.ToTable("Pagos", "recaudo");
+            e.HasKey(x => x.PagoId);
+            e.Property(x => x.Valor).HasColumnType("decimal(18,2)");
+            e.Property(x => x.SaldoResultante).HasColumnType("decimal(18,2)");
+            e.Property(x => x.ClaveIdempotencia).HasMaxLength(80);
+        });
+        modelBuilder.Entity<TirillaCobroRecaudo>(e =>
+        {
+            e.ToTable("TirillasCobro", "recaudo");
+            e.HasKey(x => x.TirillaId);
+            e.Property(x => x.Consecutivo).ValueGeneratedOnAdd();
+            e.Property(x => x.RecaudadorNombre).HasMaxLength(200);
+            e.Property(x => x.VendedorNombre).HasMaxLength(200);
+            e.Property(x => x.ValorRecibido).HasColumnType("decimal(18,2)");
+            e.Property(x => x.SaldoRestante).HasColumnType("decimal(18,2)");
         });
     }
 

@@ -18,13 +18,15 @@ public sealed class VentaService : IVentaService
     private readonly IQrCryptoService _qr;
     private readonly IClock _clock;
     private readonly INotificacionService _notificaciones;
+    private readonly IRecaudoService? _recaudo;
 
-    public VentaService(INewRichDbContext db, IQrCryptoService qr, IClock clock, INotificacionService notificaciones)
+    public VentaService(INewRichDbContext db, IQrCryptoService qr, IClock clock, INotificacionService notificaciones, IRecaudoService? recaudo = null)
     {
         _db = db;
         _qr = qr;
         _clock = clock;
         _notificaciones = notificaciones;
+        _recaudo = recaudo;
     }
 
     public async Task<Result<VentaResponse>> ConfirmarAsync(
@@ -242,6 +244,18 @@ public sealed class VentaService : IVentaService
             foreach (var aviso in avisos)
             {
                 await _notificaciones.CrearParaAsync(aviso.Destinatarios, aviso.Tipo, aviso.Mensaje, cancellationToken, aviso.VentaId, aviso.JuegoId);
+            }
+
+            if (_recaudo is not null)
+            {
+                try
+                {
+                    await _recaudo.GenerarDesdeVentaAsync(vendedorId, cancellationToken);
+                }
+                catch (Exception)
+                {
+                    // La venta ya quedó guardada. El recaudo se reintenta en la siguiente consulta.
+                }
             }
 
             return Result<VentaResponse>.Created(respuesta!, SuccessMessages.VentaConfirmada);

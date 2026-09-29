@@ -320,6 +320,8 @@ public sealed class NavegadorApp
 
     public void IrAObservador() => Asignar(_services.GetRequiredService<Views.Observador.ObservadorShell>());
 
+    public void IrARecaudador() => Asignar(_services.GetRequiredService<Views.Recaudador.RecaudadorShell>());
+
     public void Mostrar(Page pagina) => Asignar(pagina);
 
     private static void Asignar(Page pagina)

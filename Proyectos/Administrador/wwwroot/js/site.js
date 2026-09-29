@@ -1426,3 +1426,23 @@ iniciarDiasVenta();
   });
 })();
 
+(function () {
+  document.querySelectorAll("[data-nav-group]").forEach(function (grupo) {
+    var boton = grupo.querySelector(".nav-parent");
+    var submenu = grupo.querySelector(".nav-sub");
+    if (!boton || !submenu) {
+      return;
+    }
+    boton.addEventListener("click", function () {
+      var abierto = boton.getAttribute("aria-expanded") === "true";
+      boton.setAttribute("aria-expanded", abierto ? "false" : "true");
+      boton.classList.toggle("abierto", !abierto);
+      if (abierto) {
+        submenu.setAttribute("hidden", "");
+      } else {
+        submenu.removeAttribute("hidden");
+      }
+    });
+  });
+})();
+

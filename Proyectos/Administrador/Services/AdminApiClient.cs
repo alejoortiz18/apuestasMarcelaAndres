@@ -17,6 +17,7 @@ using NewRich.Application.Contracts.Llaves;
 using NewRich.Application.Contracts.Notificaciones;
 using NewRich.Application.Contracts.Offline;
 using NewRich.Application.Contracts.Premios;
+using NewRich.Application.Contracts.Recaudo;
 using NewRich.Application.Contracts.Resultados;
 using NewRich.Application.Contracts.Usuarios;
 using NewRich.Application.Contracts.Ventas;
@@ -121,6 +122,16 @@ public interface IAdminApiClient
         string nombreVersion,
         int numeroCompilacion,
         CancellationToken cancellationToken);
+
+    Task<ApiCallResult<List<RecaudadorResumenResponse>>> PanelRecaudoAsync(DateOnly desde, DateOnly hasta, CancellationToken cancellationToken);
+    Task<ApiCallResult<ConfiguracionRecaudoResponse>> ConfiguracionRecaudoAsync(DateOnly desde, DateOnly hasta, CancellationToken cancellationToken);
+    Task<ApiCallResult<object>> AsignarGrupoRecaudoAsync(AsignarGrupoRecaudoRequest request, CancellationToken cancellationToken);
+    Task<ApiCallResult<object>> AsignarVendedorRecaudoAsync(AsignarVendedorRecaudoRequest request, CancellationToken cancellationToken);
+    Task<ApiCallResult<object>> RetirarGrupoRecaudoAsync(Guid grupoId, CancellationToken cancellationToken);
+    Task<ApiCallResult<object>> RetirarVendedorRecaudoAsync(Guid vendedorId, CancellationToken cancellationToken);
+    Task<ApiCallResult<List<MovimientoRecaudoResponse>>> HistorialRecaudoAsync(FiltroHistorialRecaudo filtro, CancellationToken cancellationToken);
+    Task<ApiCallResult<MetricasRecaudoResponse>> MetricasRecaudoAsync(DateOnly desde, DateOnly hasta, CancellationToken cancellationToken);
+    Task<ApiCallResult<DetalleRecaudadorResponse>> DetalleRecaudoAsync(Guid recaudadorId, DateOnly desde, DateOnly hasta, CancellationToken cancellationToken);
 }
 
 public sealed class AdminApiClient : IAdminApiClient
@@ -522,6 +533,47 @@ public sealed class AdminApiClient : IAdminApiClient
             return ApiCallResult<VersionAplicacionResponse>.Fail(UiTexts.ApiNoDisponible, 0);
         }
     }
+
+    public Task<ApiCallResult<List<RecaudadorResumenResponse>>> PanelRecaudoAsync(DateOnly desde, DateOnly hasta, CancellationToken cancellationToken) =>
+        SendAsync<List<RecaudadorResumenResponse>>(HttpMethod.Get, "api/Recaudo/Panel" + BuildQuery(
+            ("desde", desde.ToString("yyyy-MM-dd")),
+            ("hasta", hasta.ToString("yyyy-MM-dd"))), null, true, cancellationToken);
+
+    public Task<ApiCallResult<ConfiguracionRecaudoResponse>> ConfiguracionRecaudoAsync(DateOnly desde, DateOnly hasta, CancellationToken cancellationToken) =>
+        SendAsync<ConfiguracionRecaudoResponse>(HttpMethod.Get, "api/Recaudo/Configuracion" + BuildQuery(
+            ("desde", desde.ToString("yyyy-MM-dd")),
+            ("hasta", hasta.ToString("yyyy-MM-dd"))), null, true, cancellationToken);
+
+    public Task<ApiCallResult<object>> AsignarGrupoRecaudoAsync(AsignarGrupoRecaudoRequest request, CancellationToken cancellationToken) =>
+        SendAsync<object>(HttpMethod.Post, "api/Recaudo/Grupos", request, true, cancellationToken);
+
+    public Task<ApiCallResult<object>> AsignarVendedorRecaudoAsync(AsignarVendedorRecaudoRequest request, CancellationToken cancellationToken) =>
+        SendAsync<object>(HttpMethod.Post, "api/Recaudo/Vendedores", request, true, cancellationToken);
+
+    public Task<ApiCallResult<object>> RetirarGrupoRecaudoAsync(Guid grupoId, CancellationToken cancellationToken) =>
+        SendAsync<object>(HttpMethod.Post, $"api/Recaudo/Grupos/{grupoId}/retiro", new { }, true, cancellationToken);
+
+    public Task<ApiCallResult<object>> RetirarVendedorRecaudoAsync(Guid vendedorId, CancellationToken cancellationToken) =>
+        SendAsync<object>(HttpMethod.Post, $"api/Recaudo/Vendedores/{vendedorId}/retiro", new { }, true, cancellationToken);
+
+    public Task<ApiCallResult<List<MovimientoRecaudoResponse>>> HistorialRecaudoAsync(FiltroHistorialRecaudo filtro, CancellationToken cancellationToken) =>
+        SendAsync<List<MovimientoRecaudoResponse>>(HttpMethod.Get, "api/Recaudo/Historial" + BuildQuery(
+            ("recaudadorId", filtro.RecaudadorId?.ToString()),
+            ("grupoId", filtro.GrupoId?.ToString()),
+            ("vendedorId", filtro.VendedorId?.ToString()),
+            ("desde", filtro.Desde?.ToString("yyyy-MM-dd")),
+            ("hasta", filtro.Hasta?.ToString("yyyy-MM-dd")),
+            ("estado", filtro.Estado)), null, true, cancellationToken);
+
+    public Task<ApiCallResult<MetricasRecaudoResponse>> MetricasRecaudoAsync(DateOnly desde, DateOnly hasta, CancellationToken cancellationToken) =>
+        SendAsync<MetricasRecaudoResponse>(HttpMethod.Get, "api/Recaudo/Metricas" + BuildQuery(
+            ("desde", desde.ToString("yyyy-MM-dd")),
+            ("hasta", hasta.ToString("yyyy-MM-dd"))), null, true, cancellationToken);
+
+    public Task<ApiCallResult<DetalleRecaudadorResponse>> DetalleRecaudoAsync(Guid recaudadorId, DateOnly desde, DateOnly hasta, CancellationToken cancellationToken) =>
+        SendAsync<DetalleRecaudadorResponse>(HttpMethod.Get, $"api/Recaudo/Detalle/{recaudadorId}" + BuildQuery(
+            ("desde", desde.ToString("yyyy-MM-dd")),
+            ("hasta", hasta.ToString("yyyy-MM-dd"))), null, true, cancellationToken);
 
     private async Task<ApiCallResult<ArchivoChat>> DescargarImagenPremioAsync(string ruta, CancellationToken cancellationToken)
     {

@@ -66,7 +66,7 @@ El porcentaje es la parte que el vendedor debe entregar. Con 80 %, se cobra el 8
 
 La obligación del día nace cuando el vendedor registra una venta. Si después de un cobro vuelve a vender, esa venta aumenta la obligación de ese mismo día. La obligación del día es el porcentaje aplicado al total vendido del día. Si el resultado tiene parte decimal, se sube al peso siguiente. Si ya es un peso entero, se conserva. No se usan centavos.
 
-Ejemplo: 10 % de $1.005 queda en $101. 10 % de $1.000 queda en $1.000.
+Ejemplo: 10 % de $1.005 queda en $101. 10 % de $1.000 queda en $100, porque el resultado ya es un peso entero.
 
 Si el vendedor no vendió y no tiene saldo, la obligación del día es $0 y no aparece en pendientes. Si tiene saldo de días anteriores, aparece aunque hoy no haya vendido.
 
@@ -80,9 +80,9 @@ Ejemplo:
 
 - Saldo anterior: $50.000.
 - Obligación de hoy: $80.000.
-- Pendiente: $120.000.
+- Pendiente: $130.000.
 - Paga $30.000.
-- Saldo del día siguiente: $90.000.
+- Saldo del día siguiente: $100.000.
 
 ## 5. Configuración administrativa: `configRecaudo`
 

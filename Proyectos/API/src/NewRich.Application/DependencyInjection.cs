@@ -37,6 +37,7 @@ public static class DependencyInjection
         services.AddScoped<ISuperUsuarioAsegurador, SuperUsuarioAsegurador>();
         services.AddScoped<IAndroidPdaService, AndroidPdaService>();
         services.AddScoped<IObservadorTicketService, ObservadorTicketService>();
+        services.AddScoped<IRecaudoService, RecaudoService>();
         return services;
     }
 }

@@ -1,0 +1,209 @@
+@using NewRich.Admin.Constants
+@using NewRich.Admin.Models
+@model ConfigRecaudoViewModel
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.RecaudoKicker</div>
+        <h1>@UiTexts.ConfigRecaudoTitulo</h1>
+        <p>@UiTexts.ConfigRecaudoSub</p>
+    </div>
+</div>
+<div class="panel">
+    <form class="toolbar" method="get">
+        <div class="field">
+            <label for="desde">@UiTexts.Desde</label>
+            <input id="desde" name="desde" type="date" value="@Model.Desde.ToString("yyyy-MM-dd")" />
+        </div>
+        <div class="field">
+            <label for="hasta">@UiTexts.Hasta</label>
+            <input id="hasta" name="hasta" type="date" value="@Model.Hasta.ToString("yyyy-MM-dd")" />
+        </div>
+        <button class="primary" type="submit">@UiTexts.Aplicar</button>
+    </form>
+</div>
+@if (Model.Alarmas.Count > 0)
+{
+    <div class="recaudo-alarma" role="status">
+        <strong>@UiTexts.AlarmaGruposSinConfigurar</strong>
+        <p>@string.Join(", ", Model.Alarmas)</p>
+    </div>
+}
+<div class="panel">
+    <div class="panel-head"><h2>@UiTexts.AsignarGrupoRecaudo</h2></div>
+    <form class="toolbar" method="post" asp-action="AsignarGrupo">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="desde" value="@Model.Desde.ToString("yyyy-MM-dd")" />
+        <input type="hidden" name="hasta" value="@Model.Hasta.ToString("yyyy-MM-dd")" />
+        <div class="field">
+            <label for="recaudadorGrupo">@UiTexts.Recaudador</label>
+            <select id="recaudadorGrupo" name="recaudadorId" required>
+                <option value="">@UiTexts.EligeRecaudador</option>
+                @foreach (var item in Model.Recaudadores)
+                {
+                    <option value="@item.Id">@item.Nombre</option>
+                }
+            </select>
+        </div>
+        <div class="field">
+            <label for="grupoId">@UiTexts.Grupo</label>
+            <select id="grupoId" name="grupoId" required>
+                <option value="">@UiTexts.EligeGrupo</option>
+                @foreach (var item in Model.CatalogoGrupos)
+                {
+                    <option value="@item.Id">@item.Nombre</option>
+                }
+            </select>
+        </div>
+        <div class="field">
+            <label for="porcentajeGrupo">@UiTexts.Porcentaje</label>
+            <input id="porcentajeGrupo" name="porcentaje" type="number" min="1" max="100" step="1" required />
+        </div>
+        <button class="primary" type="submit">@UiTexts.GuardarAsignacion</button>
+    </form>
+    <p class="panel-sub">@UiTexts.AyudaPorcentaje</p>
+</div>
+<div class="panel">
+    <div class="panel-head">
+        <div>
+            <h2>@UiTexts.CatalogoGruposRecaudo</h2>
+            <div class="panel-sub">@Model.Grupos.TotalCount registros</div>
+        </div>
+    </div>
+    @if (!Model.Grupos.Items.Any())
+    {
+        <div class="empty">@UiTexts.Vacio</div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table data-table-select="grupos-recaudo">
+                <thead>
+                <tr>
+                    <th class="col-check"><span class="visually-hidden">@UiTexts.SeleccionarFila</span></th>
+                    <th>@UiTexts.Grupo</th>
+                    <th>@UiTexts.CantidadVendedores</th>
+                    <th>@UiTexts.Porcentaje</th>
+                    <th>@UiTexts.TotalPorRecaudar</th>
+                    <th>@UiTexts.TotalRecaudado</th>
+                    <th>@UiTexts.Recaudador</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var fila in Model.Grupos.Items)
+                {
+                    <tr class="@(fila.SinConfigurar ? "recaudo-fila-gris" : null)" tabindex="0" data-row-id="@fila.GrupoId">
+                        <td class="col-check">
+                            <input class="row-check" type="checkbox" value="@fila.GrupoId" aria-label="@UiTexts.SeleccionarFila @fila.Nombre" />
+                        </td>
+                        <td><strong>@fila.Nombre</strong> @(fila.SinConfigurar ? $"({UiTexts.SinConfigurar})" : "")</td>
+                        <td>@fila.Vendedores</td>
+                        <td class="recaudo-cifra">@fila.Porcentaje %</td>
+                        <td class="recaudo-cifra">@FormatoPesos.De(fila.TotalPorRecaudar)</td>
+                        <td class="recaudo-cifra">@FormatoPesos.De(fila.TotalRecaudado)</td>
+                        <td>@fila.RecaudadorNombre</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        <partial name="_Pager" model="Model.Grupos" />
+        <div class="table-actions" data-table-panel="grupos-recaudo">
+            <h2>@UiTexts.AccionesDeRecaudo</h2>
+            <p class="panel-sub">@UiTexts.SeleccionaParaAcciones</p>
+            <form method="post" data-needs-selection data-url-template="@Url.Action("RetirarGrupo")/{id}">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="desde" value="@Model.Desde.ToString("yyyy-MM-dd")" />
+                <input type="hidden" name="hasta" value="@Model.Hasta.ToString("yyyy-MM-dd")" />
+                <button class="danger" type="submit">@UiTexts.RetirarAsignacion</button>
+            </form>
+        </div>
+    }
+</div>
+<div class="panel">
+    <div class="panel-head"><h2>@UiTexts.AsignarVendedorRecaudo</h2></div>
+    <form class="toolbar" method="post" asp-action="AsignarVendedor">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="desde" value="@Model.Desde.ToString("yyyy-MM-dd")" />
+        <input type="hidden" name="hasta" value="@Model.Hasta.ToString("yyyy-MM-dd")" />
+        <div class="field">
+            <label for="recaudadorVendedor">@UiTexts.Recaudador</label>
+            <select id="recaudadorVendedor" name="recaudadorId" required>
+                <option value="">@UiTexts.EligeRecaudador</option>
+                @foreach (var item in Model.Recaudadores)
+                {
+                    <option value="@item.Id">@item.Nombre</option>
+                }
+            </select>
+        </div>
+        <div class="field">
+            <label for="vendedorId">@UiTexts.Vendedor</label>
+            <select id="vendedorId" name="vendedorId" required>
+                <option value="">@UiTexts.EligeVendedor</option>
+                @foreach (var item in Model.CatalogoVendedores)
+                {
+                    <option value="@item.Id">@item.Nombre</option>
+                }
+            </select>
+        </div>
+        <div class="field">
+            <label for="porcentajeVendedor">@UiTexts.Porcentaje</label>
+            <input id="porcentajeVendedor" name="porcentaje" type="number" min="1" max="100" step="1" required />
+        </div>
+        <button class="primary" type="submit">@UiTexts.GuardarAsignacion</button>
+    </form>
+</div>
+<div class="panel">
+    <div class="panel-head">
+        <div>
+            <h2>@UiTexts.VendedoresSinGrupoTitulo</h2>
+            <div class="panel-sub">@Model.Vendedores.TotalCount registros</div>
+        </div>
+    </div>
+    @if (!Model.Vendedores.Items.Any())
+    {
+        <div class="empty">@UiTexts.Vacio</div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table data-table-select="vendedores-recaudo">
+                <thead>
+                <tr>
+                    <th class="col-check"><span class="visually-hidden">@UiTexts.SeleccionarFila</span></th>
+                    <th>@UiTexts.Vendedor</th>
+                    <th>@UiTexts.Porcentaje</th>
+                    <th>@UiTexts.Recaudador</th>
+                    <th>@UiTexts.Estado</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var fila in Model.Vendedores.Items)
+                {
+                    <tr tabindex="0" data-row-id="@fila.VendedorId">
+                        <td class="col-check">
+                            <input class="row-check" type="checkbox" value="@fila.VendedorId" aria-label="@UiTexts.SeleccionarFila @fila.Nombre" />
+                        </td>
+                        <td><strong>@fila.Nombre</strong></td>
+                        <td class="recaudo-cifra">@fila.Porcentaje %</td>
+                        <td>@fila.RecaudadorNombre</td>
+                        <td>@UiTexts.SenalDebeGrupo</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        ViewData["PagerPageKey"] = "pageV";
+        ViewData["PagerPageSizeKey"] = "pageSizeV";
+        <partial name="_Pager" model="Model.Vendedores" />
+        <div class="table-actions" data-table-panel="vendedores-recaudo">
+            <h2>@UiTexts.AccionesDeRecaudo</h2>
+            <p class="panel-sub">@UiTexts.SeleccionaParaAcciones</p>
+            <form method="post" data-needs-selection data-url-template="@Url.Action("RetirarVendedor")/{id}">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="desde" value="@Model.Desde.ToString("yyyy-MM-dd")" />
+                <input type="hidden" name="hasta" value="@Model.Hasta.ToString("yyyy-MM-dd")" />
+                <button class="danger" type="submit">@UiTexts.RetirarAsignacion</button>
+            </form>
+        </div>
+    }
+</div>

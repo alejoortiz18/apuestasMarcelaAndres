@@ -12,6 +12,7 @@ using NewRich.Application.Contracts.Kpi;
 using NewRich.Application.Contracts.Loterias;
 using NewRich.Application.Contracts.Offline;
 using NewRich.Application.Contracts.Premios;
+using NewRich.Application.Contracts.Recaudo;
 using NewRich.Application.Contracts.Resultados;
 using NewRich.Application.Contracts.Usuarios;
 using NewRich.Application.Contracts.Ventas;
@@ -43,7 +44,7 @@ public interface ITokenStore
 
 public sealed class ApiOpciones
 {
-    public string BaseUrl { get; set; } = PdaConexion.UrlProduccion;
+    public string BaseUrl { get; set; } = PdaConexion.UrlLocal;
 }
 
 public sealed class NewRichApiClient
@@ -305,6 +306,21 @@ public sealed class NewRichApiClient
 
     public Task<Result<VersionAplicacionResponse>> VersionVigenteAsync(CancellationToken ct) =>
         Enviar<VersionAplicacionResponse>(HttpMethod.Get, "api/VersionesAplicacion/vigente", null, ct);
+
+    public Task<Result<IReadOnlyList<ObligacionRecaudoResponse>>> ObligacionesRecaudoAsync(DateOnly? fecha, CancellationToken ct)
+    {
+        var q = fecha.HasValue ? $"?fecha={fecha.Value:yyyy-MM-dd}" : string.Empty;
+        return Enviar<IReadOnlyList<ObligacionRecaudoResponse>>(HttpMethod.Get, "api/Recaudo/Obligaciones" + q, null, ct);
+    }
+
+    public Task<Result<PagoRecaudoResponse>> RegistrarPagoRecaudoAsync(RegistrarPagoRecaudoRequest request, CancellationToken ct) =>
+        Enviar<PagoRecaudoResponse>(HttpMethod.Post, "api/Recaudo/Pagos", request, ct);
+
+    public Task<Result<IReadOnlyList<MovimientoRecaudoResponse>>> HistorialRecaudoAsync(CancellationToken ct) =>
+        Enviar<IReadOnlyList<MovimientoRecaudoResponse>>(HttpMethod.Get, "api/Recaudo/Historial", null, ct);
+
+    public Task<Result<MetricasRecaudoResponse>> MetricasRecaudoAsync(CancellationToken ct) =>
+        Enviar<MetricasRecaudoResponse>(HttpMethod.Get, "api/Recaudo/Metricas", null, ct);
 
     public async Task<Result> DescargarVersionVigenteAsync(string rutaDestino, CancellationToken ct) =>
         await DescargarVersionVigenteAsync(rutaDestino, null, ct);

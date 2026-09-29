@@ -29,7 +29,12 @@
 </div>
 <div class="field">
     <label asp-for="Rol"></label>
-    <select asp-for="Rol" class="searchable" asp-items="Html.GetEnumSelectList<RolUsuario>()" data-usuario-rol></select>
+    <select asp-for="Rol" class="searchable" data-usuario-rol>
+        @foreach (var rol in RolConsola.Asignables)
+        {
+            <option value="@((int)rol)" selected="@(Model.Rol == rol)">@rol</option>
+        }
+    </select>
 </div>
 @if (!Model.UsuarioId.HasValue)
 {

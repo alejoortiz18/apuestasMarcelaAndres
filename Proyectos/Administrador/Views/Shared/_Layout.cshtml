@@ -7,6 +7,13 @@
     var ventasInicioUrl = ViewData["VentasInicioUrl"] as string ?? Url.Action("Index", "Loterias");
     var avisoModal = TempData["AvisoModal"] as string;
     string NavClass(string key) => nav == key ? "active" : "";
+    var clavesVentas = new HashSet<string>(StringComparer.Ordinal)
+    {
+        "resumen", "usuarios", "grupos", "pda", "instalaciones", "resultados", "ventas",
+        "offline", "premios", "kpi", "notificaciones", "soporte", "soporte-tecnico", "configuracion"
+    };
+    var menuVentasAbierto = clavesVentas.Contains(nav) || string.IsNullOrEmpty(nav);
+    var menuRecaudoAbierto = nav.StartsWith("recaudo-", StringComparison.Ordinal);
     var enVentas = ViewData["VentasVista"] is string;
     var inactividadMs = NewRich.Admin.Services.MinutosInactividadSesion.De(Context) * 60 * 1000;
 }
@@ -34,6 +41,13 @@
             </span>
         </a>
         <nav class="nav" aria-label="Menu principal">
+            <div class="nav-group" data-nav-group="ventas">
+                <button type="button" class="nav-parent@(menuVentasAbierto ? " abierto" : "")" aria-expanded="@(menuVentasAbierto ? "true" : "false")" aria-controls="submenu-ventas">
+                    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M5 7h14l-1.2 9.2a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8L5 7zM8 7l1-3h6l1 3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+                    <span>@UiTexts.MenuVentas</span>
+                    <svg class="nav-chevron" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <div class="nav-sub" id="submenu-ventas" @(menuVentasAbierto ? null : "hidden")>
             <a class="@NavClass("resumen")" asp-controller="Inicio" asp-action="Index">
                 <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M4 10.5 12 4l8 6.5V20H14v-6H10v6H4z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
                 <span>@UiTexts.NavResumen</span>
@@ -90,6 +104,22 @@
                 <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 3.5v2.2M12 18.3v2.2M4.6 7.1l1.9 1.1M17.5 15.8l1.9 1.1M4.6 16.9l1.9-1.1M17.5 8.2l1.9-1.1" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
                 <span>@UiTexts.NavConfiguracion</span>
             </a>
+                </div>
+            </div>
+            <div class="nav-group" data-nav-group="recaudo">
+                <button type="button" class="nav-parent@(menuRecaudoAbierto ? " abierto" : "")" aria-expanded="@(menuRecaudoAbierto ? "true" : "false")" aria-controls="submenu-recaudo">
+                    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M12 3v18M7 8h8a3 3 0 0 1 0 6H9a3 3 0 0 0 0 6h9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <span>@UiTexts.MenuRecaudo</span>
+                    <svg class="nav-chevron" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <div class="nav-sub" id="submenu-recaudo" @(menuRecaudoAbierto ? null : "hidden")>
+                    <a class="@NavClass("recaudo-config")" asp-controller="ConfigRecaudo" asp-action="Index">@UiTexts.NavConfigRecaudo</a>
+                    <a class="@NavClass("recaudo-panel")" asp-controller="PanelRecaudo" asp-action="Index">@UiTexts.NavPanelRecaudo</a>
+                    <a class="@NavClass("recaudo-historial")" asp-controller="HistorialRecaudo" asp-action="Index">@UiTexts.NavHistorialRecaudo</a>
+                    <a class="@NavClass("recaudo-metricas")" asp-controller="MetricasRecaudo" asp-action="Index">@UiTexts.NavMetricasRecaudo</a>
+                    <a class="@NavClass("recaudo-detalle")" asp-controller="DetalleRecaudo" asp-action="Index">@UiTexts.NavDetalleRecaudo</a>
+                </div>
+            </div>
         </nav>
         <div class="side-foot">
             <details class="side-cuenta" data-cuenta-menu>
@@ -164,9 +194,9 @@
         </footer>
     </main>
     <nav class="mobile-bar" aria-label="Navegacion rapida">
-        <a class="@NavClass("resumen")" asp-controller="Inicio" asp-action="Index">@UiTexts.NavResumen</a>
+        <a class="@NavClass("resumen")" asp-controller="Inicio" asp-action="Index">@UiTexts.MenuVentas</a>
+        <a class="@(menuRecaudoAbierto ? "active" : "")" asp-controller="PanelRecaudo" asp-action="Index">@UiTexts.MenuRecaudo</a>
         <a class="@NavClass("usuarios")" asp-controller="Usuarios" asp-action="Index">@UiTexts.NavUsuarios</a>
-        <a class="@NavClass("ventas")" asp-controller="Loterias" asp-action="Index">@UiTexts.NavVentas</a>
         <a class="@NavClass("soporte")" asp-controller="Soporte" asp-action="Index">@UiTexts.NavAtencionCliente</a>
         <a class="@NavClass("soporte-tecnico")" asp-controller="SoporteTecnico" asp-action="Index">@UiTexts.NavSoporteTecnico</a>
     </nav>

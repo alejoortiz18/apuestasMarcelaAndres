@@ -1,0 +1,80 @@
+@using NewRich.Admin.Constants
+@model NewRich.Admin.Models.PanelRecaudoViewModel
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.RecaudoKicker</div>
+        <h1>@UiTexts.PanelRecaudoTitulo</h1>
+        <p>@UiTexts.PanelRecaudoSub</p>
+    </div>
+</div>
+<div class="panel">
+    <form class="toolbar" method="get">
+        <div class="field">
+            <label for="desde">@UiTexts.Desde</label>
+            <input id="desde" name="desde" type="date" value="@Model.Desde.ToString("yyyy-MM-dd")" />
+        </div>
+        <div class="field">
+            <label for="hasta">@UiTexts.Hasta</label>
+            <input id="hasta" name="hasta" type="date" value="@Model.Hasta.ToString("yyyy-MM-dd")" />
+        </div>
+        <div class="field">
+            <label for="pageSize">@UiTexts.FilasPorPagina</label>
+            <select id="pageSize" name="pageSize">
+                @foreach (var size in PagingHelper.PageSizes)
+                {
+                    <option value="@size" selected="@(Model.Pagina.PageSize == size)">@size</option>
+                }
+            </select>
+        </div>
+        <button class="primary" type="submit">@UiTexts.Aplicar</button>
+    </form>
+</div>
+<div class="panel">
+    <div class="panel-head">
+        <div>
+            <h2>@UiTexts.PanelRecaudoTitulo</h2>
+            <div class="panel-sub">@Model.Pagina.TotalCount registros</div>
+        </div>
+    </div>
+    @if (!Model.Pagina.Items.Any())
+    {
+        <div class="empty">@UiTexts.Vacio</div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                <tr>
+                    <th>@UiTexts.Recaudador</th>
+                    <th>@UiTexts.Grupo</th>
+                    <th>@UiTexts.PersonasAsignadas</th>
+                    <th>@UiTexts.TotalPorRecaudar</th>
+                    <th>@UiTexts.TotalRecaudado</th>
+                    <th>@UiTexts.SaldoPendiente</th>
+                    <th>@UiTexts.PorcentajeRecaudado</th>
+                    <th>@UiTexts.Acciones</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var fila in Model.Pagina.Items)
+                {
+                    <tr>
+                        <td><strong>@fila.Nombre</strong></td>
+                        <td>@fila.Grupos</td>
+                        <td>@fila.PersonasAsignadas</td>
+                        <td class="recaudo-cifra">@FormatoPesos.De(fila.TotalPorRecaudar)</td>
+                        <td class="recaudo-cifra">@FormatoPesos.De(fila.TotalRecaudado)</td>
+                        <td>@FormatoPesos.De(fila.SaldoPendiente)</td>
+                        <td class="recaudo-cifra">@fila.PorcentajeRecaudado %</td>
+                        <td>
+                            <a class="secondary" asp-controller="DetalleRecaudo" asp-action="Index" asp-route-id="@fila.RecaudadorId" asp-route-desde="@Model.Desde.ToString("yyyy-MM-dd")" asp-route-hasta="@Model.Hasta.ToString("yyyy-MM-dd")">@UiTexts.Ver</a>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        <partial name="_Pager" model="Model.Pagina" />
+    }
+</div>

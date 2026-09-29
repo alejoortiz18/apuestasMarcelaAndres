@@ -4,7 +4,7 @@ Requerimiento: `Requerimiento_Modulo_Recaudo_actualizado.md`
 Plan: `planCambioRecaudo.md`
 Rama: `RecaudoDllo`
 
-Las tareas se hacen en este orden. Una termina y se comprueba antes de empezar la siguiente. Todo ocurre en local: API `http://localhost:5295`, administrador `http://localhost:5274` y base `NewRich` de `LAPTOP-CQSL6T3I`.
+Las tareas se hacen en este orden. Una termina y se comprueba antes de empezar la siguiente. Todo ocurre en local: API `http://localhost:5295`, administrador `http://localhost:5274` y base `NewRich` de este equipo (`DESKTOP-JLLF9LK`, `localhost`).
 
 Cada tarea de código se implementa así:
 
@@ -64,13 +64,13 @@ No se modifica código ni `Proyectos/Administrador/appsettings.json`.
 
 ## 2. Porcentaje y redondeo
 
-Se prueba que el porcentaje solo acepta enteros del 1 al 100, que el 0 significa sin configurar y que la obligación del día es el porcentaje aplicado a la suma de ventas. 10 % de $1.005 queda en $101. 10 % de $1.000 queda en $1.000.
+Se prueba que el porcentaje solo acepta enteros del 1 al 100, que el 0 significa sin configurar y que la obligación del día es el porcentaje aplicado a la suma de ventas. 10 % de $1.005 queda en $101. 10 % de $1.000 queda en $100.
 
 Se implementa en `Proyectos/API/src/NewRich.Domain/Services`, en una regla pura, sin base de datos ni HTTP. El día se calcula con la hora de Colombia que ya existe en `ZonaHorariaColombia`.
 
 ## 3. Saldo único
 
-Se prueba el caso cerrado: saldo anterior $50.000 más obligación de hoy $80.000 dan $120.000. Un pago de $30.000 deja $90.000. Lo de hoy y el saldo anterior se informan por separado, y el pendiente es un solo número.
+Se prueba el caso cerrado: saldo anterior $50.000 más obligación de hoy $80.000 dan $130.000. Un pago de $30.000 deja $100.000. Lo de hoy y el saldo anterior se informan por separado, y el pendiente es un solo número.
 
 Se implementa en la misma regla de dominio. Una venta posterior del mismo día vuelve a calcular la obligación sobre el total vendido del día y sube el pendiente.
 
@@ -154,7 +154,7 @@ Se crea `recaudo.sp_recaudo_registrar_pago`. En una transacción guarda el pago,
 
 La API expone `POST /api/Recaudo/Pagos` en `PagosRecaudo`. El recaudador solo puede pagar un vendedor que tenga asignado. Administrador y Super no registran pagos por esta ruta.
 
-La prueba de integración reproduce $50.000 + $80.000 − $30.000 = $90.000, un segundo pago el mismo día y un reintento con la misma clave.
+La prueba de integración reproduce $50.000 + $80.000 − $30.000 = $100.000, un segundo pago el mismo día y un reintento con la misma clave.
 
 ## 14. Tirilla de cobro
 

@@ -2,6 +2,7 @@ using System.Text.Json;
 using NewRich.Application.Contracts.Android;
 using NewRich.Application.Contracts.Configuracion;
 using NewRich.Application.Contracts.Loterias;
+using NewRich.Application.Contracts.Recaudo;
 using NewRich.Pda.Core;
 using NewRich.Pda.Core.Auth;
 using NewRich.Pda.Core.Ventas;
@@ -381,6 +382,18 @@ public sealed class LocalDatabase
 
     public async Task<CredencialLocalRegistro?> CredencialAsync() =>
         await LeerJsonAsync<CredencialLocalRegistro>("credencial");
+
+    public Task GuardarObligacionesRecaudoAsync(IReadOnlyList<ObligacionRecaudoResponse> filas) =>
+        GuardarJsonAsync("recaudo-obligaciones", filas.ToList());
+
+    public async Task<IReadOnlyList<ObligacionRecaudoResponse>> ObligacionesRecaudoLocalAsync() =>
+        await LeerJsonAsync<List<ObligacionRecaudoResponse>>("recaudo-obligaciones") ?? [];
+
+    public Task GuardarPagosRecaudoAsync(IReadOnlyList<PagoPendienteRecaudo> pagos) =>
+        GuardarJsonAsync("recaudo-pagos", pagos.ToList());
+
+    public async Task<IReadOnlyList<PagoPendienteRecaudo>> PagosRecaudoPendientesAsync() =>
+        await LeerJsonAsync<List<PagoPendienteRecaudo>>("recaudo-pagos") ?? [];
 
     private async Task GuardarJsonAsync<T>(string clave, T valor)
     {
