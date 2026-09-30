@@ -68,6 +68,16 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
         await Database.ExecuteSqlRawAsync(EsquemaConfirmacion, cancellationToken);
     }
 
+    public async Task AsegurarEsquemaCapacidadOfflineAsync(CancellationToken cancellationToken = default)
+    {
+        if (!Database.IsRelational())
+        {
+            return;
+        }
+
+        await Database.ExecuteSqlRawAsync(EsquemaCapacidadOffline, cancellationToken);
+    }
+
     public async Task<bool> IntentarBloquearRetencionAsync(CancellationToken cancellationToken = default)
     {
         if (!Database.IsRelational())
@@ -435,6 +445,25 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
                 UsosRestantes  INT              NOT NULL,
                 CONSTRAINT PK_ConfirmacionesAccion PRIMARY KEY (Token)
             );
+        END
+        """;
+
+    private const string EsquemaCapacidadOffline = """
+        IF EXISTS (
+            SELECT 1 FROM sys.check_constraints
+            WHERE name = N'CK_Dispositivos_Capacidad'
+              AND parent_object_id = OBJECT_ID(N'dbo.Dispositivos')
+              AND definition <> N'([CapacidadCodigosOffline]>=(0))')
+        BEGIN
+            ALTER TABLE dbo.Dispositivos DROP CONSTRAINT CK_Dispositivos_Capacidad;
+        END
+        IF OBJECT_ID(N'dbo.Dispositivos', N'U') IS NOT NULL
+           AND NOT EXISTS (
+            SELECT 1 FROM sys.check_constraints
+            WHERE name = N'CK_Dispositivos_Capacidad'
+              AND parent_object_id = OBJECT_ID(N'dbo.Dispositivos'))
+        BEGIN
+            ALTER TABLE dbo.Dispositivos ADD CONSTRAINT CK_Dispositivos_Capacidad CHECK (CapacidadCodigosOffline >= 0);
         END
         """;
 
