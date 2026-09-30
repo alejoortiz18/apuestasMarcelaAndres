@@ -99,7 +99,7 @@ public sealed class RegistroGuiadoPdaTests
     }
 
     [Fact]
-    public async Task El_administrador_nunca_ve_el_codigo_unico_del_dispositivo()
+    public async Task La_bitacora_de_avance_no_muestra_el_codigo_del_dispositivo()
     {
         var sut = CrearServicio(out _, out _);
         var avance = new AvanceRegistrado();
@@ -108,7 +108,30 @@ public sealed class RegistroGuiadoPdaTests
 
         var textoVisible = string.Join(" ", avance.Reportados.Select(a => a.Mensaje).Append(resultado.Mensaje));
         textoVisible.Should().NotContain(CodigoGenerado);
-        typeof(ResultadoRegistroPda).GetProperties().Should().NotContain(p => p.Name.Contains("Codigo"));
+    }
+
+    [Fact]
+    public async Task El_registro_exitoso_devuelve_el_nombre_con_que_quedo_registrado()
+    {
+        var sut = CrearServicio(out _, out _);
+
+        var resultado = await sut.RegistrarAsync(TipoDispositivo.Vendedor, Silencio(), CancellationToken.None);
+
+        resultado.Exitoso.Should().BeTrue();
+        resultado.NombreRegistrado.Should().Be(CodigoGenerado);
+    }
+
+    [Fact]
+    public async Task Un_registro_fallido_no_devuelve_nombre()
+    {
+        var adb = new AdbFalso().ConEquipoListo(Serie);
+        adb.Responder($"-s {Serie} shell pm path com.newrich.pda", string.Empty);
+        var sut = CrearServicio(adb, ApiQueRegistra().Object);
+
+        var resultado = await sut.RegistrarAsync(TipoDispositivo.Vendedor, Silencio(), CancellationToken.None);
+
+        resultado.Exitoso.Should().BeFalse();
+        resultado.NombreRegistrado.Should().BeNull();
     }
 
     [Fact]

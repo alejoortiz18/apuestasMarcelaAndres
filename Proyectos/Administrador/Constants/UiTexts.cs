@@ -333,6 +333,7 @@ public static class UiTexts
     public const string PdaProgresoVerificando = "Verificando instalación...";
     public const string PdaProgresoFinalizando = "Finalizando registro...";
     public const string PdaRegistroCompletado = "PDA registrado correctamente.";
+    public const string PdaNombreRegistrado = "Quedó registrado como:";
     public const string PdaRegistroCompletadoDetalle = "La aplicación fue instalada y el dispositivo quedó asociado al sistema. Puede desconectar el PDA de forma segura.";
     public const string PdaRegistroSiguientePaso = "Para habilitar la venta, cree el usuario y asócielo a este PDA desde el listado.";
 

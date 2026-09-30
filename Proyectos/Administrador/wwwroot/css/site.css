@@ -2084,6 +2084,15 @@ label.check input {
   letter-spacing: -0.4px;
 }
 .registro-bitacora-titulo { font-size: 13px; margin: 0 0 10px; }
+.registro-nombre {
+  display: inline-block;
+  color: #000;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
 .registro-bitacora {
   margin: 0 0 16px;
   padding-left: 22px;

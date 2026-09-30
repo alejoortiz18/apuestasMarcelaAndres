@@ -13,9 +13,10 @@ public sealed record AvanceRegistroPda(int Porcentaje, string Mensaje);
 public sealed record VerificacionPda(bool Listo, string Mensaje, string? Modelo);
 
 /// <summary>
-/// Cierre del registro. No expone el codigo del dispositivo: el administrador nunca debe conocerlo.
+/// Cierre del registro. <paramref name="NombreRegistrado"/> es el codigo con que el equipo aparece
+/// en el listado y solo viaja cuando el registro termina bien.
 /// </summary>
-public sealed record ResultadoRegistroPda(bool Exitoso, string Mensaje, string? Modelo);
+public sealed record ResultadoRegistroPda(bool Exitoso, string Mensaje, string? Modelo, string? NombreRegistrado = null);
 
 /// <summary>Recibe cada paso del registro para mostrarlo en tiempo real.</summary>
 public interface IAvanceRegistroPda
@@ -36,8 +37,8 @@ public interface IRegistroPdaService
 
 /// <summary>
 /// Registro guiado del PDA. Detecta el equipo conectado por USB, pide a la API el codigo unico,
-/// lo graba en el aparato, instala la aplicacion y confirma el resultado. El codigo solo viaja
-/// entre la API y el dispositivo; nunca se muestra ni se pide en pantalla.
+/// lo graba en el aparato, instala la aplicacion y confirma el resultado. El codigo nunca se pide
+/// en pantalla; solo se muestra al final como el nombre con que quedo registrado.
 /// </summary>
 public sealed class RegistroPdaService : IRegistroPdaService
 {
@@ -163,7 +164,7 @@ public sealed class RegistroPdaService : IRegistroPdaService
         await EjecutarAsync(dispositivo, cancellationToken, "reverse", puente, puente);
 
         await avance.ReportarAsync(new AvanceRegistroPda(100, UiTexts.PdaRegistroCompletado), cancellationToken);
-        return new ResultadoRegistroPda(true, UiTexts.PdaRegistroCompletado, modeloEquipo);
+        return new ResultadoRegistroPda(true, UiTexts.PdaRegistroCompletado, modeloEquipo, registro.Data.CodigoDispositivo);
     }
 
     private async Task<(DispositivoAdb? Dispositivo, string? Problema)> DetectarAsync(CancellationToken cancellationToken)

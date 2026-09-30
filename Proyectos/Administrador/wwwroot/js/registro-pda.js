@@ -1,5 +1,5 @@
-// Registro guiado de PDA. Muestra el avance de 0% a 100% y el resultado. El codigo unico del
-// dispositivo nunca viaja hasta esta pantalla: lo genera la API y lo graba el servidor en el equipo.
+// Registro guiado de PDA. Muestra el avance de 0% a 100% y el resultado. El codigo unico lo genera
+// la API y lo graba el servidor en el equipo; solo llega aqui al final, como nombre registrado.
 (function () {
   const raiz = document.querySelector("[data-registro-pda]");
   if (!raiz) {
@@ -152,6 +152,14 @@
         }
         pintarAvance({ porcentaje: 100, mensaje: datos.mensaje });
         if (dialogo) {
+          const nombre = dialogo.querySelector("[data-nombre-registrado]");
+          const filaNombre = dialogo.querySelector("[data-nombre-registrado-fila]");
+          if (nombre && datos.nombreRegistrado) {
+            nombre.textContent = datos.nombreRegistrado;
+            mostrar(filaNombre);
+          } else {
+            ocultar(filaNombre);
+          }
           mostrar(dialogo);
           const aceptar = dialogo.querySelector("a.primary");
           if (aceptar) {
