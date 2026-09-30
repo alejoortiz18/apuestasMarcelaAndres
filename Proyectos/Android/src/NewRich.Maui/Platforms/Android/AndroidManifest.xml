@@ -16,5 +16,9 @@
 	<queries>
 		<package android:name="recieptservice.com.recieptservice" />
 		<package android:name="com.android.qr_codescan" />
+		<intent>
+			<action android:name="android.intent.action.INSTALL_PACKAGE" />
+			<data android:mimeType="application/vnd.android.package-archive" />
+		</intent>
 	</queries>
 </manifest>

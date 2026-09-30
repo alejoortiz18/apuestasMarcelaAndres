@@ -463,7 +463,7 @@ public sealed class AdminApiClient : IAdminApiClient
             using var cliente = new HttpClient
             {
                 BaseAddress = _http.BaseAddress,
-                Timeout = TimeSpan.FromMinutes(5)
+                Timeout = ConfirmacionAccion.VigenciaCargaArchivo
             };
             using var request = new HttpRequestMessage(HttpMethod.Post, "api/VersionesAplicacion");
             var token = _httpContextAccessor.HttpContext?.Request.Cookies[AuthCookieNames.AccessToken];

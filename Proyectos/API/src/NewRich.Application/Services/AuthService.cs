@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using NewRich.Application.Abstractions;
 using NewRich.Application.Contracts.Auth;
+using NewRich.Constants;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
 using NewRich.Domain.Enums;
@@ -87,6 +88,15 @@ public sealed class AuthService : IAuthService
             }
 
             var dispositivo = await BuscarDispositivoAsync(request, cancellationToken);
+            if (dispositivo is null && usuario.Rol == RolUsuario.Observador)
+            {
+                dispositivo = usuario.DispositivosUsuarios
+                    .Where(x => x.Activo)
+                    .Select(x => x.Dispositivo)
+                    .FirstOrDefault(d => d is not null)
+                    ?? await VincularCelularObservadorAsync(usuario, request, cancellationToken);
+            }
+
             if (dispositivo is null)
             {
                 return Result<LoginResponse>.Fail(AuthMessages.DispositivoNoRegistrado, 403);
@@ -255,6 +265,54 @@ public sealed class AuthService : IAuthService
             .FirstOrDefaultAsync(d => d.NumeroSerie == serie, cancellationToken);
     }
 
+    /// <summary>
+    /// El observador suele entrar desde un celular que no pasó por el registro de PDA. Si todavía
+    /// no tiene equipo, ese celular queda registrado y vinculado a él. El código es propio porque
+    /// el que envía la app se deriva del modelo y lo comparten celulares iguales. La serie es
+    /// única en la base y admite un solo nulo, así que sin serie se usa el código.
+    /// </summary>
+    private async Task<Dispositivo> VincularCelularObservadorAsync(Usuario usuario, LoginRequest request, CancellationToken cancellationToken)
+    {
+        var codigo = await GenerarCodigoCelularAsync(cancellationToken);
+        var serie = request.NumeroSerie?.Trim();
+        var celular = new Dispositivo
+        {
+            DispositivoId = Guid.NewGuid(),
+            CodigoDispositivo = codigo,
+            Tipo = TipoDispositivo.Observador,
+            Estado = EstadoGeneral.Activo,
+            Modelo = string.IsNullOrWhiteSpace(request.CodigoDispositivo) ? null : request.CodigoDispositivo.Trim(),
+            NumeroSerie = string.IsNullOrWhiteSpace(serie) || serie.Length > 100 ? codigo : serie,
+            CapacidadCodigosOffline = 3000,
+            FechaRegistro = _clock.UtcNow
+        };
+        var vinculo = new DispositivoUsuario
+        {
+            DispositivoId = celular.DispositivoId,
+            UsuarioId = usuario.UsuarioId,
+            FechaAsociacion = _clock.UtcNow,
+            Activo = true,
+            Dispositivo = celular
+        };
+        _db.Dispositivos.Add(celular);
+        _db.DispositivosUsuarios.Add(vinculo);
+        usuario.DispositivosUsuarios.Add(vinculo);
+        await _db.SaveChangesAsync(cancellationToken);
+        return celular;
+    }
+
+    private async Task<string> GenerarCodigoCelularAsync(CancellationToken cancellationToken)
+    {
+        while (true)
+        {
+            var candidato = "CEL-" + Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
+            if (!await _db.Dispositivos.AnyAsync(d => d.CodigoDispositivo == candidato || d.NumeroSerie == candidato, cancellationToken))
+            {
+                return candidato;
+            }
+        }
+    }
+
     public async Task<Result> LogoutAsync(Guid sesionId, CancellationToken cancellationToken)
     {
         var sesion = await _db.Sesiones.FirstOrDefaultAsync(s => s.SesionId == sesionId, cancellationToken);
@@ -291,7 +349,11 @@ public sealed class AuthService : IAuthService
             return Result<ConfirmarAccionResponse>.Fail(AuthMessages.ContrasenaAccionIncorrecta, 403);
         }
 
-        var token = _confirmaciones.Emitir(usuarioId, request.Accion.Trim(), request.Usos);
+        var accion = request.Accion.Trim();
+        var vigencia = accion == AccionesProtegidas.ConfiguracionVersionAplicacion
+            ? ConfirmacionAccion.VigenciaCargaArchivo
+            : ConfirmacionAccion.Vigencia;
+        var token = await _confirmaciones.EmitirAsync(usuarioId, accion, request.Usos, vigencia, cancellationToken);
         return Result<ConfirmarAccionResponse>.Ok(new ConfirmarAccionResponse { Token = token }, SuccessMessages.OperacionExitosa);
     }
 

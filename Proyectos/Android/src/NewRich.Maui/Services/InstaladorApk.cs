@@ -49,9 +49,21 @@ public static class InstaladorApk
 
         var archivo = new Java.IO.File(ruta);
         var uri = AndroidX.Core.Content.FileProvider.GetUriForFile(contexto, contexto.PackageName + ".fileprovider", archivo);
-        var intent = new global::Android.Content.Intent(global::Android.Content.Intent.ActionView);
-        intent.SetDataAndType(uri, "application/vnd.android.package-archive");
-        intent.SetFlags(global::Android.Content.ActivityFlags.NewTask | global::Android.Content.ActivityFlags.GrantReadUriPermission);
+        var intent = new global::Android.Content.Intent(NewRich.Pda.Core.Actualizacion.ApkDescargado.AccionInstalar);
+        intent.SetDataAndType(uri, NewRich.Pda.Core.Actualizacion.ApkDescargado.TipoMime);
+        if (NewRich.Pda.Core.Actualizacion.ApkDescargado.AdjuntarUriEnPortapapeles)
+        {
+            intent.ClipData = global::Android.Content.ClipData.NewRawUri(string.Empty, uri);
+        }
+
+        intent.AddFlags(global::Android.Content.ActivityFlags.NewTask | global::Android.Content.ActivityFlags.GrantReadUriPermission);
+        var resuelto = contexto.PackageManager?.ResolveActivity(intent, global::Android.Content.PM.PackageInfoFlags.MatchDefaultOnly);
+        var paquete = resuelto?.ActivityInfo?.PackageName;
+        if (!string.IsNullOrEmpty(paquete))
+        {
+            contexto.GrantUriPermission(paquete, uri, global::Android.Content.ActivityFlags.GrantReadUriPermission);
+        }
+
         contexto.StartActivity(intent);
 #endif
     }

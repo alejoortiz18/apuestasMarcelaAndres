@@ -177,7 +177,7 @@ public sealed class ConfiguracionService : IConfiguracionService
             return Result<ConfiguracionOperativaResponse>.Fail(ConfiguracionMessages.AlertaValorInvalida);
         }
 
-        if (request.CodigosOfflineCapacidad < 1)
+        if (request.CodigosOfflineCapacidad < 0)
         {
             return Result<ConfiguracionOperativaResponse>.Fail(ValidationMessages.CapacidadCodigosOfflineRango);
         }
@@ -221,6 +221,7 @@ public sealed class ConfiguracionService : IConfiguracionService
             : ConfiguracionClaves.ModoManual;
 
         await AsegurarValoresAsync(cancellationToken);
+        await _db.AsegurarEsquemaCapacidadOfflineAsync(cancellationToken);
         await GuardarClaveAsync(ConfiguracionClaves.HoraApertura, apertura.ToString(@"hh\:mm\:ss"), cancellationToken);
         await GuardarClaveAsync(ConfiguracionClaves.HoraCierre, cierre.ToString(@"hh\:mm\:ss"), cancellationToken);
         await GuardarClaveAsync(ConfiguracionClaves.VigenciaPremiosDias, request.VigenciaPremiosDias.ToString(), cancellationToken);
