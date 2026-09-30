@@ -41,7 +41,18 @@ public sealed class RequiereConfirmacionFilter : IAsyncActionFilter
         }
 
         var store = http.RequestServices.GetRequiredService<IConfirmacionAccionStore>();
-        if (!meta.Acciones.Any(accion => store.Consumir(valores.ToString(), usuarioId, accion)))
+        var token = valores.ToString().Trim();
+        var valido = false;
+        foreach (var accion in meta.Acciones)
+        {
+            if (await store.ConsumirAsync(token, usuarioId, accion, http.RequestAborted))
+            {
+                valido = true;
+                break;
+            }
+        }
+
+        if (!valido)
         {
             context.Result = new ObjectResult(ApiResponse.From(Result.Fail(AuthMessages.ConfirmacionAccionInvalida, 403))) { StatusCode = 403 };
             return;

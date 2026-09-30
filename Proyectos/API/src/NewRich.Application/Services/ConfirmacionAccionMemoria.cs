@@ -6,14 +6,26 @@ namespace NewRich.Application.Services;
 
 public sealed class ConfirmacionAccionMemoria : IConfirmacionAccionStore
 {
-    private static readonly TimeSpan Vigencia = TimeSpan.FromMinutes(2);
+    private readonly IClock? _reloj;
     private readonly ConcurrentDictionary<string, Entrada> _tokens = new();
 
-    public string Emitir(Guid usuarioId, string accion, int usos = 1)
+    public ConfirmacionAccionMemoria()
+    {
+    }
+
+    public ConfirmacionAccionMemoria(IClock reloj)
+    {
+        _reloj = reloj;
+    }
+
+    public string Emitir(Guid usuarioId, string accion, int usos = 1, TimeSpan? vigencia = null)
     {
         var cantidad = Math.Clamp(usos < 1 ? 1 : usos, 1, ConfirmacionAccion.MaxUsos);
+        var duracion = vigencia is { } pedida && pedida > TimeSpan.Zero
+            ? pedida
+            : ConfirmacionAccion.Vigencia;
         var token = Guid.NewGuid().ToString("N");
-        _tokens[token] = new Entrada(usuarioId, accion, DateTime.UtcNow.Add(Vigencia), cantidad);
+        _tokens[token] = new Entrada(usuarioId, accion, Ahora().Add(duracion), cantidad);
         return token;
     }
 
@@ -30,7 +42,7 @@ public sealed class ConfirmacionAccionMemoria : IConfirmacionAccionStore
             return false;
         }
 
-        if (entrada.Expira < DateTime.UtcNow)
+        if (entrada.Expira < Ahora())
         {
             _tokens.TryRemove(token, out _);
             return false;
@@ -43,6 +55,14 @@ public sealed class ConfirmacionAccionMemoria : IConfirmacionAccionStore
 
         return _tokens.TryUpdate(token, entrada with { UsosRestantes = entrada.UsosRestantes - 1 }, entrada);
     }
+
+    public Task<string> EmitirAsync(Guid usuarioId, string accion, int usos = 1, TimeSpan? vigencia = null, CancellationToken cancellationToken = default) =>
+        Task.FromResult(Emitir(usuarioId, accion, usos, vigencia));
+
+    public Task<bool> ConsumirAsync(string token, Guid usuarioId, string accion, CancellationToken cancellationToken = default) =>
+        Task.FromResult(Consumir(token, usuarioId, accion));
+
+    private DateTime Ahora() => _reloj?.UtcNow ?? DateTime.UtcNow;
 
     private sealed record Entrada(Guid UsuarioId, string Accion, DateTime Expira, int UsosRestantes);
 }
