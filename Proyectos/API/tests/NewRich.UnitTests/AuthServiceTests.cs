@@ -48,6 +48,23 @@ public sealed class AuthServiceTests
     }
 
     [Fact]
+    public async Task LoginAsync_observador_vinculado_entra_desde_un_celular_que_no_esta_registrado()
+    {
+        var (sut, db, usuario) = await CreateSutConObservadorAsync("Obs12345!", "PDA-8279866F", "a6hy7l99cizhlbtw");
+        var vinculado = db.Dispositivos.Single().DispositivoId;
+
+        var result = await sut.LoginAsync(new LoginRequest
+        {
+            Usuario = usuario.NombreUsuario,
+            Password = "Obs12345!",
+            CodigoDispositivo = "CEL-RMX3710"
+        }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.DispositivoId.Should().Be(vinculado);
+    }
+
+    [Fact]
     public async Task LoginAsync_super_ingresa_sin_llave_usb()
     {
         var options = new DbContextOptionsBuilder<NewRichDbContext>()
@@ -386,6 +403,122 @@ public sealed class AuthServiceTests
 
         result.IsSuccess.Should().BeTrue();
         store.Consumir(result.Data!.Token, usuario.UsuarioId, AccionesProtegidas.ConfiguracionVersionAplicacion).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task LoginAsync_observador_sin_equipo_vincula_el_celular_en_el_primer_ingreso()
+    {
+        var (sut, db, usuario) = await CreateSutSinDispositivoAsync(RolUsuario.Observador);
+
+        var result = await sut.LoginAsync(new LoginRequest
+        {
+            Usuario = usuario.NombreUsuario,
+            Password = "Obs12345!",
+            CodigoDispositivo = "CEL-RMX3710",
+            NumeroSerie = "celular-observador-01"
+        }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        var celular = await db.Dispositivos.SingleAsync();
+        celular.Tipo.Should().Be(TipoDispositivo.Observador);
+        celular.Estado.Should().Be(EstadoGeneral.Activo);
+        celular.NumeroSerie.Should().Be("celular-observador-01");
+        result.Data!.DispositivoId.Should().Be(celular.DispositivoId);
+        var vinculo = await db.DispositivosUsuarios.SingleAsync();
+        vinculo.UsuarioId.Should().Be(usuario.UsuarioId);
+        vinculo.DispositivoId.Should().Be(celular.DispositivoId);
+        vinculo.Activo.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task LoginAsync_observador_vuelve_a_entrar_con_el_celular_que_quedo_vinculado()
+    {
+        var (sut, db, usuario) = await CreateSutSinDispositivoAsync(RolUsuario.Observador);
+        var ingreso = new LoginRequest
+        {
+            Usuario = usuario.NombreUsuario,
+            Password = "Obs12345!",
+            CodigoDispositivo = "CEL-RMX3710"
+        };
+
+        var primero = await sut.LoginAsync(ingreso, CancellationToken.None);
+        var segundo = await sut.LoginAsync(ingreso, CancellationToken.None);
+
+        primero.IsSuccess.Should().BeTrue();
+        segundo.IsSuccess.Should().BeTrue();
+        segundo.Data!.DispositivoId.Should().Be(primero.Data!.DispositivoId);
+        var celular = await db.Dispositivos.SingleAsync();
+        celular.NumeroSerie.Should().Be(celular.CodigoDispositivo);
+    }
+
+    [Fact]
+    public async Task LoginAsync_dos_observadores_con_celulares_del_mismo_modelo_quedan_cada_uno_con_su_equipo()
+    {
+        var (sut, db, primero) = await CreateSutSinDispositivoAsync(RolUsuario.Observador);
+        var hasher = new Pbkdf2PasswordHasher();
+        var clave = hasher.Hash("Obs12345!");
+        var segundo = new Usuario
+        {
+            UsuarioId = Guid.NewGuid(),
+            NombreCompleto = "Otro observador",
+            NombreUsuario = "observador2",
+            PasswordHash = clave.Hash,
+            PasswordSalt = clave.Salt,
+            Rol = RolUsuario.Observador,
+            Estado = EstadoUsuario.Activo,
+            FechaCreacion = DateTime.UtcNow
+        };
+        db.Usuarios.Add(segundo);
+        await db.SaveChangesAsync();
+
+        var a = await sut.LoginAsync(new LoginRequest { Usuario = primero.NombreUsuario, Password = "Obs12345!", CodigoDispositivo = "CEL-RMX3710" }, CancellationToken.None);
+        var b = await sut.LoginAsync(new LoginRequest { Usuario = segundo.NombreUsuario, Password = "Obs12345!", CodigoDispositivo = "CEL-RMX3710" }, CancellationToken.None);
+
+        a.IsSuccess.Should().BeTrue();
+        b.IsSuccess.Should().BeTrue();
+        b.Data!.DispositivoId.Should().NotBe(a.Data!.DispositivoId!.Value);
+    }
+
+    [Fact]
+    public async Task LoginAsync_vendedor_sin_pda_registrado_sigue_sin_poder_entrar()
+    {
+        var (sut, db, usuario) = await CreateSutSinDispositivoAsync(RolUsuario.Vendedor);
+
+        var result = await sut.LoginAsync(new LoginRequest
+        {
+            Usuario = usuario.NombreUsuario,
+            Password = "Obs12345!",
+            CodigoDispositivo = "CEL-RMX3710"
+        }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Message.Should().Be(AuthMessages.DispositivoNoRegistrado);
+        (await db.Dispositivos.CountAsync()).Should().Be(0);
+    }
+
+    private static async Task<(AuthService Sut, NewRichDbContext Db, Usuario Usuario)> CreateSutSinDispositivoAsync(RolUsuario rol)
+    {
+        var options = new DbContextOptionsBuilder<NewRichDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+        var db = new NewRichDbContext(options);
+        var hasher = new Pbkdf2PasswordHasher();
+        var hashed = hasher.Hash("Obs12345!");
+        var usuario = new Usuario
+        {
+            UsuarioId = Guid.NewGuid(),
+            NombreCompleto = "Observador nuevo",
+            NombreUsuario = "observador.nuevo",
+            PasswordHash = hashed.Hash,
+            PasswordSalt = hashed.Salt,
+            Rol = rol,
+            Estado = EstadoUsuario.Activo,
+            FechaCreacion = DateTime.UtcNow
+        };
+        db.Usuarios.Add(usuario);
+        await db.SaveChangesAsync();
+        var sut = new AuthService(db, hasher, new JwtFalso(), new RelojFijo(new DateTime(2026, 9, 29, 20, 0, 0, DateTimeKind.Utc)), new ConfirmacionAccionMemoria());
+        return (sut, db, usuario);
     }
 
     private static async Task<(AuthService Sut, NewRichDbContext Db, Usuario Usuario)> CreateSutConObservadorAsync(
