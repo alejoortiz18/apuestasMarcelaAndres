@@ -371,6 +371,23 @@ public sealed class AuthServiceTests
         store.Consumir(result.Data.Token, usuario.UsuarioId, AccionesProtegidas.PdaBloquear).Should().BeFalse();
     }
 
+    [Fact]
+    public async Task Confirmar_publicacion_de_apk_sigue_valida_despues_de_dos_minutos()
+    {
+        var (sut, _, usuario, store, reloj) = await CreateSutConAdminAsync("Admin123");
+
+        var result = await sut.ConfirmarAccionAdministrativaAsync(usuario.UsuarioId, new ConfirmarAccionRequest
+        {
+            Password = "Admin123",
+            Accion = AccionesProtegidas.ConfiguracionVersionAplicacion
+        }, CancellationToken.None);
+
+        reloj.Avanzar(TimeSpan.FromMinutes(3));
+
+        result.IsSuccess.Should().BeTrue();
+        store.Consumir(result.Data!.Token, usuario.UsuarioId, AccionesProtegidas.ConfiguracionVersionAplicacion).Should().BeTrue();
+    }
+
     private static async Task<(AuthService Sut, NewRichDbContext Db, Usuario Usuario)> CreateSutConObservadorAsync(
         string password,
         string codigoDispositivo,
@@ -441,8 +458,8 @@ public sealed class AuthServiceTests
         };
         db.Usuarios.Add(usuario);
         await db.SaveChangesAsync();
-        var store = new ConfirmacionAccionMemoria();
         var reloj = new RelojFijo(new DateTime(2026, 9, 19, 20, 0, 0, DateTimeKind.Utc));
+        var store = new ConfirmacionAccionMemoria(reloj);
         var sut = new AuthService(db, hasher, new JwtFalso(), reloj, store);
         return (sut, db, usuario, store, reloj);
     }

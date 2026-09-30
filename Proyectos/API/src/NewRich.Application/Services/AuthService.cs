@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using NewRich.Application.Abstractions;
 using NewRich.Application.Contracts.Auth;
+using NewRich.Constants;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
 using NewRich.Domain.Enums;
@@ -291,7 +292,11 @@ public sealed class AuthService : IAuthService
             return Result<ConfirmarAccionResponse>.Fail(AuthMessages.ContrasenaAccionIncorrecta, 403);
         }
 
-        var token = _confirmaciones.Emitir(usuarioId, request.Accion.Trim(), request.Usos);
+        var accion = request.Accion.Trim();
+        var vigencia = accion == AccionesProtegidas.ConfiguracionVersionAplicacion
+            ? ConfirmacionAccion.VigenciaCargaArchivo
+            : ConfirmacionAccion.Vigencia;
+        var token = await _confirmaciones.EmitirAsync(usuarioId, accion, request.Usos, vigencia, cancellationToken);
         return Result<ConfirmarAccionResponse>.Ok(new ConfirmarAccionResponse { Token = token }, SuccessMessages.OperacionExitosa);
     }
 

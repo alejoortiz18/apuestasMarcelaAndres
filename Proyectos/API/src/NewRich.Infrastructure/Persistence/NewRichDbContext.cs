@@ -46,6 +46,7 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
     public DbSet<LlaveAdministrador> LlavesAdministrador => Set<LlaveAdministrador>();
     public DbSet<VersionAplicacion> VersionesAplicacion => Set<VersionAplicacion>();
     public DbSet<AuditoriaRetencion> AuditoriasRetencion => Set<AuditoriaRetencion>();
+    public DbSet<ConfirmacionAccionPendiente> ConfirmacionesAccion => Set<ConfirmacionAccionPendiente>();
 
     public async Task AsegurarEsquemaRetencionAsync(CancellationToken cancellationToken = default)
     {
@@ -55,6 +56,16 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
         }
 
         await Database.ExecuteSqlRawAsync(EsquemaAuditoriaRetencion, cancellationToken);
+    }
+
+    public async Task AsegurarEsquemaConfirmacionAsync(CancellationToken cancellationToken = default)
+    {
+        if (!Database.IsRelational())
+        {
+            return;
+        }
+
+        await Database.ExecuteSqlRawAsync(EsquemaConfirmacion, cancellationToken);
     }
 
     public async Task<bool> IntentarBloquearRetencionAsync(CancellationToken cancellationToken = default)
@@ -403,7 +414,29 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
             e.Property(x => x.MensajeError).HasMaxLength(500);
             e.HasIndex(x => x.FechaEjecucionUtc);
         });
+
+        modelBuilder.Entity<ConfirmacionAccionPendiente>(e =>
+        {
+            e.ToTable("ConfirmacionesAccion");
+            e.HasKey(x => x.Token);
+            e.Property(x => x.Token).HasMaxLength(64);
+            e.Property(x => x.Accion).HasMaxLength(80);
+        });
     }
+
+    private const string EsquemaConfirmacion = """
+        IF OBJECT_ID(N'dbo.ConfirmacionesAccion', N'U') IS NULL
+        BEGIN
+            CREATE TABLE dbo.ConfirmacionesAccion (
+                Token          NVARCHAR(64)     NOT NULL,
+                UsuarioId      UNIQUEIDENTIFIER NOT NULL,
+                Accion         NVARCHAR(80)     NOT NULL,
+                Expira         DATETIME2        NOT NULL,
+                UsosRestantes  INT              NOT NULL,
+                CONSTRAINT PK_ConfirmacionesAccion PRIMARY KEY (Token)
+            );
+        END
+        """;
 
     private const string EsquemaAuditoriaRetencion = """
         IF OBJECT_ID(N'dbo.AuditoriaRetencion', N'U') IS NULL
