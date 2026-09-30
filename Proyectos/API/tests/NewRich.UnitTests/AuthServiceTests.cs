@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using NewRich.Application.Abstractions;
 using NewRich.Application.Contracts.Auth;
