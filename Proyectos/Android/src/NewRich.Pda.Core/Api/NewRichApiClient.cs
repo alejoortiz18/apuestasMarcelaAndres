@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using NewRich.Application.Contracts.Android;
 using NewRich.Application.Contracts.Auth;
+using NewRich.Pda.Core.Actualizacion;
 using NewRich.Application.Contracts.Boletos;
 using NewRich.Application.Contracts.Chat;
 using NewRich.Application.Contracts.Configuracion;
@@ -333,15 +334,25 @@ public sealed class NewRichApiClient
 
             var total = response.Content.Headers.ContentLength;
             await using var origen = await response.Content.ReadAsStreamAsync(ct);
-            await using var destino = File.Create(rutaDestino);
             var buffer = new byte[64 * 1024];
             long leidos = 0;
-            int n;
-            while ((n = await origen.ReadAsync(buffer, ct)) > 0)
+            await using (var destino = File.Create(rutaDestino))
             {
-                await destino.WriteAsync(buffer.AsMemory(0, n), ct);
-                leidos += n;
-                avance?.Report(new ProgresoBytes(leidos, total));
+                int n;
+                while ((n = await origen.ReadAsync(buffer, ct)) > 0)
+                {
+                    await destino.WriteAsync(buffer.AsMemory(0, n), ct);
+                    leidos += n;
+                    avance?.Report(new ProgresoBytes(leidos, total));
+                }
+
+                await destino.FlushAsync(ct);
+            }
+
+            if (!ApkDescargado.QuedoCompleto(total, leidos))
+            {
+                File.Delete(rutaDestino);
+                return Result.Fail(PdaTexts.ActualizacionNoDescargada);
             }
 
             return Result.Ok(SuccessMessages.OperacionExitosa);

@@ -20,6 +20,7 @@ public static class DependencyInjection
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
         services.AddSingleton<IQrCryptoService, AesGcmQrCryptoService>();
         services.AddSingleton<IClock, SystemClock>();
+        services.AddSingleton<IConfirmacionAccionStore, ConfirmacionAccionBd>();
         services.AddSingleton<IChatFileStorage, LocalChatFileStorage>();
         services.AddSingleton<IApkAlmacen, AzureBlobApkAlmacen>();
         return services;

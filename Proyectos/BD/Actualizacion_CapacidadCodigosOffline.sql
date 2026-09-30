@@ -1,6 +1,6 @@
 /*
-  Amplía el CHECK de CapacidadCodigosOffline para permitir cualquier valor >= 1
-  (antes: BETWEEN 3000 AND 5000).
+  Amplía el CHECK de CapacidadCodigosOffline para permitir cualquier valor >= 0
+  (antes: >= 1).
 */
 USE [NewRich];
 GO
@@ -17,5 +17,5 @@ GO
 
 ALTER TABLE dbo.Dispositivos
 ADD CONSTRAINT CK_Dispositivos_Capacidad
-CHECK (CapacidadCodigosOffline >= 1);
+CHECK (CapacidadCodigosOffline >= 0);
 GO

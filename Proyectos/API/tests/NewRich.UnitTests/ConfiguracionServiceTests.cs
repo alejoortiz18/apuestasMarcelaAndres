@@ -241,12 +241,35 @@ public sealed class ConfiguracionServiceTests
     }
 
     [Fact]
-    public async Task GuardarOperativaAsync_rechaza_capacidad_no_positiva()
+    public async Task GuardarOperativaAsync_acepta_capacidad_cero()
+    {
+        var (sut, db) = CreateSut();
+        db.Dispositivos.Add(new Dispositivo
+        {
+            DispositivoId = Guid.NewGuid(),
+            CodigoDispositivo = "PDA-CERO",
+            Tipo = TipoDispositivo.Vendedor,
+            Estado = EstadoGeneral.Activo,
+            CapacidadCodigosOffline = 3000,
+            FechaRegistro = Ahora
+        });
+        await db.SaveChangesAsync();
+        await sut.ObtenerOperativaAsync(CancellationToken.None);
+
+        var result = await sut.GuardarOperativaAsync(RequestValida() with { CodigosOfflineCapacidad = 0 }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.CodigosOfflineCapacidad.Should().Be(0);
+        db.Dispositivos.Single().CapacidadCodigosOffline.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task GuardarOperativaAsync_rechaza_capacidad_negativa()
     {
         var (sut, _) = CreateSut();
         await sut.ObtenerOperativaAsync(CancellationToken.None);
 
-        var result = await sut.GuardarOperativaAsync(RequestValida() with { CodigosOfflineCapacidad = 0 }, CancellationToken.None);
+        var result = await sut.GuardarOperativaAsync(RequestValida() with { CodigosOfflineCapacidad = -1 }, CancellationToken.None);
 
         result.IsSuccess.Should().BeFalse();
         result.Message.Should().Be(ValidationMessages.CapacidadCodigosOfflineRango);

@@ -12,7 +12,7 @@
     <ApplicationTitle>New Rich</ApplicationTitle>
     <ApplicationId>com.newrich.pda</ApplicationId>
     <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
-    <ApplicationVersion>82</ApplicationVersion>
+    <ApplicationVersion>85</ApplicationVersion>
     <AndroidFastDeploymentEnabled>false</AndroidFastDeploymentEnabled>
     <!-- El APK se instala copiandolo (Registrar PDA), asi que debe traer los ensamblados adentro. -->
     <EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>

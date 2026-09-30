@@ -277,14 +277,14 @@ public sealed class OfflineService : IOfflineService
     {
         var pda = await _db.Dispositivos.AsNoTracking()
             .FirstOrDefaultAsync(d => d.DispositivoId == dispositivoId, cancellationToken);
-        if (pda is not null && pda.CapacidadCodigosOffline > 0)
+        if (pda is not null && pda.CapacidadCodigosOffline >= 0)
         {
             return pda.CapacidadCodigosOffline;
         }
 
         var cfg = await _db.Configuraciones.AsNoTracking()
             .FirstOrDefaultAsync(c => c.Clave == ConfiguracionClaves.CodigosOfflineCapacidad, cancellationToken);
-        return int.TryParse(cfg?.Valor, out var n) && n > 0 ? n : 3000;
+        return int.TryParse(cfg?.Valor, out var n) && n >= 0 ? n : 3000;
     }
 
     private async Task<bool> ReposicionDiariaHabilitadaAsync(CancellationToken cancellationToken)

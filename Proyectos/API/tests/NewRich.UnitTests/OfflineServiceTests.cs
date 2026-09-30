@@ -369,6 +369,27 @@ public sealed class OfflineServiceTests
     }
 
     [Fact]
+    public async Task ReponerDiarioAsync_con_capacidad_cero_no_genera_codigos()
+    {
+        var (sut, db, _) = CreateSut();
+        var pda = await AgregarPdaAsync(db, "PDA-CERO", capacidad: 0);
+        var usuario = await AgregarUsuarioAsync(db, "Vendedor Cero");
+        await AsociarAsync(db, pda.DispositivoId, usuario.UsuarioId);
+        await db.SaveChangesAsync();
+
+        var result = await sut.ReponerDiarioAsync(
+            usuario.UsuarioId,
+            pda.DispositivoId,
+            new ReponerCodigosOfflineRequest { CodigosOfflineGastadosPendientes = 0 },
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.CodigosOfflineMaximos.Should().Be(0);
+        result.Data.CantidadRepuesta.Should().Be(0);
+        db.CodigosPreventaOffline.Count(c => c.DispositivoId == pda.DispositivoId).Should().Be(0);
+    }
+
+    [Fact]
     public async Task ObtenerAsync_devuelve_trazabilidad()
     {
         var (sut, db, _) = CreateSut();
