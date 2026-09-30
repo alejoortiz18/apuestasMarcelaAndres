@@ -22,6 +22,8 @@ public sealed class ConfiguracionService : IConfiguracionService
         (ConfiguracionClaves.AlertaRepeticionNumero, "10"),
         (ConfiguracionClaves.AlertaValorMinimo, "10000"),
         (ConfiguracionClaves.CodigosOfflineCapacidad, "3000"),
+        (ConfiguracionClaves.MesesMaximosRetencion, PlanificadorRetencion.MesesMaximos.ToString()),
+        (ConfiguracionClaves.MesesAEliminar, "1"),
         (ConfiguracionClaves.ReposicionDiariaOffline, "true"),
         (ConfiguracionClaves.PermitirJuegosOffline, "true"),
         (ConfiguracionClaves.SincronizacionModo, ConfiguracionClaves.ModoManual),
@@ -94,6 +96,8 @@ public sealed class ConfiguracionService : IConfiguracionService
             AlertaRepeticionNumero = Entero(mapa[ConfiguracionClaves.AlertaRepeticionNumero], 10),
             AlertaValorMinimo = Entero(mapa[ConfiguracionClaves.AlertaValorMinimo], 10000),
             CodigosOfflineCapacidad = Entero(mapa[ConfiguracionClaves.CodigosOfflineCapacidad], 3000),
+            MesesMaximosRetencion = PlanificadorRetencion.MesesMaximos,
+            MesesAEliminar = Entero(mapa[ConfiguracionClaves.MesesAEliminar], 1),
             ReposicionDiariaOffline = Booleano(mapa[ConfiguracionClaves.ReposicionDiariaOffline], true),
             PermitirJuegosOffline = Booleano(mapa[ConfiguracionClaves.PermitirJuegosOffline], true),
             SincronizacionModo = mapa[ConfiguracionClaves.SincronizacionModo],
@@ -178,6 +182,11 @@ public sealed class ConfiguracionService : IConfiguracionService
             return Result<ConfiguracionOperativaResponse>.Fail(ValidationMessages.CapacidadCodigosOfflineRango);
         }
 
+        if (request.MesesAEliminar is < 1 or > 3)
+        {
+            return Result<ConfiguracionOperativaResponse>.Fail(ConfiguracionMessages.MesesAEliminarInvalidos);
+        }
+
         var cuerpo = TirillaCuerpo.NormalizarCuerpo(request.LeyendaTirilla);
         if (string.IsNullOrWhiteSpace(request.LeyendaTirilla) || string.IsNullOrWhiteSpace(cuerpo))
         {
@@ -220,6 +229,8 @@ public sealed class ConfiguracionService : IConfiguracionService
         await GuardarClaveAsync(ConfiguracionClaves.AlertaRepeticionNumero, request.AlertaRepeticionNumero.ToString(), cancellationToken);
         await GuardarClaveAsync(ConfiguracionClaves.AlertaValorMinimo, request.AlertaValorMinimo.ToString(), cancellationToken);
         await GuardarClaveAsync(ConfiguracionClaves.CodigosOfflineCapacidad, request.CodigosOfflineCapacidad.ToString(), cancellationToken);
+        await GuardarClaveAsync(ConfiguracionClaves.MesesMaximosRetencion, PlanificadorRetencion.MesesMaximos.ToString(), cancellationToken);
+        await GuardarClaveAsync(ConfiguracionClaves.MesesAEliminar, request.MesesAEliminar.ToString(), cancellationToken);
         await GuardarClaveAsync(ConfiguracionClaves.ReposicionDiariaOffline, request.ReposicionDiariaOffline ? "true" : "false", cancellationToken);
         await GuardarClaveAsync(ConfiguracionClaves.PermitirJuegosOffline, request.PermitirJuegosOffline ? "true" : "false", cancellationToken);
         await GuardarClaveAsync(ConfiguracionClaves.SincronizacionModo, modo, cancellationToken);
@@ -305,6 +316,7 @@ public sealed class ConfiguracionService : IConfiguracionService
         AlertaRepeticionNumero = actual.AlertaRepeticionNumero,
         AlertaValorMinimo = actual.AlertaValorMinimo,
         CodigosOfflineCapacidad = actual.CodigosOfflineCapacidad,
+        MesesAEliminar = actual.MesesAEliminar,
         ReposicionDiariaOffline = actual.ReposicionDiariaOffline,
         PermitirJuegosOffline = actual.PermitirJuegosOffline,
         SincronizacionModo = actual.SincronizacionModo,
@@ -325,6 +337,7 @@ public sealed class ConfiguracionService : IConfiguracionService
             ConfiguracionClaves.AlertaRepeticionNumero when int.TryParse(valor, out var repeticion) => request with { AlertaRepeticionNumero = repeticion },
             ConfiguracionClaves.AlertaValorMinimo when int.TryParse(valor, out var minimo) => request with { AlertaValorMinimo = minimo },
             ConfiguracionClaves.CodigosOfflineCapacidad when int.TryParse(valor, out var capacidad) => request with { CodigosOfflineCapacidad = capacidad },
+            ConfiguracionClaves.MesesAEliminar when int.TryParse(valor, out var meses) => request with { MesesAEliminar = meses },
             ConfiguracionClaves.ReposicionDiariaOffline => request with { ReposicionDiariaOffline = Booleano(valor, true) },
             ConfiguracionClaves.PermitirJuegosOffline => request with { PermitirJuegosOffline = Booleano(valor, true) },
             ConfiguracionClaves.SincronizacionModo => request with { SincronizacionModo = valor },

@@ -92,6 +92,24 @@
                 <span asp-validation-for="Form.SincronizacionModo"></span>
             </div>
         </section>
+        <section class="kpi-section">
+            <h2>@UiTexts.ConfigRetencion</h2>
+            <div class="field">
+                <label for="meses-maximos-retencion">@UiTexts.MesesMaximosRetencion</label>
+                <input id="meses-maximos-retencion" type="text" value="6" readonly disabled />
+                <span class="field-help">@UiTexts.MesesMaximosRetencionAyuda</span>
+            </div>
+            <div class="field">
+                <label asp-for="Form.MesesAEliminar"></label>
+                <select asp-for="Form.MesesAEliminar" class="searchable">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                </select>
+                <span class="field-help">@UiTexts.MesesAEliminarAyuda</span>
+                <span asp-validation-for="Form.MesesAEliminar"></span>
+            </div>
+        </section>
         <section class="kpi-section kpi-section-wide">
             <h2>@UiTexts.ConfigTirilla</h2>
             <div class="field">

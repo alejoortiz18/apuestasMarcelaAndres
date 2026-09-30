@@ -5,6 +5,7 @@ using Microsoft.OpenApi;
 using NewRich.Api.Filters;
 using NewRich.Api.Hubs;
 using NewRich.Api.Realtime;
+using NewRich.Api.Retencion;
 using NewRich.Application;
 using NewRich.Application.Abstractions;
 using NewRich.Infrastructure;
@@ -17,6 +18,7 @@ builder.WebHost.ConfigureKestrel(opciones => opciones.Limits.MaxRequestBodySize 
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddHostedService<RetencionHistoricaWorker>();
 builder.Services.AddScoped<INotificacionTiempoReal, SignalRNotificacionTiempoReal>();
 builder.Services.AddScoped<IChatTiempoReal, SignalRChatTiempoReal>();
 builder.Services.AddScoped<ICodigosOfflineTiempoReal, SignalRCodigosOfflineTiempoReal>();

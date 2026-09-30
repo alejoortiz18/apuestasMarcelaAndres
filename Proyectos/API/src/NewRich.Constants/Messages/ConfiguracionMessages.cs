@@ -18,6 +18,7 @@ public static class ConfiguracionMessages
     public const string LeyendaTirillaDemasiadoLarga = "El texto de la tirilla no puede superar 4000 caracteres.";
     public const string MensajeSuperacionTopeRequerido = "El mensaje al superar el tope es obligatorio.";
     public const string MensajeSuperacionTopeDemasiadoLargo = "El mensaje al superar el tope no puede superar 4000 caracteres.";
+    public const string MesesAEliminarInvalidos = "Los meses a eliminar deben ser 1, 2 o 3.";
     public const string NumeroRestringidoDuplicado = "Ese número ya está restringido.";
     public const string NumeroRestringidoNoEncontrado = "El número restringido no existe.";
 }
