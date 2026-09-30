@@ -1,0 +1,160 @@
+@using NewRich.Admin.Constants
+@using NewRich.Admin.Models
+@model IntegrantesGrupoRecaudoViewModel
+@{
+    string Estado(string valor) => valor switch
+    {
+        "AlDia" => UiTexts.EstadoAlDia,
+        "Deudado" => UiTexts.EstadoDeudado,
+        "PorCobrar" => UiTexts.EstadoPorCobrar,
+        _ => UiTexts.EstadoSinMovimiento
+    };
+    string Color(string valor) => valor.ToLowerInvariant() switch
+    {
+        "verde" => "verde",
+        "rojo" => "rojo",
+        "azul" => "azul",
+        _ => string.Empty
+    };
+    var ayudaId = 0;
+    void Encabezado(string titulo, string ayuda)
+    {
+        ayudaId++;
+        var id = $"ayuda-columna-{ayudaId}";
+        <th>
+            <span class="th-ayuda" tabindex="0" aria-describedby="@id">
+                @titulo
+                <span class="th-ayuda-icono" aria-hidden="true">?</span>
+                <span class="th-ayuda-texto" role="tooltip" id="@id">@ayuda</span>
+            </span>
+        </th>
+    }
+    void Tarjeta(string titulo, string ayuda, string valor, bool cifra)
+    {
+        ayudaId++;
+        var id = $"ayuda-tarjeta-{ayudaId}";
+        <article class="recaudo-metrica recaudo-metrica-ayuda">
+            <span>@titulo</span>
+            <strong class="@(cifra ? "recaudo-cifra" : null)">@valor</strong>
+            <span class="th-ayuda metrica-ayuda" tabindex="0" aria-label="@titulo" aria-describedby="@id">
+                <span class="th-ayuda-icono" aria-hidden="true">?</span>
+                <span class="th-ayuda-texto" role="tooltip" id="@id">@ayuda</span>
+            </span>
+        </article>
+    }
+}
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.RecaudoKicker</div>
+        <h1>@Model.Nombre</h1>
+        <p>@UiTexts.IntegrantesGrupoSub</p>
+    </div>
+    <a class="secondary" asp-action="Index" asp-route-desde="@Model.Desde.ToString("yyyy-MM-dd")" asp-route-hasta="@Model.Hasta.ToString("yyyy-MM-dd")">@UiTexts.Cerrar</a>
+</div>
+<div class="panel">
+    <form class="toolbar" method="get" asp-action="Ver" asp-route-id="@Model.GrupoId">
+        <div class="field">
+            <label for="desde">@UiTexts.Desde</label>
+            <input id="desde" name="desde" type="date" value="@Model.Desde.ToString("yyyy-MM-dd")" />
+        </div>
+        <div class="field">
+            <label for="hasta">@UiTexts.Hasta</label>
+            <input id="hasta" name="hasta" type="date" value="@Model.Hasta.ToString("yyyy-MM-dd")" />
+        </div>
+        <div class="field">
+            <label for="pageSize">@UiTexts.FilasPorPagina</label>
+            <select id="pageSize" name="pageSize">
+                @foreach (var size in PagingHelper.PageSizes)
+                {
+                    <option value="@size" selected="@(Model.Integrantes.PageSize == size)">@size</option>
+                }
+            </select>
+        </div>
+        <button class="primary" type="submit">@UiTexts.Aplicar</button>
+    </form>
+</div>
+<div class="recaudo-metricas">
+    @{
+        Tarjeta(UiTexts.Recaudador, UiTexts.AyudaTarjetaRecaudador, Model.RecaudadorNombre, false);
+        Tarjeta(UiTexts.Porcentaje, UiTexts.AyudaTarjetaPorcentaje, $"{Model.Porcentaje} %", true);
+        Tarjeta(UiTexts.TotalPorRecaudar, UiTexts.AyudaTarjetaTotalPorRecaudar, FormatoPesos.De(Model.TotalPorRecaudar), true);
+        Tarjeta(UiTexts.TotalRecaudado, UiTexts.AyudaTarjetaTotalRecaudado, FormatoPesos.De(Model.TotalRecaudado), true);
+        Tarjeta(UiTexts.TotalPendiente, UiTexts.AyudaTarjetaTotalPendiente, FormatoPesos.De(Model.TotalPendiente), true);
+    }
+</div>
+<div class="panel">
+    <div class="panel-head">
+        <div>
+            <h2>@UiTexts.IntegrantesDelGrupo</h2>
+            <div class="panel-sub">@Model.Integrantes.TotalCount registros@(Model.SinConfigurar ? $" · {UiTexts.SinConfigurar}" : "")</div>
+        </div>
+    </div>
+    @if (!Model.Integrantes.Items.Any())
+    {
+        <div class="empty">@UiTexts.Vacio</div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table data-table-select="integrantes-grupo-recaudo">
+                <thead>
+                <tr>
+                    <th class="col-check"><span class="visually-hidden">@UiTexts.SeleccionarFila</span></th>
+                    @{
+                        Encabezado(UiTexts.NombreCompleto, UiTexts.AyudaColumnaNombreCompleto);
+                        Encabezado(UiTexts.Identificador, UiTexts.AyudaColumnaIdentificador);
+                        Encabezado(UiTexts.Recaudador, UiTexts.AyudaColumnaRecaudador);
+                        Encabezado(UiTexts.Porcentaje, UiTexts.AyudaColumnaPorcentaje);
+                        Encabezado(UiTexts.TotalVendido, UiTexts.AyudaColumnaTotalVendido);
+                        Encabezado(UiTexts.TotalPorRecaudar, UiTexts.AyudaColumnaTotalPorRecaudar);
+                        Encabezado(UiTexts.TotalRecaudado, UiTexts.AyudaColumnaTotalRecaudado);
+                        Encabezado(UiTexts.TotalPendiente, UiTexts.AyudaColumnaTotalPendiente);
+                        Encabezado(UiTexts.Estado, UiTexts.AyudaColumnaEstado);
+                    }
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var fila in Model.Integrantes.Items)
+                {
+                    <tr tabindex="0" data-row-id="@fila.VendedorId">
+                        <td class="col-check">
+                            <input class="row-check" type="checkbox" value="@fila.VendedorId" aria-label="@UiTexts.SeleccionarFila @fila.Nombre" />
+                        </td>
+                        <td>
+                            <strong>@fila.Nombre</strong>
+                            @if (!string.IsNullOrWhiteSpace(fila.Alias))
+                            {
+                                <div class="panel-sub">@fila.Alias</div>
+                            }
+                        </td>
+                        <td>@fila.Usuario</td>
+                        <td>@fila.RecaudadorNombre</td>
+                        <td class="recaudo-cifra">@fila.Porcentaje %</td>
+                        <td>@FormatoPesos.De(fila.TotalVendido)</td>
+                        <td class="recaudo-cifra">@FormatoPesos.De(fila.ValorACobrar)</td>
+                        <td class="recaudo-cifra">@FormatoPesos.De(fila.PagosHoy)</td>
+                        <td>@FormatoPesos.De(fila.TotalPendiente)</td>
+                        <td><span class="estado-cobro @Color(fila.Color)">@Estado(fila.Estado)</span></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        <partial name="_Pager" model="Model.Integrantes" />
+        <div class="table-actions" data-table-panel="integrantes-grupo-recaudo">
+            <h2>@UiTexts.AccionesDeIntegrantes</h2>
+            <p class="panel-sub">@UiTexts.SeleccionaParaAcciones</p>
+            <div class="table-actions-buttons">
+                <form method="post" data-needs-selection data-url-template="@(Url.Action("EliminarDelGrupo", new { id = Model.GrupoId }))?usuarioId={id}" data-protected-action="@AccionesProtegidas.GruposQuitar">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="desde" value="@Model.Desde.ToString("yyyy-MM-dd")" />
+                    <input type="hidden" name="hasta" value="@Model.Hasta.ToString("yyyy-MM-dd")" />
+                    <button class="danger boton-icono" type="submit" disabled>
+                        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M16 19v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 17.5V19M10 10.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM16 9h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        @UiTexts.EliminarDelGrupo
+                    </button>
+                </form>
+            </div>
+        </div>
+    }
+</div>

@@ -48,7 +48,7 @@
             <label for="grupoId">@UiTexts.Grupo</label>
             <select id="grupoId" name="grupoId" required>
                 <option value="">@UiTexts.EligeGrupo</option>
-                @foreach (var item in Model.CatalogoGrupos)
+                @foreach (var item in Model.GruposSinRecaudador)
                 {
                     <option value="@item.Id">@item.Nombre</option>
                 }
@@ -56,13 +56,13 @@
         </div>
         <div class="field">
             <label for="porcentajeGrupo">@UiTexts.Porcentaje</label>
-            <input id="porcentajeGrupo" name="porcentaje" type="number" min="1" max="100" step="1" required />
+            <input id="porcentajeGrupo" name="porcentaje" type="number" min="1" max="100" step="1" />
         </div>
         <button class="primary" type="submit">@UiTexts.GuardarAsignacion</button>
     </form>
     <p class="panel-sub">@UiTexts.AyudaPorcentaje</p>
 </div>
-<div class="panel">
+<div class="panel" data-edicion-porcentajes>
     <div class="panel-head">
         <div>
             <h2>@UiTexts.CatalogoGruposRecaudo</h2>
@@ -86,9 +86,11 @@
                     <th>@UiTexts.TotalPorRecaudar</th>
                     <th>@UiTexts.TotalRecaudado</th>
                     <th>@UiTexts.Recaudador</th>
+                    <th>@UiTexts.Acciones</th>
                 </tr>
                 </thead>
                 <tbody>
+                @{ var i = 0; }
                 @foreach (var fila in Model.Grupos.Items)
                 {
                     <tr class="@(fila.SinConfigurar ? "recaudo-fila-gris" : null)" tabindex="0" data-row-id="@fila.GrupoId">
@@ -97,10 +99,22 @@
                         </td>
                         <td><strong>@fila.Nombre</strong> @(fila.SinConfigurar ? $"({UiTexts.SinConfigurar})" : "")</td>
                         <td>@fila.Vendedores</td>
-                        <td class="recaudo-cifra">@fila.Porcentaje %</td>
+                        <td class="recaudo-cifra">
+                            <span data-porcentaje-texto>@fila.Porcentaje %</span>
+                            <input type="hidden" form="form-porcentajes-grupos" name="grupos[@i].GrupoId" value="@fila.GrupoId" />
+                            <span class="porcentaje-input" data-porcentaje-campo hidden>
+                                <input type="number" inputmode="numeric" form="form-porcentajes-grupos" name="grupos[@i].Porcentaje" value="@fila.Porcentaje"
+                                       min="0" max="100" step="1" data-porcentaje-input aria-label="@UiTexts.Porcentaje @fila.Nombre" />
+                                <span class="porcentaje-sufijo" aria-hidden="true">%</span>
+                            </span>
+                            @{ i++; }
+                        </td>
                         <td class="recaudo-cifra">@FormatoPesos.De(fila.TotalPorRecaudar)</td>
                         <td class="recaudo-cifra">@FormatoPesos.De(fila.TotalRecaudado)</td>
                         <td>@fila.RecaudadorNombre</td>
+                        <td>
+                            <a class="secondary table-ver" asp-action="Ver" asp-route-id="@fila.GrupoId" asp-route-desde="@Model.Desde.ToString("yyyy-MM-dd")" asp-route-hasta="@Model.Hasta.ToString("yyyy-MM-dd")">@UiTexts.Ver</a>
+                        </td>
                     </tr>
                 }
                 </tbody>
@@ -110,12 +124,29 @@
         <div class="table-actions" data-table-panel="grupos-recaudo">
             <h2>@UiTexts.AccionesDeRecaudo</h2>
             <p class="panel-sub">@UiTexts.SeleccionaParaAcciones</p>
-            <form method="post" data-needs-selection data-url-template="@Url.Action("RetirarGrupo")/{id}">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="desde" value="@Model.Desde.ToString("yyyy-MM-dd")" />
-                <input type="hidden" name="hasta" value="@Model.Hasta.ToString("yyyy-MM-dd")" />
-                <button class="danger" type="submit">@UiTexts.RetirarAsignacion</button>
-            </form>
+            <div class="table-actions-buttons">
+                <form method="post" data-needs-selection data-url-template="@Url.Action("RetirarGrupo")/{id}">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="desde" value="@Model.Desde.ToString("yyyy-MM-dd")" />
+                    <input type="hidden" name="hasta" value="@Model.Hasta.ToString("yyyy-MM-dd")" />
+                    <button class="danger" type="submit">@UiTexts.RetirarAsignacion</button>
+                </form>
+                <button class="secondary boton-icono" type="button" data-editar-porcentajes>
+                    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-4-4L4 16v4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+                    @UiTexts.EditarPorcentajes
+                </button>
+                <form id="form-porcentajes-grupos" method="post" asp-action="GuardarPorcentajesGrupos" data-guardar-porcentajes hidden>
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="desde" value="@Model.Desde.ToString("yyyy-MM-dd")" />
+                    <input type="hidden" name="hasta" value="@Model.Hasta.ToString("yyyy-MM-dd")" />
+                    <button class="primary boton-icono" type="submit">
+                        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        @UiTexts.GuardarPorcentajes
+                    </button>
+                </form>
+                <button class="secondary" type="button" data-cancelar-porcentajes hidden>@UiTexts.Cancelar</button>
+            </div>
+            <p class="recaudo-edicion-ayuda" data-edicion-ayuda role="status" hidden>@UiTexts.AyudaEdicionPorcentajes</p>
         </div>
     }
 </div>
@@ -165,7 +196,8 @@
     }
     else
     {
-        <div class="table-wrap">
+        <div data-asignar-grupos>
+        <div class="table-wrap table-wrap-dropdown">
             <table data-table-select="vendedores-recaudo">
                 <thead>
                 <tr>
@@ -174,9 +206,11 @@
                     <th>@UiTexts.Porcentaje</th>
                     <th>@UiTexts.Recaudador</th>
                     <th>@UiTexts.Estado</th>
+                    <th>@UiTexts.AsignarUnGrupo</th>
                 </tr>
                 </thead>
                 <tbody>
+                @{ var j = 0; }
                 @foreach (var fila in Model.Vendedores.Items)
                 {
                     <tr tabindex="0" data-row-id="@fila.VendedorId">
@@ -187,23 +221,43 @@
                         <td class="recaudo-cifra">@fila.Porcentaje %</td>
                         <td>@fila.RecaudadorNombre</td>
                         <td>@UiTexts.SenalDebeGrupo</td>
+                        <td class="recaudo-col-grupo">
+                            <input type="hidden" form="form-grupos-vendedores" name="asignaciones[@j].VendedorId" value="@fila.VendedorId" />
+                            <select class="searchable" form="form-grupos-vendedores" name="asignaciones[@j].GrupoId" data-grupo-vendedor aria-label="@UiTexts.AsignarUnGrupo @fila.Nombre">
+                                <option value="">@UiTexts.EligeGrupo</option>
+                                @foreach (var grupo in Model.CatalogoGrupos)
+                                {
+                                    <option value="@grupo.Id">@grupo.Nombre</option>
+                                }
+                            </select>
+                            @{ j++; }
+                        </td>
                     </tr>
                 }
                 </tbody>
             </table>
         </div>
-        ViewData["PagerPageKey"] = "pageV";
-        ViewData["PagerPageSizeKey"] = "pageSizeV";
+        @{
+            ViewData["PagerPageKey"] = "pageV";
+            ViewData["PagerPageSizeKey"] = "pageSizeV";
+        }
         <partial name="_Pager" model="Model.Vendedores" />
-        <div class="table-actions" data-table-panel="vendedores-recaudo">
-            <h2>@UiTexts.AccionesDeRecaudo</h2>
-            <p class="panel-sub">@UiTexts.SeleccionaParaAcciones</p>
-            <form method="post" data-needs-selection data-url-template="@Url.Action("RetirarVendedor")/{id}">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="desde" value="@Model.Desde.ToString("yyyy-MM-dd")" />
-                <input type="hidden" name="hasta" value="@Model.Hasta.ToString("yyyy-MM-dd")" />
-                <button class="danger" type="submit">@UiTexts.RetirarAsignacion</button>
-            </form>
+        <div class="table-actions">
+            <h2>@UiTexts.AsignarUnGrupo</h2>
+            <p class="panel-sub">@UiTexts.AyudaAsignarGrupos</p>
+            <div class="table-actions-buttons">
+                <form id="form-grupos-vendedores" method="post" asp-action="GuardarGruposVendedores" data-guardar-grupos data-protected-action="@AccionesProtegidas.GruposAsignar" data-protected-usos="1" hidden>
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="desde" value="@Model.Desde.ToString("yyyy-MM-dd")" />
+                    <input type="hidden" name="hasta" value="@Model.Hasta.ToString("yyyy-MM-dd")" />
+                    <button class="primary boton-icono" type="submit">
+                        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        @UiTexts.GuardarGrupos
+                    </button>
+                </form>
+                <button class="secondary" type="button" data-cancelar-grupos hidden>@UiTexts.Cancelar</button>
+            </div>
+        </div>
         </div>
     }
 </div>

@@ -54,6 +54,7 @@ public sealed class ConfigRecaudoViewModel
     public IReadOnlyList<string> Alarmas { get; init; } = [];
     public IReadOnlyList<OpcionRecaudo> Recaudadores { get; init; } = [];
     public IReadOnlyList<OpcionRecaudo> CatalogoGrupos { get; init; } = [];
+    public IReadOnlyList<OpcionRecaudo> GruposSinRecaudador { get; init; } = [];
     public IReadOnlyList<OpcionRecaudo> CatalogoVendedores { get; init; } = [];
 }
 
@@ -69,6 +70,37 @@ public sealed class FilaGrupoRecaudo
     public string RecaudadorNombre { get; init; } = string.Empty;
 }
 
+public sealed class IntegrantesGrupoRecaudoViewModel
+{
+    public Guid GrupoId { get; init; }
+    public string Nombre { get; init; } = string.Empty;
+    public DateOnly Desde { get; init; }
+    public DateOnly Hasta { get; init; }
+    public int Porcentaje { get; init; }
+    public bool SinConfigurar { get; init; }
+    public string RecaudadorNombre { get; init; } = string.Empty;
+    public decimal TotalPorRecaudar { get; init; }
+    public decimal TotalRecaudado { get; init; }
+    public decimal TotalPendiente { get; init; }
+    public PagedViewModel<FilaIntegranteGrupoRecaudo> Integrantes { get; init; } = new();
+}
+
+public sealed class FilaIntegranteGrupoRecaudo
+{
+    public Guid VendedorId { get; init; }
+    public string Nombre { get; init; } = string.Empty;
+    public string? Alias { get; init; }
+    public string Usuario { get; init; } = string.Empty;
+    public int Porcentaje { get; init; }
+    public string RecaudadorNombre { get; init; } = string.Empty;
+    public decimal TotalVendido { get; init; }
+    public decimal ValorACobrar { get; init; }
+    public decimal TotalPendiente { get; init; }
+    public decimal PagosHoy { get; init; }
+    public string Estado { get; init; } = string.Empty;
+    public string Color { get; init; } = string.Empty;
+}
+
 public sealed class FilaVendedorRecaudo
 {
     public Guid VendedorId { get; init; }
@@ -76,6 +108,12 @@ public sealed class FilaVendedorRecaudo
     public int Porcentaje { get; init; }
     public string RecaudadorNombre { get; init; } = string.Empty;
     public bool SenalSinGrupo { get; init; }
+}
+
+public sealed class AsignacionGrupoVendedor
+{
+    public Guid VendedorId { get; set; }
+    public Guid? GrupoId { get; set; }
 }
 
 public sealed class HistorialRecaudoViewModel

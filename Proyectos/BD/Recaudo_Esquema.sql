@@ -42,6 +42,18 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UQ_Recaudo_AsignacionesG
         WHERE Estado = N'Activa';
 GO
 
+IF OBJECT_ID(N'recaudo.PorcentajesGrupo', N'U') IS NULL
+BEGIN
+    CREATE TABLE recaudo.PorcentajesGrupo
+    (
+        GrupoId uniqueidentifier NOT NULL CONSTRAINT PK_Recaudo_PorcentajesGrupo PRIMARY KEY,
+        Porcentaje int NOT NULL,
+        FechaModificacion datetime2 NOT NULL,
+        CONSTRAINT CK_Recaudo_PorcentajesGrupo_Porcentaje CHECK (Porcentaje BETWEEN 1 AND 100)
+    );
+END;
+GO
+
 IF OBJECT_ID(N'recaudo.AsignacionesVendedor', N'U') IS NULL
 BEGIN
     CREATE TABLE recaudo.AsignacionesVendedor

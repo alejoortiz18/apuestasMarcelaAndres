@@ -116,6 +116,24 @@ public sealed class ReglasRecaudoTests
     }
 
     [Fact]
+    public void Un_grupo_se_asigna_al_mismo_recaudador_que_ya_tenia_a_un_miembro_suelto()
+    {
+        var grupo = Guid.NewGuid();
+        var miembro = Guid.NewGuid();
+        var recaudador = Guid.NewGuid();
+
+        var resultado = AsignacionRecaudo.AsignarGrupo(
+            grupo,
+            recaudador,
+            10,
+            [miembro],
+            [],
+            [new VendedorEnRecaudo(miembro, null, recaudador, 15)]);
+
+        resultado.Aceptada.Should().BeTrue();
+    }
+
+    [Fact]
     public void Un_recaudador_puede_tener_varios_grupos()
     {
         var recaudador = Guid.NewGuid();

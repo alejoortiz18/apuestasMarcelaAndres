@@ -37,11 +37,6 @@ public static class AsignacionRecaudo
             return new ResultadoAsignacion(false, "Un vendedor del grupo ya esta asignado a otro recaudador.");
         }
 
-        if (vendedores.Any(v => vendedoresDelGrupo.Contains(v.VendedorId) && v.RecaudadorId == recaudadorId))
-        {
-            return new ResultadoAsignacion(false, "El vendedor ya queda cubierto por el grupo.");
-        }
-
         return new ResultadoAsignacion(true, string.Empty);
     }
 

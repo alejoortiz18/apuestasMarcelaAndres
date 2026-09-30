@@ -7,6 +7,17 @@ public sealed class AsignarGrupoRecaudoRequest
     public int Porcentaje { get; set; }
 }
 
+public sealed class PorcentajeGrupoRecaudoRequest
+{
+    public Guid GrupoId { get; set; }
+    public int Porcentaje { get; set; }
+}
+
+public sealed class ActualizarPorcentajesGruposRecaudoRequest
+{
+    public List<PorcentajeGrupoRecaudoRequest> Grupos { get; set; } = [];
+}
+
 public sealed class AsignarVendedorRecaudoRequest
 {
     public Guid RecaudadorId { get; set; }
@@ -126,6 +137,35 @@ public sealed class MetricasRecaudoResponse
     public int VendedoresAlDia { get; set; }
     public int VendedoresEnDeuda { get; set; }
     public int GruposConPendiente { get; set; }
+}
+
+public sealed class IntegranteGrupoRecaudoResponse
+{
+    public Guid VendedorId { get; set; }
+    public string NombreCompleto { get; set; } = string.Empty;
+    public string? Alias { get; set; }
+    public string Usuario { get; set; } = string.Empty;
+    public int Porcentaje { get; set; }
+    public string RecaudadorNombre { get; set; } = string.Empty;
+    public decimal TotalVendido { get; set; }
+    public decimal ValorACobrar { get; set; }
+    public decimal TotalPendiente { get; set; }
+    public decimal PagosHoy { get; set; }
+    public string Estado { get; set; } = string.Empty;
+    public string Color { get; set; } = string.Empty;
+}
+
+public sealed class IntegrantesGrupoRecaudoResponse
+{
+    public Guid GrupoId { get; set; }
+    public string Nombre { get; set; } = string.Empty;
+    public int Porcentaje { get; set; }
+    public bool SinConfigurar { get; set; }
+    public string RecaudadorNombre { get; set; } = string.Empty;
+    public decimal TotalPorRecaudar { get; set; }
+    public decimal TotalRecaudado { get; set; }
+    public decimal TotalPendiente { get; set; }
+    public IReadOnlyList<IntegranteGrupoRecaudoResponse> Integrantes { get; set; } = [];
 }
 
 public sealed class DetalleRecaudadorResponse

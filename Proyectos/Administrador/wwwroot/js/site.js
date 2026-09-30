@@ -327,6 +327,102 @@
     });
   });
 
+  document.querySelectorAll("[data-edicion-porcentajes]").forEach(function (panel) {
+    const editar = panel.querySelector("[data-editar-porcentajes]");
+    const guardar = panel.querySelector("[data-guardar-porcentajes]");
+    const cancelar = panel.querySelector("[data-cancelar-porcentajes]");
+    if (!editar || !guardar || !cancelar) {
+      return;
+    }
+    const ayuda = panel.querySelector("[data-edicion-ayuda]");
+    const textos = panel.querySelectorAll("[data-porcentaje-texto]");
+    const envolturas = panel.querySelectorAll("[data-porcentaje-campo]");
+    const campos = panel.querySelectorAll("[data-porcentaje-input]");
+    let editando = false;
+
+    function modoEdicion(activo) {
+      editando = activo;
+      panel.classList.toggle("is-editando", activo);
+      editar.hidden = activo;
+      guardar.hidden = !activo;
+      cancelar.hidden = !activo;
+      if (ayuda) {
+        ayuda.hidden = !activo;
+      }
+      textos.forEach(function (texto) { texto.hidden = activo; });
+      envolturas.forEach(function (envoltura) { envoltura.hidden = !activo; });
+      if (!activo) {
+        campos.forEach(function (campo) { campo.value = campo.defaultValue; });
+      }
+    }
+
+    editar.addEventListener("click", function () {
+      modoEdicion(true);
+      if (campos.length > 0) {
+        campos[0].focus();
+      }
+    });
+    cancelar.addEventListener("click", function () {
+      modoEdicion(false);
+      editar.focus();
+    });
+    campos.forEach(function (campo) {
+      campo.addEventListener("focus", function () { campo.select(); });
+    });
+    panel.addEventListener("keydown", function (event) {
+      if (event.key === "Escape" && editando) {
+        event.preventDefault();
+        modoEdicion(false);
+        editar.focus();
+      }
+    });
+    guardar.addEventListener("submit", function () {
+      const boton = guardar.querySelector('button[type="submit"]');
+      if (boton) {
+        boton.disabled = true;
+      }
+    });
+  });
+
+  document.querySelectorAll("[data-asignar-grupos]").forEach(function (panel) {
+    const guardar = panel.querySelector("[data-guardar-grupos]");
+    const cancelar = panel.querySelector("[data-cancelar-grupos]");
+    const selects = panel.querySelectorAll("[data-grupo-vendedor]");
+    if (!guardar || !cancelar) {
+      return;
+    }
+
+    function actualizar() {
+      const elegidos = Array.from(selects).filter(function (s) { return s.value; }).length;
+      const activo = elegidos > 0;
+      panel.classList.toggle("is-asignando", activo);
+      guardar.hidden = !activo;
+      cancelar.hidden = !activo;
+      guardar.setAttribute("data-protected-usos", String(Math.max(1, elegidos)));
+    }
+
+    selects.forEach(function (select) {
+      select.addEventListener("change", actualizar);
+    });
+    cancelar.addEventListener("click", function () {
+      selects.forEach(function (select) {
+        select.value = "";
+        const buscador = select.parentNode.querySelector(".search-select-input");
+        if (buscador) {
+          buscador.value = select.options[0] ? select.options[0].text : "";
+        }
+      });
+      actualizar();
+    });
+    guardar.addEventListener("submit", function () {
+      const boton = guardar.querySelector('button[type="submit"]');
+      if (boton) {
+        boton.disabled = true;
+      }
+    });
+    actualizar();
+  });
+
   document.querySelectorAll("form[data-submit-on-change]").forEach(function (form) {
     form.addEventListener("change", function (event) {
       const target = event.target;

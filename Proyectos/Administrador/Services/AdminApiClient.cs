@@ -125,7 +125,9 @@ public interface IAdminApiClient
 
     Task<ApiCallResult<List<RecaudadorResumenResponse>>> PanelRecaudoAsync(DateOnly desde, DateOnly hasta, CancellationToken cancellationToken);
     Task<ApiCallResult<ConfiguracionRecaudoResponse>> ConfiguracionRecaudoAsync(DateOnly desde, DateOnly hasta, CancellationToken cancellationToken);
+    Task<ApiCallResult<IntegrantesGrupoRecaudoResponse>> IntegrantesGrupoRecaudoAsync(Guid grupoId, DateOnly desde, DateOnly hasta, CancellationToken cancellationToken);
     Task<ApiCallResult<object>> AsignarGrupoRecaudoAsync(AsignarGrupoRecaudoRequest request, CancellationToken cancellationToken);
+    Task<ApiCallResult<object>> ActualizarPorcentajesGruposRecaudoAsync(ActualizarPorcentajesGruposRecaudoRequest request, CancellationToken cancellationToken);
     Task<ApiCallResult<object>> AsignarVendedorRecaudoAsync(AsignarVendedorRecaudoRequest request, CancellationToken cancellationToken);
     Task<ApiCallResult<object>> RetirarGrupoRecaudoAsync(Guid grupoId, CancellationToken cancellationToken);
     Task<ApiCallResult<object>> RetirarVendedorRecaudoAsync(Guid vendedorId, CancellationToken cancellationToken);
@@ -544,8 +546,16 @@ public sealed class AdminApiClient : IAdminApiClient
             ("desde", desde.ToString("yyyy-MM-dd")),
             ("hasta", hasta.ToString("yyyy-MM-dd"))), null, true, cancellationToken);
 
+    public Task<ApiCallResult<IntegrantesGrupoRecaudoResponse>> IntegrantesGrupoRecaudoAsync(Guid grupoId, DateOnly desde, DateOnly hasta, CancellationToken cancellationToken) =>
+        SendAsync<IntegrantesGrupoRecaudoResponse>(HttpMethod.Get, $"api/Recaudo/Grupos/{grupoId}/Integrantes" + BuildQuery(
+            ("desde", desde.ToString("yyyy-MM-dd")),
+            ("hasta", hasta.ToString("yyyy-MM-dd"))), null, true, cancellationToken);
+
     public Task<ApiCallResult<object>> AsignarGrupoRecaudoAsync(AsignarGrupoRecaudoRequest request, CancellationToken cancellationToken) =>
         SendAsync<object>(HttpMethod.Post, "api/Recaudo/Grupos", request, true, cancellationToken);
+
+    public Task<ApiCallResult<object>> ActualizarPorcentajesGruposRecaudoAsync(ActualizarPorcentajesGruposRecaudoRequest request, CancellationToken cancellationToken) =>
+        SendAsync<object>(HttpMethod.Put, "api/Recaudo/Grupos/Porcentajes", request, true, cancellationToken);
 
     public Task<ApiCallResult<object>> AsignarVendedorRecaudoAsync(AsignarVendedorRecaudoRequest request, CancellationToken cancellationToken) =>
         SendAsync<object>(HttpMethod.Post, "api/Recaudo/Vendedores", request, true, cancellationToken);

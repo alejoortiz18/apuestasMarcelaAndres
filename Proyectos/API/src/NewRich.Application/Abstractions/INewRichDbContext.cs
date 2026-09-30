@@ -38,6 +38,7 @@ public interface INewRichDbContext
     DbSet<VersionAplicacion> VersionesAplicacion { get; }
     DbSet<AuditoriaRetencion> AuditoriasRetencion { get; }
     DbSet<AsignacionGrupoRecaudo> AsignacionesGrupoRecaudo { get; }
+    DbSet<PorcentajeGrupoRecaudo> PorcentajesGrupoRecaudo { get; }
     DbSet<AsignacionVendedorRecaudo> AsignacionesVendedorRecaudo { get; }
     DbSet<ObligacionRecaudo> ObligacionesRecaudo { get; }
     DbSet<PagoRegistradoRecaudo> PagosRecaudo { get; }

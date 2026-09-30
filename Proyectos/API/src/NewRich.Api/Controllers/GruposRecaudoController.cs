@@ -23,9 +23,22 @@ public sealed class GruposRecaudoController : ApiControllerBase
         return From(await _recaudo.GruposAsync(desde ?? hoy, hasta ?? hoy, cancellationToken));
     }
 
+    [HttpGet("/api/Recaudo/Grupos/{grupoId:guid}/Integrantes")]
+    public async Task<IActionResult> Integrantes(Guid grupoId, [FromQuery] DateOnly? desde, [FromQuery] DateOnly? hasta, CancellationToken cancellationToken)
+    {
+        var hoy = DateOnly.FromDateTime(ZonaHorariaColombia.ALocal(DateTime.UtcNow));
+        return From(await _recaudo.IntegrantesGrupoAsync(grupoId, desde ?? hoy, hasta ?? hoy, cancellationToken));
+    }
+
     [HttpPost("/api/Recaudo/Grupos")]
     public async Task<IActionResult> Asignar([FromBody] AsignarGrupoRecaudoRequest request, CancellationToken cancellationToken)
     {
         return From(await _recaudo.AsignarGrupoAsync(request, UsuarioId, cancellationToken));
+    }
+
+    [HttpPut("/api/Recaudo/Grupos/Porcentajes")]
+    public async Task<IActionResult> ActualizarPorcentajes([FromBody] ActualizarPorcentajesGruposRecaudoRequest request, CancellationToken cancellationToken)
+    {
+        return From(await _recaudo.ActualizarPorcentajesGruposAsync(request, cancellationToken));
     }
 }

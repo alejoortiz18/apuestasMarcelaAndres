@@ -59,6 +59,7 @@ public sealed partial class RecaudoService
         var asignaciones = await _db.AsignacionesGrupoRecaudo.Where(a => a.Estado == "Activa").ToListAsync(cancellationToken);
         var recaudadores = await _db.Usuarios.Where(u => u.Rol == RolUsuario.Recaudador).ToListAsync(cancellationToken);
         var miembros = await _db.UsuariosGrupos.ToListAsync(cancellationToken);
+        var guardados = await _db.PorcentajesGrupoRecaudo.ToListAsync(cancellationToken);
         var filas = new List<GrupoConfigRecaudoResponse>();
         var alarmas = new List<string>();
         foreach (var grupo in grupos)
@@ -86,7 +87,7 @@ public sealed partial class RecaudoService
                 GrupoId = grupo.GrupoId,
                 Nombre = grupo.Nombre,
                 Vendedores = miembros.Count(m => m.GrupoId == grupo.GrupoId),
-                Porcentaje = asignacion?.Porcentaje ?? 0,
+                Porcentaje = asignacion?.Porcentaje ?? guardados.FirstOrDefault(p => p.GrupoId == grupo.GrupoId)?.Porcentaje ?? 0,
                 SinConfigurar = sinConfigurar,
                 TotalPorRecaudar = porRecaudar,
                 TotalRecaudado = recaudado,
@@ -131,6 +132,67 @@ public sealed partial class RecaudoService
     {
         var config = await ArmarConfiguracionAsync(desde, hasta, cancellationToken);
         return Result<IReadOnlyList<VendedorSueltoRecaudoResponse>>.Ok(config.VendedoresSinGrupo, SuccessMessages.OperacionExitosa);
+    }
+
+    public async Task<Result<IntegrantesGrupoRecaudoResponse>> IntegrantesGrupoAsync(Guid grupoId, DateOnly desde, DateOnly hasta, CancellationToken cancellationToken)
+    {
+        var grupo = await _db.Grupos.FirstOrDefaultAsync(g => g.GrupoId == grupoId, cancellationToken);
+        if (grupo is null)
+        {
+            return Result<IntegrantesGrupoRecaudoResponse>.Fail(UsuarioMessages.GrupoNoEncontrado, 404);
+        }
+
+        var asignacion = await _db.AsignacionesGrupoRecaudo
+            .FirstOrDefaultAsync(a => a.Estado == "Activa" && a.GrupoId == grupoId, cancellationToken);
+        var recaudador = asignacion is null
+            ? null
+            : await _db.Usuarios.FirstOrDefaultAsync(u => u.UsuarioId == asignacion.RecaudadorId, cancellationToken);
+        var ids = await _db.UsuariosGrupos
+            .Where(m => m.GrupoId == grupoId)
+            .Select(m => m.UsuarioId)
+            .ToListAsync(cancellationToken);
+        var usuarios = await _db.Usuarios
+            .Where(u => ids.Contains(u.UsuarioId))
+            .OrderBy(u => u.NombreCompleto)
+            .ToListAsync(cancellationToken);
+        var obligaciones = recaudador is null
+            ? []
+            : (await ObligacionesAsync(recaudador.UsuarioId, hasta, cancellationToken)).Data ?? [];
+        var delGrupo = obligaciones.Where(o => o.Grupo == grupo.Nombre).ToList();
+        var integrantes = usuarios.Select(u =>
+        {
+            var fila = obligaciones.FirstOrDefault(o => o.VendedorId == u.UsuarioId);
+            return new IntegranteGrupoRecaudoResponse
+            {
+                VendedorId = u.UsuarioId,
+                NombreCompleto = u.NombreCompleto,
+                Alias = u.Alias,
+                Usuario = u.NombreUsuario,
+                Porcentaje = asignacion?.Porcentaje ?? 0,
+                RecaudadorNombre = recaudador?.NombreCompleto ?? string.Empty,
+                TotalVendido = fila?.TotalVendido ?? 0m,
+                ValorACobrar = fila?.ValorACobrar ?? 0m,
+                TotalPendiente = fila?.TotalPendiente ?? 0m,
+                PagosHoy = fila?.PagosHoy ?? 0m,
+                Estado = fila?.Estado ?? string.Empty,
+                Color = fila?.Color ?? string.Empty
+            };
+        }).ToList();
+
+        return Result<IntegrantesGrupoRecaudoResponse>.Ok(new IntegrantesGrupoRecaudoResponse
+        {
+            GrupoId = grupo.GrupoId,
+            Nombre = grupo.Nombre,
+            Porcentaje = asignacion?.Porcentaje
+                ?? (await _db.PorcentajesGrupoRecaudo.FirstOrDefaultAsync(p => p.GrupoId == grupoId, cancellationToken))?.Porcentaje
+                ?? 0,
+            SinConfigurar = asignacion is null,
+            RecaudadorNombre = recaudador?.NombreCompleto ?? string.Empty,
+            TotalPorRecaudar = delGrupo.Sum(o => o.ValorACobrar),
+            TotalRecaudado = delGrupo.Sum(o => o.PagosHoy),
+            TotalPendiente = integrantes.Sum(i => i.TotalPendiente),
+            Integrantes = integrantes
+        }, SuccessMessages.OperacionExitosa);
     }
 
     public async Task<Result<IReadOnlyList<MovimientoRecaudoResponse>>> HistorialAsync(FiltroHistorialRecaudo filtro, CancellationToken cancellationToken)

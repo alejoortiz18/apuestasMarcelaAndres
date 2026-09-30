@@ -47,6 +47,7 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
     public DbSet<VersionAplicacion> VersionesAplicacion => Set<VersionAplicacion>();
     public DbSet<AuditoriaRetencion> AuditoriasRetencion => Set<AuditoriaRetencion>();
     public DbSet<AsignacionGrupoRecaudo> AsignacionesGrupoRecaudo => Set<AsignacionGrupoRecaudo>();
+    public DbSet<PorcentajeGrupoRecaudo> PorcentajesGrupoRecaudo => Set<PorcentajeGrupoRecaudo>();
     public DbSet<AsignacionVendedorRecaudo> AsignacionesVendedorRecaudo => Set<AsignacionVendedorRecaudo>();
     public DbSet<ObligacionRecaudo> ObligacionesRecaudo => Set<ObligacionRecaudo>();
     public DbSet<PagoRegistradoRecaudo> PagosRecaudo => Set<PagoRegistradoRecaudo>();
@@ -414,6 +415,11 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
             e.ToTable("AsignacionesGrupo", "recaudo");
             e.HasKey(x => x.AsignacionId);
             e.Property(x => x.Estado).HasMaxLength(20);
+        });
+        modelBuilder.Entity<PorcentajeGrupoRecaudo>(e =>
+        {
+            e.ToTable("PorcentajesGrupo", "recaudo");
+            e.HasKey(x => x.GrupoId);
         });
         modelBuilder.Entity<AsignacionVendedorRecaudo>(e =>
         {

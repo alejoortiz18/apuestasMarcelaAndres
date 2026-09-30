@@ -50,6 +50,40 @@ public sealed class RecaudoServiceTests
     }
 
     [Fact]
+    public async Task Asignar_grupo_retira_la_asignacion_individual_del_miembro_con_el_mismo_recaudador()
+    {
+        var (sut, db) = Crear();
+        var grupo = await AgregarGrupo(db, "Centro");
+        var recaudador = await AgregarUsuario(db, "Carmen Recaudo", RolUsuario.Recaudador);
+        var cata = await AgregarUsuario(db, "Cata Lopez", RolUsuario.Vendedor);
+        db.AsignacionesVendedorRecaudo.Add(new AsignacionVendedorRecaudo
+        {
+            AsignacionId = Guid.NewGuid(),
+            RecaudadorId = recaudador.UsuarioId,
+            VendedorId = cata.UsuarioId,
+            Porcentaje = 15,
+            Estado = "Activa",
+            FechaCreacion = DateTime.UtcNow,
+            FechaModificacion = DateTime.UtcNow
+        });
+        db.UsuariosGrupos.Add(new UsuarioGrupo { UsuarioId = cata.UsuarioId, GrupoId = grupo.GrupoId });
+        await db.SaveChangesAsync();
+
+        var asignado = await sut.AsignarGrupoAsync(new AsignarGrupoRecaudoRequest
+        {
+            RecaudadorId = recaudador.UsuarioId,
+            GrupoId = grupo.GrupoId,
+            Porcentaje = 10
+        }, recaudador.UsuarioId, CancellationToken.None);
+
+        asignado.IsSuccess.Should().BeTrue(asignado.Message);
+        db.AsignacionesVendedorRecaudo.Should().OnlyContain(a => a.Estado != "Activa");
+        var hoy = new DateOnly(2026, 9, 28);
+        var config = await sut.ConfiguracionAsync(hoy, hoy, CancellationToken.None);
+        config.Data!.Grupos.Should().ContainSingle(g => g.Nombre == "Centro" && g.RecaudadorNombre == "Carmen Recaudo" && g.Porcentaje == 10);
+    }
+
+    [Fact]
     public async Task Una_venta_del_vendedor_asignado_genera_la_obligacion_del_dia()
     {
         var (sut, db) = Crear();
@@ -111,6 +145,213 @@ public sealed class RecaudoServiceTests
         grupos.Data.Should().ContainSingle(g => g.Nombre == "Norte" && g.SinConfigurar);
         vendedores.IsSuccess.Should().BeTrue();
         vendedores.Data.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Integrantes_del_grupo_incluyen_a_todos_los_vendedores_con_su_pendiente()
+    {
+        var (sut, db) = Crear();
+        var grupo = await AgregarGrupo(db, "Centro");
+        var recaudador = await AgregarUsuario(db, "Carmen Recaudo", RolUsuario.Recaudador);
+        var ana = await AgregarUsuario(db, "Ana Perez", RolUsuario.Vendedor);
+        var beto = await AgregarUsuario(db, "Beto Diaz", RolUsuario.Vendedor);
+        db.UsuariosGrupos.AddRange(
+            new UsuarioGrupo { UsuarioId = ana.UsuarioId, GrupoId = grupo.GrupoId },
+            new UsuarioGrupo { UsuarioId = beto.UsuarioId, GrupoId = grupo.GrupoId });
+        db.Ventas.Add(new Venta
+        {
+            VentaId = Guid.NewGuid(),
+            UsuarioId = ana.UsuarioId,
+            FechaVenta = new DateTime(2026, 9, 28, 12, 0, 0, DateTimeKind.Utc),
+            Total = 1005m,
+            TipoApuesta = TipoApuesta.INDIVIDUAL,
+            IdempotencyKey = Guid.NewGuid().ToString("N")
+        });
+        await db.SaveChangesAsync();
+        await sut.AsignarGrupoAsync(new AsignarGrupoRecaudoRequest
+        {
+            RecaudadorId = recaudador.UsuarioId,
+            GrupoId = grupo.GrupoId,
+            Porcentaje = 10
+        }, recaudador.UsuarioId, CancellationToken.None);
+        var hoy = new DateOnly(2026, 9, 28);
+
+        var integrantes = await sut.IntegrantesGrupoAsync(grupo.GrupoId, hoy, hoy, CancellationToken.None);
+
+        integrantes.IsSuccess.Should().BeTrue();
+        integrantes.Data!.Nombre.Should().Be("Centro");
+        integrantes.Data.RecaudadorNombre.Should().Be("Carmen Recaudo");
+        integrantes.Data.Porcentaje.Should().Be(10);
+        integrantes.Data.Integrantes.Should().HaveCount(2);
+        integrantes.Data.Integrantes.Should().Contain(i => i.VendedorId == ana.UsuarioId && i.ValorACobrar == 101m && i.TotalVendido == 1005m);
+        integrantes.Data.Integrantes.Should().Contain(i => i.VendedorId == beto.UsuarioId && i.TotalVendido == 0m);
+        integrantes.Data.TotalPendiente.Should().Be(integrantes.Data.Integrantes.Sum(i => i.TotalPendiente));
+        integrantes.Data.TotalPendiente.Should().Be(101m);
+    }
+
+    [Fact]
+    public async Task Actualizar_porcentajes_cambia_todos_los_grupos_en_un_solo_movimiento()
+    {
+        var (sut, db) = Crear();
+        var norte = await AgregarGrupo(db, "Norte");
+        var sur = await AgregarGrupo(db, "Sur");
+        var recaudador = await AgregarUsuario(db, "Carmen Recaudo", RolUsuario.Recaudador);
+        foreach (var grupo in new[] { norte, sur })
+        {
+            await sut.AsignarGrupoAsync(new AsignarGrupoRecaudoRequest
+            {
+                RecaudadorId = recaudador.UsuarioId,
+                GrupoId = grupo.GrupoId,
+                Porcentaje = 10
+            }, recaudador.UsuarioId, CancellationToken.None);
+        }
+
+        var resultado = await sut.ActualizarPorcentajesGruposAsync(new ActualizarPorcentajesGruposRecaudoRequest
+        {
+            Grupos =
+            [
+                new PorcentajeGrupoRecaudoRequest { GrupoId = norte.GrupoId, Porcentaje = 25 },
+                new PorcentajeGrupoRecaudoRequest { GrupoId = sur.GrupoId, Porcentaje = 40 }
+            ]
+        }, CancellationToken.None);
+
+        resultado.IsSuccess.Should().BeTrue();
+        var hoy = new DateOnly(2026, 9, 28);
+        var config = await sut.ConfiguracionAsync(hoy, hoy, CancellationToken.None);
+        config.Data!.Grupos.Should().Contain(g => g.Nombre == "Norte" && g.Porcentaje == 25);
+        config.Data.Grupos.Should().Contain(g => g.Nombre == "Sur" && g.Porcentaje == 40);
+    }
+
+    [Fact]
+    public async Task Actualizar_porcentajes_con_un_valor_invalido_no_guarda_ninguno()
+    {
+        var (sut, db) = Crear();
+        var norte = await AgregarGrupo(db, "Norte");
+        var sur = await AgregarGrupo(db, "Sur");
+        var recaudador = await AgregarUsuario(db, "Carmen Recaudo", RolUsuario.Recaudador);
+        foreach (var grupo in new[] { norte, sur })
+        {
+            await sut.AsignarGrupoAsync(new AsignarGrupoRecaudoRequest
+            {
+                RecaudadorId = recaudador.UsuarioId,
+                GrupoId = grupo.GrupoId,
+                Porcentaje = 10
+            }, recaudador.UsuarioId, CancellationToken.None);
+        }
+
+        var resultado = await sut.ActualizarPorcentajesGruposAsync(new ActualizarPorcentajesGruposRecaudoRequest
+        {
+            Grupos =
+            [
+                new PorcentajeGrupoRecaudoRequest { GrupoId = norte.GrupoId, Porcentaje = 30 },
+                new PorcentajeGrupoRecaudoRequest { GrupoId = sur.GrupoId, Porcentaje = 101 }
+            ]
+        }, CancellationToken.None);
+
+        resultado.IsSuccess.Should().BeFalse();
+        var hoy = new DateOnly(2026, 9, 28);
+        var config = await sut.ConfiguracionAsync(hoy, hoy, CancellationToken.None);
+        config.Data!.Grupos.Should().OnlyContain(g => g.Porcentaje == 10);
+    }
+
+    [Fact]
+    public async Task Actualizar_porcentajes_guarda_el_de_un_grupo_sin_recaudador()
+    {
+        var (sut, db) = Crear();
+        var norte = await AgregarGrupo(db, "Norte");
+
+        var resultado = await sut.ActualizarPorcentajesGruposAsync(new ActualizarPorcentajesGruposRecaudoRequest
+        {
+            Grupos = [new PorcentajeGrupoRecaudoRequest { GrupoId = norte.GrupoId, Porcentaje = 20 }]
+        }, CancellationToken.None);
+
+        resultado.IsSuccess.Should().BeTrue();
+        var hoy = new DateOnly(2026, 9, 28);
+        var config = await sut.ConfiguracionAsync(hoy, hoy, CancellationToken.None);
+        config.Data!.Grupos.Should().ContainSingle(g => g.Nombre == "Norte" && g.Porcentaje == 20 && g.SinConfigurar);
+    }
+
+    [Fact]
+    public async Task Asignar_grupo_sin_porcentaje_usa_el_guardado_en_el_grupo()
+    {
+        var (sut, db) = Crear();
+        var norte = await AgregarGrupo(db, "Norte");
+        var recaudador = await AgregarUsuario(db, "Carmen Recaudo", RolUsuario.Recaudador);
+        await sut.ActualizarPorcentajesGruposAsync(new ActualizarPorcentajesGruposRecaudoRequest
+        {
+            Grupos = [new PorcentajeGrupoRecaudoRequest { GrupoId = norte.GrupoId, Porcentaje = 15 }]
+        }, CancellationToken.None);
+
+        var asignado = await sut.AsignarGrupoAsync(new AsignarGrupoRecaudoRequest
+        {
+            RecaudadorId = recaudador.UsuarioId,
+            GrupoId = norte.GrupoId,
+            Porcentaje = 0
+        }, recaudador.UsuarioId, CancellationToken.None);
+
+        asignado.IsSuccess.Should().BeTrue();
+        var hoy = new DateOnly(2026, 9, 28);
+        var config = await sut.ConfiguracionAsync(hoy, hoy, CancellationToken.None);
+        config.Data!.Grupos.Should().ContainSingle(g => g.Nombre == "Norte" && g.Porcentaje == 15 && !g.SinConfigurar);
+    }
+
+    [Fact]
+    public async Task Actualizar_porcentajes_en_cero_quita_el_porcentaje_de_un_grupo_sin_recaudador()
+    {
+        var (sut, db) = Crear();
+        var norte = await AgregarGrupo(db, "Norte");
+        await sut.ActualizarPorcentajesGruposAsync(new ActualizarPorcentajesGruposRecaudoRequest
+        {
+            Grupos = [new PorcentajeGrupoRecaudoRequest { GrupoId = norte.GrupoId, Porcentaje = 20 }]
+        }, CancellationToken.None);
+
+        var resultado = await sut.ActualizarPorcentajesGruposAsync(new ActualizarPorcentajesGruposRecaudoRequest
+        {
+            Grupos = [new PorcentajeGrupoRecaudoRequest { GrupoId = norte.GrupoId, Porcentaje = 0 }]
+        }, CancellationToken.None);
+
+        resultado.IsSuccess.Should().BeTrue();
+        var hoy = new DateOnly(2026, 9, 28);
+        var config = await sut.ConfiguracionAsync(hoy, hoy, CancellationToken.None);
+        config.Data!.Grupos.Should().ContainSingle(g => g.Nombre == "Norte" && g.Porcentaje == 0);
+    }
+
+    [Fact]
+    public async Task Actualizar_porcentajes_en_cero_no_se_permite_en_un_grupo_con_recaudador()
+    {
+        var (sut, db) = Crear();
+        var norte = await AgregarGrupo(db, "Norte");
+        var recaudador = await AgregarUsuario(db, "Carmen Recaudo", RolUsuario.Recaudador);
+        await sut.AsignarGrupoAsync(new AsignarGrupoRecaudoRequest
+        {
+            RecaudadorId = recaudador.UsuarioId,
+            GrupoId = norte.GrupoId,
+            Porcentaje = 10
+        }, recaudador.UsuarioId, CancellationToken.None);
+
+        var resultado = await sut.ActualizarPorcentajesGruposAsync(new ActualizarPorcentajesGruposRecaudoRequest
+        {
+            Grupos = [new PorcentajeGrupoRecaudoRequest { GrupoId = norte.GrupoId, Porcentaje = 0 }]
+        }, CancellationToken.None);
+
+        resultado.IsSuccess.Should().BeFalse();
+        resultado.Message.Should().Contain("Norte");
+        var hoy = new DateOnly(2026, 9, 28);
+        var config = await sut.ConfiguracionAsync(hoy, hoy, CancellationToken.None);
+        config.Data!.Grupos.Should().ContainSingle(g => g.Nombre == "Norte" && g.Porcentaje == 10);
+    }
+
+    [Fact]
+    public async Task Actualizar_porcentajes_rechaza_un_grupo_que_no_existe()
+    {
+        var (sut, _) = Crear();
+
+        var resultado = await sut.ActualizarPorcentajesGruposAsync(new ActualizarPorcentajesGruposRecaudoRequest
+        {
+            Grupos = [new PorcentajeGrupoRecaudoRequest { GrupoId = Guid.NewGuid(), Porcentaje = 20 }]
+        }, CancellationToken.None);
+
+        resultado.IsSuccess.Should().BeFalse();
     }
 
     private static (RecaudoService Sut, NewRichDbContext Db) Crear()

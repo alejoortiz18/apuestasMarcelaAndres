@@ -76,7 +76,68 @@ public sealed class ConfigRecaudoController : AdminControllerBase
                 .Select(u => new OpcionRecaudo { Id = u.UsuarioId, Nombre = u.NombreCompleto })
                 .ToList(),
             CatalogoGrupos = grupos.Select(g => new OpcionRecaudo { Id = g.GrupoId, Nombre = g.Nombre }).ToList(),
+            GruposSinRecaudador = (datos?.Grupos ?? [])
+                .Where(g => g.RecaudadorId is null)
+                .Select(g => new OpcionRecaudo { Id = g.GrupoId, Nombre = g.Nombre })
+                .ToList(),
             CatalogoVendedores = vendedores.Select(v => new OpcionRecaudo { Id = v.VendedorId, Nombre = v.Nombre }).ToList()
+        });
+    }
+
+    public async Task<IActionResult> Ver(
+        Guid id,
+        string? desde,
+        string? hasta,
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        SetNav("recaudo-config", UiTexts.NavConfigRecaudo);
+        var inicio = RecaudoFechas.Leer(desde, RecaudoFechas.Hoy());
+        var fin = RecaudoFechas.Leer(hasta, inicio);
+        var resultado = await _api.IntegrantesGrupoRecaudoAsync(id, inicio, fin, cancellationToken);
+        var unauthorized = RedirectIfUnauthorized(resultado);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
+        if (!resultado.Success || resultado.Data is null)
+        {
+            SetFlash(resultado.Message, false);
+            return RedirectToAction(nameof(Index), new { desde, hasta });
+        }
+
+        var datos = resultado.Data;
+        var integrantes = datos.Integrantes.Select(v => new FilaIntegranteGrupoRecaudo
+        {
+            VendedorId = v.VendedorId,
+            Nombre = v.NombreCompleto,
+            Alias = v.Alias,
+            Usuario = v.Usuario,
+            Porcentaje = v.Porcentaje,
+            RecaudadorNombre = string.IsNullOrWhiteSpace(v.RecaudadorNombre) ? UiTexts.NoAplica : v.RecaudadorNombre,
+            TotalVendido = v.TotalVendido,
+            ValorACobrar = v.ValorACobrar,
+            TotalPendiente = v.TotalPendiente,
+            PagosHoy = v.PagosHoy,
+            Estado = v.Estado,
+            Color = v.Color
+        }).ToList();
+
+        return View(new IntegrantesGrupoRecaudoViewModel
+        {
+            GrupoId = datos.GrupoId,
+            Nombre = datos.Nombre,
+            Desde = inicio,
+            Hasta = fin,
+            Porcentaje = datos.Porcentaje,
+            SinConfigurar = datos.SinConfigurar,
+            RecaudadorNombre = string.IsNullOrWhiteSpace(datos.RecaudadorNombre) ? UiTexts.NoAplica : datos.RecaudadorNombre,
+            TotalPorRecaudar = datos.TotalPorRecaudar,
+            TotalRecaudado = datos.TotalRecaudado,
+            TotalPendiente = datos.TotalPendiente,
+            Integrantes = PagingHelper.Paginate(integrantes, page, pageSize)
         });
     }
 
@@ -98,6 +159,70 @@ public sealed class ConfigRecaudoController : AdminControllerBase
 
         SetFlash(result.Message, result.Success);
         return RedirectToAction(nameof(Index), new { desde, hasta });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> GuardarPorcentajesGrupos(List<PorcentajeGrupoRecaudoRequest> grupos, string? desde, string? hasta, CancellationToken cancellationToken)
+    {
+        var result = await _api.ActualizarPorcentajesGruposRecaudoAsync(new ActualizarPorcentajesGruposRecaudoRequest
+        {
+            Grupos = grupos ?? []
+        }, cancellationToken);
+        var unauthorized = RedirectIfUnauthorized(result);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
+        SetFlash(result.Message, result.Success);
+        return RedirectToAction(nameof(Index), new { desde, hasta });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> GuardarGruposVendedores(List<AsignacionGrupoVendedor> asignaciones, string? desde, string? hasta, CancellationToken cancellationToken)
+    {
+        var elegidas = (asignaciones ?? []).Where(a => a.GrupoId is not null).ToList();
+        if (elegidas.Count == 0)
+        {
+            SetFlash(UiTexts.EligeGrupoParaGuardar, false);
+            return RedirectToAction(nameof(Index), new { desde, hasta });
+        }
+
+        foreach (var asignacion in elegidas)
+        {
+            var result = await _api.AsignarVendedorGrupoAsync(asignacion.GrupoId!.Value, asignacion.VendedorId, cancellationToken);
+            var unauthorized = RedirectIfUnauthorized(result);
+            if (unauthorized is not null)
+            {
+                return unauthorized;
+            }
+
+            if (!result.Success)
+            {
+                SetFlash(result.Message, false);
+                return RedirectToAction(nameof(Index), new { desde, hasta });
+            }
+        }
+
+        SetFlash(UiTexts.VendedoresAsignadosAGrupo, true);
+        return RedirectToAction(nameof(Index), new { desde, hasta });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> EliminarDelGrupo(Guid id, Guid usuarioId, string? desde, string? hasta, CancellationToken cancellationToken)
+    {
+        var result = await _api.DesasignarVendedorGrupoAsync(usuarioId, cancellationToken);
+        var unauthorized = RedirectIfUnauthorized(result);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
+        SetFlash(result.Success ? UiTexts.VendedorEliminadoDelGrupo : result.Message, result.Success);
+        return RedirectToAction(nameof(Ver), new { id, desde, hasta });
     }
 
     [HttpPost]
