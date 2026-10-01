@@ -1,8 +1,8 @@
 namespace NewRich.Domain.Services;
 
 /// <summary>
-/// La versión vigente es la última publicada. El dispositivo descarga cuando su
-/// compilación instalada no coincide con esa, aunque el número nuevo sea menor.
+/// La versión vigente es la última publicada. El dispositivo solo descarga cuando
+/// esa compilación es mayor que la instalada; nunca ofrece bajar de versión.
 /// </summary>
 public static class ActualizacionAplicacion
 {
@@ -10,7 +10,7 @@ public static class ActualizacionAplicacion
     public const string Directorio = "apks";
 
     public static bool RequiereDescarga(int compilacionInstalada, int compilacionVigente) =>
-        compilacionInstalada != compilacionVigente;
+        compilacionVigente > compilacionInstalada;
 
     public static bool PermiteIngresar(bool descargando) => !descargando;
 
