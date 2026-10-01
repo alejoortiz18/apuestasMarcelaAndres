@@ -190,6 +190,105 @@ public sealed class RecaudoServiceTests
     }
 
     [Fact]
+    public async Task Integrantes_muestran_las_ventas_con_el_porcentaje_guardado_aunque_el_grupo_no_tenga_recaudador()
+    {
+        var (sut, db) = Crear();
+        var (grupo, ana) = await GrupoConVentaDeAnaAsync(db, 29500m);
+        db.PorcentajesGrupoRecaudo.Add(new PorcentajeGrupoRecaudo { GrupoId = grupo.GrupoId, Porcentaje = 5 });
+        await db.SaveChangesAsync();
+        var hoy = new DateOnly(2026, 9, 28);
+
+        var integrantes = await sut.IntegrantesGrupoAsync(grupo.GrupoId, hoy, hoy, CancellationToken.None);
+
+        integrantes.Data!.RecaudadorNombre.Should().BeEmpty();
+        integrantes.Data.Porcentaje.Should().Be(5);
+        integrantes.Data.Integrantes.Should().Contain(i => i.VendedorId == ana.UsuarioId
+            && i.TotalVendido == 29500m && i.ValorACobrar == 1475m && i.TotalPendiente == 1475m && i.Porcentaje == 5);
+        integrantes.Data.TotalPorRecaudar.Should().Be(1475m);
+        integrantes.Data.TotalPendiente.Should().Be(1475m);
+    }
+
+    [Fact]
+    public async Task Integrantes_muestran_las_ventas_aunque_el_recaudador_asignado_ya_no_exista()
+    {
+        var (sut, db) = Crear();
+        var (grupo, ana) = await GrupoConVentaDeAnaAsync(db, 29500m);
+        db.AsignacionesGrupoRecaudo.Add(new AsignacionGrupoRecaudo
+        {
+            AsignacionId = Guid.NewGuid(),
+            RecaudadorId = Guid.NewGuid(),
+            GrupoId = grupo.GrupoId,
+            Porcentaje = 5,
+            Estado = "Activa"
+        });
+        await db.SaveChangesAsync();
+        var hoy = new DateOnly(2026, 9, 28);
+
+        var integrantes = await sut.IntegrantesGrupoAsync(grupo.GrupoId, hoy, hoy, CancellationToken.None);
+
+        integrantes.Data!.RecaudadorNombre.Should().BeEmpty();
+        integrantes.Data.Integrantes.Should().Contain(i => i.VendedorId == ana.UsuarioId
+            && i.TotalVendido == 29500m && i.ValorACobrar == 1475m && i.TotalPendiente == 1475m);
+        integrantes.Data.TotalPorRecaudar.Should().Be(1475m);
+        integrantes.Data.TotalPendiente.Should().Be(1475m);
+    }
+
+    [Fact]
+    public async Task Grupos_muestran_lo_por_recaudar_con_el_porcentaje_guardado_aunque_no_tengan_recaudador()
+    {
+        var (sut, db) = Crear();
+        var (grupo, _) = await GrupoConVentaDeAnaAsync(db, 29500m);
+        db.PorcentajesGrupoRecaudo.Add(new PorcentajeGrupoRecaudo { GrupoId = grupo.GrupoId, Porcentaje = 5 });
+        await db.SaveChangesAsync();
+        var hoy = new DateOnly(2026, 9, 28);
+
+        var grupos = await sut.GruposAsync(hoy, hoy, CancellationToken.None);
+
+        grupos.Data.Should().Contain(g => g.GrupoId == grupo.GrupoId
+            && g.TotalPorRecaudar == 1475m && g.RecaudadorNombre == string.Empty);
+    }
+
+    [Fact]
+    public async Task Grupos_muestran_lo_por_recaudar_aunque_el_recaudador_asignado_ya_no_exista()
+    {
+        var (sut, db) = Crear();
+        var (grupo, _) = await GrupoConVentaDeAnaAsync(db, 29500m);
+        db.AsignacionesGrupoRecaudo.Add(new AsignacionGrupoRecaudo
+        {
+            AsignacionId = Guid.NewGuid(),
+            RecaudadorId = Guid.NewGuid(),
+            GrupoId = grupo.GrupoId,
+            Porcentaje = 5,
+            Estado = "Activa"
+        });
+        await db.SaveChangesAsync();
+        var hoy = new DateOnly(2026, 9, 28);
+
+        var grupos = await sut.GruposAsync(hoy, hoy, CancellationToken.None);
+
+        grupos.Data.Should().Contain(g => g.GrupoId == grupo.GrupoId
+            && g.TotalPorRecaudar == 1475m && g.RecaudadorNombre == string.Empty);
+    }
+
+    private static async Task<(Grupo Grupo, Usuario Ana)> GrupoConVentaDeAnaAsync(NewRichDbContext db, decimal total)
+    {
+        var grupo = await AgregarGrupo(db, "Centro");
+        var ana = await AgregarUsuario(db, "Ana Perez", RolUsuario.Vendedor);
+        db.UsuariosGrupos.Add(new UsuarioGrupo { UsuarioId = ana.UsuarioId, GrupoId = grupo.GrupoId });
+        db.Ventas.Add(new Venta
+        {
+            VentaId = Guid.NewGuid(),
+            UsuarioId = ana.UsuarioId,
+            FechaVenta = new DateTime(2026, 9, 28, 12, 0, 0, DateTimeKind.Utc),
+            Total = total,
+            TipoApuesta = TipoApuesta.INDIVIDUAL,
+            IdempotencyKey = Guid.NewGuid().ToString("N")
+        });
+        await db.SaveChangesAsync();
+        return (grupo, ana);
+    }
+
+    [Fact]
     public async Task Actualizar_porcentajes_cambia_todos_los_grupos_en_un_solo_movimiento()
     {
         var (sut, db) = Crear();

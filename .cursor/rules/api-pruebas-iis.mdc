@@ -1,0 +1,17 @@
+---
+description: La API de pruebas se publica solo en IIS local, en la red de la oficina
+alwaysApply: true
+---
+
+# API de pruebas en IIS
+
+La API de pruebas vive únicamente en este equipo, en IIS, apuntando a la base local `NewRich` de `localhost`. No publicar el administrador ni el APK en ese sitio.
+
+- Carpeta: `C:\inetpub\apilocal`
+- Dirección: `http://www.apirichtest.com:8085/`
+- El sitio escucha en todas las interfaces del puerto 8085, con el nombre `www.apirichtest.com` y también por la IP de la red local.
+- Cadena de conexión: `Server=localhost;Database=NewRich;Trusted_Connection=True;TrustServerCertificate=True;`
+- Entorno del sitio: `Development`, para que responda por HTTP.
+- Script: `documentos/Despliegue/publicar-api-pruebas-iis.ps1` (PowerShell elevado).
+
+Al volver a publicar la API de pruebas, usar ese script. No cambiar la cadena de conexión de producción ni copiar esta publicación a otro servidor.
