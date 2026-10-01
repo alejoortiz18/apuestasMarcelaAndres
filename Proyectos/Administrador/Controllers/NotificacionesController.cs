@@ -107,7 +107,7 @@ public sealed class NotificacionesController : AdminControllerBase
             return Unauthorized();
         }
 
-        var baseUrl = _config["Api:BaseUrl"] ?? "http://192.168.1.28:8085/";
+        var baseUrl = _config["Api:BaseUrl"] ?? "http://192.168.1.29:5295/";
         var hubUrl = HubNotificacionesUrl.Resolver(baseUrl, Request.Host.Host, UiTexts.HubNotificaciones);
         var chatHubUrl = HubNotificacionesUrl.Resolver(baseUrl, Request.Host.Host, UiTexts.HubChat);
         return Json(new { token, hubUrl, chatHubUrl });

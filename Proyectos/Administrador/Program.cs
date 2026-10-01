@@ -44,7 +44,7 @@ if (!string.IsNullOrWhiteSpace(carpetaClaves))
         .SetApplicationName("NewRich.Admin");
 }
 
-var apiBase = builder.Configuration["Api:BaseUrl"] ?? "http://192.168.1.28:8085/";
+var apiBase = builder.Configuration["Api:BaseUrl"] ?? "http://192.168.1.29:5295/";
 builder.Services.AddHttpClient<IAdminApiClient, AdminApiClient>(client =>
 {
     client.BaseAddress = new Uri(apiBase);

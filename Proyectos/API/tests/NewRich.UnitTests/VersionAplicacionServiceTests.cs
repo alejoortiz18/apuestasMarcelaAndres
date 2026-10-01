@@ -14,11 +14,11 @@ public sealed class VersionAplicacionServiceTests
     private static readonly DateTime Inicio = new(2026, 9, 27, 15, 0, 0, DateTimeKind.Utc);
 
     [Fact]
-    public void El_dispositivo_pide_descarga_cuando_su_compilacion_difiere_de_la_vigente()
+    public void El_dispositivo_solo_pide_descarga_cuando_la_vigente_es_mayor_que_la_instalada()
     {
         ActualizacionAplicacion.RequiereDescarga(77, 78).Should().BeTrue();
         ActualizacionAplicacion.RequiereDescarga(78, 78).Should().BeFalse();
-        ActualizacionAplicacion.RequiereDescarga(80, 78).Should().BeTrue();
+        ActualizacionAplicacion.RequiereDescarga(85, 83).Should().BeFalse();
         ActualizacionAplicacion.PermiteIngresar(descargando: true).Should().BeFalse();
         ActualizacionAplicacion.PermiteIngresar(descargando: false).Should().BeTrue();
     }
