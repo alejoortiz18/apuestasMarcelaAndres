@@ -4,6 +4,10 @@
 @{
     Layout = "_LoginLayout";
     ViewData["Title"] = UiTexts.IniciarSesion;
+    if (!string.IsNullOrWhiteSpace(Model.Error))
+    {
+        ViewData["AvisoPagina"] = Model.Error;
+    }
 }
 <section class="login">
     <div class="login-inner">
@@ -17,10 +21,6 @@
         <div class="login-box">
             <h1>@UiTexts.IniciarSesion</h1>
             <p>@UiTexts.LoginAyuda</p>
-            @if (TempData["AvisoIngreso"] is string avisoIngreso)
-            {
-                <div class="notice error" role="alert">@avisoIngreso</div>
-            }
             <form asp-action="Ingresar" method="post">
                 <div class="field">
                     <label asp-for="Usuario"></label>
@@ -80,10 +80,6 @@
                 else
                 {
                     <p class="field-help">@UiTexts.LoginUsbNinguna</p>
-                }
-                @if (!string.IsNullOrWhiteSpace(Model.Error))
-                {
-                    <div class="notice error" role="alert">@Model.Error</div>
                 }
                 <button class="primary" type="submit">@UiTexts.Ingresar</button>
             </form>

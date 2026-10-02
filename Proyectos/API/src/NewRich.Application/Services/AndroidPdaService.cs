@@ -245,7 +245,7 @@ public sealed class AndroidPdaService : IAndroidPdaService
             if (codigo.EstadoDelCodigo == EstadoCodigoOffline.Generado)
             {
                 codigo.EstadoDelCodigo = EstadoCodigoOffline.Descargado;
-                codigo.FechaDescarga = _clock.UtcNow;
+                codigo.FechaDescarga = _clock.LocalNow;
             }
         }
 

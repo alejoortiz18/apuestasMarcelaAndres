@@ -164,7 +164,15 @@ public sealed class VersionAplicacionServiceTests
                 return actual;
             }
         }
-        public DateTime LocalNow => _utc;
+        public DateTime LocalNow
+        {
+            get
+            {
+                var actual = ZonaHorariaColombia.ALocal(_utc);
+                _utc = _utc.AddMinutes(1);
+                return actual;
+            }
+        }
     }
 
     private sealed class AvisoSpy : IVersionesTiempoReal

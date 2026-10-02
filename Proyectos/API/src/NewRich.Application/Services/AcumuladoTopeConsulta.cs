@@ -20,7 +20,7 @@ public static class AcumuladoTopeConsulta
 
         var loteriaIds = claves.Select(c => c.LoteriaId).Distinct().ToList();
         var numeros = claves.Select(c => c.Numero.Trim()).Distinct().ToList();
-        var (inicioUtc, finUtc) = RangoDiaLocalUtc(clock.LocalNow.Date);
+        var (inicio, fin) = RangoDiaColombia(clock.LocalNow.Date);
 
         var filas = await db.JuegoLoterias
             .AsNoTracking()
@@ -29,8 +29,8 @@ public static class AcumuladoTopeConsulta
                 && numeros.Contains(jl.Juego.Numero)
                 && jl.Juego.Boleto != null
                 && jl.Juego.Boleto.Venta != null
-                && jl.Juego.Boleto.Venta.FechaVenta >= inicioUtc
-                && jl.Juego.Boleto.Venta.FechaVenta < finUtc)
+                && jl.Juego.Boleto.Venta.FechaVenta >= inicio
+                && jl.Juego.Boleto.Venta.FechaVenta < fin)
             .Select(jl => new { jl.LoteriaId, Numero = jl.Juego!.Numero, jl.Juego.Valor })
             .ToListAsync(cancellationToken);
 
@@ -45,12 +45,14 @@ public static class AcumuladoTopeConsulta
             .ToList();
     }
 
-    public static (DateTime InicioUtc, DateTime FinUtc) RangoDiaLocalUtc(DateTime diaLocal)
+    public static (DateTime Inicio, DateTime Fin) RangoDiaColombia(DateTime diaLocal)
     {
-        var local = DateTime.SpecifyKind(diaLocal.Date, DateTimeKind.Unspecified);
-        var inicioUtc = TimeZoneInfo.ConvertTimeToUtc(local, ZonaHorariaColombia.Actual);
-        return (inicioUtc, inicioUtc.AddDays(1));
+        var inicio = diaLocal.Date;
+        return (inicio, inicio.AddDays(1));
     }
+
+    public static (DateTime InicioUtc, DateTime FinUtc) RangoDiaLocalUtc(DateTime diaLocal) =>
+        RangoDiaColombia(diaLocal);
 
     public static IReadOnlyList<ValidacionTope.Aporte> AportesDe(
         IEnumerable<(string Numero, decimal Valor, IReadOnlyList<(Guid LoteriaId, string Nombre)> Loterias)> lineas) =>

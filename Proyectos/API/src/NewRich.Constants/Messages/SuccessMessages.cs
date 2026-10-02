@@ -6,6 +6,7 @@ public static class SuccessMessages
     public const string OperacionExitosa = "Listo.";
     public const string RegistroCreado = "El registro fue creado correctamente.";
     public const string RegistroActualizado = "El registro fue actualizado correctamente.";
+    public const string HorariosSinCambios = "No hay horarios modificados para guardar.";
     public const string RegistroEliminado = "El registro fue eliminado correctamente.";
     public const string LlaveGenerada = "La llave de administrador fue generada y quedó asociada al usuario.";
 

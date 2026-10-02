@@ -115,6 +115,16 @@ public static class PdaTexts
     public const string CerrarSesion = "Cerrar sesión";
     public const string SesionCerradaPorInactividad = "La sesión se cerró por inactividad. Vuelva a iniciar sesión.";
     public const string CerrarSesionAyuda = "Salir del PDA";
+    public const string VendedoresAcciones = "Vendedores";
+    public const string VendedoresAccionesAyuda = "Desbloquear o restablecer contraseña";
+    public const string VendedoresAccionesSub = "Solo vendedores. La contraseña temporal se muestra una vez.";
+    public const string DesbloquearVendedor = "Desbloquear";
+    public const string RestablecerContrasenaVendedor = "Restablecer contraseña";
+    public const string VendedorBloqueado = "Bloqueado";
+    public const string VendedorActivo = "Activo";
+    public const string SinVendedores = "No hay vendedores para mostrar.";
+    public const string PasswordTemporalMostrada = "Contraseña temporal";
+    public const string Aceptar = "Aceptar";
     public const string JuegosCerrados = "LOS JUEGOS ESTÁN CERRADOS.";
     public const string JuegosCerradosDetalle = "No se pueden iniciar nuevas apuestas hasta la próxima apertura de horario.";
     public const string JuegosCerradosVenta = "Vuelve a intentarlo cuando el administrador habilite el horario.";

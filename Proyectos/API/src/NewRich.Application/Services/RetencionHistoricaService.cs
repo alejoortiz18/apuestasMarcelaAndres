@@ -26,7 +26,7 @@ public sealed class RetencionHistoricaService : IRetencionHistoricaService
     public async Task EjecutarAsync(CancellationToken cancellationToken)
     {
         await _db.AsegurarEsquemaRetencionAsync(cancellationToken);
-        var hoy = FechaColombia(_clock.UtcNow);
+        var hoy = FechaColombia(_clock.LocalNow);
         var ultimoExito = await FechaUltimoExitoAsync(cancellationToken);
         if (!PlanificadorRetencion.PuedeEjecutar(hoy, ultimoExito))
         {
@@ -387,11 +387,11 @@ public sealed class RetencionHistoricaService : IRetencionHistoricaService
         return meses;
     }
 
-    private static DateOnly FechaColombia(DateTime instanteUtc) =>
-        DateOnly.FromDateTime(ZonaHorariaColombia.ALocal(instanteUtc));
+    private static DateOnly FechaColombia(DateTime instante) =>
+        DateOnly.FromDateTime(ZonaHorariaColombia.Mostrar(instante));
 
     private static DateTime InicioDiaUtc(DateOnly dia) =>
-        TimeZoneInfo.ConvertTimeToUtc(dia.ToDateTime(TimeOnly.MinValue), ZonaHorariaColombia.Actual);
+        dia.ToDateTime(TimeOnly.MinValue);
 
     private static string Unir(IReadOnlyList<MesCalendario> meses) => string.Join(",", meses);
 

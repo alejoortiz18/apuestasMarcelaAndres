@@ -16,7 +16,9 @@ public class Loteria
     /// <summary>Fin de disponibilidad en el PDA. Las existentes cierran a las 13:00.</summary>
     public TimeSpan HoraFin { get; set; } = new(13, 0, 0);
     public DateTime FechaCreacion { get; set; }
+    public Guid? JornadaId { get; set; }
 
+    public Jornada? Jornada { get; set; }
     public ICollection<JuegoLoteria> JuegoLoterias { get; set; } = new List<JuegoLoteria>();
     public ICollection<NumeroGanador> NumerosGanadores { get; set; } = new List<NumeroGanador>();
     public ICollection<LoteriaDiaSemana> DiasSemana { get; set; } = new List<LoteriaDiaSemana>();

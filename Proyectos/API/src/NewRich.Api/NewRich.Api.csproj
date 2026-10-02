@@ -13,6 +13,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="Controllers\*Recaudo*.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\NewRich.Application\NewRich.Application.csproj" />
     <ProjectReference Include="..\NewRich.Infrastructure\NewRich.Infrastructure.csproj" />
     <ProjectReference Include="..\NewRich.Shared\NewRich.Shared.csproj" />

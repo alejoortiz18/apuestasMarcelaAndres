@@ -22,7 +22,10 @@ public abstract class AdminControllerBase : Controller
 
     protected void SetFlash(string message, bool success = true)
     {
-        TempData[success ? "FlashOk" : "FlashError"] = message;
+        if (!string.IsNullOrWhiteSpace(message))
+        {
+            TempData["AvisoModal"] = message;
+        }
     }
 
     protected void SetAvisoModal(string? message)

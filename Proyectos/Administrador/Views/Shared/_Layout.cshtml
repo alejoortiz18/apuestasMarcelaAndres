@@ -5,10 +5,10 @@
     var crumb = ViewData["Crumb"] as string ?? UiTexts.NavResumen;
     var crumbLeaf = ViewData["CrumbLeaf"] as string;
     var ventasInicioUrl = ViewData["VentasInicioUrl"] as string ?? Url.Action("Index", "Loterias");
-    var avisoModal = TempData["AvisoModal"] as string;
     string NavClass(string key) => nav == key ? "active" : "";
     var enVentas = ViewData["VentasVista"] is string;
     var inactividadMs = NewRich.Admin.Services.MinutosInactividadSesion.De(Context) * 60 * 1000;
+    var avisoModal = AvisoPagina.Texto(ViewData, TempData);
 }
 <!DOCTYPE html>
 <html lang="es-CO" data-no-results="@UiTexts.SinResultadosOpcion" data-search-option="@UiTexts.BuscarOpcion" data-notif-conexion="@Url.Action("Conexion", "Notificaciones")" data-confirmacion-url="@Url.Action("Confirmar", "Seguridad")" data-confirmacion-error="@NewRich.Constants.Messages.AuthMessages.ContrasenaAccionNoValidada">
@@ -148,14 +148,6 @@
             <a data-toast-link href="#">@UiTexts.Ver</a>
         </div>
         <section class="content">
-            @if (TempData["FlashOk"] is string ok)
-            {
-                <div class="notice ok" role="status">@ok</div>
-            }
-            @if (TempData["FlashError"] is string err)
-            {
-                <div class="notice error" role="alert">@err</div>
-            }
             @RenderBody()
         </section>
         <footer class="app-foot">
@@ -179,7 +171,7 @@
         <h2 id="avisoDialogTitle">@UiTexts.Aviso</h2>
         <p id="avisoDialogText">@avisoModal</p>
         <div class="dialog-actions">
-            <button type="button" class="primary" data-close-dialog>@UiTexts.Cerrar</button>
+            <button type="button" class="primary" data-close-dialog>@UiTexts.Aceptar</button>
         </div>
     </div>
 </div>

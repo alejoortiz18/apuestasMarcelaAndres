@@ -9,6 +9,7 @@ public sealed class CrearLoteriaRequest
     public List<DiaSemana> DiasHabilitados { get; set; } = [];
     public string HoraInicio { get; set; } = string.Empty;
     public string HoraFin { get; set; } = string.Empty;
+    public Guid? JornadaId { get; set; }
 }
 
 public sealed class ActualizarLoteriaRequest
@@ -18,6 +19,7 @@ public sealed class ActualizarLoteriaRequest
     public decimal? Tope { get; set; }
     public string HoraInicio { get; set; } = string.Empty;
     public string HoraFin { get; set; } = string.Empty;
+    public Guid? JornadaId { get; set; }
 }
 
 public sealed class TopeLoteriaRequest
@@ -58,6 +60,8 @@ public sealed class LoteriaResponse
     public int BoletosVendidos { get; set; }
     public decimal TotalVendido { get; set; }
     public string? TipoApuesta { get; set; }
+    public Guid? JornadaId { get; set; }
+    public string? JornadaNombre { get; set; }
 
     /// <summary>Dias de la semana en los que el administrador habilito la venta de esta loteria.</summary>
     public List<DiaSemana> DiasHabilitados { get; set; } = [];

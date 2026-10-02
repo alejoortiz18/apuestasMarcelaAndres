@@ -146,7 +146,7 @@ public sealed class KpiService : IKpiService
         var entregas = casos.Select(c => c.EntregaGanador).Where(e => e is not null).Cast<EntregaGanador>().ToList();
 
         var sesiones = await _db.Sesiones
-            .Where(s => s.Activa && s.FechaExpiracion > _clock.UtcNow)
+            .Where(s => s.Activa && s.FechaExpiracion > _clock.LocalNow)
             .ToListAsync(cancellationToken);
         var pdas = await _db.Dispositivos.Include(d => d.DispositivosUsuarios).ToListAsync(cancellationToken);
         var pdasConectados = pdas.Count(d => _presencia.EstaVivo(d.DispositivoId, _clock.UtcNow));
@@ -266,8 +266,8 @@ public sealed class KpiService : IKpiService
     {
         var finLocal = DateOnly.FromDateTime(request.FechaFinal ?? _clock.LocalNow);
         var inicioLocal = DateOnly.FromDateTime(request.FechaInicial ?? finLocal.ToDateTime(TimeOnly.MinValue).AddDays(-29));
-        var desde = DateTime.SpecifyKind(inicioLocal.ToDateTime(TimeOnly.MinValue), DateTimeKind.Local).ToUniversalTime();
-        var hasta = DateTime.SpecifyKind(finLocal.AddDays(1).ToDateTime(TimeOnly.MinValue), DateTimeKind.Local).ToUniversalTime();
+        var desde = inicioLocal.ToDateTime(TimeOnly.MinValue);
+        var hasta = finLocal.AddDays(1).ToDateTime(TimeOnly.MinValue);
         return (desde, hasta, inicioLocal, finLocal);
     }
 

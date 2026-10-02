@@ -27,6 +27,11 @@ public sealed class ObservadorTextsTests
         PdaTexts.ConsultaConfiguracion.Should().Be("Configuración");
         PdaTexts.HoraAperturaPda.Should().Be("Hora de apertura del PDA");
         PdaTexts.HoraCierrePda.Should().Be("Hora de cierre del PDA");
+        PdaTexts.CerrarSesionAyuda.Should().Be("Salir del PDA");
+        PdaTexts.VendedoresAcciones.Should().Be("Vendedores");
+        PdaTexts.DesbloquearVendedor.Should().Be("Desbloquear");
+        PdaTexts.RestablecerContrasenaVendedor.Should().Be("Restablecer contraseña");
+        PdaTexts.Aceptar.Should().Be("Aceptar");
         PdaTexts.FiltroGeneral.Should().Be("General");
     }
 }

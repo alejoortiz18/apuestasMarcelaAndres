@@ -25,7 +25,7 @@ public sealed class LoteriaService : ILoteriaService
 
     public async Task<Result<IReadOnlyList<LoteriaResponse>>> ListarAsync(CancellationToken cancellationToken)
     {
-        var items = await _db.Loterias.OrderBy(x => x.Nombre).ToListAsync(cancellationToken);
+        var items = await _db.Loterias.Include(x => x.Jornada).OrderBy(x => x.Nombre).ToListAsync(cancellationToken);
         var horaCierre = await ObtenerHoraCierreAsync(cancellationToken);
         var dias = await CargarDiasAsync(items.Select(l => l.LoteriaId).ToList(), cancellationToken);
         var resumen = await _db.JuegoLoterias
@@ -46,7 +46,7 @@ public sealed class LoteriaService : ILoteriaService
                     NumerosJugados(g.Select(x => x.Juego!.Numero).ToList())));
 
         return Result<IReadOnlyList<LoteriaResponse>>.Ok(
-            items.Select(l => Map(l, horaCierre, porLoteria.GetValueOrDefault(l.LoteriaId), dias.GetValueOrDefault(l.LoteriaId))).ToList(),
+            items.Select(l => Map(l, horaCierre, porLoteria.GetValueOrDefault(l.LoteriaId), dias.GetValueOrDefault(l.LoteriaId), l.Jornada?.Nombre)).ToList(),
             SuccessMessages.OperacionExitosa);
     }
 
@@ -74,6 +74,22 @@ public sealed class LoteriaService : ILoteriaService
             return Result<LoteriaResponse>.Fail(horario.Message);
         }
 
+        if (!request.JornadaId.HasValue)
+        {
+            return Result<LoteriaResponse>.Fail(UsuarioMessages.JornadaRequerida);
+        }
+
+        var jornada = await _db.Jornadas.FirstOrDefaultAsync(j => j.JornadaId == request.JornadaId.Value, cancellationToken);
+        if (jornada is null)
+        {
+            return Result<LoteriaResponse>.Fail(UsuarioMessages.JornadaNoEncontrada, 404);
+        }
+
+        if (!JornadaPorHoraCierre.Coincide(jornada.Nombre, horario.Data!.Fin))
+        {
+            return Result<LoteriaResponse>.Fail(UsuarioMessages.JornadaHoraFinNoCoincide);
+        }
+
         if (await _db.Loterias.AnyAsync(x => x.Nombre == request.Nombre.Trim(), cancellationToken))
         {
             return Result<LoteriaResponse>.Fail(VentaMessages.LoteriaNombreDuplicado, 409);
@@ -87,13 +103,14 @@ public sealed class LoteriaService : ILoteriaService
             Tope = request.Tope,
             HoraInicio = horario.Data!.Inicio,
             HoraFin = horario.Data.Fin,
-            FechaCreacion = _clock.UtcNow
+            JornadaId = jornada.JornadaId,
+            FechaCreacion = _clock.LocalNow
         };
         _db.Loterias.Add(loteria);
         ReemplazarDias(loteria.LoteriaId, dias);
         await _db.SaveChangesAsync(cancellationToken);
         await _vivo.AvisarCatalogoActualizadoAsync(cancellationToken);
-        return Result<LoteriaResponse>.Created(Map(loteria, null, null, dias), SuccessMessages.RegistroCreado);
+        return Result<LoteriaResponse>.Created(Map(loteria, null, null, dias, jornada.Nombre), SuccessMessages.RegistroCreado);
     }
 
     public async Task<Result<LoteriaResponse>> ActualizarAsync(Guid loteriaId, ActualizarLoteriaRequest request, CancellationToken cancellationToken)
@@ -115,10 +132,27 @@ public sealed class LoteriaService : ILoteriaService
             return Result<LoteriaResponse>.Fail(horario.Message);
         }
 
+        if (!request.JornadaId.HasValue)
+        {
+            return Result<LoteriaResponse>.Fail(UsuarioMessages.JornadaRequerida);
+        }
+
+        var jornada = await _db.Jornadas.FirstOrDefaultAsync(j => j.JornadaId == request.JornadaId.Value, cancellationToken);
+        if (jornada is null)
+        {
+            return Result<LoteriaResponse>.Fail(UsuarioMessages.JornadaNoEncontrada, 404);
+        }
+
+        if (!JornadaPorHoraCierre.Coincide(jornada.Nombre, horario.Data!.Fin))
+        {
+            return Result<LoteriaResponse>.Fail(UsuarioMessages.JornadaHoraFinNoCoincide);
+        }
+
         loteria.Nombre = request.Nombre.Trim();
         loteria.Estado = request.Estado;
         loteria.HoraInicio = horario.Data!.Inicio;
         loteria.HoraFin = horario.Data.Fin;
+        loteria.JornadaId = jornada.JornadaId;
         if (request.Tope.HasValue)
         {
             if (request.Tope.Value < 0)
@@ -132,7 +166,7 @@ public sealed class LoteriaService : ILoteriaService
         await _db.SaveChangesAsync(cancellationToken);
         await _vivo.AvisarCatalogoActualizadoAsync(cancellationToken);
         var dias = await CargarDiasAsync([loteriaId], cancellationToken);
-        return Result<LoteriaResponse>.Ok(Map(loteria, null, null, dias.GetValueOrDefault(loteriaId)), SuccessMessages.RegistroActualizado);
+        return Result<LoteriaResponse>.Ok(Map(loteria, null, null, dias.GetValueOrDefault(loteriaId), jornada.Nombre), SuccessMessages.RegistroActualizado);
     }
 
     public async Task<Result<IReadOnlyList<LoteriaResponse>>> ActualizarDiasAsync(
@@ -187,30 +221,75 @@ public sealed class LoteriaService : ILoteriaService
         ActualizarHorariosLoteriasRequest request,
         CancellationToken cancellationToken)
     {
-        var cambios = request.Loterias ?? [];
+        var cambios = (request.Loterias ?? []).Where(x => x.LoteriaId != Guid.Empty).ToList();
         var ids = cambios.Select(x => x.LoteriaId).Distinct().ToList();
         var loterias = await _db.Loterias.Where(l => ids.Contains(l.LoteriaId)).ToListAsync(cancellationToken);
-        if (loterias.Count != ids.Count)
+        if (ids.Count > 0 && loterias.Count != ids.Count)
         {
             return Result<IReadOnlyList<LoteriaResponse>>.Fail(VentaMessages.LoteriaNoEncontrada, 404);
         }
 
+        var (apertura, cierre) = await ObtenerHorarioPdaAsync(cancellationToken);
         var resueltos = new List<(Loteria Loteria, TimeSpan Inicio, TimeSpan Fin)>();
         foreach (var cambio in cambios)
         {
-            var horario = await ResolverHorarioAsync(cambio.HoraInicio, cambio.HoraFin, cancellationToken);
-            if (!horario.IsSuccess || horario.Data is null)
+            var loteria = loterias.Single(l => l.LoteriaId == cambio.LoteriaId);
+            if (string.IsNullOrWhiteSpace(cambio.HoraInicio) || string.IsNullOrWhiteSpace(cambio.HoraFin))
             {
-                return Result<IReadOnlyList<LoteriaResponse>>.Fail(horario.Message);
+                return Result<IReadOnlyList<LoteriaResponse>>.Fail(ValidationMessages.HorarioLoteriaRequerido);
             }
 
-            resueltos.Add((loterias.Single(l => l.LoteriaId == cambio.LoteriaId), horario.Data.Inicio, horario.Data.Fin));
+            if (!Hora12.TryParse(cambio.HoraInicio, out var inicio) || !Hora12.TryParse(cambio.HoraFin, out var fin))
+            {
+                return Result<IReadOnlyList<LoteriaResponse>>.Fail(ValidationMessages.HorarioLoteriaInvalido);
+            }
+
+            var cambiaInicio = !MismoMinuto(loteria.HoraInicio, inicio);
+            var cambiaFin = !MismoMinuto(loteria.HoraFin, fin);
+            if (!cambiaInicio && !cambiaFin)
+            {
+                continue;
+            }
+
+            if (inicio >= fin)
+            {
+                return Result<IReadOnlyList<LoteriaResponse>>.Fail(ValidationMessages.HorarioLoteriaInicioMayorQueFin);
+            }
+
+            // Muchas loterías cierran después del PDA; solo se exige la ventana del PDA a la hora que se edita.
+            if ((cambiaInicio && !DentroDelPda(inicio, apertura, cierre))
+                || (cambiaFin && !DentroDelPda(fin, apertura, cierre)))
+            {
+                return Result<IReadOnlyList<LoteriaResponse>>.Fail(string.Format(
+                    ValidationMessages.HorarioLoteriaFueraDePdaDe,
+                    loteria.Nombre,
+                    apertura.ToString(@"hh\:mm"),
+                    cierre.ToString(@"hh\:mm")));
+            }
+
+            resueltos.Add((loteria, inicio, fin));
         }
 
+        if (resueltos.Count == 0)
+        {
+            var listado = await ListarAsync(cancellationToken);
+            return Result<IReadOnlyList<LoteriaResponse>>.Ok(listado.Data ?? [], SuccessMessages.HorariosSinCambios);
+        }
+
+        var jornadas = await _db.Jornadas.ToListAsync(cancellationToken);
         foreach (var (loteria, inicio, fin) in resueltos)
         {
+            var nombreJornada = JornadaPorHoraCierre.Nombre(fin);
+            var jornada = jornadas.FirstOrDefault(j =>
+                j.Nombre.Equals(nombreJornada, StringComparison.CurrentCultureIgnoreCase));
+            if (jornada is null)
+            {
+                return Result<IReadOnlyList<LoteriaResponse>>.Fail(UsuarioMessages.JornadaNoEncontrada, 404);
+            }
+
             loteria.HoraInicio = inicio;
             loteria.HoraFin = fin;
+            loteria.JornadaId = jornada.JornadaId;
         }
 
         await _db.SaveChangesAsync(cancellationToken);
@@ -249,7 +328,7 @@ public sealed class LoteriaService : ILoteriaService
             {
                 LoteriaId = loteriaId,
                 DiaSemana = dia,
-                FechaActualizacion = _clock.UtcNow
+                FechaActualizacion = _clock.LocalNow
             });
         }
     }
@@ -310,6 +389,12 @@ public sealed class LoteriaService : ILoteriaService
         return (apertura, cierre);
     }
 
+    private static bool DentroDelPda(TimeSpan hora, TimeSpan apertura, TimeSpan cierre) =>
+        hora >= apertura && hora <= cierre;
+
+    private static bool MismoMinuto(TimeSpan a, TimeSpan b) =>
+        (int)a.TotalMinutes == (int)b.TotalMinutes;
+
     private static TimeSpan ParsearHoraConfig(string? valor, TimeSpan defecto) =>
         Hora12.TryParse(valor, out var hora) ? hora : defecto;
 
@@ -340,7 +425,8 @@ public sealed class LoteriaService : ILoteriaService
         Loteria loteria,
         string? horaCierre,
         ResumenLoteria? resumen,
-        IReadOnlyList<DiaSemana>? dias) => new()
+        IReadOnlyList<DiaSemana>? dias,
+        string? jornadaNombre) => new()
     {
         LoteriaId = loteria.LoteriaId,
         Nombre = loteria.Nombre,
@@ -353,6 +439,8 @@ public sealed class LoteriaService : ILoteriaService
         BoletosVendidos = resumen?.BoletosVendidos ?? 0,
         TotalVendido = resumen?.TotalVendido ?? 0,
         TipoApuesta = resumen?.TipoApuesta,
+        JornadaId = loteria.JornadaId,
+        JornadaNombre = jornadaNombre,
         DiasHabilitados = [.. DiasVentaLoteria.Normalizar(dias)]
     };
 

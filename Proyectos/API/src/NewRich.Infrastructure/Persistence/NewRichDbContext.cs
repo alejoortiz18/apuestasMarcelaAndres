@@ -24,6 +24,7 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
     public DbSet<DispositivoUsuario> DispositivosUsuarios => Set<DispositivoUsuario>();
     public DbSet<Sesion> Sesiones => Set<Sesion>();
     public DbSet<Loteria> Loterias => Set<Loteria>();
+    public DbSet<Jornada> Jornadas => Set<Jornada>();
     public DbSet<LoteriaDiaSemana> LoteriasDiasSemana => Set<LoteriaDiaSemana>();
     public DbSet<Venta> Ventas => Set<Venta>();
     public DbSet<Boleto> Boletos => Set<Boleto>();
@@ -76,6 +77,26 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
         }
 
         await Database.ExecuteSqlRawAsync(EsquemaCapacidadOffline, cancellationToken);
+    }
+
+    public async Task AsegurarEsquemaJornadasAsync(CancellationToken cancellationToken = default)
+    {
+        if (!Database.IsRelational())
+        {
+            return;
+        }
+
+        await Database.ExecuteSqlRawAsync(EsquemaJornadas, cancellationToken);
+    }
+
+    public async Task AsegurarFechasColombiaAsync(CancellationToken cancellationToken = default)
+    {
+        if (!Database.IsRelational())
+        {
+            return;
+        }
+
+        await Database.ExecuteSqlRawAsync(EsquemaFechasColombia, cancellationToken);
     }
 
     public async Task<bool> IntentarBloquearRetencionAsync(CancellationToken cancellationToken = default)
@@ -212,6 +233,14 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
             e.HasOne(x => x.Dispositivo).WithMany().HasForeignKey(x => x.DispositivoId);
         });
 
+        modelBuilder.Entity<Jornada>(e =>
+        {
+            e.ToTable("Jornadas");
+            e.HasKey(x => x.JornadaId);
+            e.Property(x => x.Nombre).HasMaxLength(80);
+            e.HasIndex(x => x.Nombre).IsUnique();
+        });
+
         modelBuilder.Entity<Loteria>(e =>
         {
             e.ToTable("Loterias");
@@ -220,6 +249,7 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
             e.Property(x => x.Tope).HasColumnType("decimal(18,2)");
             e.Property(x => x.HoraInicio).HasColumnType("time(0)");
             e.Property(x => x.HoraFin).HasColumnType("time(0)");
+            e.HasOne(x => x.Jornada).WithMany(x => x.Loterias).HasForeignKey(x => x.JornadaId);
         });
 
         modelBuilder.Entity<LoteriaDiaSemana>(e =>
@@ -486,6 +516,99 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
                 CONSTRAINT PK_AuditoriaRetencion PRIMARY KEY (AuditoriaRetencionId)
             );
             CREATE INDEX IX_AuditoriaRetencion_FechaEjecucionUtc ON dbo.AuditoriaRetencion(FechaEjecucionUtc);
+        END
+        """;
+
+    private const string EsquemaJornadas = """
+        IF OBJECT_ID(N'dbo.Jornadas', N'U') IS NULL
+        BEGIN
+            CREATE TABLE dbo.Jornadas (
+                JornadaId     UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
+                Nombre        NVARCHAR(80)     NOT NULL,
+                FechaCreacion DATETIME2        NOT NULL,
+                CONSTRAINT PK_Jornadas PRIMARY KEY (JornadaId),
+                CONSTRAINT UQ_Jornadas_Nombre UNIQUE (Nombre)
+            );
+        END
+        IF NOT EXISTS (SELECT 1 FROM dbo.Jornadas)
+        BEGIN
+            INSERT INTO dbo.Jornadas (JornadaId, Nombre, FechaCreacion)
+            VALUES
+              (NEWID(), N'Mañana', SYSUTCDATETIME()),
+              (NEWID(), N'Tarde', SYSUTCDATETIME()),
+              (NEWID(), N'Noche', SYSUTCDATETIME());
+        END
+        IF COL_LENGTH(N'dbo.Loterias', N'JornadaId') IS NULL
+        BEGIN
+            ALTER TABLE dbo.Loterias ADD JornadaId UNIQUEIDENTIFIER NULL;
+        END
+        UPDATE l SET l.JornadaId = j.JornadaId
+        FROM dbo.Loterias l
+        CROSS JOIN dbo.Jornadas j
+        WHERE l.JornadaId IS NULL AND j.Nombre = N'Mañana' AND l.HoraFin <= '12:00:00';
+        UPDATE l SET l.JornadaId = j.JornadaId
+        FROM dbo.Loterias l
+        CROSS JOIN dbo.Jornadas j
+        WHERE l.JornadaId IS NULL AND j.Nombre = N'Tarde' AND l.HoraFin <= '18:00:00';
+        UPDATE l SET l.JornadaId = j.JornadaId
+        FROM dbo.Loterias l
+        CROSS JOIN dbo.Jornadas j
+        WHERE l.JornadaId IS NULL AND j.Nombre = N'Noche';
+        IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_Loterias_Jornadas')
+           AND COL_LENGTH(N'dbo.Loterias', N'JornadaId') IS NOT NULL
+        BEGIN
+            ALTER TABLE dbo.Loterias WITH CHECK
+            ADD CONSTRAINT FK_Loterias_Jornadas FOREIGN KEY (JornadaId) REFERENCES dbo.Jornadas (JornadaId);
+        END
+        """;
+
+    private const string EsquemaFechasColombia = """
+        IF OBJECT_ID(N'dbo.Configuraciones', N'U') IS NOT NULL
+           AND NOT EXISTS (SELECT 1 FROM dbo.Configuraciones WHERE Clave = N'FechasConvertidasColombia')
+        BEGIN
+            UPDATE dbo.Usuarios SET FechaCreacion = DATEADD(HOUR, -5, FechaCreacion), FechaUltimoAcceso = CASE WHEN FechaUltimoAcceso IS NULL THEN NULL ELSE DATEADD(HOUR, -5, FechaUltimoAcceso) END;
+            UPDATE dbo.Grupos SET FechaCreacion = DATEADD(HOUR, -5, FechaCreacion);
+            UPDATE dbo.IntentosFallidos SET FechaIntento = DATEADD(HOUR, -5, FechaIntento);
+            UPDATE dbo.Dispositivos SET FechaRegistro = DATEADD(HOUR, -5, FechaRegistro);
+            UPDATE dbo.DispositivosUsuarios SET FechaAsociacion = DATEADD(HOUR, -5, FechaAsociacion);
+            UPDATE dbo.Sesiones SET FechaInicio = DATEADD(HOUR, -5, FechaInicio), FechaExpiracion = DATEADD(HOUR, -5, FechaExpiracion);
+            UPDATE dbo.Loterias SET FechaCreacion = DATEADD(HOUR, -5, FechaCreacion);
+            IF COL_LENGTH(N'dbo.LoteriasDiasSemana', N'FechaActualizacion') IS NOT NULL
+                UPDATE dbo.LoteriasDiasSemana SET FechaActualizacion = DATEADD(HOUR, -5, FechaActualizacion);
+            UPDATE dbo.Ventas SET FechaVenta = DATEADD(HOUR, -5, FechaVenta), FechaSincronizacion = CASE WHEN FechaSincronizacion IS NULL THEN NULL ELSE DATEADD(HOUR, -5, FechaSincronizacion) END;
+            UPDATE dbo.Boletos SET FechaEntregaPremio = CASE WHEN FechaEntregaPremio IS NULL THEN NULL ELSE DATEADD(HOUR, -5, FechaEntregaPremio) END, FechaCreacion = DATEADD(HOUR, -5, FechaCreacion);
+            UPDATE dbo.NumerosGanadores SET FechaRegistro = DATEADD(HOUR, -5, FechaRegistro);
+            UPDATE dbo.Configuraciones SET FechaActualizacion = DATEADD(HOUR, -5, FechaActualizacion);
+            IF OBJECT_ID(N'dbo.CodigosPreventaOffline', N'U') IS NOT NULL
+                UPDATE dbo.CodigosPreventaOffline SET FechaCreacion = DATEADD(HOUR, -5, FechaCreacion), FechaDescarga = CASE WHEN FechaDescarga IS NULL THEN NULL ELSE DATEADD(HOUR, -5, FechaDescarga) END, FechaVentaOffline = CASE WHEN FechaVentaOffline IS NULL THEN NULL ELSE DATEADD(HOUR, -5, FechaVentaOffline) END, FechaRegistro = CASE WHEN FechaRegistro IS NULL THEN NULL ELSE DATEADD(HOUR, -5, FechaRegistro) END;
+            IF OBJECT_ID(N'dbo.Notificaciones', N'U') IS NOT NULL
+                UPDATE dbo.Notificaciones SET FechaCreacion = DATEADD(HOUR, -5, FechaCreacion);
+            IF OBJECT_ID(N'dbo.Sincronizaciones', N'U') IS NOT NULL
+                UPDATE dbo.Sincronizaciones SET FechaSincronizacion = DATEADD(HOUR, -5, FechaSincronizacion);
+            IF OBJECT_ID(N'dbo.Conversaciones', N'U') IS NOT NULL
+                UPDATE dbo.Conversaciones SET FechaInicio = DATEADD(HOUR, -5, FechaInicio), FechaCierre = CASE WHEN FechaCierre IS NULL THEN NULL ELSE DATEADD(HOUR, -5, FechaCierre) END;
+            IF OBJECT_ID(N'dbo.Mensajes', N'U') IS NOT NULL
+                UPDATE dbo.Mensajes SET FechaEnvio = DATEADD(HOUR, -5, FechaEnvio);
+            IF OBJECT_ID(N'dbo.AdjuntosChat', N'U') IS NOT NULL
+                UPDATE dbo.AdjuntosChat SET FechaCarga = DATEADD(HOUR, -5, FechaCarga);
+            IF OBJECT_ID(N'dbo.CasosGanadores', N'U') IS NOT NULL
+                UPDATE dbo.CasosGanadores SET FechaReporte = DATEADD(HOUR, -5, FechaReporte), FechaValidacionAdmin = CASE WHEN FechaValidacionAdmin IS NULL THEN NULL ELSE DATEADD(HOUR, -5, FechaValidacionAdmin) END, FechaAsignacion = CASE WHEN FechaAsignacion IS NULL THEN NULL ELSE DATEADD(HOUR, -5, FechaAsignacion) END, FechaRegistro = CASE WHEN FechaRegistro IS NULL THEN NULL ELSE DATEADD(HOUR, -5, FechaRegistro) END;
+            IF OBJECT_ID(N'dbo.EntregasGanadores', N'U') IS NOT NULL
+                UPDATE dbo.EntregasGanadores SET FechaEntrega = DATEADD(HOUR, -5, FechaEntrega);
+            IF OBJECT_ID(N'dbo.EvidenciasGanador', N'U') IS NOT NULL
+                UPDATE dbo.EvidenciasGanador SET FechaCaptura = DATEADD(HOUR, -5, FechaCaptura);
+            IF OBJECT_ID(N'dbo.VersionesAplicacion', N'U') IS NOT NULL
+                UPDATE dbo.VersionesAplicacion SET FechaPublicacion = DATEADD(HOUR, -5, FechaPublicacion);
+            IF OBJECT_ID(N'dbo.NumerosRestringidos', N'U') IS NOT NULL
+                UPDATE dbo.NumerosRestringidos SET FechaCreacion = DATEADD(HOUR, -5, FechaCreacion);
+            IF OBJECT_ID(N'dbo.AuditoriaRetencion', N'U') IS NOT NULL
+                UPDATE dbo.AuditoriaRetencion SET FechaEjecucionUtc = DATEADD(HOUR, -5, FechaEjecucionUtc);
+            IF OBJECT_ID(N'dbo.ConfirmacionesAccion', N'U') IS NOT NULL
+                UPDATE dbo.ConfirmacionesAccion SET Expira = DATEADD(HOUR, -5, Expira);
+            IF OBJECT_ID(N'dbo.Jornadas', N'U') IS NOT NULL
+                UPDATE dbo.Jornadas SET FechaCreacion = DATEADD(HOUR, -5, FechaCreacion);
+            INSERT INTO dbo.Configuraciones (ConfiguracionId, Clave, Valor, FechaActualizacion)
+            VALUES (NEWID(), N'FechasConvertidasColombia', N'1', DATEADD(HOUR, -5, SYSUTCDATETIME()));
         END
         """;
 

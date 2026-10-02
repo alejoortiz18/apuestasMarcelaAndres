@@ -64,7 +64,7 @@ public sealed class AuthService : IAuthService
             _db.IntentosFallidos.Add(new IntentosFallidos
             {
                 UsuarioId = usuario.UsuarioId,
-                FechaIntento = _clock.UtcNow,
+                FechaIntento = _clock.LocalNow,
                 Exitoso = false
             });
 
@@ -137,23 +137,23 @@ public sealed class AuthService : IAuthService
         }
 
         usuario.IntentosFallidos = 0;
-        usuario.FechaUltimoAcceso = _clock.UtcNow;
+        usuario.FechaUltimoAcceso = _clock.LocalNow;
         _db.IntentosFallidos.Add(new IntentosFallidos
         {
             UsuarioId = usuario.UsuarioId,
-            FechaIntento = _clock.UtcNow,
+            FechaIntento = _clock.LocalNow,
             Exitoso = true
         });
 
-        var expiracion = _clock.UtcNow.AddHours(8);
+        var expiracionJwt = _clock.UtcNow.AddHours(8);
         var sesion = new Sesion
         {
             SesionId = Guid.NewGuid(),
             UsuarioId = usuario.UsuarioId,
             DispositivoId = dispositivoId,
             Token = Guid.NewGuid().ToString("N"),
-            FechaInicio = _clock.UtcNow,
-            FechaExpiracion = expiracion,
+            FechaInicio = _clock.LocalNow,
+            FechaExpiracion = _clock.LocalNow.AddHours(8),
             Activa = true
         };
         _db.Sesiones.Add(sesion);
@@ -165,7 +165,7 @@ public sealed class AuthService : IAuthService
             usuario.Rol,
             sesion.SesionId,
             dispositivoId,
-            usuario.EstadoValidado), expiracion);
+            usuario.EstadoValidado), expiracionJwt);
 
         return Result<LoginResponse>.Ok(new LoginResponse
         {
@@ -176,7 +176,7 @@ public sealed class AuthService : IAuthService
             Rol = usuario.Rol,
             DebeCambiarPassword = usuario.EstadoValidado,
             DispositivoId = dispositivoId,
-            FechaExpiracion = expiracion
+            FechaExpiracion = sesion.FechaExpiracion
         }, usuario.EstadoValidado ? AuthMessages.DebeCambiarPassword : SuccessMessages.OperacionExitosa);
     }
 
@@ -284,13 +284,13 @@ public sealed class AuthService : IAuthService
             Modelo = string.IsNullOrWhiteSpace(request.CodigoDispositivo) ? null : request.CodigoDispositivo.Trim(),
             NumeroSerie = string.IsNullOrWhiteSpace(serie) || serie.Length > 100 ? codigo : serie,
             CapacidadCodigosOffline = 3000,
-            FechaRegistro = _clock.UtcNow
+            FechaRegistro = _clock.LocalNow
         };
         var vinculo = new DispositivoUsuario
         {
             DispositivoId = celular.DispositivoId,
             UsuarioId = usuario.UsuarioId,
-            FechaAsociacion = _clock.UtcNow,
+            FechaAsociacion = _clock.LocalNow,
             Activo = true,
             Dispositivo = celular
         };
@@ -407,7 +407,7 @@ public sealed class AuthService : IAuthService
             return Result.Fail(AuthMessages.LlavePruebaInvalida, 403);
         }
 
-        activa.FechaUltimoUso = _clock.UtcNow;
+        activa.FechaUltimoUso = _clock.LocalNow;
         return Result.Ok(SuccessMessages.OperacionExitosa);
     }
 }

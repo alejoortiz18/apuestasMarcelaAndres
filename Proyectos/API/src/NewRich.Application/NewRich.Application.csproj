@@ -19,5 +19,9 @@
   <ItemGroup>
     <EmbeddedResource Include="Resources\OpenSans-Regular.ttf" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="Services\RecaudoService.cs" />
+    <Compile Remove="Services\RecaudoConsultas.cs" />
+  </ItemGroup>
 
 </Project>

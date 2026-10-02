@@ -3,6 +3,7 @@ using NewRich.Admin.Constants;
 using NewRich.Admin.Models;
 using NewRich.Admin.Services;
 using NewRich.Application.Contracts.Configuracion;
+using NewRich.Application.Contracts.Jornadas;
 using NewRich.Application.Contracts.Loterias;
 using NewRich.Application.Contracts.Versiones;
 using NewRich.Application.Services;
@@ -26,6 +27,9 @@ public sealed class ConfiguracionController : AdminControllerBase
 
     public async Task<IActionResult> Index(
         string? q,
+        string? jornada,
+        string? orden,
+        string? dir,
         int page = 1,
         int pageSize = 5,
         int pageNumeros = 1,
@@ -37,17 +41,24 @@ public sealed class ConfiguracionController : AdminControllerBase
         var loteriasTask = _api.ListarLoteriasAsync(cancellationToken);
         var numerosTask = _api.ListarNumerosRestringidosAsync(cancellationToken);
         var versionesTask = _api.ListarVersionesAplicacionAsync(cancellationToken);
-        await Task.WhenAll(configTask, loteriasTask, numerosTask, versionesTask);
+        var jornadasTask = _api.ListarJornadasAsync(cancellationToken);
+        await Task.WhenAll(configTask, loteriasTask, numerosTask, versionesTask, jornadasTask);
         var unauthorized = RedirectIfUnauthorized(configTask.Result)
             ?? RedirectIfUnauthorized(loteriasTask.Result)
             ?? RedirectIfUnauthorized(numerosTask.Result)
-            ?? RedirectIfUnauthorized(versionesTask.Result);
+            ?? RedirectIfUnauthorized(versionesTask.Result)
+            ?? RedirectIfUnauthorized(jornadasTask.Result);
         if (unauthorized is not null)
         {
             return unauthorized;
         }
 
         IReadOnlyList<LoteriaResponse> todas = loteriasTask.Result.Data ?? [];
+        foreach (var item in todas)
+        {
+            item.HoraInicio = FormatoHoraInput(item.HoraInicio, item.HoraInicio ?? string.Empty);
+            item.HoraFin = FormatoHoraInput(item.HoraFin, item.HoraFin ?? string.Empty);
+        }
         IReadOnlyList<LoteriaResponse> loterias = todas;
         if (!string.IsNullOrWhiteSpace(q))
         {
@@ -55,10 +66,18 @@ public sealed class ConfiguracionController : AdminControllerBase
             loterias = loterias.Where(l => l.Nombre.Contains(termino, StringComparison.OrdinalIgnoreCase)).ToList();
         }
 
+        loterias = CatalogoLoteriasOrden.Aplicar(loterias, jornada, orden, dir);
+        var ordenNorm = CatalogoLoteriasOrden.NormalizarOrden(orden);
+        var dirNorm = string.IsNullOrWhiteSpace(dir) || CatalogoLoteriasOrden.EsAscendente(dir) ? "asc" : "desc";
+
         return View(new ConfiguracionIndexViewModel
         {
             Form = Mapear(configTask.Result.Data),
             Busqueda = q,
+            Jornada = jornada,
+            Orden = ordenNorm,
+            Direccion = dirNorm,
+            Jornadas = jornadasTask.Result.Data ?? [],
             Pagina = PagingHelper.Paginate(loterias, page, pageSize),
             DiasVenta = MapDias(todas),
             Topes = todas.OrderBy(l => l.Nombre).ToList(),
@@ -112,15 +131,7 @@ public sealed class ConfiguracionController : AdminControllerBase
 
         if (!result.Success)
         {
-            if (string.Equals(result.Message, ConfiguracionMessages.HorasOperacionIguales, StringComparison.Ordinal))
-            {
-                SetAvisoModal(ConfiguracionMessages.HorasOperacionIguales);
-            }
-            else
-            {
-                ModelState.AddModelError(string.Empty, result.Message);
-            }
-
+            SetAvisoModal(result.Message);
             return await VistaConfiguracionAsync(form, cancellationToken);
         }
 
@@ -191,14 +202,24 @@ public sealed class ConfiguracionController : AdminControllerBase
     public async Task<IActionResult> GuardarHorarios(
         List<HorarioLoteriaRequest> horarios,
         string? q,
+        string? jornada,
+        string? orden,
+        string? dir,
         int page = 1,
         int pageSize = 5,
         CancellationToken cancellationToken = default)
     {
         SetNav("configuracion", UiTexts.NavConfiguracion);
+        var pendientes = (horarios ?? []).Where(item => item.LoteriaId != Guid.Empty).ToList();
+        if (pendientes.Count == 0)
+        {
+            SetFlash(SuccessMessages.HorariosSinCambios, false);
+            return RedirectToAction(nameof(Index), new { q, jornada, orden, dir, page, pageSize });
+        }
+
         var result = await _api.ActualizarHorariosLoteriasAsync(new ActualizarHorariosLoteriasRequest
         {
-            Loterias = horarios ?? []
+            Loterias = pendientes
         }, cancellationToken);
         var denied = RedirectIfUnauthorized(result);
         if (denied is not null)
@@ -206,8 +227,13 @@ public sealed class ConfiguracionController : AdminControllerBase
             return denied;
         }
 
-        SetFlash(result.Success ? SuccessMessages.RegistroActualizado : result.Message, result.Success);
-        return RedirectToAction(nameof(Index), new { q, page, pageSize });
+        var actualizo = result.Success && !string.Equals(result.Message, SuccessMessages.HorariosSinCambios, StringComparison.Ordinal);
+        SetFlash(actualizo ? SuccessMessages.RegistroActualizado : result.Message, actualizo);
+        if (result.Success)
+        {
+            TempData["HorariosGuardados"] = true;
+        }
+        return RedirectToAction(nameof(Index), new { q, jornada, orden, dir, page, pageSize });
     }
 
     [HttpPost]
@@ -264,10 +290,17 @@ public sealed class ConfiguracionController : AdminControllerBase
     }
 
     [HttpGet]
-    public IActionResult CrearLoteria()
+    public async Task<IActionResult> CrearLoteria(CancellationToken cancellationToken)
     {
         SetNav("configuracion", UiTexts.AgregarLoteria);
-        return View("LoteriaForm", new LoteriaFormViewModel());
+        var jornadas = await _api.ListarJornadasAsync(cancellationToken);
+        var denied = RedirectIfUnauthorized(jornadas);
+        if (denied is not null)
+        {
+            return denied;
+        }
+
+        return View("LoteriaForm", new LoteriaFormViewModel { Jornadas = jornadas.Data ?? [] });
     }
 
     [HttpPost]
@@ -277,6 +310,7 @@ public sealed class ConfiguracionController : AdminControllerBase
         SetNav("configuracion", UiTexts.AgregarLoteria);
         if (!ModelState.IsValid)
         {
+            model.Jornadas = await JornadasOVaciasAsync(cancellationToken);
             return View("LoteriaForm", model);
         }
 
@@ -286,7 +320,8 @@ public sealed class ConfiguracionController : AdminControllerBase
             Tope = model.Tope,
             DiasHabilitados = model.DiasHabilitados,
             HoraInicio = model.HoraInicio,
-            HoraFin = model.HoraFin
+            HoraFin = model.HoraFin,
+            JornadaId = model.JornadaId
         }, cancellationToken);
         var unauthorized = RedirectIfUnauthorized(result);
         if (unauthorized is not null)
@@ -297,6 +332,7 @@ public sealed class ConfiguracionController : AdminControllerBase
         if (!result.Success)
         {
             ModelState.AddModelError(string.Empty, result.Message);
+            model.Jornadas = await JornadasOVaciasAsync(cancellationToken);
             return View("LoteriaForm", model);
         }
 
@@ -329,7 +365,9 @@ public sealed class ConfiguracionController : AdminControllerBase
             Estado = item.Estado,
             Tope = item.Tope,
             HoraInicio = FormatoHoraInput(item.HoraInicio, string.Empty),
-            HoraFin = FormatoHoraInput(item.HoraFin, string.Empty)
+            HoraFin = FormatoHoraInput(item.HoraFin, string.Empty),
+            JornadaId = item.JornadaId,
+            Jornadas = await JornadasOVaciasAsync(cancellationToken)
         });
     }
 
@@ -340,6 +378,7 @@ public sealed class ConfiguracionController : AdminControllerBase
         SetNav("configuracion", UiTexts.Editar);
         if (!ModelState.IsValid)
         {
+            model.Jornadas = await JornadasOVaciasAsync(cancellationToken);
             return View("LoteriaForm", model);
         }
 
@@ -349,7 +388,8 @@ public sealed class ConfiguracionController : AdminControllerBase
             Estado = model.Estado,
             Tope = model.Tope,
             HoraInicio = model.HoraInicio,
-            HoraFin = model.HoraFin
+            HoraFin = model.HoraFin,
+            JornadaId = model.JornadaId
         }, cancellationToken);
         var unauthorized = RedirectIfUnauthorized(result);
         if (unauthorized is not null)
@@ -360,6 +400,7 @@ public sealed class ConfiguracionController : AdminControllerBase
         if (!result.Success)
         {
             ModelState.AddModelError(string.Empty, result.Message);
+            model.Jornadas = await JornadasOVaciasAsync(cancellationToken);
             return View("LoteriaForm", model);
         }
 
@@ -391,7 +432,8 @@ public sealed class ConfiguracionController : AdminControllerBase
             Nombre = item.Nombre,
             Estado = nuevo,
             HoraInicio = item.HoraInicio ?? string.Empty,
-            HoraFin = item.HoraFin ?? string.Empty
+            HoraFin = item.HoraFin ?? string.Empty,
+            JornadaId = item.JornadaId
         }, cancellationToken);
         unauthorized = RedirectIfUnauthorized(result);
         if (unauthorized is not null)
@@ -401,6 +443,12 @@ public sealed class ConfiguracionController : AdminControllerBase
 
         SetFlash(result.Success ? SuccessMessages.RegistroActualizado : result.Message, result.Success);
         return RedirectToAction(nameof(Index));
+    }
+
+    private async Task<IReadOnlyList<JornadaResponse>> JornadasOVaciasAsync(CancellationToken cancellationToken)
+    {
+        var jornadas = await _api.ListarJornadasAsync(cancellationToken);
+        return jornadas.Data ?? [];
     }
 
     private static ConfiguracionOperativaFormViewModel Mapear(ConfiguracionOperativaResponse? data)

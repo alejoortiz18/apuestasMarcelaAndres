@@ -19,6 +19,12 @@ public static class UsuarioMessages
     public const string GrupoNoEncontrado = "El grupo no existe.";
     public const string GrupoNombreDuplicado = "Ya existe un grupo con ese nombre.";
     public const string GrupoConVendedoresAsociados = "No es posible eliminar el grupo porque tiene vendedores asociados.";
+    public const string ObservadorSoloVendedores = "El observador solo puede desbloquear o restablecer la contraseña de vendedores.";
+    public const string JornadaNoEncontrada = "La jornada no existe.";
+    public const string JornadaNombreDuplicado = "Ya existe una jornada con ese nombre.";
+    public const string JornadaConLoteriasAsociadas = "No es posible eliminar la jornada porque tiene loterías asociadas.";
+    public const string JornadaRequerida = "Selecciona la jornada de la lotería.";
+    public const string JornadaHoraFinNoCoincide = "La hora de fin debe quedar dentro del horario de la jornada.";
 
     public const string DispositivoNoEncontrado = "El dispositivo no existe.";
     public const string DispositivoCodigoDuplicado = "Ya existe un dispositivo con ese código.";

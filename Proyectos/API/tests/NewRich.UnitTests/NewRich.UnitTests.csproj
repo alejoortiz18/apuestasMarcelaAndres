@@ -23,6 +23,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="*Recaudo*.cs" />
+    <Compile Remove="ReglasRecaudoTests.cs" />
+    <Compile Remove="CalculoRecaudoTests.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\src\NewRich.Domain\NewRich.Domain.csproj" />
     <ProjectReference Include="..\..\src\NewRich.Application\NewRich.Application.csproj" />
     <ProjectReference Include="..\..\src\NewRich.Infrastructure\NewRich.Infrastructure.csproj" />

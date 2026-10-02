@@ -6,6 +6,7 @@ using NewRich.Application.Contracts.Configuracion;
 using NewRich.Application.Contracts.Consultas;
 using NewRich.Application.Contracts.Dispositivos;
 using NewRich.Application.Contracts.Grupos;
+using NewRich.Application.Contracts.Jornadas;
 using NewRich.Application.Contracts.Kpi;
 using NewRich.Application.Contracts.Loterias;
 using NewRich.Application.Contracts.Notificaciones;
@@ -34,8 +35,8 @@ public interface IUsuarioService
     Task<Result<UsuarioResponse>> CrearAsync(CrearUsuarioRequest request, CancellationToken cancellationToken);
     Task<Result<UsuarioResponse>> ActualizarAsync(Guid usuarioId, ActualizarUsuarioRequest request, CancellationToken cancellationToken);
     Task<Result> EliminarAsync(Guid usuarioId, Guid solicitanteId, CancellationToken cancellationToken);
-    Task<Result<RestablecerPasswordResponse>> RestablecerPasswordAsync(Guid usuarioId, CancellationToken cancellationToken);
-    Task<Result> DesbloquearAsync(Guid usuarioId, CancellationToken cancellationToken);
+    Task<Result<RestablecerPasswordResponse>> RestablecerPasswordAsync(Guid usuarioId, RolUsuario rolSolicitante, CancellationToken cancellationToken);
+    Task<Result> DesbloquearAsync(Guid usuarioId, RolUsuario rolSolicitante, CancellationToken cancellationToken);
 }
 
 public interface IDispositivoService
@@ -68,6 +69,14 @@ public interface IGrupoService
     Task<Result<GrupoResponse>> ActualizarAsync(Guid grupoId, ActualizarGrupoRequest request, CancellationToken cancellationToken);
     Task<Result> EliminarAsync(Guid grupoId, CancellationToken cancellationToken);
     Task<Result> AsignarVendedorAsync(Guid usuarioId, Guid? grupoId, CancellationToken cancellationToken);
+}
+
+public interface IJornadaService
+{
+    Task<Result<IReadOnlyList<JornadaResponse>>> ListarAsync(CancellationToken cancellationToken);
+    Task<Result<JornadaResponse>> CrearAsync(CrearJornadaRequest request, CancellationToken cancellationToken);
+    Task<Result<JornadaResponse>> ActualizarAsync(Guid jornadaId, ActualizarJornadaRequest request, CancellationToken cancellationToken);
+    Task<Result> EliminarAsync(Guid jornadaId, CancellationToken cancellationToken);
 }
 
 public interface IConfiguracionService

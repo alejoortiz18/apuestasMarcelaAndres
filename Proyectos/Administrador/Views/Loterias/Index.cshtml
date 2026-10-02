@@ -1,10 +1,29 @@
 @using NewRich.Admin.Constants
 @using NewRich.Admin.Services
+@using NewRich.Application.Services
 @using NewRich.Domain.Enums
 @using System.Globalization
 @model NewRich.Admin.Models.LoteriasIndexViewModel
 @{
     var cultura = CultureInfo.GetCultureInfo("es-CO");
+    string UrlOrden(string columna)
+    {
+        var siguiente = ResumenLoteriasOrden.SiguienteDireccion(columna, Model.Orden, Model.Direccion);
+        return Url.Action("Index", new
+        {
+            q = Model.Busqueda,
+            estado = Model.Estado,
+            orden = columna,
+            dir = siguiente,
+            pageSize = Model.Pagina.PageSize
+        }) ?? "#";
+    }
+    string MarcaOrden(string columna) => ResumenLoteriasOrden.Marca(columna, Model.Orden, Model.Direccion);
+    string EtiquetaOrden(string columna, string nombre)
+    {
+        var siguiente = ResumenLoteriasOrden.SiguienteDireccion(columna, Model.Orden, Model.Direccion);
+        return string.Format(siguiente == "asc" ? UiTexts.OrdenarColumnaAsc : UiTexts.OrdenarColumnaDesc, nombre);
+    }
 }
 <div class="heading">
     <div>
@@ -17,6 +36,8 @@
 </div>
 <div class="panel">
     <form class="toolbar pda-toolbar" method="get">
+        <input type="hidden" name="orden" value="@Model.Orden" />
+        <input type="hidden" name="dir" value="@Model.Direccion" />
         <div class="field">
             <label for="q">@UiTexts.BuscarLoteria</label>
             <input id="q" name="q" value="@Model.Busqueda" placeholder="@UiTexts.PlaceholderLoteria" />
@@ -59,13 +80,41 @@
             <table>
                 <thead>
                 <tr>
-                    <th>@UiTexts.Loteria</th>
-                    <th>@UiTexts.NumeroJugado</th>
-                    <th>@UiTexts.HoraCierre</th>
-                    <th>@UiTexts.BoletosVendidos</th>
-                    <th>@UiTexts.TotalVendido</th>
-                    <th>@UiTexts.TipoDeApuesta</th>
-                    <th>@UiTexts.Estado</th>
+                    <th>
+                        <a class="table-sort" href="@UrlOrden("nombre")" aria-label="@EtiquetaOrden("nombre", UiTexts.Loteria)">
+                            @UiTexts.Loteria <span aria-hidden="true">@MarcaOrden("nombre")</span>
+                        </a>
+                    </th>
+                    <th>
+                        <a class="table-sort" href="@UrlOrden("numero")" aria-label="@EtiquetaOrden("numero", UiTexts.NumeroJugado)">
+                            @UiTexts.NumeroJugado <span aria-hidden="true">@MarcaOrden("numero")</span>
+                        </a>
+                    </th>
+                    <th>
+                        <a class="table-sort" href="@UrlOrden("horacierre")" aria-label="@EtiquetaOrden("horacierre", UiTexts.HoraCierre)">
+                            @UiTexts.HoraCierre <span aria-hidden="true">@MarcaOrden("horacierre")</span>
+                        </a>
+                    </th>
+                    <th>
+                        <a class="table-sort" href="@UrlOrden("boletos")" aria-label="@EtiquetaOrden("boletos", UiTexts.BoletosVendidos)">
+                            @UiTexts.BoletosVendidos <span aria-hidden="true">@MarcaOrden("boletos")</span>
+                        </a>
+                    </th>
+                    <th>
+                        <a class="table-sort" href="@UrlOrden("total")" aria-label="@EtiquetaOrden("total", UiTexts.TotalVendido)">
+                            @UiTexts.TotalVendido <span aria-hidden="true">@MarcaOrden("total")</span>
+                        </a>
+                    </th>
+                    <th>
+                        <a class="table-sort" href="@UrlOrden("tipo")" aria-label="@EtiquetaOrden("tipo", UiTexts.TipoDeApuesta)">
+                            @UiTexts.TipoDeApuesta <span aria-hidden="true">@MarcaOrden("tipo")</span>
+                        </a>
+                    </th>
+                    <th>
+                        <a class="table-sort" href="@UrlOrden("estado")" aria-label="@EtiquetaOrden("estado", UiTexts.Estado)">
+                            @UiTexts.Estado <span aria-hidden="true">@MarcaOrden("estado")</span>
+                        </a>
+                    </th>
                     <th>@UiTexts.Accion</th>
                 </tr>
                 </thead>
@@ -76,7 +125,7 @@
                     <tr tabindex="0">
                         <td><strong>@item.Nombre</strong></td>
                         <td>@(string.IsNullOrWhiteSpace(item.NumeroJugado) ? UiTexts.NoAplica : item.NumeroJugado)</td>
-                        <td>@(string.IsNullOrWhiteSpace(item.HoraCierre) ? UiTexts.NoAplica : item.HoraCierre)</td>
+                        <td>@(string.IsNullOrWhiteSpace(item.HoraFin) ? UiTexts.NoAplica : item.HoraFin)</td>
                         <td>@item.BoletosVendidos</td>
                         <td>@item.TotalVendido.ToString("C0", cultura)</td>
                         <td>@(string.IsNullOrWhiteSpace(item.TipoApuesta) ? UiTexts.NoAplica : item.TipoApuesta)</td>

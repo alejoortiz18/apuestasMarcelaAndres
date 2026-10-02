@@ -15,8 +15,8 @@ public sealed class ResolucionResultadosServiceTests
     private static readonly TimeSpan Colombia = TimeSpan.FromHours(-5);
     private static readonly DateOnly FechaJuego = new(2026, 9, 13);
 
-    /// <summary>13/09/2026 20:10 en Colombia, que en UTC ya es el día siguiente.</summary>
-    private static readonly DateTime VentaNocturna = new(2026, 9, 14, 1, 10, 7, DateTimeKind.Utc);
+    /// <summary>13/09/2026 20:10 en Colombia, persistido como hora local.</summary>
+    private static readonly DateTime VentaNocturna = new(2026, 9, 13, 20, 10, 7);
 
     [Fact]
     public async Task Registrar_el_resultado_marca_ganador_al_boleto_que_acerto()
@@ -141,10 +141,10 @@ public sealed class ResolucionResultadosServiceTests
     }
 
     [Fact]
-    public async Task Listar_cuenta_el_ganador_vendido_despues_de_medianoche_utc()
+    public async Task Listar_cuenta_el_ganador_vendido_en_la_noche_de_colombia()
     {
         var (resultados, db, loterias) = CreateSut();
-        await CrearBoletoAsync(db, "3221", new DateTime(2026, 9, 14, 0, 18, 1, DateTimeKind.Utc), loterias["Armenia"]);
+        await CrearBoletoAsync(db, "3221", new DateTime(2026, 9, 13, 19, 18, 1), loterias["Armenia"]);
 
         await resultados.RegistrarAsync(Solicitud(loterias["Armenia"], "3221"), CancellationToken.None);
         var listado = await resultados.ListarAsync(FechaJuego, loterias["Armenia"], CancellationToken.None);

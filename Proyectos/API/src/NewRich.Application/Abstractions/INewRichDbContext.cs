@@ -15,6 +15,7 @@ public interface INewRichDbContext
     DbSet<DispositivoUsuario> DispositivosUsuarios { get; }
     DbSet<Sesion> Sesiones { get; }
     DbSet<Loteria> Loterias { get; }
+    DbSet<Jornada> Jornadas { get; }
     DbSet<LoteriaDiaSemana> LoteriasDiasSemana { get; }
     DbSet<Venta> Ventas { get; }
     DbSet<Boleto> Boletos { get; }
@@ -42,6 +43,8 @@ public interface INewRichDbContext
     Task ExecuteInTransactionAsync(Func<CancellationToken, Task> action, CancellationToken cancellationToken = default);
     Task AsegurarEsquemaRetencionAsync(CancellationToken cancellationToken = default);
     Task AsegurarEsquemaCapacidadOfflineAsync(CancellationToken cancellationToken = default);
+    Task AsegurarEsquemaJornadasAsync(CancellationToken cancellationToken = default);
+    Task AsegurarFechasColombiaAsync(CancellationToken cancellationToken = default);
     Task<bool> IntentarBloquearRetencionAsync(CancellationToken cancellationToken = default);
     void DescartarCambios();
 }

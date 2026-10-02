@@ -31,7 +31,7 @@ public sealed class DispositivoService : IDispositivoService
             .ToListAsync(cancellationToken);
 
         var disponibles = await ContarCodigosDisponiblesAsync(cancellationToken);
-        var ahora = _clock.UtcNow;
+        var ahora = _clock.LocalNow;
         var response = items
             .Select(d => Map(d, _presencia.EstaVivo(d.DispositivoId, ahora), disponibles.GetValueOrDefault(d.DispositivoId)))
             .ToList();
@@ -65,7 +65,7 @@ public sealed class DispositivoService : IDispositivoService
             Modelo = request.Modelo,
             NumeroSerie = request.NumeroSerie,
             CapacidadCodigosOffline = 3000,
-            FechaRegistro = _clock.UtcNow
+            FechaRegistro = _clock.LocalNow
         };
         _db.Dispositivos.Add(dispositivo);
         await _db.SaveChangesAsync(cancellationToken);
@@ -109,7 +109,7 @@ public sealed class DispositivoService : IDispositivoService
             Modelo = request.Modelo,
             NumeroSerie = serie,
             CapacidadCodigosOffline = 3000,
-            FechaRegistro = _clock.UtcNow
+            FechaRegistro = _clock.LocalNow
         };
 
         _db.Dispositivos.Add(dispositivo);
@@ -192,14 +192,14 @@ public sealed class DispositivoService : IDispositivoService
             {
                 DispositivoId = dispositivoId,
                 UsuarioId = usuarioId,
-                FechaAsociacion = _clock.UtcNow,
+                FechaAsociacion = _clock.LocalNow,
                 Activo = true
             });
         }
         else
         {
             existente.Activo = true;
-            existente.FechaAsociacion = _clock.UtcNow;
+            existente.FechaAsociacion = _clock.LocalNow;
         }
 
         var generadosPendientes = await _db.CodigosPreventaOffline
@@ -259,7 +259,7 @@ public sealed class DispositivoService : IDispositivoService
             return Result.Fail(UsuarioMessages.DispositivoNoEncontrado, 404);
         }
 
-        var ahora = _clock.UtcNow;
+        var ahora = _clock.LocalNow;
         var diasInactividad = await ObtenerDiasInactividadEliminarAsync(cancellationToken);
         if (_presencia.EstaVivo(dispositivoId, ahora))
         {

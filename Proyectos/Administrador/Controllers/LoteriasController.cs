@@ -4,6 +4,7 @@ using NewRich.Admin.Models;
 using NewRich.Admin.Services;
 using NewRich.Application.Contracts.Consultas;
 using NewRich.Application.Contracts.Loterias;
+using NewRich.Application.Services;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Enums;
 
@@ -18,7 +19,14 @@ public sealed class LoteriasController : AdminControllerBase
         _api = api;
     }
 
-    public async Task<IActionResult> Index(string? q, int? estado, int page = 1, int pageSize = 5, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> Index(
+        string? q,
+        int? estado,
+        string? orden,
+        string? dir,
+        int page = 1,
+        int pageSize = 5,
+        CancellationToken cancellationToken = default)
     {
         SetVentasNav(UiTexts.VentasVistaLoteria);
         var result = await _api.ListarLoteriasAsync(cancellationToken);
@@ -43,12 +51,15 @@ public sealed class LoteriasController : AdminControllerBase
             items = items.Where(l => l.Estado == (EstadoGeneral)estado.Value).ToList();
         }
 
+        items = ResumenLoteriasOrden.Aplicar(items, orden, dir);
         ViewBag.Query = q;
         ViewBag.Estado = estado;
         return View(new LoteriasIndexViewModel
         {
             Busqueda = q,
             Estado = estado,
+            Orden = ResumenLoteriasOrden.NormalizarOrden(orden),
+            Direccion = ResumenLoteriasOrden.EsAscendente(dir) ? "asc" : (string.IsNullOrWhiteSpace(dir) ? "asc" : "desc"),
             Pagina = PagingHelper.Paginate(items, page, pageSize)
         });
     }

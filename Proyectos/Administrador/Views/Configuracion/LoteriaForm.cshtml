@@ -1,5 +1,6 @@
 @using NewRich.Admin.Constants
 @using NewRich.Domain.Enums
+@using NewRich.Domain.Services
 @model NewRich.Admin.Models.LoteriaFormViewModel
 <div class="heading">
     <div>
@@ -9,8 +10,7 @@
     </div>
 </div>
 <div class="panel">
-    <div asp-validation-summary="ModelOnly" class="notice error"></div>
-    <form method="post" data-protected-action="@AccionesProtegidas.LoteriasGuardar">
+    <form method="post" data-protected-action="@AccionesProtegidas.LoteriasGuardar" data-hora-fin-jornada>
         <div class="field">
             <label asp-for="Nombre"></label>
             <input asp-for="Nombre" />
@@ -33,6 +33,26 @@
             <span asp-validation-for="Tope"></span>
         </div>
         <div class="field">
+            <label asp-for="JornadaId"></label>
+            <select asp-for="JornadaId" class="searchable" data-jornada-horario>
+                <option value="">@UiTexts.Jornada</option>
+                @foreach (var jornada in Model.Jornadas)
+                {
+                    if (!JornadaPorHoraCierre.TryRangoHoraFin(jornada.Nombre, out var min, out var max))
+                    {
+                        continue;
+                    }
+                    <option value="@jornada.JornadaId"
+                            data-jornada-min="@JornadaPorHoraCierre.HoraHtml(min)"
+                            data-jornada-max="@JornadaPorHoraCierre.HoraHtml(max)">
+                        @jornada.Nombre
+                    </option>
+                }
+            </select>
+            <span class="field-help">@UiTexts.JornadasSub</span>
+            <span asp-validation-for="JornadaId"></span>
+        </div>
+        <div class="field">
             <label asp-for="HoraInicio"></label>
             <input asp-for="HoraInicio" type="time" step="60" />
             <span class="field-help">@UiTexts.HorarioLoteriaAyuda</span>
@@ -40,7 +60,8 @@
         </div>
         <div class="field">
             <label asp-for="HoraFin"></label>
-            <input asp-for="HoraFin" type="time" step="60" />
+            <input asp-for="HoraFin" type="time" step="60" data-hora-fin data-hora-fin-mensaje="@UiTexts.HoraFinSegunJornada" />
+            <span class="field-help">@UiTexts.HoraFinSegunJornada</span>
             <span asp-validation-for="HoraFin"></span>
         </div>
         @if (!Model.LoteriaId.HasValue)

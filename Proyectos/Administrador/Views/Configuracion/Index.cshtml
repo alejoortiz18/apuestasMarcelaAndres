@@ -1,8 +1,33 @@
 @using NewRich.Admin.Constants
 @using NewRich.Admin.Services
+@using NewRich.Application.Services
 @using NewRich.Domain.Enums
 @using NewRich.Domain.Services
 @model NewRich.Admin.Models.ConfiguracionIndexViewModel
+@{
+    string UrlOrdenCatalogo(string columna)
+    {
+        var siguiente = CatalogoLoteriasOrden.SiguienteDireccion(columna, Model.Orden, Model.Direccion);
+        return Url.Action("Index", new
+        {
+            q = Model.Busqueda,
+            jornada = Model.Jornada,
+            orden = columna,
+            dir = siguiente,
+            pageSize = Model.Pagina.PageSize
+        }) ?? "#";
+    }
+    string MarcaOrdenCatalogo(string columna) => CatalogoLoteriasOrden.Marca(columna, Model.Orden, Model.Direccion);
+    string EtiquetaOrdenCatalogo(string columna, string nombre)
+    {
+        var siguiente = CatalogoLoteriasOrden.SiguienteDireccion(columna, Model.Orden, Model.Direccion);
+        return string.Format(siguiente == "asc" ? UiTexts.OrdenarColumnaAsc : UiTexts.OrdenarColumnaDesc, nombre);
+    }
+    if (!string.IsNullOrWhiteSpace(Model.AvisoVersiones))
+    {
+        ViewData["AvisoPagina"] = Model.AvisoVersiones;
+    }
+}
 <div class="heading">
     <div>
         <div class="eyebrow">@UiTexts.ConfigKicker</div>
@@ -11,7 +36,6 @@
     </div>
 </div>
 <form asp-action="Guardar" method="post" class="config-form" id="config-operativa" data-protected-action="@AccionesProtegidas.ConfiguracionGuardar">
-    <div asp-validation-summary="ModelOnly" class="notice error"></div>
     <div class="config-grid">
         <section class="kpi-section">
             <h2>@UiTexts.ConfigSesion</h2>
@@ -135,11 +159,7 @@
     <section class="kpi-section kpi-section-wide">
         <h2>@UiTexts.ConfigVersionAplicacion</h2>
         <p>@UiTexts.ConfigVersionAplicacionSub</p>
-        @if (!string.IsNullOrWhiteSpace(Model.AvisoVersiones))
-        {
-            <div class="notice error" role="alert">@Model.AvisoVersiones</div>
-        }
-        else if (Model.Versiones.Count == 0)
+        @if (string.IsNullOrWhiteSpace(Model.AvisoVersiones) && Model.Versiones.Count == 0)
         {
             <div class="empty">@UiTexts.VacioVersionesAplicacion</div>
         }
@@ -262,7 +282,47 @@
     }
     else
     {
-        <div class="table-wrap">
+        <div class="topes-jornadas" data-topes-jornadas>
+            <div class="topes-jornadas-tabs" role="tablist" aria-label="@UiTexts.TopesPorJornada">
+                <button type="button"
+                        class="topes-jornada-tab is-active"
+                        role="tab"
+                        id="tope-tab-manana"
+                        aria-selected="true"
+                        aria-controls="topes-tabla-panel"
+                        data-hora-fin-jornada="@JornadaPorHoraCierre.Manana">
+                    @UiTexts.Manana
+                </button>
+                <button type="button"
+                        class="topes-jornada-tab"
+                        role="tab"
+                        id="tope-tab-tarde"
+                        aria-selected="false"
+                        aria-controls="topes-tabla-panel"
+                        data-hora-fin-jornada="@JornadaPorHoraCierre.Tarde">
+                    @UiTexts.Tarde
+                </button>
+                <button type="button"
+                        class="topes-jornada-tab"
+                        role="tab"
+                        id="tope-tab-noche"
+                        aria-selected="false"
+                        aria-controls="topes-tabla-panel"
+                        data-hora-fin-jornada="@JornadaPorHoraCierre.Noche">
+                    @UiTexts.Noche
+                </button>
+                <button type="button"
+                        class="topes-jornada-tab"
+                        role="tab"
+                        id="tope-tab-todas"
+                        aria-selected="false"
+                        aria-controls="topes-tabla-panel"
+                        data-hora-fin-jornada="">
+                    @UiTexts.TodasLasJornadas
+                </button>
+            </div>
+            <p class="empty topes-jornada-vacio" hidden>@UiTexts.Vacio</p>
+            <div class="table-wrap" id="topes-tabla-panel" role="tabpanel" aria-labelledby="tope-tab-manana">
             <table class="topes-tabla">
                 <thead>
                 <tr>
@@ -277,7 +337,10 @@
                     var item = Model.Topes[i];
                     var topeEntero = decimal.ToInt64(Math.Truncate(item.Tope));
                     var topeVisible = topeEntero.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("es-CO"));
-                    <tr>
+                    var claveJornada = TimeSpan.TryParse(item.HoraFin, out var horaFin)
+                        ? JornadaPorHoraCierre.Nombre(horaFin)
+                        : string.Empty;
+                    <tr data-hora-fin-jornada="@claveJornada">
                         <td><strong>@item.Nombre</strong></td>
                         <td class="topes-col-valor">
                             <input type="hidden" name="topes[@i].LoteriaId" value="@item.LoteriaId" />
@@ -307,6 +370,7 @@
                 }
                 </tbody>
             </table>
+        </div>
         </div>
         <div class="config-save">
             <button class="primary" type="submit">@UiTexts.GuardarTopes</button>
@@ -387,32 +451,86 @@
         </div>
     }
 </div>
-<div class="panel">
+<div class="panel" id="catalogo-loterias">
     <div class="panel-head">
         <div>
             <h2>@UiTexts.CatalogoLoterias</h2>
-            <div class="panel-sub">@UiTexts.CatalogoLoteriasSub</div>
+            <div class="panel-sub">@UiTexts.CatalogoLoteriasAyuda</div>
         </div>
         <a class="primary" asp-action="CrearLoteria">@UiTexts.AgregarLoteria</a>
     </div>
-    <div class="catalogo-horario">
-        <div class="field">
-            <label asp-for="Form.HoraCierre"></label>
-            <input asp-for="Form.HoraCierre" type="time" step="60" form="config-operativa" />
-            <span class="field-help">@UiTexts.HoraCierrePdaAyuda</span>
-            <span asp-validation-for="Form.HoraCierre"></span>
+    <section class="catalogo-bloque" id="catalogo-jornadas" aria-labelledby="catalogo-jornadas-titulo">
+        <h3 id="catalogo-jornadas-titulo">@UiTexts.Jornadas</h3>
+        <p class="panel-sub">@UiTexts.JornadasSub</p>
+        <ul class="catalogo-jornada-cortes">
+            <li><strong>@UiTexts.Manana.</strong> @UiTexts.JornadaCorteManana</li>
+            <li><strong>@UiTexts.Tarde.</strong> @UiTexts.JornadaCorteTarde</li>
+            <li><strong>@UiTexts.Noche.</strong> @UiTexts.JornadaCorteNoche</li>
+        </ul>
+    </section>
+    <section class="catalogo-bloque" id="catalogo-horario-pda" aria-labelledby="catalogo-horario-pda-titulo">
+        <h3 id="catalogo-horario-pda-titulo">@UiTexts.HorarioActividadPda</h3>
+        <p class="panel-sub">@UiTexts.HorarioActividadPdaSub</p>
+        <div class="catalogo-horario">
+            <div class="field">
+                <label asp-for="Form.HoraApertura"></label>
+                <input asp-for="Form.HoraApertura" type="time" step="60" form="config-operativa" />
+                <span class="field-help">@UiTexts.HoraAperturaPdaAyuda</span>
+                <span asp-validation-for="Form.HoraApertura"></span>
+            </div>
+            <div class="field">
+                <label asp-for="Form.HoraCierre"></label>
+                <input asp-for="Form.HoraCierre" type="time" step="60" form="config-operativa" />
+                <span class="field-help">@UiTexts.HoraCierrePdaAyuda</span>
+                <span asp-validation-for="Form.HoraCierre"></span>
+            </div>
+            <div class="catalogo-horario-save">
+                <button class="primary" type="submit" form="config-operativa">@UiTexts.GuardarConfiguracion</button>
+            </div>
         </div>
-        <div class="field">
-            <label asp-for="Form.HoraApertura"></label>
-            <input asp-for="Form.HoraApertura" type="time" step="60" form="config-operativa" />
-            <span class="field-help">@UiTexts.HoraAperturaPdaAyuda</span>
-            <span asp-validation-for="Form.HoraApertura"></span>
-        </div>
-        <div class="catalogo-horario-save">
-            <button class="primary" type="submit" form="config-operativa">@UiTexts.GuardarConfiguracion</button>
-        </div>
-    </div>
-    <form class="toolbar" method="get">
+    </section>
+    <section class="catalogo-bloque" id="catalogo-horarios-loterias" aria-labelledby="catalogo-horarios-loterias-titulo">
+        <h3 id="catalogo-horarios-loterias-titulo">@UiTexts.HorariosDeLoterias</h3>
+        <p class="panel-sub">@UiTexts.HorariosDeLoteriasSub</p>
+        <div class="topes-jornadas" data-catalogo-jornadas>
+            <div class="topes-jornadas-tabs" role="tablist" aria-label="@UiTexts.Jornada">
+            <button type="button"
+                    class="topes-jornada-tab @(string.Equals(Model.Jornada, JornadaPorHoraCierre.Manana, StringComparison.CurrentCultureIgnoreCase) ? "is-active" : null)"
+                    role="tab"
+                    id="catalogo-tab-manana"
+                    aria-selected="@(string.Equals(Model.Jornada, JornadaPorHoraCierre.Manana, StringComparison.CurrentCultureIgnoreCase) ? "true" : "false")"
+                    data-hora-fin-jornada="@JornadaPorHoraCierre.Manana">
+                @UiTexts.Manana
+            </button>
+            <button type="button"
+                    class="topes-jornada-tab @(string.Equals(Model.Jornada, JornadaPorHoraCierre.Tarde, StringComparison.CurrentCultureIgnoreCase) ? "is-active" : null)"
+                    role="tab"
+                    id="catalogo-tab-tarde"
+                    aria-selected="@(string.Equals(Model.Jornada, JornadaPorHoraCierre.Tarde, StringComparison.CurrentCultureIgnoreCase) ? "true" : "false")"
+                    data-hora-fin-jornada="@JornadaPorHoraCierre.Tarde">
+                @UiTexts.Tarde
+            </button>
+            <button type="button"
+                    class="topes-jornada-tab @(string.Equals(Model.Jornada, JornadaPorHoraCierre.Noche, StringComparison.CurrentCultureIgnoreCase) ? "is-active" : null)"
+                    role="tab"
+                    id="catalogo-tab-noche"
+                    aria-selected="@(string.Equals(Model.Jornada, JornadaPorHoraCierre.Noche, StringComparison.CurrentCultureIgnoreCase) ? "true" : "false")"
+                    data-hora-fin-jornada="@JornadaPorHoraCierre.Noche">
+                @UiTexts.Noche
+            </button>
+            <button type="button"
+                    class="topes-jornada-tab @(string.IsNullOrWhiteSpace(Model.Jornada) ? "is-active" : null)"
+                    role="tab"
+                    id="catalogo-tab-todas"
+                    aria-selected="@(string.IsNullOrWhiteSpace(Model.Jornada) ? "true" : "false")"
+                    data-hora-fin-jornada="">
+                @UiTexts.TodasLasJornadas
+            </button>
+            </div>
+        <form class="toolbar" method="get">
+        <input type="hidden" name="jornada" value="@Model.Jornada" />
+        <input type="hidden" name="orden" value="@Model.Orden" />
+        <input type="hidden" name="dir" value="@Model.Direccion" />
         <div class="field">
             <label for="q">@UiTexts.BuscarLoteria</label>
             <input id="q" name="q" value="@Model.Busqueda" placeholder="@UiTexts.PlaceholderLoteria" />
@@ -429,15 +547,19 @@
         <button class="primary" type="submit">@UiTexts.Buscar</button>
         <a class="secondary" asp-action="Index">@UiTexts.LimpiarFiltros</a>
     </form>
+        </div>
     @if (!Model.Pagina.Items.Any())
     {
         <div class="empty">@UiTexts.Vacio</div>
     }
     else
     {
-        <form asp-action="GuardarHorarios" method="post" id="horarios-loterias" data-protected-action="@AccionesProtegidas.LoteriasGuardar">
+        <form asp-action="GuardarHorarios" method="post" id="horarios-loterias" data-protected-action="@AccionesProtegidas.LoteriasGuardar" data-horarios-catalogo data-horarios-guardados="@(TempData["HorariosGuardados"] is true ? "1" : null)">
             @Html.AntiForgeryToken()
             <input type="hidden" name="q" value="@Model.Busqueda" />
+            <input type="hidden" name="jornada" value="@Model.Jornada" />
+            <input type="hidden" name="orden" value="@Model.Orden" />
+            <input type="hidden" name="dir" value="@Model.Direccion" />
             <input type="hidden" name="page" value="@Model.Pagina.Page" />
             <input type="hidden" name="pageSize" value="@Model.Pagina.PageSize" />
             <div class="table-wrap">
@@ -445,9 +567,26 @@
                     <thead>
                     <tr>
                         <th class="col-check"><span class="visually-hidden">@UiTexts.SeleccionarFila</span></th>
-                        <th>@UiTexts.Loteria</th>
-                        <th>@UiTexts.HorarioHabilitado</th>
-                        <th>@UiTexts.Estado</th>
+                        <th>
+                            <a class="table-sort" href="@UrlOrdenCatalogo("nombre")" aria-label="@EtiquetaOrdenCatalogo("nombre", UiTexts.Loteria)">
+                                @UiTexts.Loteria <span aria-hidden="true">@MarcaOrdenCatalogo("nombre")</span>
+                            </a>
+                        </th>
+                        <th>
+                            <a class="table-sort" href="@UrlOrdenCatalogo("jornada")" aria-label="@EtiquetaOrdenCatalogo("jornada", UiTexts.Jornada)">
+                                @UiTexts.Jornada <span aria-hidden="true">@MarcaOrdenCatalogo("jornada")</span>
+                            </a>
+                        </th>
+                        <th>
+                            <a class="table-sort" href="@UrlOrdenCatalogo("horaFin")" aria-label="@EtiquetaOrdenCatalogo("horaFin", UiTexts.HorarioHabilitado)">
+                                @UiTexts.HorarioHabilitado <span aria-hidden="true">@MarcaOrdenCatalogo("horaFin")</span>
+                            </a>
+                        </th>
+                        <th>
+                            <a class="table-sort" href="@UrlOrdenCatalogo("estado")" aria-label="@EtiquetaOrdenCatalogo("estado", UiTexts.Estado)">
+                                @UiTexts.Estado <span aria-hidden="true">@MarcaOrdenCatalogo("estado")</span>
+                            </a>
+                        </th>
                     </tr>
                     </thead>
                     <tbody>
@@ -455,11 +594,15 @@
                     {
                         var item = Model.Pagina.Items[i];
                         var flag = item.Estado == EstadoGeneral.Activo ? "activo" : "inactivo";
-                        <tr tabindex="0" data-row-id="@item.LoteriaId" data-flags="@flag">
+                        var claveJornada = TimeSpan.TryParse(item.HoraFin, out var horaFinFila)
+                            ? JornadaPorHoraCierre.Nombre(horaFinFila)
+                            : string.Empty;
+                        <tr tabindex="0" data-row-id="@item.LoteriaId" data-flags="@flag" data-hora-fin-jornada="@claveJornada">
                             <td class="col-check">
                                 <input class="row-check" type="checkbox" value="@item.LoteriaId" aria-label="@UiTexts.SeleccionarFila @item.Nombre" />
                             </td>
                             <td><strong>@item.Nombre</strong></td>
+                            <td>@(item.JornadaNombre ?? UiTexts.NoAplica)</td>
                             <td>
                                 <input type="hidden" name="horarios[@i].LoteriaId" value="@item.LoteriaId" />
                                 <div class="horario-celda">
@@ -467,12 +610,18 @@
                                            name="horarios[@i].HoraInicio"
                                            value="@item.HoraInicio"
                                            step="60"
+                                           data-loteria-id="@item.LoteriaId"
+                                           data-hora="inicio"
+                                           data-original="@item.HoraInicio"
                                            aria-label="@UiTexts.HoraInicioLoteria @item.Nombre" />
                                     <span class="horario-sep" aria-hidden="true">-</span>
                                     <input type="time"
                                            name="horarios[@i].HoraFin"
                                            value="@item.HoraFin"
                                            step="60"
+                                           data-loteria-id="@item.LoteriaId"
+                                           data-hora="fin"
+                                           data-original="@item.HoraFin"
                                            aria-label="@UiTexts.HoraFinLoteria @item.Nombre" />
                                 </div>
                             </td>
@@ -482,11 +631,14 @@
                     </tbody>
                 </table>
             </div>
+            <div data-horarios-extra></div>
         </form>
         <div class="config-save">
-            <button class="primary" type="submit" form="horarios-loterias">@UiTexts.GuardarHorarios</button>
+            <button class="primary" type="submit" form="horarios-loterias" data-guardar-horarios disabled="disabled" title="@UiTexts.GuardarHorariosDesactivado">@UiTexts.GuardarHorarios</button>
         </div>
+        <div data-horarios-pager>
         <partial name="_Pager" model="Model.Pagina" />
+        </div>
         <div class="table-actions" data-table-panel="config-loterias">
             <h2>@UiTexts.AccionesDeLoteria</h2>
             <p class="panel-sub">@UiTexts.SeleccionaParaAcciones</p>
@@ -503,4 +655,5 @@
             </div>
         </div>
     }
+    </section>
 </div>

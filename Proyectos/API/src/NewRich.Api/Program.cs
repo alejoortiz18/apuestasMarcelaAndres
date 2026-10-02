@@ -128,6 +128,9 @@ using (var alcance = app.Services.CreateScope())
 {
     var super = alcance.ServiceProvider.GetRequiredService<NewRich.Application.Services.ISuperUsuarioAsegurador>();
     await super.AsegurarAsync(CancellationToken.None);
+    var db = alcance.ServiceProvider.GetRequiredService<NewRich.Application.Abstractions.INewRichDbContext>();
+    await db.AsegurarEsquemaJornadasAsync(CancellationToken.None);
+    await db.AsegurarFechasColombiaAsync(CancellationToken.None);
 }
 
 app.Run();

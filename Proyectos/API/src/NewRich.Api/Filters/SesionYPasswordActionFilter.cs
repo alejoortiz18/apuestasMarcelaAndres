@@ -28,7 +28,7 @@ public sealed class SesionYPasswordActionFilter : IAsyncActionFilter
         }
 
         var sesion = await db.Sesiones.FirstOrDefaultAsync(s => s.SesionId == sesionId);
-        if (sesion is null || !sesion.Activa || sesion.FechaExpiracion < DateTime.UtcNow)
+        if (sesion is null || !sesion.Activa || sesion.FechaExpiracion < http.RequestServices.GetRequiredService<IClock>().LocalNow)
         {
             context.Result = new ObjectResult(ApiResponse.From(Result.Fail(AuthMessages.SesionInvalida, 401))) { StatusCode = 401 };
             return;
