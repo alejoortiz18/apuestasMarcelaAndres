@@ -10,6 +10,7 @@ using NewRich.Constants;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
 using NewRich.Domain.Enums;
+using NewRich.Domain.Services;
 using NewRich.Infrastructure.Persistence;
 using NewRich.Infrastructure.Security;
 
@@ -47,6 +48,36 @@ public sealed class PremioServiceTests
         db.Boletos.Single().CasoGanadorId.Should().Be(result.Data.CasoId);
         db.Notificaciones.Should().Contain(n => n.Tipo == "CasoGanador" && n.UsuarioId == escenario.Admin.UsuarioId);
         result.Data.TieneFoto.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Caso_guarda_fechas_en_hora_de_Colombia()
+    {
+        var utc = new DateTime(2026, 10, 2, 15, 11, 1, DateTimeKind.Utc);
+        var colombia = ZonaHorariaColombia.ALocal(utc);
+        var (sut, db) = CreateSut(utcNow: utc);
+        var escenario = await CrearBoletoGanadorAsync(db);
+
+        var reporte = await sut.ReportarAsync(escenario.Vendedor.UsuarioId, Reporte(escenario.Boleto.CodigoPublico), CancellationToken.None);
+        reporte.IsSuccess.Should().BeTrue(reporte.Message);
+        (await db.CasosGanadores.FindAsync(reporte.Data!.CasoId))!.FechaReporte.Should().Be(colombia);
+
+        var validado = await sut.ValidarAsync(reporte.Data.CasoId, escenario.Admin.UsuarioId, CancellationToken.None);
+        validado.IsSuccess.Should().BeTrue(validado.Message);
+        (await db.CasosGanadores.FindAsync(reporte.Data.CasoId))!.FechaValidacionAdmin.Should().Be(colombia);
+
+        var asignado = await sut.AsignarAsync(reporte.Data.CasoId, escenario.Admin.UsuarioId, new AsignarObservadorRequest
+        {
+            ObservadorId = escenario.Observador.UsuarioId
+        }, CancellationToken.None);
+        asignado.IsSuccess.Should().BeTrue(asignado.Message);
+        (await db.CasosGanadores.FindAsync(reporte.Data.CasoId))!.FechaAsignacion.Should().Be(colombia);
+
+        var registrado = await sut.RegistrarEntregaAsync(reporte.Data.CasoId, escenario.Observador.UsuarioId, EntregaCompleta(), CancellationToken.None);
+        registrado.IsSuccess.Should().BeTrue(registrado.Message);
+        (await db.CasosGanadores.FindAsync(reporte.Data.CasoId))!.FechaRegistro.Should().Be(colombia);
+        (await db.Boletos.FindAsync(escenario.Boleto.BoletoId))!.FechaEntregaPremio.Should().Be(colombia);
+        colombia.Hour.Should().Be(10);
     }
 
     [Fact]
@@ -524,13 +555,13 @@ public sealed class PremioServiceTests
         result.IsSuccess.Should().BeFalse();
     }
 
-    private static (PremioService Sut, NewRichDbContext Db) CreateSut(IQrCryptoService? qr = null)
+    private static (PremioService Sut, NewRichDbContext Db) CreateSut(IQrCryptoService? qr = null, DateTime? utcNow = null)
     {
         var options = new DbContextOptionsBuilder<NewRichDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         var db = new NewRichDbContext(options);
-        var clock = new FixedClock(new DateTime(2026, 8, 30, 19, 0, 0, DateTimeKind.Utc));
+        var clock = new FixedClock(utcNow ?? new DateTime(2026, 8, 30, 19, 0, 0, DateTimeKind.Utc));
         var crypto = qr ?? new FakeQr();
         var validacion = new ValidacionBoletoService(db, crypto, clock);
         return (new PremioService(db, clock, new NotificacionService(db, clock, new NotificacionTiempoRealNulo()), crypto, new ChatFilesFake(), validacion), db);
@@ -713,7 +744,7 @@ public sealed class PremioServiceTests
     {
         public FixedClock(DateTime utcNow) => UtcNow = utcNow;
         public DateTime UtcNow { get; }
-        public DateTime LocalNow => UtcNow.ToLocalTime();
+        public DateTime LocalNow => ZonaHorariaColombia.ALocal(UtcNow);
     }
 
     private sealed class FakeQr : IQrCryptoService

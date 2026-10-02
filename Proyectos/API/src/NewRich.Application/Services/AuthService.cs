@@ -64,7 +64,7 @@ public sealed class AuthService : IAuthService
             _db.IntentosFallidos.Add(new IntentosFallidos
             {
                 UsuarioId = usuario.UsuarioId,
-                FechaIntento = _clock.UtcNow,
+                FechaIntento = _clock.LocalNow,
                 Exitoso = false
             });
 
@@ -137,11 +137,11 @@ public sealed class AuthService : IAuthService
         }
 
         usuario.IntentosFallidos = 0;
-        usuario.FechaUltimoAcceso = _clock.UtcNow;
+        usuario.FechaUltimoAcceso = _clock.LocalNow;
         _db.IntentosFallidos.Add(new IntentosFallidos
         {
             UsuarioId = usuario.UsuarioId,
-            FechaIntento = _clock.UtcNow,
+            FechaIntento = _clock.LocalNow,
             Exitoso = true
         });
 
@@ -284,13 +284,13 @@ public sealed class AuthService : IAuthService
             Modelo = string.IsNullOrWhiteSpace(request.CodigoDispositivo) ? null : request.CodigoDispositivo.Trim(),
             NumeroSerie = string.IsNullOrWhiteSpace(serie) || serie.Length > 100 ? codigo : serie,
             CapacidadCodigosOffline = 3000,
-            FechaRegistro = _clock.UtcNow
+            FechaRegistro = _clock.LocalNow
         };
         var vinculo = new DispositivoUsuario
         {
             DispositivoId = celular.DispositivoId,
             UsuarioId = usuario.UsuarioId,
-            FechaAsociacion = _clock.UtcNow,
+            FechaAsociacion = _clock.LocalNow,
             Activo = true,
             Dispositivo = celular
         };
@@ -407,7 +407,7 @@ public sealed class AuthService : IAuthService
             return Result.Fail(AuthMessages.LlavePruebaInvalida, 403);
         }
 
-        activa.FechaUltimoUso = _clock.UtcNow;
+        activa.FechaUltimoUso = _clock.LocalNow;
         return Result.Ok(SuccessMessages.OperacionExitosa);
     }
 

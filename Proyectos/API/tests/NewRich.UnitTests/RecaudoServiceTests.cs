@@ -5,6 +5,7 @@ using NewRich.Application.Contracts.Recaudo;
 using NewRich.Application.Services;
 using NewRich.Domain.Entities;
 using NewRich.Domain.Enums;
+using NewRich.Domain.Services;
 using NewRich.Infrastructure.Persistence;
 
 namespace NewRich.UnitTests;
@@ -144,6 +145,61 @@ public sealed class RecaudoServiceTests
         var lista = await sut.ObligacionesAsync(recaudador.UsuarioId, new DateOnly(2026, 9, 28), CancellationToken.None);
 
         lista.Data.Should().ContainSingle(o => o.Usuario == "ana.vende" && o.Documento == "1098000111");
+    }
+
+    [Fact]
+    public async Task El_pago_se_guarda_en_hora_de_colombia()
+    {
+        var utc = new DateTime(2026, 9, 28, 15, 0, 0, DateTimeKind.Utc);
+        var (sut, db, recaudador, vendedor) = await PrepararVendedorConVentaAsync(utc);
+
+        var resultado = await sut.RegistrarPagoAsync(recaudador.UsuarioId, new RegistrarPagoRecaudoRequest
+        {
+            VendedorId = vendedor.UsuarioId,
+            Valor = 50m,
+            ClaveIdempotencia = "clave-colombia"
+        }, CancellationToken.None);
+
+        var colombia = ZonaHorariaColombia.ALocal(utc);
+        resultado.IsSuccess.Should().BeTrue(resultado.Message);
+        resultado.Data!.FechaHora.Should().Be(colombia);
+        db.PagosRecaudo.Should().ContainSingle(p => p.FechaHora == colombia);
+        db.TirillasCobroRecaudo.Should().ContainSingle(t => t.FechaHora == colombia);
+    }
+
+    [Fact]
+    public async Task Una_venta_de_la_madrugada_en_colombia_entra_en_la_obligacion_de_ese_dia()
+    {
+        var utc = new DateTime(2026, 9, 29, 15, 0, 0, DateTimeKind.Utc);
+        var (sut, _, recaudador, vendedor) = await PrepararVendedorConVentaAsync(
+            utc,
+            new DateTime(2026, 9, 29, 0, 30, 0, DateTimeKind.Unspecified));
+
+        var lista = await sut.ObligacionesAsync(recaudador.UsuarioId, new DateOnly(2026, 9, 29), CancellationToken.None);
+
+        lista.Data.Should().ContainSingle(o => o.VendedorId == vendedor.UsuarioId && o.TotalVendido == 1000m);
+    }
+
+    [Fact]
+    public async Task Un_pago_de_la_madrugada_en_colombia_queda_en_ese_dia()
+    {
+        var utc = new DateTime(2026, 9, 29, 6, 0, 0, DateTimeKind.Utc);
+        var (sut, _, recaudador, vendedor) = await PrepararVendedorConVentaAsync(
+            utc,
+            new DateTime(2026, 9, 29, 5, 30, 0, DateTimeKind.Utc));
+
+        await sut.RegistrarPagoAsync(recaudador.UsuarioId, new RegistrarPagoRecaudoRequest
+        {
+            VendedorId = vendedor.UsuarioId,
+            Valor = 50m,
+            ClaveIdempotencia = "clave-madrugada"
+        }, CancellationToken.None);
+
+        var del29 = await sut.ObligacionesAsync(recaudador.UsuarioId, new DateOnly(2026, 9, 29), CancellationToken.None);
+        var del28 = await sut.ObligacionesAsync(recaudador.UsuarioId, new DateOnly(2026, 9, 28), CancellationToken.None);
+
+        del29.Data.Should().ContainSingle(o => o.VendedorId == vendedor.UsuarioId && o.PagosHoy == 50m);
+        (del28.Data ?? []).Should().NotContain(o => o.VendedorId == vendedor.UsuarioId && o.PagosHoy == 50m);
     }
 
     [Fact]
@@ -484,13 +540,42 @@ public sealed class RecaudoServiceTests
         resultado.IsSuccess.Should().BeFalse();
     }
 
-    private static (RecaudoService Sut, NewRichDbContext Db) Crear()
+    private static (RecaudoService Sut, NewRichDbContext Db) Crear(DateTime? utcNow = null)
     {
         var options = new DbContextOptionsBuilder<NewRichDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         var db = new NewRichDbContext(options);
-        return (new RecaudoService(db, new RelojFijo(new DateTime(2026, 9, 28, 15, 0, 0, DateTimeKind.Utc))), db);
+        var reloj = new RelojFijo(utcNow ?? new DateTime(2026, 9, 28, 15, 0, 0, DateTimeKind.Utc));
+        return (new RecaudoService(db, reloj), db);
+    }
+
+    private static async Task<(RecaudoService Sut, NewRichDbContext Db, Usuario Recaudador, Usuario Vendedor)> PrepararVendedorConVentaAsync(
+        DateTime utcNow,
+        DateTime? fechaVentaUtc = null)
+    {
+        var (sut, db) = Crear(utcNow);
+        var grupo = await AgregarGrupo(db, "Centro");
+        var recaudador = await AgregarUsuario(db, "Carmen Recaudo", RolUsuario.Recaudador);
+        var vendedor = await AgregarUsuario(db, "Ana Vende", RolUsuario.Vendedor);
+        db.UsuariosGrupos.Add(new UsuarioGrupo { UsuarioId = vendedor.UsuarioId, GrupoId = grupo.GrupoId });
+        db.Ventas.Add(new Venta
+        {
+            VentaId = Guid.NewGuid(),
+            UsuarioId = vendedor.UsuarioId,
+            FechaVenta = fechaVentaUtc ?? new DateTime(2026, 9, 28, 12, 0, 0, DateTimeKind.Utc),
+            Total = 1000m,
+            TipoApuesta = TipoApuesta.INDIVIDUAL,
+            IdempotencyKey = Guid.NewGuid().ToString("N")
+        });
+        await db.SaveChangesAsync();
+        await sut.AsignarGrupoAsync(new AsignarGrupoRecaudoRequest
+        {
+            RecaudadorId = recaudador.UsuarioId,
+            GrupoId = grupo.GrupoId,
+            Porcentaje = 10
+        }, recaudador.UsuarioId, CancellationToken.None);
+        return (sut, db, recaudador, vendedor);
     }
 
     private static async Task<Grupo> AgregarGrupo(NewRichDbContext db, string nombre)
@@ -521,6 +606,6 @@ public sealed class RecaudoServiceTests
     private sealed class RelojFijo(DateTime utcNow) : IClock
     {
         public DateTime UtcNow { get; } = utcNow;
-        public DateTime LocalNow => UtcNow;
+        public DateTime LocalNow => ZonaHorariaColombia.ALocal(UtcNow);
     }
 }

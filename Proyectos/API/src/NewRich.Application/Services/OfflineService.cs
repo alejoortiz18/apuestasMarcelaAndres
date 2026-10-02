@@ -133,7 +133,7 @@ public sealed class OfflineService : IOfflineService
                 DispositivoId = pda.DispositivoId,
                 PayloadCifrado = Encoding.UTF8.GetBytes(payload),
                 EstadoDelCodigo = EstadoCodigoOffline.Generado,
-                FechaCreacion = _clock.UtcNow
+                FechaCreacion = _clock.LocalNow
             };
             creados.Add(codigo);
             _db.CodigosPreventaOffline.Add(codigo);
@@ -255,7 +255,7 @@ public sealed class OfflineService : IOfflineService
         {
             SincronizacionId = Guid.NewGuid(),
             DispositivoId = dispositivoId,
-            FechaSincronizacion = _clock.UtcNow,
+            FechaSincronizacion = _clock.LocalNow,
             Tipo = ConfiguracionClaves.TipoReposicionOfflineDiaria,
             Resultado = marcaDia
         });
@@ -394,7 +394,7 @@ public sealed class OfflineService : IOfflineService
             if (codigo.EstadoDelCodigo != EstadoCodigoOffline.Registrado)
             {
                 codigo.EstadoDelCodigo = EstadoCodigoOffline.Registrado;
-                codigo.FechaRegistro = _clock.UtcNow;
+                codigo.FechaRegistro = _clock.LocalNow;
                 codigo.AdminQueRegistro = admin;
                 await _db.SaveChangesAsync(cancellationToken);
             }
@@ -407,7 +407,7 @@ public sealed class OfflineService : IOfflineService
         if (codigo.EstadoDelCodigo != EstadoCodigoOffline.Registrado)
         {
             codigo.EstadoDelCodigo = EstadoCodigoOffline.Utilizado;
-            codigo.FechaVentaOffline ??= sobre.Jugada.Fecha == default ? _clock.UtcNow : sobre.Jugada.Fecha.ToUniversalTime();
+            codigo.FechaVentaOffline ??= sobre.Jugada.Fecha == default ? _clock.LocalNow : sobre.Jugada.Fecha;
             await _db.SaveChangesAsync(cancellationToken);
         }
 
@@ -482,7 +482,7 @@ public sealed class OfflineService : IOfflineService
         }
 
         var ventaId = Guid.NewGuid();
-        var fecha = sobre.Jugada.Fecha == default ? _clock.UtcNow : sobre.Jugada.Fecha.ToUniversalTime();
+        var fecha = sobre.Jugada.Fecha == default ? _clock.LocalNow : sobre.Jugada.Fecha;
         var venta = new Venta
         {
             VentaId = ventaId,
@@ -493,7 +493,7 @@ public sealed class OfflineService : IOfflineService
             TipoApuesta = tipo,
             EstadoSincronizacion = "Sincronizada",
             IdempotencyKey = $"offline:{codigo.ConsecutivoUnico}",
-            FechaSincronizacion = _clock.UtcNow
+            FechaSincronizacion = _clock.LocalNow
         };
 
         var boleto = new Boleto
@@ -519,7 +519,7 @@ public sealed class OfflineService : IOfflineService
             ClaveHash = boleto.ClaveValidacionHash,
             Version = payload.Version <= 0 ? 1 : payload.Version,
             IdentificadorClave = payload.IdentificadorClave == Guid.Empty ? Guid.NewGuid() : payload.IdentificadorClave,
-            FechaCreacion = _clock.UtcNow
+            FechaCreacion = _clock.LocalNow
         };
 
         _db.Ventas.Add(venta);

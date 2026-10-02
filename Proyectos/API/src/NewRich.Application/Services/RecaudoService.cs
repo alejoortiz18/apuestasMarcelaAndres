@@ -74,7 +74,7 @@ public sealed partial class RecaudoService : IRecaudoService
             return Result.Fail(decision.Motivo, 409);
         }
 
-        var ahora = _clock.UtcNow;
+        var ahora = _clock.LocalNow;
         var existente = grupos.FirstOrDefault(g => g.GrupoId == request.GrupoId && g.RecaudadorId == request.RecaudadorId);
         if (existente is null)
         {
@@ -140,7 +140,7 @@ public sealed partial class RecaudoService : IRecaudoService
         var guardados = await _db.PorcentajesGrupoRecaudo
             .Where(p => ids.Contains(p.GrupoId))
             .ToListAsync(cancellationToken);
-        var ahora = _clock.UtcNow;
+        var ahora = _clock.LocalNow;
         foreach (var grupo in request.Grupos)
         {
             foreach (var asignacion in asignaciones.Where(a => a.GrupoId == grupo.GrupoId))
@@ -208,7 +208,7 @@ public sealed partial class RecaudoService : IRecaudoService
             return Result.Fail("El vendedor ya esta asignado a otro recaudador.", 409);
         }
 
-        var ahora = _clock.UtcNow;
+        var ahora = _clock.LocalNow;
         var actual = await _db.AsignacionesVendedorRecaudo.FirstOrDefaultAsync(
             a => a.Estado == "Activa" && a.VendedorId == request.VendedorId,
             cancellationToken);
@@ -249,12 +249,12 @@ public sealed partial class RecaudoService : IRecaudoService
         var usuarios = await _db.Usuarios.Where(u => ids.Contains(u.UsuarioId)).ToListAsync(cancellationToken);
         var nombresGrupo = await _db.Grupos.Where(g => idsGrupo.Contains(g.GrupoId)).ToListAsync(cancellationToken);
         var inicio = fecha.ToDateTime(TimeOnly.MinValue);
-        var inicioUtc = ZonaHorariaColombia.InicioUtcDelDia(fecha);
-        var finUtc = ZonaHorariaColombia.InicioUtcDelDia(fecha.AddDays(1));
-        var ventas = await _db.Ventas.Where(v => ids.Contains(v.UsuarioId) && v.FechaVenta >= inicioUtc && v.FechaVenta < finUtc).ToListAsync(cancellationToken);
+        var inicioPago = ZonaHorariaColombia.InicioLocalDelDia(fecha);
+        var finPago = ZonaHorariaColombia.InicioLocalDelDia(fecha.AddDays(1));
+        var ventas = await _db.Ventas.Where(v => ids.Contains(v.UsuarioId) && v.FechaVenta >= inicioPago && v.FechaVenta < finPago).ToListAsync(cancellationToken);
         var obligaciones = await _db.ObligacionesRecaudo.Where(o => ids.Contains(o.VendedorId) && o.Fecha < inicio).ToListAsync(cancellationToken);
-        var pagosPrevios = await _db.PagosRecaudo.Where(p => ids.Contains(p.VendedorId) && p.FechaHora < inicioUtc).ToListAsync(cancellationToken);
-        var pagosHoy = await _db.PagosRecaudo.Where(p => ids.Contains(p.VendedorId) && p.FechaHora >= inicioUtc && p.FechaHora < finUtc).ToListAsync(cancellationToken);
+        var pagosPrevios = await _db.PagosRecaudo.Where(p => ids.Contains(p.VendedorId) && p.FechaHora < inicioPago).ToListAsync(cancellationToken);
+        var pagosHoy = await _db.PagosRecaudo.Where(p => ids.Contains(p.VendedorId) && p.FechaHora >= inicioPago && p.FechaHora < finPago).ToListAsync(cancellationToken);
         var respuesta = new List<ObligacionRecaudoResponse>();
 
         foreach (var usuario in usuarios)
@@ -362,7 +362,7 @@ public sealed partial class RecaudoService : IRecaudoService
                 Porcentaje = fila.TotalVendido == 0m ? 0 : (int)Math.Ceiling(fila.ValorACobrar * 100m / fila.TotalVendido),
                 ValorGenerado = fila.ValorACobrar,
                 SaldoAnterior = fila.SaldoAnterior,
-                FechaGeneracion = _clock.UtcNow
+                FechaGeneracion = _clock.LocalNow
             };
             _db.ObligacionesRecaudo.Add(obligacion);
         }
@@ -377,7 +377,7 @@ public sealed partial class RecaudoService : IRecaudoService
             Valor = request.Valor,
             SaldoResultante = evaluacion.SaldoRestante,
             ClaveIdempotencia = request.ClaveIdempotencia.Trim(),
-            FechaHora = _clock.UtcNow
+            FechaHora = _clock.LocalNow
         };
         _db.PagosRecaudo.Add(pago);
         _db.TirillasCobroRecaudo.Add(new TirillaCobroRecaudo

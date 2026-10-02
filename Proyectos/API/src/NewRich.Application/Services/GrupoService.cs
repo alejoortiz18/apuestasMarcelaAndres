@@ -53,7 +53,7 @@ public sealed class GrupoService : IGrupoService
             GrupoId = Guid.NewGuid(),
             Nombre = nombre,
             Descripcion = string.IsNullOrWhiteSpace(request.Descripcion) ? null : request.Descripcion.Trim(),
-            FechaCreacion = _clock.UtcNow
+            FechaCreacion = _clock.LocalNow
         };
         _db.Grupos.Add(grupo);
         await _db.SaveChangesAsync(cancellationToken);
@@ -145,7 +145,7 @@ public sealed class GrupoService : IGrupoService
                 foreach (var individual in individuales)
                 {
                     individual.Estado = "Retirada";
-                    individual.FechaModificacion = _clock.UtcNow;
+                    individual.FechaModificacion = _clock.LocalNow;
                 }
             }
         }

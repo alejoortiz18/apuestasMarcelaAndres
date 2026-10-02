@@ -8,6 +8,14 @@ public sealed class FechaJuegoBoletoTests
     private static readonly TimeSpan Colombia = TimeSpan.FromHours(-5);
 
     [Fact]
+    public void Una_venta_ya_guardada_en_hora_Colombia_no_se_vuelve_a_desfasar()
+    {
+        var fechaVenta = new DateTime(2026, 9, 13, 1, 10, 7, DateTimeKind.Unspecified);
+
+        FechaJuegoBoleto.De(fechaVenta, Colombia).Should().Be(new DateOnly(2026, 9, 13));
+    }
+
+    [Fact]
     public void Una_venta_de_la_noche_pertenece_al_dia_local_y_no_al_dia_utc()
     {
         var fechaVenta = new DateTime(2026, 9, 14, 1, 10, 7, DateTimeKind.Utc);

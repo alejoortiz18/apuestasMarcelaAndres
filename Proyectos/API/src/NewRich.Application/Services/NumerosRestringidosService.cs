@@ -45,7 +45,7 @@ public sealed class NumerosRestringidosService : INumerosRestringidosService
         {
             NumeroRestringidoId = Guid.NewGuid(),
             Numero = valor,
-            FechaCreacion = _clock.UtcNow
+            FechaCreacion = _clock.LocalNow
         };
         _db.NumerosRestringidos.Add(item);
         await _db.SaveChangesAsync(cancellationToken);

@@ -98,7 +98,7 @@ public sealed class UsuarioService : IUsuarioService
             Rol = request.Rol,
             Estado = EstadoUsuario.Activo,
             EstadoValidado = true,
-            FechaCreacion = _clock.UtcNow
+            FechaCreacion = _clock.LocalNow
         };
 
         _db.Usuarios.Add(usuario);
@@ -393,14 +393,14 @@ public sealed class UsuarioService : IUsuarioService
             {
                 DispositivoId = dispositivoId,
                 UsuarioId = usuarioId,
-                FechaAsociacion = _clock.UtcNow,
+                FechaAsociacion = _clock.LocalNow,
                 Activo = true
             });
         }
         else
         {
             existente.Activo = true;
-            existente.FechaAsociacion = _clock.UtcNow;
+            existente.FechaAsociacion = _clock.LocalNow;
         }
 
         return Result.Ok(SuccessMessages.OperacionExitosa);

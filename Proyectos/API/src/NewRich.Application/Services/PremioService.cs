@@ -260,7 +260,7 @@ public sealed class PremioService : IPremioService
             BoletoId = boleto.BoletoId,
             TicketCode = codigo,
             Estado = EstadoCasoGanador.Reportado,
-            FechaReporte = _clock.UtcNow,
+            FechaReporte = _clock.LocalNow,
             VendedorQueReporto = vendedorId,
             FotoTicketRuta = foto.Data?.Ruta,
             FotoTicketNombre = foto.Data?.Nombre
@@ -321,7 +321,7 @@ public sealed class PremioService : IPremioService
         }
 
         caso.Estado = EstadoCasoGanador.Validado;
-        caso.FechaValidacionAdmin = _clock.UtcNow;
+        caso.FechaValidacionAdmin = _clock.LocalNow;
         caso.AdminQueValido = adminId;
         await _db.SaveChangesAsync(cancellationToken);
         return Result<CasoGanadorResponse>.Ok(Map(caso), SuccessMessages.CasoGanadorValidado);
@@ -341,7 +341,7 @@ public sealed class PremioService : IPremioService
         }
 
         caso.Estado = EstadoCasoGanador.Rechazado;
-        caso.FechaValidacionAdmin = _clock.UtcNow;
+        caso.FechaValidacionAdmin = _clock.LocalNow;
         caso.AdminQueValido = adminId;
         if (caso.Boleto is not null)
         {
@@ -382,7 +382,7 @@ public sealed class PremioService : IPremioService
         caso.ObservadorAsignado = observador.UsuarioId;
         caso.ObservadorAsignadoNavigation = observador;
         caso.AdminQueAsigno = adminId;
-        caso.FechaAsignacion = _clock.UtcNow;
+        caso.FechaAsignacion = _clock.LocalNow;
         if (caso.Estado == EstadoCasoGanador.Validado)
         {
             caso.Estado = EstadoCasoGanador.Asignado;
@@ -474,7 +474,7 @@ public sealed class PremioService : IPremioService
             return Result<CasoGanadorResponse>.Fail(fotoCedulaReverso.Message);
         }
 
-        var ahora = _clock.UtcNow;
+        var ahora = _clock.LocalNow;
         var entrega = new EntregaGanador
         {
             EntregaId = Guid.NewGuid(),

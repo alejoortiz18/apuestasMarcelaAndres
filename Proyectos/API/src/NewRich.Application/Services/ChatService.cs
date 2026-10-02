@@ -102,7 +102,7 @@ public sealed class ChatService : IChatService
             ConversacionId = Guid.NewGuid(),
             UsuarioIniciadorId = iniciadorId,
             UsuarioDestinoId = destinoId,
-            FechaInicio = _clock.UtcNow,
+            FechaInicio = _clock.LocalNow,
             Estado = EstadoConversacion.Abierta,
             Tipo = TipoConversacion.AtencionCliente
         };
@@ -113,7 +113,7 @@ public sealed class ChatService : IChatService
             ConversacionId = conversacion.ConversacionId,
             UsuarioEmisorId = iniciadorId,
             Texto = contenido.Texto,
-            FechaEnvio = _clock.UtcNow
+            FechaEnvio = _clock.LocalNow
         };
         await AdjuntarSiHayAsync(mensaje, contenido, cancellationToken);
         conversacion.Mensajes.Add(mensaje);
@@ -222,7 +222,7 @@ public sealed class ChatService : IChatService
             ConversacionId = conversacionId,
             UsuarioEmisorId = emisorId,
             Texto = contenido.Texto,
-            FechaEnvio = _clock.UtcNow
+            FechaEnvio = _clock.LocalNow
         };
         await AdjuntarSiHayAsync(mensaje, contenido, cancellationToken);
 
@@ -283,7 +283,7 @@ public sealed class ChatService : IChatService
                 ConversacionId = Guid.NewGuid(),
                 UsuarioIniciadorId = vendedorId,
                 UsuarioDestinoId = admin.UsuarioId,
-                FechaInicio = _clock.UtcNow,
+                FechaInicio = _clock.LocalNow,
                 Estado = EstadoConversacion.Abierta,
                 Tipo = TipoConversacion.SoporteTecnico
             };
@@ -318,7 +318,7 @@ public sealed class ChatService : IChatService
             ConversacionId = conversacion.ConversacionId,
             UsuarioEmisorId = vendedorId,
             Texto = contenido.Texto,
-            FechaEnvio = _clock.UtcNow,
+            FechaEnvio = _clock.LocalNow,
             Permanente = true
         };
         await AdjuntarSiHayAsync(mensaje, contenido, cancellationToken);
@@ -347,7 +347,7 @@ public sealed class ChatService : IChatService
         }
 
         conversacion.Estado = EstadoConversacion.Cerrada;
-        conversacion.FechaCierre = _clock.UtcNow;
+        conversacion.FechaCierre = _clock.LocalNow;
         await _db.SaveChangesAsync(cancellationToken);
         return Result.Ok(SuccessMessages.ConversacionCerrada);
     }
@@ -432,7 +432,7 @@ public sealed class ChatService : IChatService
             MensajeId = mensaje.MensajeId,
             RutaArchivo = ruta,
             NombreOriginal = cuerpo.NombreArchivo,
-            FechaCarga = _clock.UtcNow
+            FechaCarga = _clock.LocalNow
         });
     }
 

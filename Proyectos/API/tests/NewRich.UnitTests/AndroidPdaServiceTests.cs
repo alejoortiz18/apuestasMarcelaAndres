@@ -8,6 +8,7 @@ using NewRich.Application.Services;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
 using NewRich.Domain.Enums;
+using NewRich.Domain.Services;
 using NewRich.Infrastructure.Persistence;
 using NewRich.Shared.Results;
 
@@ -88,6 +89,34 @@ public sealed class AndroidPdaServiceTests
         resultado.Data.Should().NotContain(c => c.Consecutivo == "OFF-000002");
         (await db.CodigosPreventaOffline.SingleAsync(c => c.ConsecutivoUnico == "OFF-000001"))
             .EstadoDelCodigo.Should().Be(EstadoCodigoOffline.Descargado);
+    }
+
+    [Fact]
+    public async Task DescargarOfflineMob_guarda_fecha_descarga_en_hora_de_Colombia()
+    {
+        var utc = new DateTime(2026, 10, 2, 15, 47, 0, DateTimeKind.Utc);
+        var colombia = ZonaHorariaColombia.ALocal(utc);
+        var (sut, db, _) = CreateSut(clock: new RelojFijo(utc));
+        var usuarioId = Guid.NewGuid();
+        var dispositivoId = Guid.NewGuid();
+        db.CodigosPreventaOffline.Add(new CodigoPreventaOffline
+        {
+            CodigoId = Guid.NewGuid(),
+            ConsecutivoUnico = "OFF-000020",
+            UsuarioId = usuarioId,
+            DispositivoId = dispositivoId,
+            PayloadCifrado = [1],
+            EstadoDelCodigo = EstadoCodigoOffline.Generado,
+            FechaCreacion = utc
+        });
+        await db.SaveChangesAsync();
+
+        var resultado = await sut.DescargarOfflineMobAsync(usuarioId, dispositivoId, CancellationToken.None);
+
+        resultado.IsSuccess.Should().BeTrue(resultado.Message);
+        (await db.CodigosPreventaOffline.SingleAsync(c => c.ConsecutivoUnico == "OFF-000020"))
+            .FechaDescarga.Should().Be(colombia);
+        colombia.Hour.Should().Be(10);
     }
 
     [Fact]
@@ -251,10 +280,15 @@ public sealed class AndroidPdaServiceTests
 
     private sealed class RelojFijo : IClock
     {
-        public RelojFijo(DateTime? localNow = null)
+        public RelojFijo(DateTime? utcNow = null)
         {
-            LocalNow = localNow ?? new DateTime(2026, 9, 9, 16, 0, 0, DateTimeKind.Utc);
-            UtcNow = LocalNow;
+            UtcNow = utcNow ?? new DateTime(2026, 9, 9, 16, 0, 0, DateTimeKind.Utc);
+            if (UtcNow.Kind == DateTimeKind.Unspecified)
+            {
+                UtcNow = DateTime.SpecifyKind(UtcNow, DateTimeKind.Utc);
+            }
+
+            LocalNow = ZonaHorariaColombia.ALocal(UtcNow);
         }
 
         public DateTime UtcNow { get; }

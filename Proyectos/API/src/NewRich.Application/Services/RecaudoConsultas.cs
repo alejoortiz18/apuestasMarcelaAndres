@@ -153,12 +153,12 @@ public sealed partial class RecaudoService
             ?? (await _db.PorcentajesGrupoRecaudo.FirstOrDefaultAsync(p => p.GrupoId == grupoId, cancellationToken))?.Porcentaje
             ?? 0;
         var inicio = hasta.ToDateTime(TimeOnly.MinValue);
-        var inicioUtc = ZonaHorariaColombia.InicioUtcDelDia(hasta);
-        var finUtc = ZonaHorariaColombia.InicioUtcDelDia(hasta.AddDays(1));
-        var ventas = await _db.Ventas.Where(v => ids.Contains(v.UsuarioId) && v.FechaVenta >= inicioUtc && v.FechaVenta < finUtc).ToListAsync(cancellationToken);
+        var inicioPago = ZonaHorariaColombia.InicioLocalDelDia(hasta);
+        var finPago = ZonaHorariaColombia.InicioLocalDelDia(hasta.AddDays(1));
+        var ventas = await _db.Ventas.Where(v => ids.Contains(v.UsuarioId) && v.FechaVenta >= inicioPago && v.FechaVenta < finPago).ToListAsync(cancellationToken);
         var anteriores = await _db.ObligacionesRecaudo.Where(o => ids.Contains(o.VendedorId) && o.Fecha < inicio).ToListAsync(cancellationToken);
-        var pagosPrevios = await _db.PagosRecaudo.Where(p => ids.Contains(p.VendedorId) && p.FechaHora < inicioUtc).ToListAsync(cancellationToken);
-        var pagosHoy = await _db.PagosRecaudo.Where(p => ids.Contains(p.VendedorId) && p.FechaHora >= inicioUtc && p.FechaHora < finUtc).ToListAsync(cancellationToken);
+        var pagosPrevios = await _db.PagosRecaudo.Where(p => ids.Contains(p.VendedorId) && p.FechaHora < inicioPago).ToListAsync(cancellationToken);
+        var pagosHoy = await _db.PagosRecaudo.Where(p => ids.Contains(p.VendedorId) && p.FechaHora >= inicioPago && p.FechaHora < finPago).ToListAsync(cancellationToken);
         var integrantes = usuarios.Select(u =>
         {
             var vendido = ventas.Where(v => v.UsuarioId == u.UsuarioId).Sum(v => v.Total);
@@ -214,13 +214,13 @@ public sealed partial class RecaudoService
 
         if (filtro.Desde is DateOnly desde)
         {
-            var inicio = ZonaHorariaColombia.InicioUtcDelDia(desde);
+            var inicio = ZonaHorariaColombia.InicioLocalDelDia(desde);
             pagos = pagos.Where(p => p.FechaHora >= inicio);
         }
 
         if (filtro.Hasta is DateOnly hasta)
         {
-            var fin = ZonaHorariaColombia.InicioUtcDelDia(hasta.AddDays(1));
+            var fin = ZonaHorariaColombia.InicioLocalDelDia(hasta.AddDays(1));
             pagos = pagos.Where(p => p.FechaHora < fin);
         }
 
@@ -317,7 +317,7 @@ public sealed partial class RecaudoService
         }
 
         asignacion.Estado = "Retirada";
-        asignacion.FechaModificacion = _clock.UtcNow;
+        asignacion.FechaModificacion = _clock.LocalNow;
         await _db.SaveChangesAsync(cancellationToken);
         return Result.Ok(SuccessMessages.OperacionExitosa);
     }
@@ -331,7 +331,7 @@ public sealed partial class RecaudoService
         }
 
         asignacion.Estado = "Retirada";
-        asignacion.FechaModificacion = _clock.UtcNow;
+        asignacion.FechaModificacion = _clock.LocalNow;
         await _db.SaveChangesAsync(cancellationToken);
         return Result.Ok(SuccessMessages.OperacionExitosa);
     }
@@ -359,10 +359,10 @@ public sealed partial class RecaudoService
 
         var hoy = DateOnly.FromDateTime(ZonaHorariaColombia.ALocal(_clock.UtcNow));
         var inicio = hoy.ToDateTime(TimeOnly.MinValue);
-        var inicioUtc = ZonaHorariaColombia.InicioUtcDelDia(hoy);
-        var finUtc = ZonaHorariaColombia.InicioUtcDelDia(hoy.AddDays(1));
+        var inicioLocal = ZonaHorariaColombia.InicioLocalDelDia(hoy);
+        var finLocal = ZonaHorariaColombia.InicioLocalDelDia(hoy.AddDays(1));
         var total = await _db.Ventas
-            .Where(v => v.UsuarioId == vendedorId && v.FechaVenta >= inicioUtc && v.FechaVenta < finUtc)
+            .Where(v => v.UsuarioId == vendedorId && v.FechaVenta >= inicioLocal && v.FechaVenta < finLocal)
             .SumAsync(v => v.Total, cancellationToken);
         var generado = CalculoRecaudo.ObligacionDelDia(total, cobro.Value.Porcentaje);
         var existente = await _db.ObligacionesRecaudo.FirstOrDefaultAsync(
@@ -370,7 +370,7 @@ public sealed partial class RecaudoService
             cancellationToken);
         if (existente is null)
         {
-            var pagosPrevios = await _db.PagosRecaudo.Where(p => p.VendedorId == vendedorId && p.FechaHora < inicioUtc)
+            var pagosPrevios = await _db.PagosRecaudo.Where(p => p.VendedorId == vendedorId && p.FechaHora < ZonaHorariaColombia.InicioLocalDelDia(hoy))
                 .SumAsync(p => (decimal?)p.Valor, cancellationToken) ?? 0m;
             var anteriores = await _db.ObligacionesRecaudo.Where(o => o.VendedorId == vendedorId && o.Fecha < inicio)
                 .SumAsync(o => (decimal?)o.ValorGenerado, cancellationToken) ?? 0m;
@@ -390,7 +390,7 @@ public sealed partial class RecaudoService
                 Porcentaje = cobro.Value.Porcentaje,
                 ValorGenerado = generado,
                 SaldoAnterior = saldoAnterior,
-                FechaGeneracion = _clock.UtcNow
+                FechaGeneracion = _clock.LocalNow
             });
         }
         else
