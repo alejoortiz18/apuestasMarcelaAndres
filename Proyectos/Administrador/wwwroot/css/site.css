@@ -1046,7 +1046,8 @@ button.table-ver { font: inherit; }
 button:disabled, .primary:disabled, .secondary:disabled, .danger:disabled,
 a.primary[aria-disabled="true"],
 a.secondary[aria-disabled="true"],
-a.danger[aria-disabled="true"] {
+a.danger[aria-disabled="true"],
+select:disabled {
   background: #d9dedb !important;
   border-color: #d9dedb !important;
   color: #87918c !important;
@@ -2167,6 +2168,9 @@ label.check input {
 [data-edicion-porcentajes] [hidden],
 [data-asignar-grupos] [hidden] { display: none !important; }
 .recaudo-col-grupo { min-width: 14rem; }
+.recaudo-col-recaudador { min-width: 14rem; }
+.recaudo-col-recaudador .search-select:focus-within { z-index: 30; }
+tr.is-recaudador-cambiado .recaudo-col-recaudador { background: #fbf4e0; }
 .recaudo-col-grupo .search-select:focus-within { z-index: 30; }
 .table-wrap-dropdown:has(.search-select-menu.open) { padding-bottom: 200px; }
 @media (min-width: 900px) {

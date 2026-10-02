@@ -347,25 +347,33 @@ public sealed class RecaudadorCobroPage : ContentPage
         cobrar.Clicked += async (_, _) => await PedirCobroAsync(fila, valor.Texto);
         var hijos = new VerticalStackLayout
         {
-            Spacing = 4,
+            Spacing = 10,
             Children =
             {
                 new Label { Text = fila.NombreCompleto, FontAttributes = FontAttributes.Bold, FontSize = 17, TextColor = Ui.Ink },
-                new Label { Text = string.IsNullOrWhiteSpace(fila.Alias) ? fila.Estado : $"{fila.Alias} · {fila.Estado}", TextColor = color, FontAttributes = FontAttributes.Bold },
-                new Label { Text = $"Vendido {RecaudoPagoVista.Miles(fila.TotalVendido)} · A cobrar {RecaudoPagoVista.Miles(fila.ValorACobrar)}", TextColor = Ui.Muted, FontSize = 13 },
-                new Label { Text = $"{PdaTexts.TotalPendiente}: {RecaudoPagoVista.Miles(fila.TotalPendiente)}", FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink },
+                new Label { Text = string.IsNullOrWhiteSpace(fila.Alias) ? fila.Estado : $"{fila.Alias} · {fila.Estado}", TextColor = color, FontAttributes = FontAttributes.Bold, FontSize = 13 },
+                Cifras(fila, color),
                 valor,
                 cobrar
             }
         };
         if (string.Equals(fila.Lista, nameof(ListaCobro.Cobrados), StringComparison.OrdinalIgnoreCase))
         {
-            hijos.Children.Insert(1, new Label
+            hijos.Children.Insert(1, new Frame
             {
-                Text = PdaTexts.YaCobrado,
-                TextColor = Ui.Info,
-                FontAttributes = FontAttributes.Bold,
-                FontSize = 13
+                Padding = new Thickness(10, 4),
+                CornerRadius = 8,
+                HasShadow = false,
+                BackgroundColor = Ui.InfoBg,
+                BorderColor = Ui.Info,
+                HorizontalOptions = LayoutOptions.Start,
+                Content = new Label
+                {
+                    Text = PdaTexts.YaCobrado,
+                    TextColor = Ui.Info,
+                    FontAttributes = FontAttributes.Bold,
+                    FontSize = 12
+                }
             });
         }
 
@@ -383,6 +391,63 @@ public sealed class RecaudadorCobroPage : ContentPage
             Padding = 14,
             Content = hijos
         };
+    }
+
+    private static Grid Cifras(ObligacionRecaudoResponse fila, Color acento)
+    {
+        var cifras = RecaudoPagoVista.CifrasTarjeta(fila);
+        var grid = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitionCollection { new(GridLength.Star), new(GridLength.Star) },
+            ColumnSpacing = 8,
+            RowSpacing = 8
+        };
+        for (var i = 0; i < cifras.Count; i++)
+        {
+            var filaGrid = i / 2;
+            var col = i % 2;
+            if (grid.RowDefinitions.Count <= filaGrid)
+            {
+                grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+            }
+
+            var cifra = cifras[i];
+            var pagado = cifra.Etiqueta == PdaTexts.TotalPagado;
+            var pendiente = cifra.Etiqueta == PdaTexts.TotalPendiente;
+            var celda = new Frame
+            {
+                Padding = new Thickness(10, 8),
+                CornerRadius = 10,
+                HasShadow = false,
+                BackgroundColor = pagado ? Ui.Mint : pendiente ? Ui.Crema : Color.FromArgb("#f7faf8"),
+                BorderColor = pagado ? Ui.Green : pendiente ? Ui.Gold : Ui.Line,
+                Content = new VerticalStackLayout
+                {
+                    Spacing = 2,
+                    Children =
+                    {
+                        new Label { Text = cifra.Etiqueta, FontSize = 11, TextColor = Ui.Muted, FontAttributes = FontAttributes.Bold },
+                        new Label
+                        {
+                            Text = RecaudoPagoVista.Miles(cifra.Valor),
+                            FontSize = 16,
+                            FontAttributes = FontAttributes.Bold,
+                            TextColor = pagado ? Ui.Green : pendiente ? Ui.Ink : acento
+                        }
+                    }
+                }
+            };
+            Grid.SetRow(celda, filaGrid);
+            Grid.SetColumn(celda, col);
+            if (cifras.Count % 2 == 1 && i == cifras.Count - 1)
+            {
+                Grid.SetColumnSpan(celda, 2);
+            }
+
+            grid.Children.Add(celda);
+        }
+
+        return grid;
     }
 
     private void ArmarModal()

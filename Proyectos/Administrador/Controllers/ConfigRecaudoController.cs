@@ -51,6 +51,7 @@ public sealed class ConfigRecaudoController : AdminControllerBase
             SinConfigurar = g.SinConfigurar,
             TotalPorRecaudar = g.TotalPorRecaudar,
             TotalRecaudado = g.TotalRecaudado,
+            RecaudadorId = g.RecaudadorId,
             RecaudadorNombre = string.IsNullOrWhiteSpace(g.RecaudadorNombre) ? UiTexts.NoAplica : g.RecaudadorNombre
         }).ToList();
         var vendedores = (datos?.VendedoresSinGrupo ?? []).Select(v => new FilaVendedorRecaudo
@@ -158,6 +159,44 @@ public sealed class ConfigRecaudoController : AdminControllerBase
         }
 
         SetFlash(result.Message, result.Success);
+        return RedirectToAction(nameof(Index), new { desde, hasta });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> GuardarRecaudadoresGrupos(List<AsignacionRecaudadorGrupo> asignaciones, string? desde, string? hasta, CancellationToken cancellationToken)
+    {
+        var cambios = (asignaciones ?? []).Where(TieneCambioRecaudador).ToList();
+        if (cambios.Count == 0)
+        {
+            SetFlash(UiTexts.EligeRecaudadorParaGuardar, false);
+            return RedirectToAction(nameof(Index), new { desde, hasta });
+        }
+
+        foreach (var item in cambios)
+        {
+            var result = RecaudadorIdONulo(item.RecaudadorId) is { } recaudadorId
+                ? await _api.AsignarGrupoRecaudoAsync(new AsignarGrupoRecaudoRequest
+                {
+                    RecaudadorId = recaudadorId,
+                    GrupoId = item.GrupoId,
+                    Porcentaje = item.Porcentaje
+                }, cancellationToken)
+                : await _api.RetirarGrupoRecaudoAsync(item.GrupoId, cancellationToken);
+            var unauthorized = RedirectIfUnauthorized(result);
+            if (unauthorized is not null)
+            {
+                return unauthorized;
+            }
+
+            if (!result.Success)
+            {
+                SetFlash(result.Message, false);
+                return RedirectToAction(nameof(Index), new { desde, hasta });
+            }
+        }
+
+        SetFlash(UiTexts.RecaudadoresActualizados, true);
         return RedirectToAction(nameof(Index), new { desde, hasta });
     }
 
@@ -274,4 +313,10 @@ public sealed class ConfigRecaudoController : AdminControllerBase
         SetFlash(result.Message, result.Success);
         return RedirectToAction(nameof(Index), new { desde, hasta });
     }
+
+    private static bool TieneCambioRecaudador(AsignacionRecaudadorGrupo item) =>
+        RecaudadorIdONulo(item.RecaudadorId) != RecaudadorIdONulo(item.RecaudadorActualId);
+
+    private static Guid? RecaudadorIdONulo(Guid? valor) =>
+        valor is null || valor == Guid.Empty ? null : valor;
 }

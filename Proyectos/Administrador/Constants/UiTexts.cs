@@ -56,6 +56,7 @@ public static class UiTexts
     public const string EstadoSinMovimiento = "Sin movimiento";
     public const string SinGruposAsignados = "Sin grupos";
     public const string EligeRecaudador = "Elige un recaudador";
+    public const string SinAsignar = "Sin asignar";
     public const string EligeGrupo = "Elige un grupo";
     public const string EligeVendedor = "Elige un vendedor";
     public const string AyudaPorcentaje = "Entero de 1 a 100. Es la parte que el vendedor debe entregar.";
@@ -76,6 +77,8 @@ public static class UiTexts
     public const string AsignarUnGrupo = "Asignar un grupo";
     public const string GuardarGrupos = "Guardar grupos";
     public const string EligeGrupoParaGuardar = "Elige un grupo para al menos un vendedor.";
+    public const string EligeRecaudadorParaGuardar = "Cambia el recaudador de al menos un grupo.";
+    public const string RecaudadoresActualizados = "Los recaudadores de los grupos fueron actualizados.";
     public const string VendedoresAsignadosAGrupo = "Los vendedores fueron asignados al grupo.";
     public const string AyudaAsignarGrupos = "Elige el grupo de cada vendedor y pulsa Guardar grupos. Cancelar deja los vendedores sin cambios.";
     public const string EliminarDelGrupo = "Eliminar del grupo";

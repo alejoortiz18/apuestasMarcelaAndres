@@ -67,6 +67,7 @@ public sealed class FilaGrupoRecaudo
     public bool SinConfigurar { get; init; }
     public decimal TotalPorRecaudar { get; init; }
     public decimal TotalRecaudado { get; init; }
+    public Guid? RecaudadorId { get; init; }
     public string RecaudadorNombre { get; init; } = string.Empty;
 }
 
@@ -114,6 +115,14 @@ public sealed class AsignacionGrupoVendedor
 {
     public Guid VendedorId { get; set; }
     public Guid? GrupoId { get; set; }
+}
+
+public sealed class AsignacionRecaudadorGrupo
+{
+    public Guid GrupoId { get; set; }
+    public Guid? RecaudadorId { get; set; }
+    public Guid? RecaudadorActualId { get; set; }
+    public int Porcentaje { get; set; }
 }
 
 public sealed class HistorialRecaudoViewModel

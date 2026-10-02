@@ -75,7 +75,7 @@
     }
     else
     {
-        <div class="table-wrap">
+        <div class="table-wrap table-wrap-dropdown">
             <table data-table-select="grupos-recaudo">
                 <thead>
                 <tr>
@@ -107,11 +107,31 @@
                                        min="0" max="100" step="1" data-porcentaje-input aria-label="@UiTexts.Porcentaje @fila.Nombre" />
                                 <span class="porcentaje-sufijo" aria-hidden="true">%</span>
                             </span>
-                            @{ i++; }
                         </td>
                         <td class="recaudo-cifra">@FormatoPesos.De(fila.TotalPorRecaudar)</td>
                         <td class="recaudo-cifra">@FormatoPesos.De(fila.TotalRecaudado)</td>
-                        <td>@fila.RecaudadorNombre</td>
+                        <td class="recaudo-col-recaudador">
+                            <input type="hidden" form="form-recaudadores-grupos" name="asignaciones[@i].GrupoId" value="@fila.GrupoId" />
+                            <input type="hidden" form="form-recaudadores-grupos" name="asignaciones[@i].Porcentaje" value="@fila.Porcentaje" />
+                            <input type="hidden" form="form-recaudadores-grupos" name="asignaciones[@i].RecaudadorActualId" value="@fila.RecaudadorId" />
+                            <select class="searchable" form="form-recaudadores-grupos" name="asignaciones[@i].RecaudadorId"
+                                    data-recaudador-grupo data-recaudador-inicial="@(fila.RecaudadorId?.ToString() ?? "")"
+                                    aria-label="@UiTexts.Recaudador @fila.Nombre">
+                                <option value="">@UiTexts.SinAsignar</option>
+                                @foreach (var item in Model.Recaudadores)
+                                {
+                                    if (fila.RecaudadorId == item.Id)
+                                    {
+                                        <option value="@item.Id" selected>@item.Nombre</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@item.Id">@item.Nombre</option>
+                                    }
+                                }
+                            </select>
+                            @{ i++; }
+                        </td>
                         <td>
                             <a class="secondary table-ver" asp-action="Ver" asp-route-id="@fila.GrupoId" asp-route-desde="@Model.Desde.ToString("yyyy-MM-dd")" asp-route-hasta="@Model.Hasta.ToString("yyyy-MM-dd")">@UiTexts.Ver</a>
                         </td>
@@ -125,16 +145,19 @@
             <h2>@UiTexts.AccionesDeRecaudo</h2>
             <p class="panel-sub">@UiTexts.SeleccionaParaAcciones</p>
             <div class="table-actions-buttons">
-                <form method="post" data-needs-selection data-url-template="@Url.Action("RetirarGrupo")/{id}">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="desde" value="@Model.Desde.ToString("yyyy-MM-dd")" />
-                    <input type="hidden" name="hasta" value="@Model.Hasta.ToString("yyyy-MM-dd")" />
-                    <button class="danger" type="submit">@UiTexts.RetirarAsignacion</button>
-                </form>
                 <button class="secondary boton-icono" type="button" data-editar-porcentajes>
                     <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-4-4L4 16v4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
                     @UiTexts.EditarPorcentajes
                 </button>
+                <form id="form-recaudadores-grupos" method="post" asp-action="GuardarRecaudadoresGrupos" data-guardar-recaudadores data-protected-action="@AccionesProtegidas.GruposAsignar" data-protected-usos="1">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="desde" value="@Model.Desde.ToString("yyyy-MM-dd")" />
+                    <input type="hidden" name="hasta" value="@Model.Hasta.ToString("yyyy-MM-dd")" />
+                    <button class="primary boton-icono" type="submit" disabled>
+                        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        @UiTexts.Guardar
+                    </button>
+                </form>
                 <form id="form-porcentajes-grupos" method="post" asp-action="GuardarPorcentajesGrupos" data-guardar-porcentajes hidden>
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="desde" value="@Model.Desde.ToString("yyyy-MM-dd")" />

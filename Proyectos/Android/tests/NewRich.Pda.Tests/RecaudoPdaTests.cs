@@ -196,7 +196,27 @@ public sealed class RecaudoPdaTests
         cobro.Should().Contain("PdaTexts.Cobrados");
         cobro.Should().Contain("PdaTexts.Todos");
         cobro.Should().Contain("PdaTexts.Buscar");
+        cobro.Should().Contain("RecaudoPagoVista.CifrasTarjeta");
+        cobro.Should().Contain("PdaTexts.TotalPagado");
         cobro.Should().Contain("RegistrarPagoRecaudo");
+    }
+
+    [Fact]
+    public void La_tarjeta_cobrada_muestra_lo_que_el_vendedor_pago()
+    {
+        var cifras = RecaudoPagoVista.CifrasTarjeta(TresFilas()[1]);
+
+        cifras.Select(c => c.Etiqueta).Should().Equal(
+            PdaTexts.Vendido, PdaTexts.ACobrar, PdaTexts.TotalPagado, PdaTexts.TotalPendiente);
+        cifras.Should().Contain(c => c.Etiqueta == PdaTexts.TotalPagado && c.Valor == 30_000m);
+        cifras.Should().Contain(c => c.Etiqueta == PdaTexts.TotalPendiente && c.Valor == 10_000m);
+    }
+
+    [Fact]
+    public void La_tarjeta_pendiente_no_muestra_pagado()
+    {
+        RecaudoPagoVista.CifrasTarjeta(TresFilas()[0])
+            .Select(c => c.Etiqueta).Should().Equal(PdaTexts.Vendido, PdaTexts.ACobrar, PdaTexts.TotalPendiente);
     }
 
     private static string RutaMaui(params string[] partes)

@@ -6,6 +6,50 @@ namespace NewRich.Admin.Tests;
 public sealed class ConfigRecaudoVistaTests
 {
     [Fact]
+    public void La_columna_recaudador_es_una_lista_con_buscador_que_no_guarda_al_cambiar()
+    {
+        var vista = File.ReadAllText(RutaVista("Index.cshtml"));
+        var tabla = vista.IndexOf("data-table-select=\"grupos-recaudo\"", StringComparison.Ordinal);
+        var panel = vista.IndexOf("data-table-panel=\"grupos-recaudo\"", StringComparison.Ordinal);
+        var grupos = vista[tabla..panel];
+
+        grupos.Should().NotContain("asp-action=\"ActualizarRecaudadorGrupo\"");
+        grupos.Should().Contain("class=\"searchable\"");
+        grupos.Should().Contain("data-recaudador-grupo");
+        grupos.Should().Contain("data-recaudador-inicial");
+        grupos.Should().Contain("UiTexts.SinAsignar");
+        grupos.Should().Contain("name=\"asignaciones[@i].RecaudadorId\"");
+        grupos.Should().Contain("name=\"asignaciones[@i].GrupoId\"");
+        grupos.Should().Contain("name=\"asignaciones[@i].Porcentaje\"");
+        grupos.Should().Contain("name=\"asignaciones[@i].RecaudadorActualId\"");
+        grupos.Should().Contain("fila.RecaudadorId == item.Id");
+        grupos.Should().NotContain("@fila.RecaudadorNombre");
+        var celda = grupos[grupos.IndexOf("recaudo-col-recaudador", StringComparison.Ordinal)..grupos.IndexOf("table-ver", StringComparison.Ordinal)];
+        celda.Should().NotContain("disabled");
+        vista[..tabla].Should().Contain("table-wrap-dropdown");
+    }
+
+    [Fact]
+    public void Guardar_recaudadores_esta_junto_a_editar_porcentajes_deshabilitado_y_pide_contrasena()
+    {
+        var vista = File.ReadAllText(RutaVista("Index.cshtml"));
+        var panel = vista.IndexOf("data-table-panel=\"grupos-recaudo\"", StringComparison.Ordinal);
+        var acciones = vista[panel..vista.IndexOf("data-asignar-grupos", StringComparison.Ordinal)];
+        var editar = acciones.IndexOf("data-editar-porcentajes", StringComparison.Ordinal);
+        var guardar = acciones.IndexOf("data-guardar-recaudadores", StringComparison.Ordinal);
+
+        guardar.Should().BeGreaterThan(editar);
+        acciones.Should().Contain("asp-action=\"GuardarRecaudadoresGrupos\"");
+        acciones.Should().Contain("data-protected-action=\"@AccionesProtegidas.GruposAsignar\"");
+        acciones.Should().Contain("UiTexts.Guardar");
+        acciones.Should().Contain("disabled");
+        var script = File.ReadAllText(Path.GetFullPath(Path.Combine(
+            AppContext.BaseDirectory, "..", "..", "..", "..", "Administrador", "wwwroot", "js", "site.js")));
+        script.Should().Contain("data-guardar-recaudadores");
+        script.Should().NotContain("select.form.submit()");
+    }
+
+    [Fact]
     public void Cada_fila_de_grupos_tiene_el_boton_ver_al_final()
     {
         var vista = File.ReadAllText(RutaVista("Index.cshtml"));

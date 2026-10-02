@@ -384,6 +384,51 @@
     });
   });
 
+  document.querySelectorAll("[data-guardar-recaudadores]").forEach(function (form) {
+    const boton = form.querySelector('button[type="submit"]');
+    const panel = form.closest("[data-edicion-porcentajes]") || form.closest(".panel");
+    const selects = (panel || document).querySelectorAll("[data-recaudador-grupo]");
+    if (!boton) {
+      return;
+    }
+
+    function valorInicial(select) {
+      return select.getAttribute("data-recaudador-inicial") || "";
+    }
+
+    function cambios() {
+      return Array.from(selects).filter(function (select) {
+        return select.value !== valorInicial(select);
+      });
+    }
+
+    function actualizar() {
+      const pendientes = cambios();
+      const activo = pendientes.length > 0;
+      boton.disabled = !activo;
+      form.setAttribute("data-protected-usos", String(Math.max(1, pendientes.length)));
+      selects.forEach(function (select) {
+        const fila = select.closest("tr");
+        if (fila) {
+          fila.classList.toggle("is-recaudador-cambiado", select.value !== valorInicial(select));
+        }
+      });
+    }
+
+    selects.forEach(function (select) {
+      select.addEventListener("change", actualizar);
+    });
+    form.addEventListener("submit", function (event) {
+      if (cambios().length === 0) {
+        event.preventDefault();
+        boton.disabled = true;
+        return;
+      }
+      boton.disabled = true;
+    });
+    actualizar();
+  });
+
   document.querySelectorAll("[data-asignar-grupos]").forEach(function (panel) {
     const guardar = panel.querySelector("[data-guardar-grupos]");
     const cancelar = panel.querySelector("[data-cancelar-grupos]");

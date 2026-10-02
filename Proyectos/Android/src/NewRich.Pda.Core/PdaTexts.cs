@@ -391,6 +391,9 @@ public static class PdaTexts
     public const string PdaRecaudador = "PDA recaudador";
     public const string RegistrarCobro = "Registrar cobro";
     public const string ValorRecibido = "Valor recibido";
+    public const string Vendido = "Vendido";
+    public const string ACobrar = "A cobrar";
+    public const string TotalPagado = "Total pagado";
     public const string TotalPendiente = "Total pendiente";
     public const string SaldoQueQueda = "Saldo que queda";
     public const string ConfirmarCobro = "Confirmar cobro";
