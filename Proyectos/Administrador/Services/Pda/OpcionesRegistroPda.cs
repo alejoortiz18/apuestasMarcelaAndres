@@ -17,7 +17,7 @@ public sealed class OpcionesRegistroPda
     public string Paquete { get; set; } = ProvisionPda.Paquete;
 
     /// <summary>Puerto del puente USB que la aplicacion usa para alcanzar la API.</summary>
-    public int PuertoPuenteUsb { get; set; } = 5295;
+    public int PuertoPuenteUsb { get; set; } = 8090;
 
     /// <summary>Tope de espera de cada comando de adb. La instalacion es la operacion mas lenta.</summary>
     public int TiempoLimiteSegundos { get; set; } = 180;

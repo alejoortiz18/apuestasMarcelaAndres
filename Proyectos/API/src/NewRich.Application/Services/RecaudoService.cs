@@ -295,6 +295,8 @@ public sealed partial class RecaudoService : IRecaudoService
                 VendedorId = usuario.UsuarioId,
                 NombreCompleto = usuario.NombreCompleto,
                 Alias = usuario.Alias,
+                Usuario = usuario.NombreUsuario,
+                Documento = usuario.Documento,
                 Grupo = grupoNombre,
                 TotalVendido = total,
                 ValorACobrar = generado,

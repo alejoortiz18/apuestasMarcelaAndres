@@ -21,10 +21,61 @@
   const modelo = raiz.querySelector("[data-modelo]");
   const dialogo = document.getElementById("registroPdaDialog");
   const tipo = raiz.querySelector("[data-tipo]");
+  const clases = Array.prototype.slice.call(raiz.querySelectorAll("[data-clase]"));
   const token = raiz.querySelector('input[name="__RequestVerificationToken"]');
+  const perfiles = tipo
+    ? Array.prototype.map.call(tipo.options, function (opcion) {
+        return {
+          valor: opcion.value,
+          texto: opcion.text,
+          clases: (opcion.getAttribute("data-clases") || "").split(" ").filter(Boolean)
+        };
+      })
+    : [];
 
   let conexion = null;
   let tokenRegistro = "";
+
+  function claseElegida() {
+    const marcada = clases.find(function (entrada) {
+      return entrada.checked;
+    });
+    return marcada ? marcada.value : "";
+  }
+
+  // El PDA de venta y el celular admiten perfiles distintos, asi que la lista se arma
+  // con los que acepta el equipo elegido y nunca ofrece una combinacion que el servidor rechaza.
+  function sincronizarPerfiles() {
+    if (!tipo || perfiles.length === 0) {
+      return;
+    }
+    const clase = claseElegida();
+    const permitidos = perfiles.filter(function (perfil) {
+      return perfil.clases.indexOf(clase) >= 0;
+    });
+    if (permitidos.length === 0) {
+      return;
+    }
+    const anterior = tipo.value;
+    tipo.replaceChildren();
+    permitidos.forEach(function (perfil) {
+      const opcion = document.createElement("option");
+      opcion.value = perfil.valor;
+      opcion.text = perfil.texto;
+      opcion.setAttribute("data-clases", perfil.clases.join(" "));
+      tipo.appendChild(opcion);
+    });
+    const conserva = permitidos.some(function (perfil) {
+      return perfil.valor === anterior;
+    });
+    tipo.value = conserva ? anterior : permitidos[0].valor;
+    const buscador = tipo.parentNode
+      ? tipo.parentNode.querySelector(".search-select-input")
+      : null;
+    if (buscador) {
+      buscador.value = tipo.options[tipo.selectedIndex].text;
+    }
+  }
 
   function mostrar(elemento, texto) {
     if (!elemento) {
@@ -55,6 +106,10 @@
     }
     if (tipo) {
       datos.append("tipo", tipo.value);
+    }
+    const clase = claseElegida();
+    if (clase) {
+      datos.append("clase", clase);
     }
     const headers = { "X-Requested-With": "XMLHttpRequest" };
     if (conConfirmacion && tokenRegistro) {
@@ -193,6 +248,11 @@
       siguiente();
     });
   }
+
+  clases.forEach(function (entrada) {
+    entrada.addEventListener("change", sincronizarPerfiles);
+  });
+  sincronizarPerfiles();
 
   botonContinuar.addEventListener("click", function () {
     pedirRegistro(function () {

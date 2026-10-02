@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Microsoft.Extensions.Options;
 using Moq;
 using NewRich.Admin.Constants;
@@ -79,7 +79,7 @@ public sealed class RegistroGuiadoPdaTests
         var sut = CrearServicio(out _, out _);
         var avance = new AvanceRegistrado();
 
-        var resultado = await sut.RegistrarAsync(TipoDispositivo.Vendedor, avance, CancellationToken.None);
+        var resultado = await sut.RegistrarAsync(ClaseEquipoPda.Pda, TipoDispositivo.Vendedor, avance, CancellationToken.None);
 
         resultado.Exitoso.Should().BeTrue();
         var avances = avance.Reportados;
@@ -104,7 +104,7 @@ public sealed class RegistroGuiadoPdaTests
         var sut = CrearServicio(out _, out _);
         var avance = new AvanceRegistrado();
 
-        var resultado = await sut.RegistrarAsync(TipoDispositivo.Vendedor, avance, CancellationToken.None);
+        var resultado = await sut.RegistrarAsync(ClaseEquipoPda.Pda, TipoDispositivo.Vendedor, avance, CancellationToken.None);
 
         var textoVisible = string.Join(" ", avance.Reportados.Select(a => a.Mensaje).Append(resultado.Mensaje));
         textoVisible.Should().NotContain(CodigoGenerado);
@@ -115,7 +115,7 @@ public sealed class RegistroGuiadoPdaTests
     {
         var sut = CrearServicio(out _, out _);
 
-        var resultado = await sut.RegistrarAsync(TipoDispositivo.Vendedor, Silencio(), CancellationToken.None);
+        var resultado = await sut.RegistrarAsync(ClaseEquipoPda.Pda, TipoDispositivo.Vendedor, Silencio(), CancellationToken.None);
 
         resultado.Exitoso.Should().BeTrue();
         resultado.NombreRegistrado.Should().Be(CodigoGenerado);
@@ -128,7 +128,7 @@ public sealed class RegistroGuiadoPdaTests
         adb.Responder($"-s {Serie} shell pm path com.newrich.pda", string.Empty);
         var sut = CrearServicio(adb, ApiQueRegistra().Object);
 
-        var resultado = await sut.RegistrarAsync(TipoDispositivo.Vendedor, Silencio(), CancellationToken.None);
+        var resultado = await sut.RegistrarAsync(ClaseEquipoPda.Pda, TipoDispositivo.Vendedor, Silencio(), CancellationToken.None);
 
         resultado.Exitoso.Should().BeFalse();
         resultado.NombreRegistrado.Should().BeNull();
@@ -139,7 +139,7 @@ public sealed class RegistroGuiadoPdaTests
     {
         var sut = CrearServicio(out var adb, out _);
 
-        await sut.RegistrarAsync(TipoDispositivo.Vendedor, Silencio(), CancellationToken.None);
+        await sut.RegistrarAsync(ClaseEquipoPda.Pda, TipoDispositivo.Vendedor, Silencio(), CancellationToken.None);
 
         adb.Ejecutados.Should().ContainSingle(c =>
             c == $"-s {Serie} shell settings put global newrich_codigo_dispositivo {CodigoGenerado}");
@@ -156,7 +156,7 @@ public sealed class RegistroGuiadoPdaTests
             "SecurityException: Permission denial");
         var sut = CrearServicio(adb, ApiQueRegistra().Object);
 
-        var resultado = await sut.RegistrarAsync(TipoDispositivo.Observador, Silencio(), CancellationToken.None);
+        var resultado = await sut.RegistrarAsync(ClaseEquipoPda.Celular, TipoDispositivo.Observador, Silencio(), CancellationToken.None);
 
         resultado.Exitoso.Should().BeTrue();
         resultado.Mensaje.Should().Be(UiTexts.PdaRegistroCompletado);
@@ -174,7 +174,7 @@ public sealed class RegistroGuiadoPdaTests
         adb.Responder($"-s {Serie} shell pm install -r -t -d {InstalacionApk.RutaTemporal}", "Success");
         var sut = CrearServicio(adb, ApiQueRegistra().Object);
 
-        var resultado = await sut.RegistrarAsync(TipoDispositivo.Observador, Silencio(), CancellationToken.None);
+        var resultado = await sut.RegistrarAsync(ClaseEquipoPda.Celular, TipoDispositivo.Observador, Silencio(), CancellationToken.None);
 
         resultado.Exitoso.Should().BeTrue();
         adb.Ejecutados.Should().Contain(c => c == $"-s {Serie} push C:\\apk\\NewRich.apk {InstalacionApk.RutaTemporal}");
@@ -190,7 +190,7 @@ public sealed class RegistroGuiadoPdaTests
         adb.Responder($"-s {Serie} uninstall com.newrich.pda", "Success");
         var sut = CrearServicio(adb, ApiQueRegistra().Object);
 
-        var resultado = await sut.RegistrarAsync(TipoDispositivo.Observador, Silencio(), CancellationToken.None);
+        var resultado = await sut.RegistrarAsync(ClaseEquipoPda.Celular, TipoDispositivo.Observador, Silencio(), CancellationToken.None);
 
         resultado.Exitoso.Should().BeTrue();
         adb.Ejecutados.Should().Contain(c => c == $"-s {Serie} uninstall com.newrich.pda");
@@ -206,7 +206,7 @@ public sealed class RegistroGuiadoPdaTests
         adb.Responder($"-s {Serie} shell pm install -r -t -d {InstalacionApk.RutaTemporal}", string.Empty, 1, "Failure [INSTALL_FAILED_USER_RESTRICTED]");
         var sut = CrearServicio(adb, ApiQueRegistra().Object);
 
-        var resultado = await sut.RegistrarAsync(TipoDispositivo.Observador, Silencio(), CancellationToken.None);
+        var resultado = await sut.RegistrarAsync(ClaseEquipoPda.Celular, TipoDispositivo.Observador, Silencio(), CancellationToken.None);
 
         resultado.Exitoso.Should().BeFalse();
         resultado.Mensaje.Should().Be(UiTexts.PdaFalloInstalacionCelular);
@@ -217,7 +217,7 @@ public sealed class RegistroGuiadoPdaTests
     {
         var sut = CrearServicio(out var adb, out _);
 
-        var resultado = await sut.RegistrarAsync(TipoDispositivo.Vendedor, Silencio(), CancellationToken.None);
+        var resultado = await sut.RegistrarAsync(ClaseEquipoPda.Pda, TipoDispositivo.Vendedor, Silencio(), CancellationToken.None);
 
         resultado.Exitoso.Should().BeTrue();
         adb.Ejecutados.Should().ContainSingle(c => c == ComandoIdentidadInterna);
@@ -235,7 +235,7 @@ public sealed class RegistroGuiadoPdaTests
             "run-as: package not debuggable");
         var sut = CrearServicio(adb, ApiQueRegistra().Object);
 
-        var resultado = await sut.RegistrarAsync(TipoDispositivo.Observador, Silencio(), CancellationToken.None);
+        var resultado = await sut.RegistrarAsync(ClaseEquipoPda.Celular, TipoDispositivo.Observador, Silencio(), CancellationToken.None);
 
         resultado.Exitoso.Should().BeTrue();
         adb.Ejecutados.Should().Contain(c =>
@@ -247,7 +247,7 @@ public sealed class RegistroGuiadoPdaTests
     {
         var sut = CrearServicio(out var adb, out _);
 
-        await sut.RegistrarAsync(TipoDispositivo.Vendedor, Silencio(), CancellationToken.None);
+        await sut.RegistrarAsync(ClaseEquipoPda.Pda, TipoDispositivo.Vendedor, Silencio(), CancellationToken.None);
 
         adb.Ejecutados.Should().ContainSingle(c => c == ComandoInstalacionDirecta);
     }
@@ -258,7 +258,7 @@ public sealed class RegistroGuiadoPdaTests
         var api = ApiQueRegistra();
         var sut = CrearServicio(new AdbFalso().ConEquipoListo(Serie), api.Object);
 
-        await sut.RegistrarAsync(TipoDispositivo.Vendedor, Silencio(), CancellationToken.None);
+        await sut.RegistrarAsync(ClaseEquipoPda.Pda, TipoDispositivo.Vendedor, Silencio(), CancellationToken.None);
 
         api.Verify(a => a.RegistrarDispositivoAutomaticoAsync(
             It.Is<RegistrarPdaAutomaticoRequest>(r => r.NumeroSerie == Serie && r.Modelo == "RMX3710"),
@@ -274,7 +274,7 @@ public sealed class RegistroGuiadoPdaTests
         var api = ApiQueRegistra();
         var sut = CrearServicio(new AdbFalso().ConEquipoListo(Serie), api.Object);
 
-        await sut.RegistrarAsync(tipo, Silencio(), CancellationToken.None);
+        await sut.RegistrarAsync(ClaseEquipoPda.Pda, tipo, Silencio(), CancellationToken.None);
 
         api.Verify(a => a.RegistrarDispositivoAutomaticoAsync(
             It.Is<RegistrarPdaAutomaticoRequest>(r => r.Tipo == tipo),
@@ -287,7 +287,7 @@ public sealed class RegistroGuiadoPdaTests
         var api = ApiQueRegistra();
         var sut = CrearServicio(new AdbFalso().ConEquipoListo(Serie), api.Object, new ApkFalso(null));
 
-        var resultado = await sut.RegistrarAsync(TipoDispositivo.Vendedor, Silencio(), CancellationToken.None);
+        var resultado = await sut.RegistrarAsync(ClaseEquipoPda.Pda, TipoDispositivo.Vendedor, Silencio(), CancellationToken.None);
 
         resultado.Exitoso.Should().BeFalse();
         resultado.Mensaje.Should().Be(UiTexts.PdaSinAplicacionDisponible);
@@ -304,7 +304,7 @@ public sealed class RegistroGuiadoPdaTests
         var adb = new AdbFalso().ConEquipoListo(Serie);
         var sut = CrearServicio(adb, api.Object);
 
-        var resultado = await sut.RegistrarAsync(TipoDispositivo.Vendedor, Silencio(), CancellationToken.None);
+        var resultado = await sut.RegistrarAsync(ClaseEquipoPda.Pda, TipoDispositivo.Vendedor, Silencio(), CancellationToken.None);
 
         resultado.Exitoso.Should().BeFalse();
         resultado.Mensaje.Should().Be("El numero de serie es obligatorio.");
@@ -318,7 +318,7 @@ public sealed class RegistroGuiadoPdaTests
         adb.Responder($"-s {Serie} shell pm path com.newrich.pda", string.Empty);
         var sut = CrearServicio(adb, ApiQueRegistra().Object);
 
-        var resultado = await sut.RegistrarAsync(TipoDispositivo.Vendedor, Silencio(), CancellationToken.None);
+        var resultado = await sut.RegistrarAsync(ClaseEquipoPda.Pda, TipoDispositivo.Vendedor, Silencio(), CancellationToken.None);
 
         resultado.Exitoso.Should().BeFalse();
         resultado.Mensaje.Should().Be(UiTexts.PdaInstalacionNoVerificada);
@@ -332,7 +332,7 @@ public sealed class RegistroGuiadoPdaTests
         adb.Responder("devices -l", "List of devices attached\n\n");
         var sut = CrearServicio(adb, api.Object);
 
-        var resultado = await sut.RegistrarAsync(TipoDispositivo.Vendedor, Silencio(), CancellationToken.None);
+        var resultado = await sut.RegistrarAsync(ClaseEquipoPda.Pda, TipoDispositivo.Vendedor, Silencio(), CancellationToken.None);
 
         resultado.Exitoso.Should().BeFalse();
         resultado.Mensaje.Should().Be(UiTexts.PdaSinDispositivoConectado);
@@ -345,9 +345,9 @@ public sealed class RegistroGuiadoPdaTests
     {
         var sut = CrearServicio(out var adb, out _);
 
-        await sut.RegistrarAsync(TipoDispositivo.Vendedor, Silencio(), CancellationToken.None);
+        await sut.RegistrarAsync(ClaseEquipoPda.Pda, TipoDispositivo.Vendedor, Silencio(), CancellationToken.None);
 
-        adb.Ejecutados.Should().ContainSingle(c => c == $"-s {Serie} reverse tcp:5295 tcp:5295");
+        adb.Ejecutados.Should().ContainSingle(c => c == $"-s {Serie} reverse tcp:8090 tcp:8090");
     }
 
     private static IAvanceRegistroPda Silencio() => new AvanceRegistrado();
@@ -420,7 +420,7 @@ public sealed class RegistroGuiadoPdaTests
             Responder($"-s {serie} shell run-as com.newrich.pda sh -c 'echo {CodigoGenerado} > files/identidad.txt'", string.Empty);
             Responder($"-s {serie} shell run-as com.newrich.pda sh -c 'echo {serie} > files/serie.txt'", string.Empty);
             Responder($"-s {serie} shell mkdir -p /sdcard/Android/data/com.newrich.pda/files; echo {CodigoGenerado} > /sdcard/Android/data/com.newrich.pda/files/identidad.txt", string.Empty);
-            Responder($"-s {serie} reverse tcp:5295 tcp:5295", string.Empty);
+            Responder($"-s {serie} reverse tcp:8090 tcp:8090", string.Empty);
             return this;
         }
 
@@ -452,3 +452,4 @@ public sealed class RegistroGuiadoPdaTests
         }
     }
 }
+

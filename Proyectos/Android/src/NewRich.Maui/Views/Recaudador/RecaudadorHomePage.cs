@@ -1,10 +1,8 @@
 using NewRich.Application.Contracts.Recaudo;
-using NewRich.Domain.Services;
 using NewRich.Pda.Core;
 using NewRich.Pda.Core.Api;
 using NewRich.Pda.Core.Auth;
 using NewRich.Maui.Data;
-using NewRich.Maui.Services;
 using NewRich.Maui.Views;
 
 namespace NewRich.Maui.Views.Recaudador;
@@ -14,96 +12,199 @@ public sealed class RecaudadorHomePage : ContentPage
     private readonly NewRichApiClient _api;
     private readonly SesionPda _sesion;
     private readonly LocalDatabase _local;
-    private readonly IPrinterService _impresora;
-    private readonly VerticalStackLayout _lista = new() { Spacing = 10 };
+    private readonly IServiceProvider _services;
     private readonly Label _estado = new() { FontSize = 11, TextColor = Color.FromArgb("#bce9cc") };
-    private readonly Label _porCobrar = new() { FontSize = 22, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink };
-    private readonly Label _recaudado = new() { FontSize = 22, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink };
-    private readonly Label _pendiente = new() { FontSize = 22, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink };
-    private readonly Entry _buscar = Ui.Entrada("Buscar vendedor");
-    private readonly Picker _orden = new() { Title = PdaTexts.OrdenarPor, ItemsSource = new[] { "vendedor", "vendido", "cobrar", "pendiente", "recibido", "estado" } };
-    private readonly ActivityIndicator _spinner = new() { IsRunning = false, IsVisible = false, Color = Ui.Gold };
-    private readonly Grid _modal = new() { IsVisible = false };
-    private ListaCobro? _filtroLista;
-    private IReadOnlyList<ObligacionRecaudoResponse> _filas = [];
-    private bool _ocupado;
+    private readonly Label _fecha = new()
+    {
+        Text = RecaudoListas.FechaDelDia(DateTime.UtcNow),
+        FontAttributes = FontAttributes.Bold,
+        FontSize = 14,
+        TextColor = Ui.Ink,
+        HorizontalTextAlignment = TextAlignment.Center
+    };
+    private readonly Label _total = new()
+    {
+        FontSize = 22,
+        FontAttributes = FontAttributes.Bold,
+        TextColor = Ui.Ink,
+        Text = RecaudoPagoVista.Miles(0),
+        HorizontalTextAlignment = TextAlignment.Center
+    };
+    private readonly Label _recaudado = new()
+    {
+        FontSize = 22,
+        FontAttributes = FontAttributes.Bold,
+        TextColor = Ui.Ink,
+        Text = RecaudoPagoVista.Miles(0),
+        HorizontalTextAlignment = TextAlignment.Center
+    };
+    private readonly Label _grupos = new() { FontSize = 19, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink, Text = "0" };
+    private readonly Label _vendedores = new() { FontSize = 19, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink, Text = "0" };
+    private readonly Button _recaudar;
 
-    public RecaudadorHomePage(NewRichApiClient api, SesionPda sesion, LocalDatabase local, IPrinterService impresora)
+    public RecaudadorHomePage(NewRichApiClient api, SesionPda sesion, LocalDatabase local, IServiceProvider services)
     {
         _api = api;
         _sesion = sesion;
         _local = local;
-        _impresora = impresora;
-        Title = PdaTexts.Recaudo;
-        _orden.SelectedIndex = 0;
-        _buscar.TextChanged += (_, _) => Pintar();
-        _orden.SelectedIndexChanged += (_, _) => Pintar();
+        _services = services;
+        Title = PdaTexts.Inicio;
+        _recaudar = Ui.Primario(PdaTexts.Recaudar);
+        _recaudar.Clicked += async (_, _) =>
+            await Navigation.PushAsync(_services.GetRequiredService<RecaudadorCobroPage>());
 
-        var contenido = new ScrollView
+        Content = new ScrollView
         {
             BackgroundColor = Ui.Paper,
             Content = new VerticalStackLayout
             {
                 Padding = 16,
-                Spacing = 12,
+                Spacing = 14,
                 Children =
                 {
-                    Encabezado(),
-                    Indicadores(),
-                    Filtros(),
-                    _spinner,
-                    _lista
+                    new Frame
+                    {
+                        BackgroundColor = Ui.Dark,
+                        BorderColor = Ui.Dark,
+                        CornerRadius = 0,
+                        Padding = new Thickness(18, 18, 18, 22),
+                        Content = new VerticalStackLayout
+                        {
+                            Children =
+                            {
+                                Ui.Titulo(_sesion.Usuario?.NombreCompleto ?? PdaTexts.Inicio),
+                                new Label { Text = PdaTexts.PdaRecaudador, TextColor = Color.FromArgb("#aed8c4"), FontSize = 13 },
+                                _estado
+                            }
+                        }
+                    },
+                    new Frame
+                    {
+                        BackgroundColor = Ui.Gold,
+                        BorderColor = Ui.Gold,
+                        CornerRadius = 15,
+                        Padding = 20,
+                        Content = new VerticalStackLayout
+                        {
+                            Spacing = 8,
+                            Children =
+                            {
+                                _fecha,
+                                new Grid
+                                {
+                                    ColumnDefinitions = new ColumnDefinitionCollection { new(GridLength.Star), new(GridLength.Star) },
+                                    ColumnSpacing = 12,
+                                    Children =
+                                    {
+                                        Columna(PdaTexts.TotalRecaudar, _total, 0),
+                                        Columna(PdaTexts.TotalRecaudado, _recaudado, 1)
+                                    }
+                                },
+                                _recaudar
+                            }
+                        }
+                    },
+                    new Label { Text = PdaTexts.ResumenTurno, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink },
+                    new Grid
+                    {
+                        ColumnDefinitions = new ColumnDefinitionCollection { new(GridLength.Star), new(GridLength.Star) },
+                        ColumnSpacing = 10,
+                        Children =
+                        {
+                            Mini(PdaTexts.GruposAsignados, _grupos, 0),
+                            Mini(PdaTexts.VendedoresAsignados, _vendedores, 1)
+                        }
+                    },
+                    new Label { Text = PdaTexts.AccesosRapidos, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink },
+                    Menu(PdaTexts.Recaudar, PdaTexts.RecaudarAyuda, async () =>
+                        await Navigation.PushAsync(_services.GetRequiredService<RecaudadorCobroPage>())),
+                    Menu(PdaTexts.HistorialRecaudo, PdaTexts.HistorialRecaudoAyuda, async () =>
+                        await Shell.Current.GoToAsync("//rhistorial")),
+                    Menu(PdaTexts.MetricasRecaudo, PdaTexts.MetricasRecaudoAyuda, async () =>
+                        await Shell.Current.GoToAsync("//rmetricas")),
+                    VersionInstaladaPie.Crear()
                 }
             }
         };
-
-        ArmarModal();
-        Content = new Grid { Children = { contenido, _modal } };
     }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        await CargarAsync();
+        try
+        {
+            await ActualizarAsync();
+        }
+        catch (Exception)
+        {
+        }
     }
 
-    private View Encabezado() => new Frame
+    private async Task ActualizarAsync()
     {
-        BackgroundColor = Ui.Dark,
-        BorderColor = Ui.Dark,
-        CornerRadius = 0,
-        Padding = new Thickness(18, 18, 18, 22),
-        Content = new VerticalStackLayout
+        var ping = await _api.ConectarAsync(
+            PdaConexion.UrlsPara(DeviceInfo.Current.DeviceType == DeviceType.Virtual),
+            CancellationToken.None);
+        var conectado = ping.IsSuccess;
+        _estado.Text = $"PDA {_sesion.CodigoDispositivo} · {(conectado ? PdaTexts.Conectado : PdaTexts.SinConexion)}";
+
+        IReadOnlyList<ObligacionRecaudoResponse> filas;
+        if (conectado)
         {
-            Children =
+            var remoto = await _api.ObligacionesRecaudoAsync(null, CancellationToken.None);
+            if (remoto.IsSuccess && remoto.Data is not null)
             {
-                Ui.Titulo(_sesion.Usuario?.NombreCompleto ?? PdaTexts.Recaudo),
-                new Label { Text = PdaTexts.PdaRecaudador, TextColor = Color.FromArgb("#aed8c4"), FontSize = 13 },
-                _estado
+                filas = remoto.Data;
+                await _local.GuardarObligacionesRecaudoAsync(filas);
+            }
+            else
+            {
+                filas = await _local.ObligacionesRecaudoLocalAsync();
             }
         }
-    };
-
-    private View Indicadores() => new Grid
-    {
-        ColumnDefinitions = new ColumnDefinitionCollection { new(GridLength.Star), new(GridLength.Star), new(GridLength.Star) },
-        ColumnSpacing = 8,
-        Children =
+        else
         {
-            Mini(PdaTexts.PorCobrarHoy, _porCobrar, 0),
-            Mini(PdaTexts.RecaudadoHoy, _recaudado, 1),
-            Mini(PdaTexts.PendienteHoy, _pendiente, 2)
+            filas = await _local.ObligacionesRecaudoLocalAsync();
         }
-    };
 
-    private static View Mini(string titulo, Label valor, int col)
+        var resumen = RecaudoListas.Resumen(filas);
+        _fecha.Text = RecaudoListas.FechaDelDia(DateTime.UtcNow);
+        _total.Text = RecaudoPagoVista.Miles(resumen.TotalPorRecaudar);
+        _recaudado.Text = RecaudoPagoVista.Miles(resumen.TotalRecaudado);
+        _grupos.Text = resumen.Grupos.ToString();
+        _vendedores.Text = resumen.Vendedores.ToString();
+    }
+
+    private static VerticalStackLayout Columna(string titulo, View valor, int col)
     {
-        var marco = new Frame
+        var columna = new VerticalStackLayout
+        {
+            Spacing = 4,
+            Children =
+            {
+                new Label
+                {
+                    Text = titulo,
+                    FontAttributes = FontAttributes.Bold,
+                    FontSize = 12,
+                    TextColor = Ui.Ink,
+                    HorizontalTextAlignment = TextAlignment.Center
+                },
+                valor
+            }
+        };
+        Grid.SetColumn(columna, col);
+        return columna;
+    }
+
+    private static Frame Mini(string titulo, View valor, int col)
+    {
+        var frame = new Frame
         {
             BackgroundColor = Colors.White,
             BorderColor = Ui.Line,
             CornerRadius = 12,
-            Padding = 10,
+            Padding = 14,
             Content = new VerticalStackLayout
             {
                 Children =
@@ -113,280 +214,23 @@ public sealed class RecaudadorHomePage : ContentPage
                 }
             }
         };
-        Grid.SetColumn(marco, col);
-        return marco;
+        Grid.SetColumn(frame, col);
+        return frame;
     }
 
-    private View Filtros()
-    {
-        var fila = new Grid
-        {
-            ColumnDefinitions = new ColumnDefinitionCollection { new(GridLength.Star), new(GridLength.Star), new(GridLength.Star) },
-            ColumnSpacing = 6,
-            Children =
-            {
-                BotonLista(PdaTexts.Pendientes, ListaCobro.Pendientes, 0),
-                BotonLista(PdaTexts.Cobrados, ListaCobro.Cobrados, 1),
-                BotonLista(PdaTexts.Todos, null, 2)
-            }
-        };
-        return new VerticalStackLayout
-        {
-            Spacing = 8,
-            Children = { fila, _buscar, _orden }
-        };
-    }
-
-    private Button BotonLista(string texto, ListaCobro? lista, int col)
+    private static Button Menu(string titulo, string ayuda, Func<Task> accion)
     {
         var boton = new Button
         {
-            Text = texto,
+            Text = $"{titulo}\n{ayuda}",
             BackgroundColor = Colors.White,
-            TextColor = Ui.Dark,
-            CornerRadius = 10,
-            HeightRequest = 42,
-            FontAttributes = FontAttributes.Bold
+            TextColor = Ui.Ink,
+            BorderColor = Ui.Line,
+            BorderWidth = 1,
+            CornerRadius = 12,
+            HeightRequest = 64
         };
-        boton.Clicked += (_, _) =>
-        {
-            _filtroLista = lista;
-            Pintar();
-        };
-        Grid.SetColumn(boton, col);
+        boton.Clicked += async (_, _) => await accion();
         return boton;
-    }
-
-    private async Task CargarAsync()
-    {
-        if (_ocupado)
-        {
-            return;
-        }
-
-        _ocupado = true;
-        _spinner.IsVisible = _spinner.IsRunning = true;
-        try
-        {
-            var ping = await _api.ConectarAsync(
-                PdaConexion.UrlsPara(DeviceInfo.Current.DeviceType == DeviceType.Virtual),
-                CancellationToken.None);
-            _estado.Text = $"PDA {_sesion.CodigoDispositivo} · {(ping.IsSuccess ? PdaTexts.Conectado : PdaTexts.SinConexion)}";
-            if (ping.IsSuccess)
-            {
-                await SubirPendientesAsync();
-                var remoto = await _api.ObligacionesRecaudoAsync(null, CancellationToken.None);
-                if (remoto.IsSuccess && remoto.Data is not null)
-                {
-                    _filas = remoto.Data;
-                    await _local.GuardarObligacionesRecaudoAsync(_filas);
-                }
-            }
-            else
-            {
-                _filas = await _local.ObligacionesRecaudoLocalAsync();
-            }
-
-            Pintar();
-        }
-        finally
-        {
-            _spinner.IsVisible = _spinner.IsRunning = false;
-            _ocupado = false;
-        }
-    }
-
-    private void Pintar()
-    {
-        var orden = _orden.SelectedItem as string ?? "vendedor";
-        var visibles = RecaudoListas.De(_filas, _filtroLista, _buscar.Text ?? string.Empty, orden);
-        _porCobrar.Text = RecaudoPagoVista.Miles(_filas.Sum(f => f.ValorACobrar));
-        _recaudado.Text = RecaudoPagoVista.Miles(_filas.Sum(f => f.PagosHoy));
-        _pendiente.Text = RecaudoPagoVista.Miles(_filas.Sum(f => f.TotalPendiente));
-        _lista.Children.Clear();
-        if (visibles.Count == 0)
-        {
-            _lista.Children.Add(new Label { Text = PdaTexts.SinAsignadosHoy, TextColor = Ui.Muted, Margin = 8 });
-            return;
-        }
-
-        foreach (var grupo in RecaudoListas.Agrupar(visibles))
-        {
-            _lista.Children.Add(new Label
-            {
-                Text = grupo.Key,
-                FontAttributes = FontAttributes.Bold,
-                FontSize = 16,
-                TextColor = Ui.Ink
-            });
-            foreach (var fila in grupo)
-            {
-                _lista.Children.Add(Tarjeta(fila));
-            }
-        }
-    }
-
-    private View Tarjeta(ObligacionRecaudoResponse fila)
-    {
-        var color = fila.Color == nameof(ColorCobro.Rojo) ? Ui.Danger
-            : fila.Color == nameof(ColorCobro.Azul) ? Ui.Info
-            : Ui.Green;
-        var valor = Ui.Pesos(PdaTexts.ValorRecibido);
-        var cobrar = Ui.Primario(PdaTexts.RegistrarCobro);
-        cobrar.Clicked += async (_, _) => await PedirCobroAsync(fila, valor.Texto);
-        var hijos = new VerticalStackLayout
-        {
-            Spacing = 4,
-            Children =
-            {
-                new Label { Text = fila.NombreCompleto, FontAttributes = FontAttributes.Bold, FontSize = 17, TextColor = Ui.Ink },
-                new Label { Text = string.IsNullOrWhiteSpace(fila.Alias) ? fila.Estado : $"{fila.Alias} · {fila.Estado}", TextColor = color, FontAttributes = FontAttributes.Bold },
-                new Label { Text = $"Vendido {RecaudoPagoVista.Miles(fila.TotalVendido)} · A cobrar {RecaudoPagoVista.Miles(fila.ValorACobrar)}", TextColor = Ui.Muted, FontSize = 13 },
-                new Label { Text = $"{PdaTexts.TotalPendiente}: {RecaudoPagoVista.Miles(fila.TotalPendiente)}", FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink },
-                valor,
-                cobrar
-            }
-        };
-        if (fila.SenalSinGrupo)
-        {
-            hijos.Children.Insert(2, new Label { Text = PdaTexts.DebeIngresarAGrupo, TextColor = Ui.Warn, FontSize = 12 });
-        }
-
-        return new Frame
-        {
-            BackgroundColor = Colors.White,
-            BorderColor = color,
-            CornerRadius = 14,
-            Padding = 14,
-            Content = hijos
-        };
-    }
-
-    private void ArmarModal()
-    {
-        _modal.BackgroundColor = Color.FromArgb("#99000000");
-        var caja = new Frame
-        {
-            BackgroundColor = Colors.White,
-            CornerRadius = 16,
-            Padding = 18,
-            VerticalOptions = LayoutOptions.Center,
-            Margin = 24,
-            Content = new VerticalStackLayout { Spacing = 10, ClassId = "cuerpo-modal" }
-        };
-        _modal.Children.Add(caja);
-        var tap = new TapGestureRecognizer();
-        tap.Tapped += (_, _) => _modal.IsVisible = false;
-        _modal.GestureRecognizers.Add(tap);
-    }
-
-    private async Task PedirCobroAsync(ObligacionRecaudoResponse fila, string digitado)
-    {
-        if (_ocupado)
-        {
-            return;
-        }
-
-        if (!RecaudoPagoVista.TryParsePesos(digitado, out var valor))
-        {
-            await DisplayAlert(PdaTexts.RegistrarCobro, PdaTexts.PagoRecaudoInvalido, PdaTexts.Cerrar);
-            return;
-        }
-
-        var rechazo = RecaudoPagoVista.Rechazo(valor, fila.TotalPendiente);
-        if (rechazo is not null)
-        {
-            await DisplayAlert(PdaTexts.RegistrarCobro, rechazo, PdaTexts.Cerrar);
-            return;
-        }
-
-        var confirmacion = RecaudoPagoVista.Confirmar(fila.NombreCompleto, fila.TotalPendiente, valor);
-        var aceptar = await DisplayAlert(
-            PdaTexts.ConfirmarCobro,
-            $"{confirmacion.Vendedor}\n{PdaTexts.TotalPendiente}: {RecaudoPagoVista.Miles(confirmacion.Pendiente)}\n{PdaTexts.ValorRecibido}: {RecaudoPagoVista.Miles(confirmacion.Recibido)}\n{PdaTexts.SaldoQueQueda}: {RecaudoPagoVista.Miles(confirmacion.SaldoQueQueda)}",
-            PdaTexts.ConfirmarCobro,
-            PdaTexts.Cancelar);
-        if (!aceptar)
-        {
-            return;
-        }
-
-        await RegistrarAsync(fila, valor);
-    }
-
-    private async Task RegistrarAsync(ObligacionRecaudoResponse fila, decimal valor)
-    {
-        _ocupado = true;
-        _spinner.IsVisible = _spinner.IsRunning = true;
-        var clave = Guid.NewGuid().ToString("N");
-        try
-        {
-            var ping = await _api.ConectarAsync(
-                PdaConexion.UrlsPara(DeviceInfo.Current.DeviceType == DeviceType.Virtual),
-                CancellationToken.None);
-            if (!ping.IsSuccess)
-            {
-                var cola = RecaudoColaPagos.Encolar(
-                    new PagoPendienteRecaudo(fila.VendedorId, valor, clave, DateTime.UtcNow),
-                    await _local.PagosRecaudoPendientesAsync());
-                await _local.GuardarPagosRecaudoAsync(cola);
-                await DisplayAlert(PdaTexts.RegistrarCobro, PdaTexts.SinConexion, PdaTexts.Cerrar);
-                return;
-            }
-
-            var resultado = await _api.RegistrarPagoRecaudoAsync(new RegistrarPagoRecaudoRequest
-            {
-                VendedorId = fila.VendedorId,
-                Valor = valor,
-                ClaveIdempotencia = clave
-            }, CancellationToken.None);
-            if (!resultado.IsSuccess || resultado.Data is null)
-            {
-                await DisplayAlert(PdaTexts.RegistrarCobro, resultado.Message, PdaTexts.Cerrar);
-                return;
-            }
-
-            var texto = TirillaCobroTexto.De(
-                resultado.Data.RecaudadorNombre,
-                resultado.Data.VendedorNombre,
-                resultado.Data.FechaHora,
-                valor,
-                resultado.Data.SaldoRestante,
-                resultado.Data.Consecutivo);
-            await _impresora.ImprimirAsync(texto, null);
-        }
-        finally
-        {
-            _spinner.IsVisible = _spinner.IsRunning = false;
-            _ocupado = false;
-        }
-
-        await CargarAsync();
-    }
-
-    private async Task SubirPendientesAsync()
-    {
-        var pendientes = await _local.PagosRecaudoPendientesAsync();
-        if (pendientes.Count == 0)
-        {
-            return;
-        }
-
-        var quedan = new List<PagoPendienteRecaudo>();
-        foreach (var pago in pendientes)
-        {
-            var envio = await _api.RegistrarPagoRecaudoAsync(new RegistrarPagoRecaudoRequest
-            {
-                VendedorId = pago.VendedorId,
-                Valor = pago.Valor,
-                ClaveIdempotencia = pago.ClaveIdempotencia
-            }, CancellationToken.None);
-            if (!envio.IsSuccess)
-            {
-                quedan.Add(pago);
-            }
-        }
-
-        await _local.GuardarPagosRecaudoAsync(quedan);
     }
 }

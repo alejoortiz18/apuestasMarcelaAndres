@@ -116,6 +116,37 @@ public sealed class RecaudoServiceTests
     }
 
     [Fact]
+    public async Task La_obligacion_trae_usuario_y_documento_del_vendedor()
+    {
+        var (sut, db) = Crear();
+        var grupo = await AgregarGrupo(db, "Centro");
+        var recaudador = await AgregarUsuario(db, "Carmen Recaudo", RolUsuario.Recaudador);
+        var vendedor = await AgregarUsuario(db, "Ana Vende", RolUsuario.Vendedor);
+        vendedor.Documento = "1098000111";
+        db.UsuariosGrupos.Add(new UsuarioGrupo { UsuarioId = vendedor.UsuarioId, GrupoId = grupo.GrupoId });
+        db.Ventas.Add(new Venta
+        {
+            VentaId = Guid.NewGuid(),
+            UsuarioId = vendedor.UsuarioId,
+            FechaVenta = new DateTime(2026, 9, 28, 12, 0, 0, DateTimeKind.Utc),
+            Total = 1000m,
+            TipoApuesta = TipoApuesta.INDIVIDUAL,
+            IdempotencyKey = Guid.NewGuid().ToString("N")
+        });
+        await db.SaveChangesAsync();
+        await sut.AsignarGrupoAsync(new AsignarGrupoRecaudoRequest
+        {
+            RecaudadorId = recaudador.UsuarioId,
+            GrupoId = grupo.GrupoId,
+            Porcentaje = 10
+        }, recaudador.UsuarioId, CancellationToken.None);
+
+        var lista = await sut.ObligacionesAsync(recaudador.UsuarioId, new DateOnly(2026, 9, 28), CancellationToken.None);
+
+        lista.Data.Should().ContainSingle(o => o.Usuario == "ana.vende" && o.Documento == "1098000111");
+    }
+
+    [Fact]
     public async Task Historial_y_metricas_responden_sin_movimientos()
     {
         var (sut, _) = Crear();

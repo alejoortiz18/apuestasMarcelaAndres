@@ -1,4 +1,5 @@
 @using NewRich.Admin.Constants
+@using NewRich.Admin.Services.Pda
 @using NewRich.Domain.Enums
 @{
     ViewData["Title"] = UiTexts.RegistroPdaTitulo;
@@ -42,10 +43,35 @@
             <li>@UiTexts.RegistroPdaInstruccion8</li>
             <li>@UiTexts.RegistroPdaInstruccion9</li>
         </ol>
+        <fieldset class="field eleccion-equipo">
+            <legend>@UiTexts.RegistroPdaClase</legend>
+            <div class="eleccion-opciones">
+                @foreach (var clase in Enum.GetValues<ClaseEquipoPda>())
+                {
+                    var titulo = clase == ClaseEquipoPda.Pda ? UiTexts.RegistroPdaClasePda : UiTexts.RegistroPdaClaseCelular;
+                    var ayuda = clase == ClaseEquipoPda.Pda ? UiTexts.RegistroPdaClasePdaAyuda : UiTexts.RegistroPdaClaseCelularAyuda;
+                    <label class="eleccion-opcion">
+                        <input type="radio" name="claseEquipo" value="@clase" data-clase checked="@(clase == ClaseEquipoPda.Pda)" />
+                        <span class="eleccion-copy">
+                            <strong>@titulo</strong>
+                            <small>@ayuda</small>
+                        </span>
+                    </label>
+                }
+            </div>
+            <span class="field-help">@UiTexts.RegistroPdaClaseAyuda</span>
+        </fieldset>
         <div class="field">
             <label for="tipoDispositivo">@UiTexts.RegistroPdaTipo</label>
-            <select id="tipoDispositivo" class="searchable" data-tipo
-                    asp-items="Html.GetEnumSelectList<TipoDispositivo>()"></select>
+            <select id="tipoDispositivo" class="searchable" data-tipo>
+                @foreach (var tipo in Enum.GetValues<TipoDispositivo>())
+                {
+                    var clases = string.Join(" ", Enum.GetValues<ClaseEquipoPda>()
+                        .Where(c => PerfilesPorClaseEquipo.Permite(c, tipo))
+                        .Select(c => c.ToString()));
+                    <option value="@tipo" data-clases="@clases">@tipo</option>
+                }
+            </select>
             <span class="field-help">@UiTexts.RegistroPdaTipoAyuda</span>
         </div>
         <div class="notice error hidden" role="alert" data-verificacion-error hidden></div>

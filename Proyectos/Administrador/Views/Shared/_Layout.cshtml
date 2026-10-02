@@ -113,11 +113,26 @@
                     <svg class="nav-chevron" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </button>
                 <div class="nav-sub" id="submenu-recaudo" @(menuRecaudoAbierto ? null : "hidden")>
-                    <a class="@NavClass("recaudo-config")" asp-controller="ConfigRecaudo" asp-action="Index">@UiTexts.NavConfigRecaudo</a>
-                    <a class="@NavClass("recaudo-panel")" asp-controller="PanelRecaudo" asp-action="Index">@UiTexts.NavPanelRecaudo</a>
-                    <a class="@NavClass("recaudo-historial")" asp-controller="HistorialRecaudo" asp-action="Index">@UiTexts.NavHistorialRecaudo</a>
-                    <a class="@NavClass("recaudo-metricas")" asp-controller="MetricasRecaudo" asp-action="Index">@UiTexts.NavMetricasRecaudo</a>
-                    <a class="@NavClass("recaudo-detalle")" asp-controller="DetalleRecaudo" asp-action="Index">@UiTexts.NavDetalleRecaudo</a>
+                    <a class="@NavClass("recaudo-config")" asp-controller="ConfigRecaudo" asp-action="Index">
+                        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M4 10.5 12 4l8 6.5V20H14v-6H10v6H4z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+                        <span>@UiTexts.NavConfigRecaudo</span>
+                    </a>
+                    <a class="@NavClass("recaudo-panel")" asp-controller="PanelRecaudo" asp-action="Index">
+                        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><rect x="3.5" y="3.5" width="7" height="7" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.7"/><rect x="13.5" y="3.5" width="7" height="4.5" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.7"/><rect x="13.5" y="11" width="7" height="9.5" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.7"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>
+                        <span>@UiTexts.NavPanelRecaudo</span>
+                    </a>
+                    <a class="@NavClass("recaudo-historial")" asp-controller="HistorialRecaudo" asp-action="Index">
+                        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 7.5V12l3 2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        <span>@UiTexts.NavHistorialRecaudo</span>
+                    </a>
+                    <a class="@NavClass("recaudo-metricas")" asp-controller="MetricasRecaudo" asp-action="Index">
+                        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M4 18V8M10 18V5M16 18v-6M20 18H3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                        <span>@UiTexts.NavMetricasRecaudo</span>
+                    </a>
+                    <a class="@NavClass("recaudo-detalle")" asp-controller="DetalleRecaudo" asp-action="Index">
+                        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M7 3.5h7l5 5V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M14 3.5v5h5M8.5 13h7M8.5 17h5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        <span>@UiTexts.NavDetalleRecaudo</span>
+                    </a>
                 </div>
             </div>
         </nav>

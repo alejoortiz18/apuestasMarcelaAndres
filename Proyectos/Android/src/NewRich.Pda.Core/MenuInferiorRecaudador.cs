@@ -4,7 +4,7 @@ public static class MenuInferiorRecaudador
 {
     public static IReadOnlyList<ItemMenuInferior> Items { get; } =
     [
-        new("recaudo", PdaTexts.Recaudo, IconoMenuInferior.Casa),
+        new("recaudo", PdaTexts.Inicio, IconoMenuInferior.Casa),
         new("rhistorial", PdaTexts.HistorialRecaudo, IconoMenuInferior.Documento),
         new("rmetricas", PdaTexts.MetricasRecaudo, IconoMenuInferior.Corona),
         new("rsoporte", PdaTexts.Soporte, IconoMenuInferior.Auricular),

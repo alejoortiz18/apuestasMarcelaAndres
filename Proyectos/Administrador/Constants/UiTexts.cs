@@ -5,7 +5,7 @@ public static class UiTexts
 {
     public const string MenuVentas = "Ventas";
     public const string MenuRecaudo = "Recaudo";
-    public const string NavConfigRecaudo = "Configuración";
+    public const string NavConfigRecaudo = "Resumen";
     public const string NavPanelRecaudo = "Panel";
     public const string NavHistorialRecaudo = "Historial";
     public const string NavMetricasRecaudo = "Métricas";
@@ -311,6 +311,12 @@ public static class UiTexts
     public const string RegistroPdaInstruccion6 = "Activar Depuración USB.";
     public const string RegistroPdaInstruccion7 = "Conectar el PDA al computador mediante USB.";
     public const string RegistroPdaInstruccion8 = "Si el PDA pregunta Permitir depuración USB, seleccionar Permitir.";
+    public const string RegistroPdaClase = "Equipo que va a registrar";
+    public const string RegistroPdaClaseAyuda = "Cada equipo tiene su propio camino de instalación. Elija el que corresponde antes de continuar.";
+    public const string RegistroPdaClasePda = "PDA de venta";
+    public const string RegistroPdaClasePdaAyuda = "Equipo de la operación con lector e impresora. Admite vendedor, recaudador y observador.";
+    public const string RegistroPdaClaseCelular = "Celular";
+    public const string RegistroPdaClaseCelularAyuda = "Teléfono del recaudador o del observador. Necesita permitir la instalación por USB.";
     public const string RegistroPdaTipo = "Tipo de usuario que va a utilizar el dispositivo";
     public const string RegistroPdaTipoAyuda = "Debe coincidir con el perfil del usuario que asociará después. Un PDA de vendedor no permite iniciar sesión a un observador ni a un recaudador.";
     public const string RegistroPdaContinuar = "Continuar";
@@ -348,6 +354,8 @@ public static class UiTexts
     public const string PdaFalloGrabarIdentidad = "No fue posible guardar la identificación en el dispositivo.";
     public const string PdaFalloInstalacion = "No fue posible instalar la aplicación en el dispositivo.";
     public const string PdaFalloInstalacionCelular = "El celular bloqueó la instalación por USB. En Opciones de desarrollador active Depuración USB (ajustes de seguridad) e Instalar vía USB. Si aparece un aviso, pulse Permitir.";
+    public const string PdaFalloInstalacionPda = "El PDA bloqueó la instalación por USB. En Opciones para desarrolladores active Instalar vía USB. Si el equipo es un teléfono, vuelva a empezar y elija Celular.";
+    public const string PdaPerfilNoDisponibleParaElEquipo = "Ese perfil no se puede registrar en el equipo elegido. El vendedor solo opera en un PDA de venta.";
     public const string RegistroPdaInstruccion9 = "En un celular active también Depuración USB (ajustes de seguridad) e Instalar vía USB. Si pide permiso, pulse Permitir.";
     public const string PdaInstalacionNoVerificada = "La aplicación no quedó instalada en el dispositivo.";
     public const string PdaRegistroEnCurso = "Ya hay un registro de PDA en curso. Espere a que termine.";

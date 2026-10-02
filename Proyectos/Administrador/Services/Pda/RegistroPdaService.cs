@@ -29,10 +29,11 @@ public interface IRegistroPdaService
     Task<VerificacionPda> VerificarAsync(CancellationToken cancellationToken);
 
     /// <summary>
-    /// Registra el equipo para el tipo de usuario que lo va a operar. El tipo debe coincidir con el
-    /// perfil del usuario que despues se asocie, por eso lo elige el administrador al iniciar.
+    /// Registra el equipo para el tipo de usuario que lo va a operar. La clase separa el camino de
+    /// instalacion del PDA de venta y el del celular. El tipo debe coincidir con el perfil del
+    /// usuario que despues se asocie, por eso ambos los elige el administrador al iniciar.
     /// </summary>
-    Task<ResultadoRegistroPda> RegistrarAsync(TipoDispositivo tipo, IAvanceRegistroPda avance, CancellationToken cancellationToken);
+    Task<ResultadoRegistroPda> RegistrarAsync(ClaseEquipoPda clase, TipoDispositivo tipo, IAvanceRegistroPda avance, CancellationToken cancellationToken);
 }
 
 /// <summary>
@@ -71,8 +72,13 @@ public sealed class RegistroPdaService : IRegistroPdaService
         return new VerificacionPda(true, UiTexts.PdaListoParaRegistrar, dispositivo.Modelo);
     }
 
-    public async Task<ResultadoRegistroPda> RegistrarAsync(TipoDispositivo tipo, IAvanceRegistroPda avance, CancellationToken cancellationToken)
+    public async Task<ResultadoRegistroPda> RegistrarAsync(ClaseEquipoPda clase, TipoDispositivo tipo, IAvanceRegistroPda avance, CancellationToken cancellationToken)
     {
+        if (!PerfilesPorClaseEquipo.Permite(clase, tipo))
+        {
+            return new ResultadoRegistroPda(false, UiTexts.PdaPerfilNoDisponibleParaElEquipo, null);
+        }
+
         await avance.ReportarAsync(new AvanceRegistroPda(0, UiTexts.PdaProgresoDetectando), cancellationToken);
         var (dispositivo, problema) = await DetectarAsync(cancellationToken);
         if (dispositivo is null)
@@ -122,10 +128,10 @@ public sealed class RegistroPdaService : IRegistroPdaService
             "shell", "settings", "put", "global", ProvisionPda.ClaveCodigoDispositivo, registro.Data.CodigoDispositivo);
 
         await avance.ReportarAsync(new AvanceRegistroPda(75, UiTexts.PdaProgresoInstalando), cancellationToken);
-        var instalacion = await InstalarAsync(dispositivo, rutaApk, cancellationToken);
+        var instalacion = await InstalarAsync(dispositivo, clase, rutaApk, cancellationToken);
         if (!instalacion.Exitoso)
         {
-            return new ResultadoRegistroPda(false, InstalacionApk.MensajeFallo(instalacion), modeloEquipo);
+            return new ResultadoRegistroPda(false, InstalacionApk.MensajeFallo(clase, instalacion), modeloEquipo);
         }
 
         await avance.ReportarAsync(new AvanceRegistroPda(90, UiTexts.PdaProgresoVerificando), cancellationToken);
@@ -195,7 +201,7 @@ public sealed class RegistroPdaService : IRegistroPdaService
         };
     }
 
-    private async Task<AdbResultado> InstalarAsync(DispositivoAdb dispositivo, string rutaApk, CancellationToken cancellationToken)
+    private async Task<AdbResultado> InstalarAsync(DispositivoAdb dispositivo, ClaseEquipoPda clase, string rutaApk, CancellationToken cancellationToken)
     {
         var directa = await EjecutarAsync(dispositivo, cancellationToken, InstalacionApk.ArgumentosDirectos(rutaApk));
         if (directa.Exitoso)
@@ -213,7 +219,7 @@ public sealed class RegistroPdaService : IRegistroPdaService
             }
         }
 
-        if (!InstalacionApk.DebeReintentarComoCelular(directa))
+        if (!InstalacionApk.DebeUsarInstaladorDelSistema(clase, directa))
         {
             return directa;
         }

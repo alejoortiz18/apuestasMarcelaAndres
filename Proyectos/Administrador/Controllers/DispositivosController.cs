@@ -111,7 +111,7 @@ public sealed class DispositivosController : AdminControllerBase
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Registrar(TipoDispositivo tipo, string? conexionId, CancellationToken cancellationToken)
+    public async Task<IActionResult> Registrar(ClaseEquipoPda clase, TipoDispositivo tipo, string? conexionId, CancellationToken cancellationToken)
     {
         if (!_candado.Tomar())
         {
@@ -121,7 +121,7 @@ public sealed class DispositivosController : AdminControllerBase
         try
         {
             var avance = new AvanceRegistroPdaPorHub(_hub, conexionId);
-            var resultado = await _registro.RegistrarAsync(tipo, avance, cancellationToken);
+            var resultado = await _registro.RegistrarAsync(clase, tipo, avance, cancellationToken);
             return Json(new
             {
                 exitoso = resultado.Exitoso,

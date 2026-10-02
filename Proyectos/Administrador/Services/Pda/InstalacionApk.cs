@@ -1,9 +1,10 @@
 namespace NewRich.Admin.Services.Pda;
 
 /// <summary>
-/// Comandos de instalación. El PDA acepta el instalador corto de adb; el celular exige
-/// el APK de prueba, evita el envío incremental y, si lo bloquea, usa el instalador
-/// del sistema después de copiar el archivo.
+/// Comandos de instalación. El PDA de venta acepta el instalador corto de adb; el celular
+/// exige además el APK de prueba sin envío incremental y, si el fabricante lo bloquea, el
+/// instalador del sistema después de copiar el archivo. Cada clase de equipo sigue su propio
+/// camino para que un ajuste en uno no altere el otro.
 /// </summary>
 public static class InstalacionApk
 {
@@ -37,15 +38,29 @@ public static class InstalacionApk
         Contiene(resultado, "UPDATE_INCOMPATIBLE")
         || Contiene(resultado, "SIGNATURE");
 
-    public static bool DebeReintentarComoCelular(AdbResultado resultado) =>
+    /// <summary>
+    /// Solo el celular copia el APK y llama al instalador del sistema. El PDA de venta no toma
+    /// ese desvío: si su instalador falla, el registro se detiene con una guía propia.
+    /// </summary>
+    public static bool DebeUsarInstaladorDelSistema(ClaseEquipoPda clase, AdbResultado resultado) =>
+        clase == ClaseEquipoPda.Celular && InstalacionBloqueada(resultado);
+
+    public static string MensajeFallo(ClaseEquipoPda clase, AdbResultado resultado)
+    {
+        if (!InstalacionBloqueada(resultado))
+        {
+            return NewRich.Admin.Constants.UiTexts.PdaFalloInstalacion;
+        }
+
+        return clase == ClaseEquipoPda.Celular
+            ? NewRich.Admin.Constants.UiTexts.PdaFalloInstalacionCelular
+            : NewRich.Admin.Constants.UiTexts.PdaFalloInstalacionPda;
+    }
+
+    private static bool InstalacionBloqueada(AdbResultado resultado) =>
         Contiene(resultado, "USER_RESTRICTED")
         || Contiene(resultado, "TEST_ONLY")
         || Contiene(resultado, "INCREMENTAL");
-
-    public static string MensajeFallo(AdbResultado resultado) =>
-        Contiene(resultado, "USER_RESTRICTED")
-            ? NewRich.Admin.Constants.UiTexts.PdaFalloInstalacionCelular
-            : NewRich.Admin.Constants.UiTexts.PdaFalloInstalacion;
 
     private static bool Contiene(AdbResultado resultado, string marca) =>
         resultado.Salida.Contains(marca, StringComparison.OrdinalIgnoreCase)

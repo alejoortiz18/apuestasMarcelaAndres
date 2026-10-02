@@ -37,6 +37,8 @@ public sealed class ObligacionRecaudoResponse
     public Guid VendedorId { get; set; }
     public string NombreCompleto { get; set; } = string.Empty;
     public string? Alias { get; set; }
+    public string Usuario { get; set; } = string.Empty;
+    public string? Documento { get; set; }
     public string Grupo { get; set; } = string.Empty;
     public decimal TotalVendido { get; set; }
     public decimal ValorACobrar { get; set; }

@@ -376,6 +376,13 @@ public static class PdaTexts
     public const string ActualizacionDescargando = "Descargando la actualización: {0}%";
     public const string ActualizacionInstalando = "Abriendo el instalador";
     public const string Recaudo = "Recaudo";
+    public const string Recaudar = "Recaudar";
+    public const string RecaudarAyuda = "Cobra a los vendedores de tus grupos.";
+    public const string HistorialRecaudoAyuda = "Consulta los cobros registrados.";
+    public const string MetricasRecaudoAyuda = "Mira el avance del recaudo.";
+    public const string YaCobrado = "Ya cobrado";
+    public const string BuscarVendedor = "Buscar vendedor";
+    public const string BuscarVendedorAyuda = "Nombre, alias, usuario o documento";
     public const string HistorialRecaudo = "Historial";
     public const string MetricasRecaudo = "Métricas";
     public const string Pendientes = "Pendientes";
@@ -395,6 +402,10 @@ public static class PdaTexts
     public const string SincronizarRecaudo = "Sincronizar recaudo";
     public const string SincronizarRecaudoAyuda = "Sube los cobros pendientes y actualiza las obligaciones.";
     public const string SyncPagosPendientes = "{0} pagos siguen pendientes.";
+    public const string TotalRecaudar = "Total recaudar";
+    public const string TotalRecaudado = "Total recaudado";
+    public const string GruposAsignados = "Total grupos asignados";
+    public const string VendedoresAsignados = "Total vendedores asignados";
     public const string RecaudoDelDia = "Recaudo del día";
     public const string PorCobrarHoy = "Por cobrar";
     public const string RecaudadoHoy = "Recaudado";

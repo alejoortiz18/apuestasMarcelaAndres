@@ -38,6 +38,43 @@ public sealed class RecaudoPdaTests
     }
 
     [Fact]
+    public void Un_grupo_muestra_solo_sus_vendedores_y_todos_incluye_sin_grupo()
+    {
+        var filas = TresFilas();
+
+        RecaudoListas.Grupos(filas).Should().Equal("Centro");
+        RecaudoListas.De(filas, null, "", "vendedor", "Centro")
+            .Select(f => f.NombreCompleto).Should().Equal("Ana", "Beto");
+        RecaudoListas.De(filas, null, "", "vendedor", null)
+            .Select(f => f.NombreCompleto).Should().Equal("Ana", "Beto", "Cata");
+    }
+
+    [Fact]
+    public void La_busqueda_encuentra_usuario_documento_y_una_palabra_incompleta()
+    {
+        var filas = TresFilas();
+
+        RecaudoListas.De(filas, null, "ale", "vendedor")
+            .Should().ContainSingle(f => f.NombreCompleto == "Ana");
+        RecaudoListas.De(filas, null, "1098", "vendedor")
+            .Should().ContainSingle(f => f.NombreCompleto == "Ana");
+    }
+
+    [Fact]
+    public void Un_cobro_saca_al_vendedor_de_pendientes_y_lo_deja_en_cobrados()
+    {
+        var ana = TresFilas()[0];
+
+        var cobrada = RecaudoListas.TrasCobro(ana, 1_000m);
+
+        cobrada.Lista.Should().Be(nameof(ListaCobro.Cobrados));
+        cobrada.TotalPendiente.Should().Be(79_000m);
+        RecaudoListas.De([cobrada], ListaCobro.Pendientes, "", "vendedor").Should().BeEmpty();
+        RecaudoListas.De([cobrada], ListaCobro.Cobrados, "", "vendedor")
+            .Should().ContainSingle(f => f.NombreCompleto == "Ana");
+    }
+
+    [Fact]
     public void Se_puede_ordenar_por_pendiente_descendente()
     {
         RecaudoListas.De(TresFilas(), null, "", "pendiente")
@@ -106,12 +143,60 @@ public sealed class RecaudoPdaTests
     }
 
     [Fact]
-    public void El_inicio_del_recaudador_no_es_un_placeholder()
+    public void El_resumen_suma_lo_por_recaudar_de_todos_y_cuenta_grupos_y_vendedores()
+    {
+        var filas = TresFilas();
+        filas.Add(new()
+        {
+            NombreCompleto = "Dina",
+            Grupo = "Norte",
+            ValorACobrar = 5_000m
+        });
+
+        var resumen = RecaudoListas.Resumen(filas);
+
+        resumen.TotalPorRecaudar.Should().Be(135_000m);
+        resumen.TotalRecaudado.Should().Be(40_000m);
+        resumen.Grupos.Should().Be(2);
+        resumen.Vendedores.Should().Be(4);
+    }
+
+    [Fact]
+    public void La_fecha_del_dia_es_la_de_colombia_cuando_se_conecta()
+    {
+        var utc = new DateTime(2026, 10, 2, 3, 30, 0, DateTimeKind.Utc);
+
+        RecaudoListas.FechaDelDia(utc).Should().Be("1 de octubre de 2026");
+    }
+
+    [Fact]
+    public void El_inicio_muestra_recaudar_y_el_cobro_esta_en_su_pantalla()
     {
         var inicio = File.ReadAllText(RutaMaui("Views", "Recaudador", "RecaudadorHomePage.cs"));
-        inicio.Should().NotContain("Pendientes, cobrados y todos se cargan");
-        inicio.Should().Contain("PdaTexts.Pendientes");
-        inicio.Should().Contain("RegistrarPagoRecaudo");
+        var cobro = File.ReadAllText(RutaMaui("Views", "Recaudador", "RecaudadorCobroPage.cs"));
+
+        inicio.Should().Contain("PdaTexts.Recaudar");
+        inicio.Should().Contain("PdaTexts.TotalRecaudar");
+        inicio.Should().Contain("PdaTexts.TotalRecaudado");
+        inicio.Should().Contain("Ui.Gold");
+        var fecha = inicio.IndexOf("RecaudoListas.FechaDelDia", StringComparison.Ordinal);
+        var recaudar = inicio.IndexOf("PdaTexts.TotalRecaudar", StringComparison.Ordinal);
+        var recaudado = inicio.IndexOf("PdaTexts.TotalRecaudado", StringComparison.Ordinal);
+        var resumen = inicio.IndexOf("PdaTexts.ResumenTurno", StringComparison.Ordinal);
+        var accesos = inicio.IndexOf("PdaTexts.AccesosRapidos", StringComparison.Ordinal);
+        fecha.Should().BeGreaterThan(-1);
+        recaudar.Should().BeGreaterThan(fecha);
+        recaudado.Should().BeGreaterThan(recaudar);
+        resumen.Should().BeGreaterThan(recaudado);
+        accesos.Should().BeGreaterThan(resumen);
+        inicio.Should().Contain("PdaTexts.GruposAsignados");
+        inicio.Should().Contain("PdaTexts.VendedoresAsignados");
+        inicio.Should().Contain("RecaudoListas.Resumen");
+        inicio.Should().NotContain("RegistrarPagoRecaudo");
+        cobro.Should().Contain("PdaTexts.Cobrados");
+        cobro.Should().Contain("PdaTexts.Todos");
+        cobro.Should().Contain("PdaTexts.Buscar");
+        cobro.Should().Contain("RegistrarPagoRecaudo");
     }
 
     private static string RutaMaui(params string[] partes)
@@ -129,6 +214,8 @@ public sealed class RecaudoPdaTests
             VendedorId = Guid.NewGuid(),
             NombreCompleto = "Ana",
             Alias = "ani",
+            Usuario = "alejo",
+            Documento = "1098000111",
             Grupo = "Centro",
             TotalVendido = 100_000m,
             ValorACobrar = 80_000m,

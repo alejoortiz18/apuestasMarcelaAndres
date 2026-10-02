@@ -15,7 +15,7 @@ public sealed class RecaudadorShell : Shell
         {
             Items =
             {
-                Contenido(PdaTexts.Recaudo, "recaudo", () => services.GetRequiredService<RecaudadorHomePage>()),
+                Contenido(PdaTexts.Inicio, "recaudo", () => services.GetRequiredService<RecaudadorHomePage>()),
                 Contenido(PdaTexts.HistorialRecaudo, "rhistorial", () => services.GetRequiredService<RecaudadorHistorialPage>()),
                 Contenido(PdaTexts.MetricasRecaudo, "rmetricas", () => services.GetRequiredService<RecaudadorMetricasPage>()),
                 Contenido(PdaTexts.Soporte, "rsoporte", () => services.GetRequiredService<SoportePage>()),

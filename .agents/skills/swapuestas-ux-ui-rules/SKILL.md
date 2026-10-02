@@ -79,7 +79,7 @@ Every data table created in the MVC application must include pagination. A table
 
 ### Side menu o menu lateral
 
-- The side menu groups navigation by task and uses clear labels and familiar icons. Ventas y Recaudo son acordeones compactos: el encabezado es una fila con borde dorado y no se estira para llenar el alto del lateral. El espacio sobrante queda debajo de los grupos cerrados.
+- The side menu groups navigation by task and uses clear labels and familiar icons. Ventas y Recaudo son acordeones compactos: el encabezado es una fila con borde dorado y no se estira para llenar el alto del lateral. El espacio sobrante queda debajo de los grupos cerrados. En Recaudo el primer subítem se llama **Resumen** y cada subítem lleva icono de trazo, igual que en Ventas.
 - Highlight the current section with text and a visual state; do not rely on color alone.
 - Support collapsed and mobile states without trapping keyboard focus.
 - En el pie del menu el globo dorado queda detras de las ultimas opciones y la tarjeta de cuenta con icono de salida. **Cerrar sesion** se confirma al abrir la cuenta. No mostrar la frase de disciplina en el menu.
@@ -87,6 +87,7 @@ Every data table created in the MVC application must include pagination. A table
 - The content area must resize or reflow when the menu changes; it must not be covered by the menu.
 - Do not show links for actions the current role cannot use unless the product explicitly needs them disabled with an explanation.
 - En **Instalaciones** hay una tarjeta **Registro PDA** con el botón **Instalar**. Ese botón abre el mismo asistente de **PDA > Registrar PDA**.
+- En **Registrar PDA**, antes del tipo de usuario el administrador elige el **Equipo que va a registrar**: *PDA de venta* o *Celular*. Son dos tarjetas de opción con borde dorado, título y ayuda corta; la elegida queda con fondo resaltado y barra dorada a la izquierda. La lista de perfiles se arma según esa elección: el PDA de venta admite vendedor, recaudador y observador; el celular solo recaudador y observador. Cada clase tiene su propio camino de instalación y su propio mensaje de error, así que un ajuste en una no cambia la otra.
 - Al terminar bien **Registrar PDA**, el diálogo de éxito muestra *Quedó registrado como:* seguido del nombre con que aparece el equipo en el listado (por ejemplo `PDA-4F2A9C10`), en negro, negrita, mayúscula y un punto más grande que el texto del diálogo. La bitácora de avance nunca muestra ese código y el administrador nunca lo escribe.
 - En **KPI** los filtros de periodo, grupo, vendedor, comparación y fechas actualizan todos los indicadores, barras y tablas. Las tablas del informe no usan casilla; **Revisar** navega al módulo relacionado. **Descargar PDF** conserva los filtros aplicados.
 - En **Ventas offline** hay tres pestañas: **Información general**, **Generar códigos** y **Registro QR vendidos**. El resultado de registrar un QR vendido se muestra en un diálogo modal, no en una franja de texto.
@@ -177,6 +178,13 @@ Every data table created in the MVC application must include pagination. A table
 - Loading states preserve the layout and identify the content being loaded.
 - Empty states explain why there is no content and offer the next useful action when one exists.
 - Disable duplicate submissions while an operation is in progress and show a clear completion result.
+
+## PDA del recaudador
+
+- El inicio del recaudador muestra opciones y no la lista de cobros. Arriba, la tarjeta dorada muestra la fecha del día en Colombia y, debajo, **Total recaudar** junto a **Total recaudado**. Total recaudar suma lo generado para cobrar a todas las personas a cargo, también las que no tienen grupo. Total recaudado suma lo ya cobrado ese día. Debajo, **Resumen de turno** muestra el total de grupos asignados (sin contar «Sin grupo») y el total de vendedores asignados. Luego van los accesos. **Recaudar** abre la pantalla de cobro. Historial y Métricas siguen disponibles desde el inicio y desde la barra inferior.
+- En **Recaudar**, arriba van botones con los grupos asignados y **Todos**. **Todos** incluye los vendedores de todos los grupos y los que no tienen grupo. Un grupo muestra solo los suyos.
+- La lista abre en **Pendientes**. Al cobrar, el vendedor queda etiquetado **Ya cobrado**, sale de pendientes y pasa a **Cobrados**. Desde **Cobrados** se le puede cobrar de nuevo. La tarjeta del vendedor conserva nombre, alias, vendido, valor a cobrar, pendiente y **Registrar cobro**.
+- La búsqueda tiene etiqueta, campo y botón **Buscar**. Encuentra por nombre completo, alias, usuario o documento, también con una palabra incompleta.
 
 ## Responsive MVC checklist
 

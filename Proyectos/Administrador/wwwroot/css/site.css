@@ -2055,6 +2055,43 @@ label.check input {
   line-height: 1.5;
 }
 .registro-pasos li::marker { color: var(--gold); font-weight: 800; }
+.eleccion-equipo { border: 0; padding: 0; margin: 16px 0; }
+.eleccion-equipo legend { padding: 0; font-size: 12px; font-weight: 800; }
+.eleccion-opciones {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+  margin-top: 6px;
+}
+.eleccion-opcion {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-height: 56px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fffdf8;
+  cursor: pointer;
+}
+.eleccion-opcion:hover { border-color: var(--gold); background: #fdf8ec; }
+.eleccion-opcion:has(input:checked) {
+  border-color: var(--gold);
+  background: #f8f1dc;
+  box-shadow: inset 3px 0 0 var(--gold);
+}
+.eleccion-opcion:has(input:focus-visible) { outline: 2px solid #e8c56b; outline-offset: 2px; }
+.eleccion-opcion input {
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  flex: 0 0 18px;
+  accent-color: var(--gold);
+  cursor: pointer;
+}
+.eleccion-copy { display: grid; gap: 3px; min-width: 0; }
+.eleccion-copy strong { font-size: 13px; }
+.eleccion-copy small { font-size: 11px; color: var(--muted); line-height: 1.4; }
 .registro-progreso {
   display: flex;
   align-items: center;

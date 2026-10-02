@@ -27,14 +27,23 @@ public sealed class InstalacionApkTests
     {
         var fallo = new AdbResultado(1, string.Empty, "Failure [INSTALL_FAILED_USER_RESTRICTED: Install canceled by user]");
 
-        InstalacionApk.DebeReintentarComoCelular(fallo).Should().BeTrue();
-        InstalacionApk.MensajeFallo(fallo).Should().Be(UiTexts.PdaFalloInstalacionCelular);
+        InstalacionApk.DebeUsarInstaladorDelSistema(ClaseEquipoPda.Celular, fallo).Should().BeTrue();
+        InstalacionApk.MensajeFallo(ClaseEquipoPda.Celular, fallo).Should().Be(UiTexts.PdaFalloInstalacionCelular);
     }
 
     [Fact]
-    public void Un_apk_marcado_como_prueba_tambien_se_reintenta()
+    public void El_mismo_bloqueo_en_un_pda_de_venta_no_cambia_de_camino_y_tiene_su_propia_guia()
     {
-        InstalacionApk.DebeReintentarComoCelular(new AdbResultado(1, string.Empty, "INSTALL_FAILED_TEST_ONLY"))
+        var fallo = new AdbResultado(1, string.Empty, "Failure [INSTALL_FAILED_USER_RESTRICTED: Install canceled by user]");
+
+        InstalacionApk.DebeUsarInstaladorDelSistema(ClaseEquipoPda.Pda, fallo).Should().BeFalse();
+        InstalacionApk.MensajeFallo(ClaseEquipoPda.Pda, fallo).Should().Be(UiTexts.PdaFalloInstalacionPda);
+    }
+
+    [Fact]
+    public void Un_apk_marcado_como_prueba_tambien_se_reintenta_en_el_celular()
+    {
+        InstalacionApk.DebeUsarInstaladorDelSistema(ClaseEquipoPda.Celular, new AdbResultado(1, string.Empty, "INSTALL_FAILED_TEST_ONLY"))
             .Should().BeTrue();
     }
 
@@ -48,11 +57,13 @@ public sealed class InstalacionApkTests
     }
 
     [Fact]
-    public void Un_pda_que_instala_no_cambia_de_camino()
+    public void Un_equipo_que_instala_bien_no_cambia_de_camino()
     {
-        InstalacionApk.DebeReintentarComoCelular(new AdbResultado(0, "Success", string.Empty))
+        InstalacionApk.DebeUsarInstaladorDelSistema(ClaseEquipoPda.Celular, new AdbResultado(0, "Success", string.Empty))
             .Should().BeFalse();
-        InstalacionApk.MensajeFallo(new AdbResultado(1, string.Empty, "unknown"))
+        InstalacionApk.MensajeFallo(ClaseEquipoPda.Celular, new AdbResultado(1, string.Empty, "unknown"))
+            .Should().Be(UiTexts.PdaFalloInstalacion);
+        InstalacionApk.MensajeFallo(ClaseEquipoPda.Pda, new AdbResultado(1, string.Empty, "unknown"))
             .Should().Be(UiTexts.PdaFalloInstalacion);
     }
 }
