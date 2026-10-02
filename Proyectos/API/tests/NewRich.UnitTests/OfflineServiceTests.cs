@@ -93,6 +93,30 @@ public sealed class OfflineServiceTests
     }
 
     [Fact]
+    public async Task GenerarAsync_guarda_fecha_creacion_en_hora_de_Colombia()
+    {
+        var utc = new DateTime(2026, 10, 2, 15, 47, 0, DateTimeKind.Utc);
+        var colombia = ZonaHorariaColombia.ALocal(utc);
+        var (sut, db, _) = CreateSut(utc);
+        var pda = await AgregarPdaAsync(db, "PDA-019");
+        var usuario = await AgregarUsuarioAsync(db, "Jorge Mena");
+        await AsociarAsync(db, pda.DispositivoId, usuario.UsuarioId);
+
+        var result = await sut.GenerarAsync(
+            new GenerarCodigosOfflineRequest
+            {
+                UsuarioId = usuario.UsuarioId,
+                DispositivoId = pda.DispositivoId,
+                Cantidad = 1
+            },
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue(result.Message);
+        db.CodigosPreventaOffline.Single().FechaCreacion.Should().Be(colombia);
+        colombia.Hour.Should().Be(10);
+    }
+
+    [Fact]
     public async Task GenerarAsync_avisa_en_vivo_al_vendedor_asignado()
     {
         var (sut, db, vivo) = CreateSut();
@@ -406,13 +430,13 @@ public sealed class OfflineServiceTests
         result.Data.Estado.Should().Be("Utilizado");
     }
 
-    private static (OfflineService Sut, NewRichDbContext Db, Mock<ICodigosOfflineTiempoReal> Vivo) CreateSut()
+    private static (OfflineService Sut, NewRichDbContext Db, Mock<ICodigosOfflineTiempoReal> Vivo) CreateSut(DateTime? utcNow = null)
     {
         var options = new DbContextOptionsBuilder<NewRichDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         var db = new NewRichDbContext(options);
-        var clock = new FixedClock(new DateTime(2026, 8, 30, 19, 0, 0, DateTimeKind.Utc));
+        var clock = new FixedClock(utcNow ?? new DateTime(2026, 8, 30, 19, 0, 0, DateTimeKind.Utc));
         var vivo = new Mock<ICodigosOfflineTiempoReal>();
         return (new OfflineService(db, new FakeQr(), clock, vivo.Object), db, vivo);
     }
@@ -484,7 +508,7 @@ public sealed class OfflineServiceTests
     {
         public FixedClock(DateTime utcNow) => UtcNow = utcNow;
         public DateTime UtcNow { get; }
-        public DateTime LocalNow => UtcNow;
+        public DateTime LocalNow => ZonaHorariaColombia.ALocal(UtcNow);
     }
 
     private sealed class FakeQr : IQrCryptoService

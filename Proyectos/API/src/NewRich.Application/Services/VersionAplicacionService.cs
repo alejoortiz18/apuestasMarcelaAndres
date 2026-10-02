@@ -114,7 +114,7 @@ public sealed class VersionAplicacionService : IVersionAplicacionService
             NombreVersion = nombreVersion.Trim(),
             NombreArchivo = archivo,
             TamanoBytes = tamano,
-            FechaPublicacion = _clock.UtcNow
+            FechaPublicacion = _clock.LocalNow
         };
 
         if (antigua is not null)

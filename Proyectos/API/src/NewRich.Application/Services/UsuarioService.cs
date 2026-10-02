@@ -45,6 +45,11 @@ public sealed class UsuarioService : IUsuarioService
             return Result<UsuarioResponse>.Fail(UsuarioMessages.RolSuperReservado);
         }
 
+        if (request.Rol == RolUsuario.Recaudador)
+        {
+            return Result<UsuarioResponse>.Fail(UsuarioMessages.RolRecaudadorNoDisponible);
+        }
+
         if (string.IsNullOrWhiteSpace(request.NombreCompleto))
         {
             return Result<UsuarioResponse>.Fail(ValidationMessages.NombreCompletoRequerido);
@@ -60,8 +65,9 @@ public sealed class UsuarioService : IUsuarioService
             return Result<UsuarioResponse>.Fail(UsuarioMessages.NombreUsuarioDuplicado, 409);
         }
 
-        if (!string.IsNullOrWhiteSpace(request.Documento) &&
-            await _db.Usuarios.AnyAsync(u => u.Documento == request.Documento, cancellationToken))
+        var documento = string.IsNullOrWhiteSpace(request.Documento) ? null : request.Documento.Trim();
+        if (documento is not null &&
+            await _db.Usuarios.AnyAsync(u => u.Documento == documento, cancellationToken))
         {
             return Result<UsuarioResponse>.Fail(UsuarioMessages.DocumentoDuplicado, 409);
         }
@@ -90,7 +96,7 @@ public sealed class UsuarioService : IUsuarioService
             NombreCompleto = request.NombreCompleto.Trim(),
             NombreUsuario = request.Usuario.Trim(),
             Alias = request.Alias,
-            Documento = request.Documento,
+            Documento = documento,
             Celular = request.Celular,
             Email = request.Email,
             PasswordHash = hashed.Hash,
@@ -98,7 +104,7 @@ public sealed class UsuarioService : IUsuarioService
             Rol = request.Rol,
             Estado = EstadoUsuario.Activo,
             EstadoValidado = true,
-            FechaCreacion = _clock.UtcNow
+            FechaCreacion = _clock.LocalNow
         };
 
         _db.Usuarios.Add(usuario);
@@ -127,7 +133,14 @@ public sealed class UsuarioService : IUsuarioService
             }
         }
 
-        await _db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (EsConflictoUnicoDocumento(ex))
+        {
+            return Result<UsuarioResponse>.Fail(UsuarioMessages.DocumentoDuplicado, 409);
+        }
         var creado = await QueryUsuarios().FirstAsync(u => u.UsuarioId == usuario.UsuarioId, cancellationToken);
         return Result<UsuarioResponse>.Created(Map(creado), SuccessMessages.UsuarioCreado + " Contraseña temporal: " + temporal);
     }
@@ -372,7 +385,6 @@ public sealed class UsuarioService : IUsuarioService
 
     private IQueryable<Usuario> QueryUsuarios() =>
         _db.Usuarios
-            .Where(u => u.Rol != RolUsuario.Super)
             .Include(u => u.DispositivosUsuarios).ThenInclude(d => d.Dispositivo)
             .Include(u => u.UsuarioGrupos).ThenInclude(g => g.Grupo);
 
@@ -393,14 +405,14 @@ public sealed class UsuarioService : IUsuarioService
             {
                 DispositivoId = dispositivoId,
                 UsuarioId = usuarioId,
-                FechaAsociacion = _clock.UtcNow,
+                FechaAsociacion = _clock.LocalNow,
                 Activo = true
             });
         }
         else
         {
             existente.Activo = true;
-            existente.FechaAsociacion = _clock.UtcNow;
+            existente.FechaAsociacion = _clock.LocalNow;
         }
 
         return Result.Ok(SuccessMessages.OperacionExitosa);
@@ -428,6 +440,13 @@ public sealed class UsuarioService : IUsuarioService
             GrupoId = grupo?.GrupoId,
             GrupoNombre = grupo?.Nombre
         };
+    }
+
+    private static bool EsConflictoUnicoDocumento(DbUpdateException ex)
+    {
+        var detalle = ex.InnerException?.Message ?? ex.Message;
+        return detalle.Contains("UQ_Usuarios_Documento", StringComparison.OrdinalIgnoreCase)
+            || detalle.Contains("Usuarios_Documento", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string GenerarPasswordTemporal()

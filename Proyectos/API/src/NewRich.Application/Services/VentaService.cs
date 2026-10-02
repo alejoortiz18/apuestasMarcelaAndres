@@ -85,11 +85,11 @@ public sealed class VentaService : IVentaService
                 VentaId = Guid.NewGuid(),
                 UsuarioId = vendedorId,
                 DispositivoId = dispositivoId,
-                FechaVenta = _clock.UtcNow,
+                FechaVenta = _clock.LocalNow,
                 TipoApuesta = request.TipoApuesta,
                 EstadoSincronizacion = "Online",
                 IdempotencyKey = idempotencyKey,
-                FechaSincronizacion = _clock.UtcNow
+                FechaSincronizacion = _clock.LocalNow
             };
 
             var boleto = new Boleto
@@ -97,7 +97,7 @@ public sealed class VentaService : IVentaService
                 BoletoId = Guid.NewGuid(),
                 VentaId = venta.VentaId,
                 EstadoBoleto = EstadoBoleto.Jugado,
-                FechaCreacion = _clock.UtcNow,
+                FechaCreacion = _clock.LocalNow,
                 VigenciaDias = vigencia
             };
 
@@ -182,7 +182,7 @@ public sealed class VentaService : IVentaService
                 boleto.Juegos.Add(juego);
 
                 var admins = await _db.Usuarios.Where(u => u.Rol == RolUsuario.Administrador && u.Estado == EstadoUsuario.Activo).Select(u => u.UsuarioId).ToListAsync(ct);
-                var repeticiones = await _db.Juegos.CountAsync(j => j.Numero == linea.Numero && j.Boleto!.FechaCreacion.Date == _clock.UtcNow.Date, ct);
+                var repeticiones = await _db.Juegos.CountAsync(j => j.Numero == linea.Numero && j.Boleto!.FechaCreacion.Date == _clock.LocalNow.Date, ct);
                 if (repeticiones + 1 >= alertaRepeticion)
                 {
                     avisos.Add((admins, NotificacionMessages.TipoRepeticionNumero, string.Format(VentaMessages.AlertaRepeticionNumero, linea.Numero), venta.VentaId, juego.JuegoId));
@@ -211,7 +211,7 @@ public sealed class VentaService : IVentaService
                 ClaveHash = boleto.ClaveValidacionHash,
                 Version = 1,
                 IdentificadorClave = Guid.NewGuid(),
-                FechaCreacion = _clock.UtcNow
+                FechaCreacion = _clock.LocalNow
             };
 
             var qr = _qr.Encrypt(new QrPayload(boleto.BoletoId, boleto.CodigoPublico, clave, 1, claveEntity.IdentificadorClave));
@@ -343,7 +343,7 @@ public sealed class VentaService : IVentaService
             query = query.Where(v => v.UsuarioId == solicitanteId);
             if (request.FechaInicial.HasValue && request.FechaFinal.HasValue)
             {
-                var min = DateTime.UtcNow.Date.AddDays(-10);
+                var min = _clock.LocalNow.Date.AddDays(-10);
                 if (request.FechaInicial.Value.Date < min)
                 {
                     request.FechaInicial = min;

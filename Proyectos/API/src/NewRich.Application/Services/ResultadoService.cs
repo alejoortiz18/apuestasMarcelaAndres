@@ -51,7 +51,7 @@ public sealed class ResultadoService : IResultadoService
             LoteriaId = request.LoteriaId,
             FechaJuego = inicioDia,
             Numero = request.Numero.Trim(),
-            FechaRegistro = _clock.UtcNow,
+            FechaRegistro = _clock.LocalNow,
             Loteria = loteria
         };
         _db.NumerosGanadores.Add(entity);

@@ -89,6 +89,30 @@ public sealed class UsuarioCreacionTests
     }
 
     [Fact]
+    public async Task CrearAsync_rechaza_el_rol_recaudador_que_esta_version_no_maneja()
+    {
+        var (sut, db) = CreateSut();
+
+        var result = await sut.CrearAsync(Solicitud(RolUsuario.Recaudador), CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Message.Should().Be(UsuarioMessages.RolRecaudadorNoDisponible);
+        (await db.Usuarios.CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
+    public void El_rol_recaudador_que_guarda_la_base_compartida_se_puede_leer()
+    {
+        Enum.Parse<RolUsuario>("Recaudador").Should().Be((RolUsuario)5);
+    }
+
+    [Fact]
+    public void Los_roles_asignables_no_incluyen_super_ni_recaudador()
+    {
+        RolConsola.Asignables.Should().Equal(RolUsuario.Administrador, RolUsuario.Vendedor, RolUsuario.Observador);
+    }
+
+    [Fact]
     public async Task CrearAsync_permite_observadores_sin_grupo()
     {
         var (sut, _) = CreateSut();
@@ -97,6 +121,42 @@ public sealed class UsuarioCreacionTests
 
         result.IsSuccess.Should().BeTrue();
         result.Data!.GrupoId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task CrearAsync_guarda_documento_en_blanco_como_nulo()
+    {
+        var (sut, db) = CreateSut();
+        var solicitud = Solicitud(RolUsuario.Observador);
+        solicitud.Documento = "   ";
+
+        var result = await sut.CrearAsync(solicitud, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        (await db.Usuarios.SingleAsync()).Documento.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task CrearAsync_permite_otro_usuario_sin_documento()
+    {
+        var (sut, db) = CreateSut();
+        db.Usuarios.Add(new Usuario
+        {
+            UsuarioId = Guid.NewGuid(),
+            NombreCompleto = "Admin",
+            NombreUsuario = "admin",
+            PasswordHash = "h",
+            PasswordSalt = "s",
+            Rol = RolUsuario.Administrador,
+            Estado = EstadoUsuario.Activo,
+            FechaCreacion = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+
+        var result = await sut.CrearAsync(Solicitud(RolUsuario.Observador), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        (await db.Usuarios.CountAsync(u => u.Documento == null)).Should().Be(2);
     }
 
     private static CrearUsuarioRequest Solicitud(RolUsuario rol) => new()

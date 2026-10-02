@@ -97,13 +97,13 @@ public sealed class LlaveAdministradorService : ILlaveAdministradorService
         foreach (var anterior in activas)
         {
             anterior.Estado = EstadoLlaveAdministrador.Revocada;
-            anterior.FechaRevocacion = _clock.UtcNow;
+            anterior.FechaRevocacion = _clock.LocalNow;
             anterior.MotivoRevocacion = "Reemplazo por nueva llave";
         }
 
         var codigo = LlaveUsbCriptografia.NuevoCodigo();
         var material = LlaveUsbCriptografia.Generar(codigo, request.SerialUsb.Trim(), request.Volumen.Trim());
-        var ahora = _clock.UtcNow;
+        var ahora = _clock.LocalNow;
         var llave = new LlaveAdministrador
         {
             LlaveId = Guid.NewGuid(),

@@ -5,6 +5,7 @@ using NewRich.Constants;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
 using NewRich.Domain.Enums;
+using NewRich.Domain.Services;
 using NewRich.Infrastructure.Persistence;
 
 namespace NewRich.UnitTests;
@@ -174,13 +175,27 @@ public sealed class NotificacionServiceTests
         tiempoReal.Avisos.Should().Contain(a => a.UsuarioId == luis.UsuarioId && a.Aviso.Tipo == "CasoGanador");
     }
 
-    private static (NotificacionService Sut, NewRichDbContext Db) CreateSut(TiempoRealFake? tiempoReal = null)
+    [Fact]
+    public async Task CrearParaAsync_guarda_fecha_creacion_en_hora_de_Colombia()
+    {
+        var utc = new DateTime(2026, 10, 2, 15, 37, 0, DateTimeKind.Utc);
+        var colombia = ZonaHorariaColombia.ALocal(utc);
+        var (sut, db) = CreateSut(utcNow: utc);
+        var ana = await AgregarUsuarioAsync(db, "Ana Admin");
+
+        await sut.CrearParaAsync([ana.UsuarioId], "CasoGanador", "Se reportó un ganador.", CancellationToken.None);
+
+        db.Notificaciones.Single().FechaCreacion.Should().Be(colombia);
+        colombia.Hour.Should().Be(10);
+    }
+
+    private static (NotificacionService Sut, NewRichDbContext Db) CreateSut(TiempoRealFake? tiempoReal = null, DateTime? utcNow = null)
     {
         var options = new DbContextOptionsBuilder<NewRichDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         var db = new NewRichDbContext(options);
-        return (new NotificacionService(db, new RelojFijo(Ahora), tiempoReal ?? new TiempoRealFake()), db);
+        return (new NotificacionService(db, new RelojFijo(utcNow ?? Ahora), tiempoReal ?? new TiempoRealFake()), db);
     }
 
     private sealed class TiempoRealFake : NewRich.Application.Abstractions.INotificacionTiempoReal
@@ -198,7 +213,7 @@ public sealed class NotificacionServiceTests
     {
         public RelojFijo(DateTime utcNow) => UtcNow = utcNow;
         public DateTime UtcNow { get; }
-        public DateTime LocalNow => UtcNow;
+        public DateTime LocalNow => ZonaHorariaColombia.ALocal(UtcNow);
     }
 
     private static async Task<Usuario> AgregarUsuarioAsync(NewRichDbContext db, string nombre)

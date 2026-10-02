@@ -164,7 +164,7 @@ public sealed class VersionAplicacionServiceTests
                 return actual;
             }
         }
-        public DateTime LocalNow => _utc;
+        public DateTime LocalNow => UtcNow;
     }
 
     private sealed class AvisoSpy : IVersionesTiempoReal

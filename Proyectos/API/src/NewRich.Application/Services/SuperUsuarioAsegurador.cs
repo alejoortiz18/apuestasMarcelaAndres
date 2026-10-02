@@ -3,6 +3,7 @@ using NewRich.Application.Abstractions;
 using NewRich.Constants;
 using NewRich.Domain.Entities;
 using NewRich.Domain.Enums;
+using NewRich.Domain.Services;
 
 namespace NewRich.Application.Services;
 
@@ -44,7 +45,7 @@ public sealed class SuperUsuarioAsegurador : ISuperUsuarioAsegurador
             Rol = RolUsuario.Super,
             Estado = EstadoUsuario.Activo,
             EstadoValidado = false,
-            FechaCreacion = DateTime.UtcNow
+            FechaCreacion = ZonaHorariaColombia.ALocal(DateTime.UtcNow)
         });
         await _db.SaveChangesAsync(cancellationToken);
     }

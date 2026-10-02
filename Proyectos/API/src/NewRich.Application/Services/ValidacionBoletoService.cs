@@ -244,7 +244,7 @@ public sealed class ValidacionBoletoService : IValidacionBoletoService
                 ClaveHash = boleto.ClaveValidacionHash,
                 Version = 1,
                 IdentificadorClave = identificador,
-                FechaCreacion = _clock.UtcNow
+                FechaCreacion = _clock.LocalNow
             });
         }
         else

@@ -77,6 +77,32 @@ public sealed class RegistroAutomaticoPdaTests
     }
 
     [Fact]
+    public async Task Rechaza_el_tipo_recaudador_que_esta_version_no_maneja()
+    {
+        var (sut, db) = CreateSutWithDb();
+
+        var solicitud = Solicitud("SERIE-R");
+        solicitud.Tipo = TipoDispositivo.Recaudador;
+        var result = await sut.RegistrarAutomaticoAsync(solicitud, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Message.Should().Be(ValidationMessages.TipoDispositivoNoDisponible);
+        (await db.Dispositivos.CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
+    public void El_tipo_recaudador_que_guarda_la_base_compartida_se_puede_leer()
+    {
+        Enum.Parse<TipoDispositivo>("Recaudador").Should().Be((TipoDispositivo)3);
+    }
+
+    [Fact]
+    public void Los_tipos_de_pda_asignables_no_incluyen_recaudador()
+    {
+        TipoPda.Asignables.Should().Equal(TipoDispositivo.Vendedor, TipoDispositivo.Observador);
+    }
+
+    [Fact]
     public async Task Exige_el_numero_de_serie_del_equipo()
     {
         var sut = CreateSut();

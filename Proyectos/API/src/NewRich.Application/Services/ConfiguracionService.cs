@@ -266,7 +266,7 @@ public sealed class ConfiguracionService : IConfiguracionService
                 ConfiguracionId = Guid.NewGuid(),
                 Clave = clave,
                 Valor = valor,
-                FechaActualizacion = _clock.UtcNow
+                FechaActualizacion = _clock.LocalNow
             });
         }
 
@@ -287,7 +287,7 @@ public sealed class ConfiguracionService : IConfiguracionService
             ConfiguracionTipoApuestaId = Guid.NewGuid(),
             TipoApuesta = tipo,
             Maximo = maximo,
-            FechaActualizacion = _clock.UtcNow
+            FechaActualizacion = _clock.LocalNow
         });
     }
 
@@ -295,14 +295,14 @@ public sealed class ConfiguracionService : IConfiguracionService
     {
         var item = await _db.Configuraciones.FirstAsync(x => x.Clave == clave, cancellationToken);
         item.Valor = valor;
-        item.FechaActualizacion = _clock.UtcNow;
+        item.FechaActualizacion = _clock.LocalNow;
     }
 
     private async Task GuardarTipoAsync(string tipo, int maximo, CancellationToken cancellationToken)
     {
         var item = await _db.ConfiguracionesTipoApuesta.FirstAsync(x => x.TipoApuesta == tipo, cancellationToken);
         item.Maximo = maximo;
-        item.FechaActualizacion = _clock.UtcNow;
+        item.FechaActualizacion = _clock.LocalNow;
     }
 
     private static GuardarConfiguracionOperativaRequest ToRequest(ConfiguracionOperativaResponse actual) => new()

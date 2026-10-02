@@ -8,6 +8,7 @@ using NewRich.Application.Services;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
 using NewRich.Domain.Enums;
+using NewRich.Domain.Services;
 using NewRich.Infrastructure.Persistence;
 
 namespace NewRich.UnitTests;
@@ -32,6 +33,25 @@ public sealed class IngestarQrOfflineTests
         db.Ventas.Should().ContainSingle();
         db.Boletos.Should().ContainSingle(b => b.BoletoId == codigo.CodigoId);
         db.Juegos.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Pda_sincroniza_venta_con_fecha_sincronizacion_en_hora_de_Colombia()
+    {
+        var utc = new DateTime(2026, 10, 2, 14, 54, 25, DateTimeKind.Utc);
+        var colombia = ZonaHorariaColombia.ALocal(utc);
+        var (sut, db, qr) = CreateSut(utc);
+        var (codigo, loteria, cifrado) = await SemillaAsync(db, qr);
+        var json = Sobre(cifrado, codigo.ConsecutivoUnico, loteria.LoteriaId);
+
+        var result = await sut.SincronizarVentasAsync(
+            codigo.UsuarioId,
+            new SincronizarVentasOfflineRequest { QrJson = [json] },
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        db.Ventas.Single().FechaSincronizacion.Should().Be(colombia);
+        colombia.Hour.Should().Be(9);
     }
 
     [Fact]
@@ -115,6 +135,22 @@ public sealed class IngestarQrOfflineTests
         db.Juegos.Should().ContainSingle(j => j.Numero == "4321");
         (await db.CodigosPreventaOffline.SingleAsync(c => c.CodigoId == codigo.CodigoId))
             .EstadoDelCodigo.Should().Be(EstadoCodigoOffline.Registrado);
+    }
+
+    [Fact]
+    public async Task Admin_registra_fecha_en_hora_de_Colombia()
+    {
+        var utc = new DateTime(2026, 10, 2, 15, 47, 0, DateTimeKind.Utc);
+        var colombia = ZonaHorariaColombia.ALocal(utc);
+        var (sut, db, qr) = CreateSut(utc);
+        var (codigo, loteria, cifrado) = await SemillaAsync(db, qr);
+        var json = Sobre(cifrado, codigo.ConsecutivoUnico, loteria.LoteriaId);
+
+        var registro = await sut.RegistrarQrAsync(Guid.NewGuid(), new RegistrarQrOfflineRequest { Qr = json }, CancellationToken.None);
+
+        registro.IsSuccess.Should().BeTrue(registro.Message);
+        (await db.CodigosPreventaOffline.FindAsync(codigo.CodigoId))!.FechaRegistro.Should().Be(colombia);
+        colombia.Hour.Should().Be(10);
     }
 
     [Fact]
@@ -237,14 +273,15 @@ public sealed class IngestarQrOfflineTests
         return (codigo, loteria, cifrado);
     }
 
-    private static (OfflineService Sut, NewRichDbContext Db, IQrCryptoService Qr) CreateSut()
+    private static (OfflineService Sut, NewRichDbContext Db, IQrCryptoService Qr) CreateSut(DateTime? utcNow = null)
     {
         var options = new DbContextOptionsBuilder<NewRichDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         var db = new NewRichDbContext(options);
         var qr = new QrPrueba();
-        var sut = new OfflineService(db, qr, new Reloj(new DateTime(2026, 9, 11, 16, 0, 0, DateTimeKind.Utc)), Mock.Of<ICodigosOfflineTiempoReal>());
+        var utc = utcNow ?? new DateTime(2026, 9, 11, 16, 0, 0, DateTimeKind.Utc);
+        var sut = new OfflineService(db, qr, new Reloj(utc), Mock.Of<ICodigosOfflineTiempoReal>());
         return (sut, db, qr);
     }
 
@@ -252,7 +289,7 @@ public sealed class IngestarQrOfflineTests
     {
         public Reloj(DateTime utc) => UtcNow = utc;
         public DateTime UtcNow { get; }
-        public DateTime LocalNow => UtcNow;
+        public DateTime LocalNow => ZonaHorariaColombia.ALocal(UtcNow);
     }
 
     private sealed class QrPrueba : IQrCryptoService

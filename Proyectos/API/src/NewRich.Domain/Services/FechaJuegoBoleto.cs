@@ -1,16 +1,23 @@
 namespace NewRich.Domain.Services;
 
 /// <summary>
-/// La fecha de juego de un boleto es la fecha local de su venta. Las ventas se guardan en UTC,
-/// mientras que el administrador publica los números ganadores con la fecha local del sorteo.
+/// La fecha de juego de un boleto es el día calendario de su venta en Colombia.
+/// Las ventas nuevas se guardan en hora de Colombia; las antiguas en UTC se interpretan con el desfase.
 /// </summary>
 public static class FechaJuegoBoleto
 {
     public static TimeSpan Desfase(DateTime utcNow, DateTime localNow) =>
         TimeSpan.FromMinutes(Math.Round((localNow - utcNow).TotalMinutes));
 
-    public static DateOnly De(DateTime fechaVentaUtc, TimeSpan desfaseLocal) =>
-        DateOnly.FromDateTime(DateTime.SpecifyKind(fechaVentaUtc, DateTimeKind.Unspecified).Add(desfaseLocal));
+    public static DateOnly De(DateTime fechaVenta, TimeSpan desfaseLocal)
+    {
+        if (fechaVenta.Kind == DateTimeKind.Utc)
+        {
+            return DateOnly.FromDateTime(DateTime.SpecifyKind(fechaVenta, DateTimeKind.Unspecified).Add(desfaseLocal));
+        }
+
+        return DateOnly.FromDateTime(fechaVenta);
+    }
 
     public static (DateTime DesdeUtc, DateTime HastaUtc) Ventana(DateOnly fechaJuego, TimeSpan desfaseLocal)
     {

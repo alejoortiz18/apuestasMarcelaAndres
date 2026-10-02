@@ -193,7 +193,7 @@ public sealed class NotificacionService : INotificacionService
             return;
         }
 
-        var ahora = _clock.UtcNow;
+        var ahora = _clock.LocalNow;
         var creadas = new List<Notificacion>();
         foreach (var usuarioId in usuarioIds.Distinct())
         {

@@ -20,7 +20,7 @@ public static class AcumuladoTopeConsulta
 
         var loteriaIds = claves.Select(c => c.LoteriaId).Distinct().ToList();
         var numeros = claves.Select(c => c.Numero.Trim()).Distinct().ToList();
-        var (inicioUtc, finUtc) = RangoDiaLocalUtc(clock.LocalNow.Date);
+        var (inicio, fin) = FechaJuegoBoleto.Rango(DateOnly.FromDateTime(clock.LocalNow));
 
         var filas = await db.JuegoLoterias
             .AsNoTracking()
@@ -29,8 +29,8 @@ public static class AcumuladoTopeConsulta
                 && numeros.Contains(jl.Juego.Numero)
                 && jl.Juego.Boleto != null
                 && jl.Juego.Boleto.Venta != null
-                && jl.Juego.Boleto.Venta.FechaVenta >= inicioUtc
-                && jl.Juego.Boleto.Venta.FechaVenta < finUtc)
+                && jl.Juego.Boleto.Venta.FechaVenta >= inicio
+                && jl.Juego.Boleto.Venta.FechaVenta < fin)
             .Select(jl => new { jl.LoteriaId, Numero = jl.Juego!.Numero, jl.Juego.Valor })
             .ToListAsync(cancellationToken);
 

@@ -99,6 +99,25 @@ public sealed class AuthServiceTests
     }
 
     [Fact]
+    public async Task LoginAsync_recaudador_no_ingresa_porque_esta_version_no_maneja_ese_perfil()
+    {
+        var (sut, db, usuario, _, _) = await CreateSutConAdminAsync("Recaudo123");
+        usuario.Rol = RolUsuario.Recaudador;
+        await db.SaveChangesAsync();
+
+        var result = await sut.LoginAsync(new LoginRequest
+        {
+            Usuario = usuario.NombreUsuario,
+            Password = "Recaudo123"
+        }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(403);
+        result.Message.Should().Be(AuthMessages.PerfilNoDisponible);
+        db.Sesiones.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task LoginAsync_administrador_sin_prueba_de_llave_es_rechazado()
     {
         var (sut, db, usuario, _, _) = await CreateSutConAdminAsync("Admin123");

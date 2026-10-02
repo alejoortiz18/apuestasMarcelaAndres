@@ -87,7 +87,7 @@ public sealed class LoteriaService : ILoteriaService
             Tope = request.Tope,
             HoraInicio = horario.Data!.Inicio,
             HoraFin = horario.Data.Fin,
-            FechaCreacion = _clock.UtcNow
+            FechaCreacion = _clock.LocalNow
         };
         _db.Loterias.Add(loteria);
         ReemplazarDias(loteria.LoteriaId, dias);
@@ -249,7 +249,7 @@ public sealed class LoteriaService : ILoteriaService
             {
                 LoteriaId = loteriaId,
                 DiaSemana = dia,
-                FechaActualizacion = _clock.UtcNow
+                FechaActualizacion = _clock.LocalNow
             });
         }
     }

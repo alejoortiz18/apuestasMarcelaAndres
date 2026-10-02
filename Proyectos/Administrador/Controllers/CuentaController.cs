@@ -33,14 +33,22 @@ public sealed class CuentaController : Controller
 
     [HttpGet]
     [AllowAnonymous]
-    public IActionResult Ingresar(bool expired = false)
+    public async Task<IActionResult> Ingresar(bool expired = false)
     {
+        // La cookie del administrador puede seguir vigente aunque la API ya rechace su token.
+        // Sin cerrarla, Inicio devuelve aquí e Ingresar devuelve a Inicio sin fin.
+        if (expired)
+        {
+            await _session.SignOutAsync(HttpContext);
+            return View(CrearLogin(UiTexts.SesionExpiradaVista));
+        }
+
         if (User.Identity?.IsAuthenticated == true && User.EsAdministrador() && !User.DebeCambiarPassword())
         {
             return RedirectToAction("Index", "Inicio");
         }
 
-        return View(CrearLogin(expired ? UiTexts.SesionExpiradaVista : null));
+        return View(CrearLogin(null));
     }
 
     [HttpGet]

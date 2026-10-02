@@ -22,8 +22,15 @@ public readonly record struct MesCalendario(int Anio, int Mes) : IComparable<Mes
         return diferencia + 1;
     }
 
-    public static MesCalendario DeInstanteUtc(DateTime instanteUtc) =>
-        new(DateOnly.FromDateTime(ZonaHorariaColombia.ALocal(instanteUtc)));
+    public static MesCalendario DeInstanteUtc(DateTime instante)
+    {
+        if (instante.Kind == DateTimeKind.Utc)
+        {
+            return new(DateOnly.FromDateTime(ZonaHorariaColombia.ALocal(instante)));
+        }
+
+        return new(DateOnly.FromDateTime(instante));
+    }
 
     public static MesCalendario Parse(string valor)
     {

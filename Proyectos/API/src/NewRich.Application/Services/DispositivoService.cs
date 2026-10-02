@@ -45,6 +45,11 @@ public sealed class DispositivoService : IDispositivoService
             return Result<DispositivoResponse>.Fail(ValidationMessages.CodigoDispositivoRequerido);
         }
 
+        if (!TipoPda.Asignables.Contains(request.Tipo))
+        {
+            return Result<DispositivoResponse>.Fail(ValidationMessages.TipoDispositivoNoDisponible);
+        }
+
         if (await _db.Dispositivos.AnyAsync(d => d.CodigoDispositivo == request.CodigoDispositivo, cancellationToken))
         {
             return Result<DispositivoResponse>.Fail(UsuarioMessages.DispositivoCodigoDuplicado, 409);
@@ -65,7 +70,7 @@ public sealed class DispositivoService : IDispositivoService
             Modelo = request.Modelo,
             NumeroSerie = request.NumeroSerie,
             CapacidadCodigosOffline = 3000,
-            FechaRegistro = _clock.UtcNow
+            FechaRegistro = _clock.LocalNow
         };
         _db.Dispositivos.Add(dispositivo);
         await _db.SaveChangesAsync(cancellationToken);
@@ -77,6 +82,11 @@ public sealed class DispositivoService : IDispositivoService
         if (string.IsNullOrWhiteSpace(request.NumeroSerie))
         {
             return Result<DispositivoResponse>.Fail(ValidationMessages.NumeroSerieRequerido);
+        }
+
+        if (!TipoPda.Asignables.Contains(request.Tipo))
+        {
+            return Result<DispositivoResponse>.Fail(ValidationMessages.TipoDispositivoNoDisponible);
         }
 
         var serie = request.NumeroSerie.Trim();
@@ -109,7 +119,7 @@ public sealed class DispositivoService : IDispositivoService
             Modelo = request.Modelo,
             NumeroSerie = serie,
             CapacidadCodigosOffline = 3000,
-            FechaRegistro = _clock.UtcNow
+            FechaRegistro = _clock.LocalNow
         };
 
         _db.Dispositivos.Add(dispositivo);
@@ -192,14 +202,14 @@ public sealed class DispositivoService : IDispositivoService
             {
                 DispositivoId = dispositivoId,
                 UsuarioId = usuarioId,
-                FechaAsociacion = _clock.UtcNow,
+                FechaAsociacion = _clock.LocalNow,
                 Activo = true
             });
         }
         else
         {
             existente.Activo = true;
-            existente.FechaAsociacion = _clock.UtcNow;
+            existente.FechaAsociacion = _clock.LocalNow;
         }
 
         var generadosPendientes = await _db.CodigosPreventaOffline

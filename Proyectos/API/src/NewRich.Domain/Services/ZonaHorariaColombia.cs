@@ -13,4 +13,13 @@ public static class ZonaHorariaColombia
             : DateTime.SpecifyKind(utc, DateTimeKind.Utc);
         return TimeZoneInfo.ConvertTimeFromUtc(instante, Actual);
     }
+
+    public static DateTime InicioUtcDelDia(DateOnly fecha)
+    {
+        var local = DateTime.SpecifyKind(fecha.ToDateTime(TimeOnly.MinValue), DateTimeKind.Unspecified);
+        return TimeZoneInfo.ConvertTimeToUtc(local, Actual);
+    }
+
+    public static DateTime InicioLocalDelDia(DateOnly fecha) =>
+        DateTime.SpecifyKind(fecha.ToDateTime(TimeOnly.MinValue), DateTimeKind.Unspecified);
 }
