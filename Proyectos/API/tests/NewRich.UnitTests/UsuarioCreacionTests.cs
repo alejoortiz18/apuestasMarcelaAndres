@@ -89,6 +89,26 @@ public sealed class UsuarioCreacionTests
     }
 
     [Fact]
+    public async Task ListarAsync_incluye_usuarios_con_rol_recaudador()
+    {
+        var (sut, db) = CreateSut();
+        db.Usuarios.Add(new Usuario
+        {
+            UsuarioId = Guid.NewGuid(),
+            NombreCompleto = "Rosa Recaudo",
+            NombreUsuario = "rosa.recaudo",
+            Rol = RolUsuario.Recaudador,
+            FechaCreacion = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+
+        var result = await sut.ListarAsync(CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue(result.Message);
+        result.Data.Should().ContainSingle(u => u.Usuario == "rosa.recaudo" && u.Rol == RolUsuario.Recaudador);
+    }
+
+    [Fact]
     public async Task CrearAsync_permite_observadores_sin_grupo()
     {
         var (sut, _) = CreateSut();

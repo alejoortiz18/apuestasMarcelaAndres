@@ -4,5 +4,6 @@ namespace NewRich.Domain.Enums;
 public enum TipoDispositivo
 {
     Vendedor = 1,
-    Observador = 2
+    Observador = 2,
+    Recaudador = 3
 }

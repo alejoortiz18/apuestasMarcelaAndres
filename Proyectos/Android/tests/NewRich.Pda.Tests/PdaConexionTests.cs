@@ -25,12 +25,12 @@ public sealed class PdaConexionTests
     }
 
     [Fact]
-    public void Dispositivo_fisico_y_emulador_usan_el_api_de_produccion()
+    public void Dispositivo_fisico_y_emulador_usan_el_api_local_de_este_pc()
     {
-        PdaConexion.BaseUrl(emulador: false).Should().Be(PdaConexion.UrlProduccion);
-        PdaConexion.BaseUrl(emulador: true).Should().Be(PdaConexion.UrlProduccion);
-        PdaConexion.UrlsPara(emulador: false).Should().Equal(PdaConexion.UrlProduccion);
-        PdaConexion.UrlsPara(emulador: true).Should().Equal(PdaConexion.UrlProduccion);
+        PdaConexion.BaseUrl(emulador: false).Should().Be(PdaConexion.UrlLocal);
+        PdaConexion.BaseUrl(emulador: true).Should().Be(PdaConexion.UrlLocal);
+        PdaConexion.UrlsPara(emulador: false).Should().Equal(PdaConexion.UrlLocal, PdaConexion.UrlPuenteUsb);
+        PdaConexion.UrlsPara(emulador: true).Should().Equal(PdaConexion.UrlLocal, PdaConexion.UrlPuenteUsb);
     }
 
     [Fact]

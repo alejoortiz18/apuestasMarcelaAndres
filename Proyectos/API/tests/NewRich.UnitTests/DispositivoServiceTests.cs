@@ -39,6 +39,28 @@ public sealed class DispositivoServiceTests
     }
 
     [Fact]
+    public async Task ListarAsync_incluye_pda_de_tipo_recaudador()
+    {
+        var (sut, db, _) = CreateSut();
+        db.Dispositivos.Add(new Dispositivo
+        {
+            DispositivoId = Guid.NewGuid(),
+            CodigoDispositivo = "PDA-RECAUDO",
+            Tipo = TipoDispositivo.Recaudador,
+            Estado = EstadoGeneral.Activo,
+            Modelo = "H10",
+            CapacidadCodigosOffline = 3000,
+            FechaRegistro = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+
+        var result = await sut.ListarAsync(CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data.Should().ContainSingle(d => d.CodigoDispositivo == "PDA-RECAUDO");
+    }
+
+    [Fact]
     public async Task ListarAsync_cuenta_solo_los_codigos_que_el_pda_ya_descargo()
     {
         var (sut, db, _) = CreateSut();

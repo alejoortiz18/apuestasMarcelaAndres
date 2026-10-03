@@ -5,7 +5,8 @@ public enum RolUsuario
     Administrador = 1,
     Vendedor = 2,
     Observador = 3,
-    Super = 4
+    Super = 4,
+    Recaudador = 5
 }
 
 public static class RolConsola

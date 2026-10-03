@@ -19,15 +19,16 @@ public static class PdaConexion
     public static string CodigoDispositivo { get; set; } = CodigoDispositivoPredeterminado;
     public static string? NumeroSerie { get; set; }
     public const string UrlProduccion = "https://api-ventas-prod-ffh4dmdhgpcsapda.westus3-01.azurewebsites.net/";
-    public const string UrlLocal = "http://192.168.20.26:5295/";
+    public const string UrlLocal = "http://192.168.1.2:5295/";
+    public const string UrlPuenteUsb = "http://127.0.0.1:5295/";
     public const string RutaHubChat = "/hubs/chat";
 
     /// <summary>Sondeo liviano. No descarga el documento de swagger.</summary>
     public const string RutaSondeo = "api/salud";
 
-    public static string BaseUrl(bool emulador) => UrlProduccion;
+    public static string BaseUrl(bool emulador) => UrlLocal;
 
-    public static IReadOnlyList<string> UrlsPara(bool emulador) => [UrlProduccion];
+    public static IReadOnlyList<string> UrlsPara(bool emulador) => [UrlLocal, UrlPuenteUsb];
 
     public static string HubChat(string baseUrl) => baseUrl.TrimEnd('/') + RutaHubChat;
 
