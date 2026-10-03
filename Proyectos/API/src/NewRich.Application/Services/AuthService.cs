@@ -79,13 +79,8 @@ public sealed class AuthService : IAuthService
             return Result<LoginResponse>.Fail(AuthMessages.CredencialesInvalidas, 401);
         }
 
-        if (usuario.Rol == RolUsuario.Recaudador)
-        {
-            return Result<LoginResponse>.Fail(AuthMessages.PerfilNoDisponible, 403);
-        }
-
         Guid? dispositivoId = null;
-        if (usuario.Rol is RolUsuario.Vendedor or RolUsuario.Observador)
+        if (usuario.Rol is RolUsuario.Vendedor or RolUsuario.Observador or RolUsuario.Recaudador)
         {
             if (string.IsNullOrWhiteSpace(request.CodigoDispositivo) && string.IsNullOrWhiteSpace(request.NumeroSerie))
             {
@@ -112,7 +107,7 @@ public sealed class AuthService : IAuthService
                 return Result<LoginResponse>.Fail(AuthMessages.DispositivoInactivo, 403);
             }
 
-            var tipoEsperado = usuario.Rol == RolUsuario.Vendedor ? TipoDispositivo.Vendedor : TipoDispositivo.Observador;
+            var tipoEsperado = TipoDePda(usuario.Rol);
             if (dispositivo.Tipo != tipoEsperado)
             {
                 return Result<LoginResponse>.Fail(AuthMessages.DispositivoTipoNoCorresponde, 403);
@@ -415,4 +410,11 @@ public sealed class AuthService : IAuthService
         activa.FechaUltimoUso = _clock.LocalNow;
         return Result.Ok(SuccessMessages.OperacionExitosa);
     }
+
+    private static TipoDispositivo TipoDePda(RolUsuario rol) => rol switch
+    {
+        RolUsuario.Vendedor => TipoDispositivo.Vendedor,
+        RolUsuario.Recaudador => TipoDispositivo.Recaudador,
+        _ => TipoDispositivo.Observador
+    };
 }

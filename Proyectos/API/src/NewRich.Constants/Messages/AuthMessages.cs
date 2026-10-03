@@ -25,7 +25,6 @@ public static class AuthMessages
     public const string SesionInvalida = "La sesión no es válida o fue cerrada por el administrador.";
     public const string TokenInvalido = "El token de autenticación no es válido.";
 
-    public const string PerfilNoDisponible = "Este perfil no está disponible en esta versión de la aplicación.";
     public const string AdministradorNoOperaEnPda = "El perfil Administrador no puede operar desde el PDA.";
     public const string SoloAdministrador = "Solo un usuario con perfil Administrador puede ejecutar esta operación.";
     public const string SoloVendedor = "Solo un usuario con perfil Vendedor puede ejecutar esta operación.";

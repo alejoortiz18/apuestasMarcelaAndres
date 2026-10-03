@@ -375,6 +375,73 @@ public static class PdaTexts
     public const string ActualizacionPreparando = "Preparando la descarga";
     public const string ActualizacionDescargando = "Descargando la actualización: {0}%";
     public const string ActualizacionInstalando = "Abriendo el instalador";
+    public const string Recaudo = "Recaudo";
+    public const string Recaudar = "Recaudar";
+    public const string RecaudarAyuda = "Cobra a los vendedores de tus grupos.";
+    public const string HistorialRecaudoAyuda = "Consulta los cobros registrados.";
+    public const string MetricasRecaudoAyuda = "Mira el avance del recaudo.";
+    public const string YaCobrado = "Ya cobrado";
+    public const string BuscarVendedor = "Buscar vendedor";
+    public const string BuscarVendedorAyuda = "Nombre, alias, usuario o documento";
+    public const string HistorialRecaudo = "Historial";
+    public const string MetricasRecaudo = "Métricas";
+    public const string Pendientes = "Pendientes";
+    public const string Cobrados = "Cobrados";
+    public const string Todos = "Todos";
+    public const string PdaRecaudador = "PDA recaudador";
+    public const string RegistrarCobro = "Registrar cobro";
+    public const string ValorRecibido = "Valor recibido";
+    public const string Vendido = "Vendido";
+    public const string ACobrar = "A cobrar";
+    public const string TotalPagado = "Total pagado";
+    public const string TotalPendiente = "Total pendiente";
+    public const string SaldoQueQueda = "Saldo que queda";
+    public const string ConfirmarCobro = "Confirmar cobro";
+    public const string PagoRecaudoInvalido = "El valor debe ser un peso entero mayor que cero.";
+    public const string PagoRecaudoExcede = "El valor no puede ser mayor que el pendiente.";
+    public const string DebeIngresarAGrupo = "Debe ingresar a un grupo";
+    public const string SinAsignadosHoy = "No hay vendedores por cobrar en este periodo.";
+    public const string SinCobrosHistorial = "No hay cobros registrados en este periodo.";
+    public const string SincronizarRecaudo = "Sincronizar recaudo";
+    public const string SincronizarRecaudoAyuda = "Sube los cobros pendientes y actualiza las obligaciones.";
+    public const string SyncPagosPendientes = "{0} pagos siguen pendientes.";
+    public const string TotalRecaudar = "Total recaudar";
+    public const string TotalRecaudado = "Total recaudado";
+    public const string GruposAsignados = "Total grupos asignados";
+    public const string VendedoresAsignados = "Total vendedores asignados";
+    public const string RecaudoDelDia = "Recaudo del día";
+    public const string PorCobrarHoy = "Por cobrar";
+    public const string RecaudadoHoy = "Recaudado";
+    public const string PendienteHoy = "Pendiente";
+    public const string DeudaAcumulada = "Deuda acumulada";
+    public const string OrdenarPor = "Ordenar";
+    public const string VendedoresAcciones = "Vendedores";
+    public const string VendedoresAccionesAyuda = "Desbloquear o restablecer contraseña";
+    public const string VendedoresAccionesSub = "Solo vendedores. La contraseña temporal se muestra una vez.";
+    public const string DesbloquearVendedor = "Desbloquear";
+    public const string RestablecerContrasenaVendedor = "Restablecer contraseña";
+    public const string SiDesbloquear = "Sí, desbloquear";
+    public const string SiRestablecer = "Sí, restablecer";
+    public const string VendedorBloqueado = "Bloqueado";
+    public const string VendedorActivo = "Activo";
+    public const string SinVendedores = "No hay vendedores para mostrar.";
+    public const string EstadoVendedor = "Estado";
+    public const string TodosLosGrupos = "Todos los grupos";
+    public const string SinGrupo = "Sin grupo";
+    public const string EstadoBloqueados = "Bloqueados";
+    public const string EstadoSinBloqueo = "Sin bloqueo";
+    public const string LimpiarFiltros = "Limpiar filtros";
+    public const string MostrandoVendedores = "Mostrando {0} de {1} vendedores";
+    public const string SinVendedoresConFiltros = "No hay vendedores que coincidan con los filtros. Cambie la búsqueda o use Limpiar filtros.";
+    public const string Documento = "Documento";
+    public const string PasswordTemporalMostrada = "Contraseña temporal";
+    public const string Aceptar = "Aceptar";
+
+    public static string ConfirmarDesbloqueoVendedor(string nombre) =>
+        $"¿Desbloquear a {nombre}? Podrá volver a ingresar al PDA.";
+
+    public static string ConfirmarRestablecerVendedor(string nombre) =>
+        $"¿Restablecer la contraseña de {nombre}? La contraseña actual dejará de servir y la temporal se mostrará una sola vez.";
 
     public static string ActualizacionMensaje(string nombreVersion, int numeroCompilacion) =>
         $"Hay una versión nueva ({nombreVersion}, compilación {numeroCompilacion}). Descárgala e instálala en este dispositivo.";

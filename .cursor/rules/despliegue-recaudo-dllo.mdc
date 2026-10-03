@@ -1,0 +1,34 @@
+---
+description: Antes de desplegar en la rama RecaudoDllo, usar solo el entorno de desarrollo local
+alwaysApply: true
+---
+
+# Despliegue en la rama RecaudoDllo
+
+Leer esta regla antes de publicar. Si la rama actual es `RecaudoDllo`, el administrador, el API y las aplicaciones móviles quedan en desarrollo. No usar Azure, `C:\inetpub\rich`, el puerto 8085 ni el puerto 5295.
+
+## API
+
+- Sitio IIS: `apiDesarrollo`
+- Carpeta: `C:\inetpub\apilocal`
+- Dirección: `http://localhost:8090/`
+- Base de datos: `Server=localhost;Database=NewRich;Trusted_Connection=True;TrustServerCertificate=True;`
+- Entorno del sitio: `Development`, para que responda por HTTP.
+- Al cambiar el API, publicar ahí y reciclar el sitio `apiDesarrollo`. No reemplazar la cadena de conexión por otra base.
+
+## Administrador
+
+- Sitio IIS: `richDesarrolo`
+- Carpeta: `C:\inetpub\RichDesarrollo\administrador`
+- Dirección: `http://localhost:8091/`
+- `Api:BaseUrl`: `http://localhost:8090/`
+- Entorno del sitio: `Development`.
+- Al cambiar el administrador, publicar ahí y reciclar el sitio `richDesarrolo`. No dejarlo apuntando a otro API.
+- El APK que sirve el registro USB es el de `C:\inetpub\RichDesarrollo\administrador\wwwroot\android\com.newrich.pda-Signed.apk`.
+
+## Aplicaciones móviles
+
+Vendedor, recaudador y observador apuntan al API de desarrollo del puerto 8090. No apuntan a producción.
+
+- En el celular, `localhost` es el teléfono. Por USB el puente es `tcp:8090`. Por Wi-Fi usan la IP de este equipo en el puerto 8090.
+- La dirección vive en `PdaConexion`. No dejar `UrlProduccion` ni el puerto 5295 como destino de esta rama.

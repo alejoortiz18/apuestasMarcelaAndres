@@ -15,13 +15,14 @@ public static class RolConsola
         rol is RolUsuario.Administrador or RolUsuario.Super;
 
     /// <summary>
-    /// Perfiles que se ofrecen al crear usuarios. Super es la cuenta interna de respaldo y
-    /// Recaudador pertenece al módulo de recaudo: el API rechaza ambos.
+    /// Perfiles que se ofrecen al crear o editar usuarios. Super es la cuenta interna de
+    /// respaldo: el API la rechaza y por eso tampoco se muestra.
     /// </summary>
     public static IReadOnlyList<RolUsuario> Asignables { get; } =
     [
         RolUsuario.Administrador,
         RolUsuario.Vendedor,
-        RolUsuario.Observador
+        RolUsuario.Observador,
+        RolUsuario.Recaudador
     ];
 }

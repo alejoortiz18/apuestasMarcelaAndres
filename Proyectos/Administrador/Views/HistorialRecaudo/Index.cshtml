@@ -1,0 +1,116 @@
+@using NewRich.Admin.Constants
+@using NewRich.Admin.Models
+@model HistorialRecaudoViewModel
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.RecaudoKicker</div>
+        <h1>@UiTexts.HistorialRecaudoTitulo</h1>
+        <p>@UiTexts.HistorialRecaudoSub</p>
+    </div>
+</div>
+<div class="panel">
+    <form class="toolbar" method="get">
+        <div class="field">
+            <label for="desde">@UiTexts.Desde</label>
+            <input id="desde" name="desde" type="date" value="@Model.Desde.ToString("yyyy-MM-dd")" />
+        </div>
+        <div class="field">
+            <label for="hasta">@UiTexts.Hasta</label>
+            <input id="hasta" name="hasta" type="date" value="@Model.Hasta.ToString("yyyy-MM-dd")" />
+        </div>
+        <div class="field">
+            <label for="recaudadorId">@UiTexts.Recaudador</label>
+            <select id="recaudadorId" name="recaudadorId">
+                <option value="">@UiTexts.Todos</option>
+                @foreach (var item in Model.Recaudadores)
+                {
+                    <option value="@item.Id" selected="@(Model.RecaudadorId == item.Id)">@item.Nombre</option>
+                }
+            </select>
+        </div>
+        <div class="field">
+            <label for="grupoId">@UiTexts.Grupo</label>
+            <select id="grupoId" name="grupoId">
+                <option value="">@UiTexts.Todos</option>
+                @foreach (var item in Model.Grupos)
+                {
+                    <option value="@item.Id" selected="@(Model.GrupoId == item.Id)">@item.Nombre</option>
+                }
+            </select>
+        </div>
+        <div class="field">
+            <label for="vendedorId">@UiTexts.Vendedor</label>
+            <select id="vendedorId" name="vendedorId">
+                <option value="">@UiTexts.Todos</option>
+                @foreach (var item in Model.Vendedores)
+                {
+                    <option value="@item.Id" selected="@(Model.VendedorId == item.Id)">@item.Nombre</option>
+                }
+            </select>
+        </div>
+        <div class="field">
+            <label for="estado">@UiTexts.Estado</label>
+            <select id="estado" name="estado">
+                <option value="">@UiTexts.TodosLosEstados</option>
+                <option value="@UiTexts.EstadoAlDia" selected="@(Model.Estado == UiTexts.EstadoAlDia)">@UiTexts.EstadoAlDia</option>
+                <option value="@UiTexts.EstadoDeudado" selected="@(Model.Estado == UiTexts.EstadoDeudado)">@UiTexts.EstadoDeudado</option>
+            </select>
+        </div>
+        <div class="field">
+            <label for="pageSize">@UiTexts.FilasPorPagina</label>
+            <select id="pageSize" name="pageSize">
+                @foreach (var size in PagingHelper.PageSizes)
+                {
+                    <option value="@size" selected="@(Model.Pagina.PageSize == size)">@size</option>
+                }
+            </select>
+        </div>
+        <button class="primary" type="submit">@UiTexts.Buscar</button>
+        <a class="secondary" asp-action="Index">@UiTexts.LimpiarFiltros</a>
+    </form>
+</div>
+<div class="panel">
+    <div class="panel-head">
+        <div>
+            <h2>@UiTexts.HistorialRecaudoTitulo</h2>
+            <div class="panel-sub">@Model.Pagina.TotalCount registros</div>
+        </div>
+    </div>
+    @if (!Model.Pagina.Items.Any())
+    {
+        <div class="empty">@UiTexts.Vacio</div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                <tr>
+                    <th>@UiTexts.FechaHora</th>
+                    <th>@UiTexts.Recaudador</th>
+                    <th>@UiTexts.Vendedor</th>
+                    <th>@UiTexts.Grupo</th>
+                    <th>@UiTexts.ValorRecibido</th>
+                    <th>@UiTexts.SaldoResultante</th>
+                    <th>@UiTexts.Estado</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var fila in Model.Pagina.Items)
+                {
+                    <tr>
+                        <td>@fila.FechaHora.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>@fila.Recaudador</td>
+                        <td>@fila.Vendedor</td>
+                        <td>@fila.Grupo</td>
+                        <td class="recaudo-cifra">@FormatoPesos.De(fila.ValorRecibido)</td>
+                        <td>@FormatoPesos.De(fila.SaldoResultante)</td>
+                        <td>@fila.Estado</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        <partial name="_Pager" model="Model.Pagina" />
+    }
+</div>

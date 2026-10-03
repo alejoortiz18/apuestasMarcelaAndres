@@ -115,6 +115,64 @@ public sealed class GrupoServiceTests
         detalle.Data!.CantidadVendedores.Should().Be(0);
     }
 
+    [Fact]
+    public async Task AsignarVendedorAsync_a_un_grupo_con_recaudador_retira_su_asignacion_individual()
+    {
+        var (sut, db) = CreateSutWithDb();
+        var grupo = await sut.CrearAsync(new CrearGrupoRequest { Nombre = "Centro" }, CancellationToken.None);
+        var vendedor = await AgregarVendedorAsync(db, "Cata Lopez");
+        var recaudador = await AgregarUsuarioAsync(db, "Carmen Recaudo", RolUsuario.Recaudador);
+        db.AsignacionesGrupoRecaudo.Add(new AsignacionGrupoRecaudo
+        {
+            AsignacionId = Guid.NewGuid(),
+            RecaudadorId = recaudador.UsuarioId,
+            GrupoId = grupo.Data!.GrupoId,
+            Porcentaje = 10,
+            Estado = "Activa",
+            FechaCreacion = DateTime.UtcNow,
+            FechaModificacion = DateTime.UtcNow
+        });
+        db.AsignacionesVendedorRecaudo.Add(new AsignacionVendedorRecaudo
+        {
+            AsignacionId = Guid.NewGuid(),
+            RecaudadorId = recaudador.UsuarioId,
+            VendedorId = vendedor.UsuarioId,
+            Porcentaje = 15,
+            Estado = "Activa",
+            FechaCreacion = DateTime.UtcNow,
+            FechaModificacion = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+
+        var result = await sut.AsignarVendedorAsync(vendedor.UsuarioId, grupo.Data.GrupoId, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        db.AsignacionesVendedorRecaudo.Should().OnlyContain(a => a.Estado != "Activa");
+    }
+
+    [Fact]
+    public async Task AsignarVendedorAsync_a_un_grupo_sin_recaudador_conserva_su_asignacion_individual()
+    {
+        var (sut, db) = CreateSutWithDb();
+        var grupo = await sut.CrearAsync(new CrearGrupoRequest { Nombre = "Norte" }, CancellationToken.None);
+        var vendedor = await AgregarVendedorAsync(db, "Cata Lopez");
+        db.AsignacionesVendedorRecaudo.Add(new AsignacionVendedorRecaudo
+        {
+            AsignacionId = Guid.NewGuid(),
+            RecaudadorId = Guid.NewGuid(),
+            VendedorId = vendedor.UsuarioId,
+            Porcentaje = 15,
+            Estado = "Activa",
+            FechaCreacion = DateTime.UtcNow,
+            FechaModificacion = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+
+        await sut.AsignarVendedorAsync(vendedor.UsuarioId, grupo.Data!.GrupoId, CancellationToken.None);
+
+        db.AsignacionesVendedorRecaudo.Should().ContainSingle(a => a.Estado == "Activa");
+    }
+
     private static GrupoService CreateSut() => CreateSutWithDb().Sut;
 
     private static (GrupoService Sut, NewRichDbContext Db) CreateSutWithDb()

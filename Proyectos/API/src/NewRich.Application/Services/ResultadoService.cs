@@ -82,12 +82,10 @@ public sealed class ResultadoService : IResultadoService
     /// </summary>
     private async Task<int> ResolverBoletosAsync(DateOnly fechaJuego, CancellationToken cancellationToken)
     {
-        var desfase = FechaJuegoBoleto.Desfase(_clock.UtcNow, _clock.LocalNow);
-        var (desdeUtc, hastaUtc) = FechaJuegoBoleto.Ventana(fechaJuego, desfase);
-        var (inicioDia, finDia) = FechaJuegoBoleto.Rango(fechaJuego);
+        var (desde, hasta) = FechaJuegoBoleto.Rango(fechaJuego);
 
         var publicados = await _db.NumerosGanadores
-            .Where(n => n.FechaJuego >= inicioDia && n.FechaJuego < finDia)
+            .Where(n => n.FechaJuego >= desde && n.FechaJuego < hasta)
             .ToListAsync(cancellationToken);
 
         var boletos = await _db.Boletos
@@ -95,7 +93,7 @@ public sealed class ResultadoService : IResultadoService
             .Include(b => b.Juegos)
             .ThenInclude(j => j.JuegoLoterias)
             .Where(b => EstadosEnDisputa.Contains(b.EstadoBoleto))
-            .Where(b => b.Venta!.FechaVenta >= desdeUtc && b.Venta.FechaVenta < hastaUtc)
+            .Where(b => b.Venta!.FechaVenta >= desde && b.Venta.FechaVenta < hasta)
             .ToListAsync(cancellationToken);
 
         var actualizados = 0;
@@ -141,12 +139,11 @@ public sealed class ResultadoService : IResultadoService
         }
 
         var items = await query.OrderByDescending(n => n.FechaJuego).ToListAsync(cancellationToken);
-        var desfase = FechaJuegoBoleto.Desfase(_clock.UtcNow, _clock.LocalNow);
         var resultado = new List<ResultadoResponse>(items.Count);
         foreach (var item in items)
         {
             var mapped = Map(item);
-            mapped.CantidadGanadores = await ContarGanadoresAsync(item, desfase, cancellationToken);
+            mapped.CantidadGanadores = await ContarGanadoresAsync(item, cancellationToken);
             resultado.Add(mapped);
         }
 
@@ -165,8 +162,7 @@ public sealed class ResultadoService : IResultadoService
             return Result<IReadOnlyList<BoletoListaResponse>>.Fail(BoletoMessages.ResultadoNoEncontrado, 404);
         }
 
-        var desfase = FechaJuegoBoleto.Desfase(_clock.UtcNow, _clock.LocalNow);
-        var boletos = await QueryGanadores(resultado, desfase)
+        var boletos = await QueryGanadores(resultado)
             .Include(b => b.Venta)
             .ThenInclude(v => v!.Usuario)
             .OrderByDescending(b => b.Venta!.FechaVenta)
@@ -189,17 +185,17 @@ public sealed class ResultadoService : IResultadoService
     /// Cuenta los boletos que acertaron ese número en esa lotería el día del sorteo,
     /// aunque el premio ya esté pagado o entregado.
     /// </summary>
-    private Task<int> ContarGanadoresAsync(NumeroGanador resultado, TimeSpan desfase, CancellationToken cancellationToken) =>
-        QueryGanadores(resultado, desfase).CountAsync(cancellationToken);
+    private Task<int> ContarGanadoresAsync(NumeroGanador resultado, CancellationToken cancellationToken) =>
+        QueryGanadores(resultado).CountAsync(cancellationToken);
 
-    private IQueryable<Boleto> QueryGanadores(NumeroGanador resultado, TimeSpan desfase)
+    private IQueryable<Boleto> QueryGanadores(NumeroGanador resultado)
     {
         var fechaJuego = DateOnly.FromDateTime(resultado.FechaJuego);
-        var (desdeUtc, hastaUtc) = FechaJuegoBoleto.Ventana(fechaJuego, desfase);
+        var (desde, hasta) = FechaJuegoBoleto.Rango(fechaJuego);
         return _db.Boletos
             .Where(b => b.Venta != null
-                        && b.Venta.FechaVenta >= desdeUtc
-                        && b.Venta.FechaVenta < hastaUtc)
+                        && b.Venta.FechaVenta >= desde
+                        && b.Venta.FechaVenta < hasta)
             .Where(b => b.EstadoBoleto == EstadoBoleto.Ganador
                         || b.EstadoBoleto == EstadoBoleto.PagadoCobrado
                         || b.EstadoBoleto == EstadoBoleto.PremioEntregado)

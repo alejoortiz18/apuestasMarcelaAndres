@@ -1,4 +1,5 @@
 @using NewRich.Admin.Constants
+@using NewRich.Admin.Services.Pda
 @using NewRich.Domain.Enums
 @{
     ViewData["Title"] = UiTexts.RegistroPdaTitulo;
@@ -42,17 +43,37 @@
             <li>@UiTexts.RegistroPdaInstruccion8</li>
             <li>@UiTexts.RegistroPdaInstruccion9</li>
         </ol>
+        <fieldset class="field eleccion-equipo">
+            <legend>@UiTexts.RegistroPdaClase</legend>
+            <div class="eleccion-opciones">
+                @foreach (var clase in Enum.GetValues<ClaseEquipoPda>())
+                {
+                    var titulo = clase == ClaseEquipoPda.Pda ? UiTexts.RegistroPdaClasePda : UiTexts.RegistroPdaClaseCelular;
+                    var ayuda = clase == ClaseEquipoPda.Pda ? UiTexts.RegistroPdaClasePdaAyuda : UiTexts.RegistroPdaClaseCelularAyuda;
+                    <label class="eleccion-opcion">
+                        <input type="radio" name="claseEquipo" value="@clase" data-clase checked="@(clase == ClaseEquipoPda.Pda)" />
+                        <span class="eleccion-copy">
+                            <strong>@titulo</strong>
+                            <small>@ayuda</small>
+                        </span>
+                    </label>
+                }
+            </div>
+            <span class="field-help">@UiTexts.RegistroPdaClaseAyuda</span>
+        </fieldset>
         <div class="field">
             <label for="tipoDispositivo">@UiTexts.RegistroPdaTipo</label>
             <select id="tipoDispositivo" class="searchable" data-tipo>
-                @foreach (var tipo in TipoPda.Asignables)
+                @foreach (var tipo in Enum.GetValues<TipoDispositivo>())
                 {
-                    <option value="@((int)tipo)">@tipo</option>
+                    var clases = string.Join(" ", Enum.GetValues<ClaseEquipoPda>()
+                        .Where(c => PerfilesPorClaseEquipo.Permite(c, tipo))
+                        .Select(c => c.ToString()));
+                    <option value="@tipo" data-clases="@clases">@tipo</option>
                 }
             </select>
             <span class="field-help">@UiTexts.RegistroPdaTipoAyuda</span>
         </div>
-        <div class="notice error hidden" role="alert" data-verificacion-error hidden></div>
         <div class="notice hidden" role="status" aria-live="polite" data-verificacion-estado hidden></div>
         <div class="text-center-actions">
             <button class="primary" type="button" data-continuar>@UiTexts.RegistroPdaContinuar</button>
@@ -81,7 +102,6 @@
         </div>
         <h3 class="registro-bitacora-titulo">@UiTexts.RegistroPdaBitacora</h3>
         <ol class="registro-bitacora" role="status" aria-live="polite" data-bitacora></ol>
-        <div class="notice error hidden" role="alert" data-registro-error hidden></div>
         <div class="text-center-actions hidden" data-acciones-error hidden>
             <button class="primary" type="button" data-reintentar>@UiTexts.RegistroPdaReintentar</button>
             <a class="secondary" asp-controller="@cancelarController" asp-action="@cancelarAction">@UiTexts.Cancelar</a>
@@ -92,6 +112,10 @@
 <div id="registroPdaDialog" class="dialog-back hidden" role="dialog" aria-modal="true" aria-labelledby="registroPdaDialogTitulo" hidden>
     <div class="dialog">
         <h2 id="registroPdaDialogTitulo">@UiTexts.PdaRegistroCompletado</h2>
+        <p class="hidden" data-nombre-registrado-fila hidden>
+            @UiTexts.PdaNombreRegistrado
+            <strong class="registro-nombre" data-nombre-registrado></strong>
+        </p>
         <p>@UiTexts.PdaRegistroCompletadoDetalle</p>
         <p class="panel-sub">@UiTexts.PdaRegistroSiguientePaso</p>
         <div class="dialog-actions">

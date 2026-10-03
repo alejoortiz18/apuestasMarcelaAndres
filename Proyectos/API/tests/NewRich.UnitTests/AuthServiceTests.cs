@@ -48,6 +48,50 @@ public sealed class AuthServiceTests
     }
 
     [Fact]
+    public async Task LoginAsync_recaudador_entra_si_el_pda_es_de_recaudador()
+    {
+        var (sut, _, usuario) = await CreateSutConRolDePdaAsync(
+            RolUsuario.Recaudador,
+            TipoDispositivo.Recaudador,
+            "Rec12345!",
+            "PDA-RECAUDO",
+            "serie-recaudador");
+
+        var result = await sut.LoginAsync(new LoginRequest
+        {
+            Usuario = usuario.NombreUsuario,
+            Password = "Rec12345!",
+            CodigoDispositivo = "PDA-RECAUDO",
+            NumeroSerie = "serie-recaudador"
+        }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Rol.Should().Be(RolUsuario.Recaudador);
+    }
+
+    [Fact]
+    public async Task LoginAsync_recaudador_no_entra_en_un_pda_de_observador()
+    {
+        var (sut, _, usuario) = await CreateSutConRolDePdaAsync(
+            RolUsuario.Recaudador,
+            TipoDispositivo.Observador,
+            "Rec12345!",
+            "PDA-OBS",
+            "serie-observador");
+
+        var result = await sut.LoginAsync(new LoginRequest
+        {
+            Usuario = usuario.NombreUsuario,
+            Password = "Rec12345!",
+            CodigoDispositivo = "PDA-OBS",
+            NumeroSerie = "serie-observador"
+        }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Message.Should().Be(AuthMessages.DispositivoTipoNoCorresponde);
+    }
+
+    [Fact]
     public async Task LoginAsync_observador_vinculado_entra_desde_un_celular_que_no_esta_registrado()
     {
         var (sut, db, usuario) = await CreateSutConObservadorAsync("Obs12345!", "PDA-8279866F", "a6hy7l99cizhlbtw");
@@ -96,25 +140,6 @@ public sealed class AuthServiceTests
 
         result.IsSuccess.Should().BeTrue();
         result.Data!.Rol.Should().Be(RolUsuario.Super);
-    }
-
-    [Fact]
-    public async Task LoginAsync_recaudador_no_ingresa_porque_esta_version_no_maneja_ese_perfil()
-    {
-        var (sut, db, usuario, _, _) = await CreateSutConAdminAsync("Recaudo123");
-        usuario.Rol = RolUsuario.Recaudador;
-        await db.SaveChangesAsync();
-
-        var result = await sut.LoginAsync(new LoginRequest
-        {
-            Usuario = usuario.NombreUsuario,
-            Password = "Recaudo123"
-        }, CancellationToken.None);
-
-        result.IsSuccess.Should().BeFalse();
-        result.StatusCode.Should().Be(403);
-        result.Message.Should().Be(AuthMessages.PerfilNoDisponible);
-        db.Sesiones.Should().BeEmpty();
     }
 
     [Fact]
@@ -584,6 +609,25 @@ public sealed class AuthServiceTests
         await db.SaveChangesAsync();
         var sut = new AuthService(db, hasher, new JwtFalso(), new RelojFijo(new DateTime(2026, 9, 19, 20, 0, 0, DateTimeKind.Utc)), new ConfirmacionAccionMemoria());
         return (sut, db, usuario);
+    }
+
+    private static Task<(AuthService Sut, NewRichDbContext Db, Usuario Usuario)> CreateSutConRolDePdaAsync(
+        RolUsuario rol,
+        TipoDispositivo tipo,
+        string password,
+        string codigoDispositivo,
+        string numeroSerie)
+    {
+        return CreateSutConObservadorAsync(password, codigoDispositivo, numeroSerie)
+            .ContinueWith(t =>
+            {
+                var (sut, db, usuario) = t.Result;
+                usuario.Rol = rol;
+                usuario.NombreUsuario = rol.ToString().ToLowerInvariant();
+                db.Dispositivos.Single().Tipo = tipo;
+                db.SaveChanges();
+                return (sut, db, usuario);
+            }, TaskScheduler.Default);
     }
 
     private static async Task<(AuthService Sut, NewRichDbContext Db, Usuario Usuario, ConfirmacionAccionMemoria Store, RelojFijo Reloj)> CreateSutConAdminAsync(

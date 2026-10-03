@@ -6,7 +6,7 @@
 @{
     var resumen = Model.Resumen;
     string Formato(DateTime? fecha) => fecha.HasValue
-        ? fecha.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+        ? fecha.Value.ToString("dd/MM/yyyy HH:mm")
         : UiTexts.NoAplica;
     string UrlOrden(string columna)
     {
@@ -185,7 +185,7 @@
                                     data-pda="@item.Pda"
                                     data-estado="@item.Estado"
                                     data-estado-pill="@EstadoUi.Pill(item.Estado)"
-                                    data-fecha-creacion="@item.FechaCreacion.ToLocalTime().ToString("dd/MM/yyyy HH:mm")"
+                                    data-fecha-creacion="@Formato(item.FechaCreacion)"
                                     data-fecha-descarga="@Formato(item.FechaDescarga)"
                                     data-fecha-venta="@Formato(item.FechaVenta)"
                                     data-fecha-registro="@Formato(item.FechaRegistro)"

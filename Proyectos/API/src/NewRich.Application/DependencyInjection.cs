@@ -14,6 +14,7 @@ public static class DependencyInjection
         services.AddScoped<IDispositivoService, DispositivoService>();
         services.AddScoped<ILoteriaService, LoteriaService>();
         services.AddScoped<IGrupoService, GrupoService>();
+        services.AddScoped<IJornadaService, JornadaService>();
         services.AddScoped<IConfiguracionService, ConfiguracionService>();
         services.AddScoped<IRetencionHistoricaService, RetencionHistoricaService>();
         services.AddScoped<INumerosRestringidosService, NumerosRestringidosService>();
@@ -36,6 +37,7 @@ public static class DependencyInjection
         services.AddScoped<ISuperUsuarioAsegurador, SuperUsuarioAsegurador>();
         services.AddScoped<IAndroidPdaService, AndroidPdaService>();
         services.AddScoped<IObservadorTicketService, ObservadorTicketService>();
+        services.AddScoped<IRecaudoService, RecaudoService>();
         return services;
     }
 }

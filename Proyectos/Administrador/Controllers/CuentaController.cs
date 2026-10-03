@@ -132,7 +132,7 @@ public sealed class CuentaController : Controller
         }
 
         await _session.SignInAsync(HttpContext, result.Data);
-        TempData["FlashOk"] = SuccessMessages.PasswordCambiado;
+        TempData["AvisoModal"] = SuccessMessages.PasswordCambiado;
         return RedirectToAction("Index", "Inicio");
     }
 

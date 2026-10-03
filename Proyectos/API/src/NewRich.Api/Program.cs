@@ -126,6 +126,8 @@ app.MapHub<ChatHub>(ChatHub.Ruta).RequireCors("Admin");
 
 using (var alcance = app.Services.CreateScope())
 {
+    var db = alcance.ServiceProvider.GetRequiredService<NewRich.Application.Abstractions.INewRichDbContext>();
+    await db.AsegurarEsquemaJornadasAsync(CancellationToken.None);
     var super = alcance.ServiceProvider.GetRequiredService<NewRich.Application.Services.ISuperUsuarioAsegurador>();
     await super.AsegurarAsync(CancellationToken.None);
 }

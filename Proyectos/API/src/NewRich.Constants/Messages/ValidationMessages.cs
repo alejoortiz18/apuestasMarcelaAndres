@@ -22,6 +22,7 @@ public static class ValidationMessages
     public const string HorarioLoteriaRequerido = "La hora de inicio y la hora de fin son obligatorias.";
     public const string HorarioLoteriaInvalido = "El horario de la lotería no es válido.";
     public const string HorarioLoteriaFueraDePda = "El horario de la lotería debe estar dentro del horario de actividad del PDA.";
+    public const string HorarioLoteriaFueraDePdaDe = "El horario de la lotería {0} debe estar dentro del horario de actividad del PDA ({1} a {2}).";
     public const string HorarioLoteriaInicioMayorQueFin = "La hora de inicio debe ser menor que la hora de fin.";
     public const string TipoApuestaInvalido = "El tipo de apuesta no es válido. Valores permitidos: COMBINADO, INDIVIDUAL.";
     public const string CodigoPublicoFormato = "El código público del boleto debe tener exactamente 7 dígitos.";
@@ -30,8 +31,7 @@ public static class ValidationMessages
 
     public const string CodigoDispositivoRequerido = "El código del dispositivo es obligatorio.";
     public const string NumeroSerieRequerido = "No se pudo leer el número de serie del dispositivo.";
-    public const string TipoDispositivoInvalido = "El tipo de dispositivo no es válido. Valores permitidos: Vendedor, Observador.";
-    public const string TipoDispositivoNoDisponible = "El tipo de dispositivo Recaudador no está disponible en esta versión.";
+    public const string TipoDispositivoInvalido = "El tipo de dispositivo no es válido. Valores permitidos: Vendedor, Observador, Recaudador.";
     public const string CapacidadCodigosOfflineRango = "La capacidad de códigos offline debe ser un número entero mayor o igual a 0.";
     public const string CantidadCodigosOfflineRango = "La cantidad de códigos a generar debe estar entre 1 y 5000.";
 

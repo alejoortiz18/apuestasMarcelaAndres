@@ -53,19 +53,19 @@ public sealed class UsuariosController : ApiControllerBase
         return From(await _usuarioService.EliminarAsync(id, UsuarioId, cancellationToken));
     }
 
-    [Authorize(Roles = "Administrador")]
+    [Authorize(Roles = "Administrador,Observador")]
     [RequiereConfirmacion(AccionesProtegidas.UsuariosRestablecer)]
     [HttpPost("{id:guid}/restablecer-password")]
     public async Task<IActionResult> RestablecerPassword(Guid id, CancellationToken cancellationToken)
     {
-        return From(await _usuarioService.RestablecerPasswordAsync(id, cancellationToken));
+        return From(await _usuarioService.RestablecerPasswordAsync(id, RolSolicitante, cancellationToken));
     }
 
-    [Authorize(Roles = "Administrador")]
+    [Authorize(Roles = "Administrador,Observador")]
     [RequiereConfirmacion(AccionesProtegidas.UsuariosDesbloquear)]
     [HttpPost("{id:guid}/desbloquear")]
     public async Task<IActionResult> Desbloquear(Guid id, CancellationToken cancellationToken)
     {
-        return From(await _usuarioService.DesbloquearAsync(id, cancellationToken));
+        return From(await _usuarioService.DesbloquearAsync(id, RolSolicitante, cancellationToken));
     }
 }

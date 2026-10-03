@@ -355,6 +355,10 @@ public sealed class LoginPage : ContentPage
                 await _offline.SincronizarEnSilencioAsync(true, resultado.Data.Rol, false, CancellationToken.None);
                 _nav.IrAVendedor();
             }
+            else if (shell.Data == ShellPda.Recaudador)
+            {
+                _nav.IrARecaudador();
+            }
             else
             {
                 _nav.IrAObservador();
@@ -430,6 +434,10 @@ public sealed class LoginPage : ContentPage
         if (shell.Data == ShellPda.Vendedor)
         {
             _nav.IrAVendedor();
+        }
+        else if (shell.Data == ShellPda.Recaudador)
+        {
+            _nav.IrARecaudador();
         }
         else
         {

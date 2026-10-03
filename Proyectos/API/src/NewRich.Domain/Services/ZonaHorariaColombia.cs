@@ -1,6 +1,8 @@
 namespace NewRich.Domain.Services;
 
-/// <summary>Colombia no usa horario de verano. Los sorteos se publican en esta zona, no en la del servidor.</summary>
+/// <summary>
+/// Colombia no usa horario de verano. Los sorteos, las ventas y el recaudo se interpretan en esta zona.
+/// </summary>
 public static class ZonaHorariaColombia
 {
     public static TimeZoneInfo Actual { get; } = TimeZoneInfo.FindSystemTimeZoneById(

@@ -6,6 +6,7 @@ using NewRich.Application.Contracts.Configuracion;
 using NewRich.Application.Contracts.Consultas;
 using NewRich.Application.Contracts.Dispositivos;
 using NewRich.Application.Contracts.Grupos;
+using NewRich.Application.Contracts.Jornadas;
 using NewRich.Application.Contracts.Kpi;
 using NewRich.Application.Contracts.Loterias;
 using NewRich.Application.Contracts.Notificaciones;
@@ -101,6 +102,8 @@ public sealed class LoteriasIndexViewModel
 {
     public string? Busqueda { get; init; }
     public int? Estado { get; init; }
+    public string Orden { get; init; } = "nombre";
+    public string Direccion { get; init; } = "asc";
     public PagedViewModel<LoteriaResponse> Pagina { get; init; } = new();
 }
 
@@ -129,6 +132,12 @@ public sealed class LoteriaFormViewModel
     [Display(Name = UiTexts.HoraFinLoteria)]
     [Required(ErrorMessage = ValidationMessages.CampoRequerido)]
     public string HoraFin { get; set; } = string.Empty;
+
+    [Display(Name = UiTexts.Jornada)]
+    [Required(ErrorMessage = UsuarioMessages.JornadaRequerida)]
+    public Guid? JornadaId { get; set; }
+
+    public IReadOnlyList<JornadaResponse> Jornadas { get; set; } = [];
 }
 
 public sealed class GruposIndexViewModel
@@ -251,6 +260,9 @@ public sealed class ConfiguracionIndexViewModel
 {
     public ConfiguracionOperativaFormViewModel Form { get; set; } = new();
     public string? Busqueda { get; init; }
+    public string? Jornada { get; init; }
+    public string Orden { get; init; } = "nombre";
+    public string Direccion { get; init; } = "asc";
     public PagedViewModel<LoteriaResponse> Pagina { get; init; } = new();
     public List<DiasLoteriaFormItem> DiasVenta { get; set; } = [];
     public IReadOnlyList<LoteriaResponse> Topes { get; set; } = [];

@@ -45,11 +45,6 @@ public sealed class DispositivoService : IDispositivoService
             return Result<DispositivoResponse>.Fail(ValidationMessages.CodigoDispositivoRequerido);
         }
 
-        if (!TipoPda.Asignables.Contains(request.Tipo))
-        {
-            return Result<DispositivoResponse>.Fail(ValidationMessages.TipoDispositivoNoDisponible);
-        }
-
         if (await _db.Dispositivos.AnyAsync(d => d.CodigoDispositivo == request.CodigoDispositivo, cancellationToken))
         {
             return Result<DispositivoResponse>.Fail(UsuarioMessages.DispositivoCodigoDuplicado, 409);
@@ -82,11 +77,6 @@ public sealed class DispositivoService : IDispositivoService
         if (string.IsNullOrWhiteSpace(request.NumeroSerie))
         {
             return Result<DispositivoResponse>.Fail(ValidationMessages.NumeroSerieRequerido);
-        }
-
-        if (!TipoPda.Asignables.Contains(request.Tipo))
-        {
-            return Result<DispositivoResponse>.Fail(ValidationMessages.TipoDispositivoNoDisponible);
         }
 
         var serie = request.NumeroSerie.Trim();

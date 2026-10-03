@@ -134,6 +134,20 @@ public sealed class GrupoService : IGrupoService
                 UsuarioId = usuarioId,
                 GrupoId = grupoId.Value
             });
+
+            var grupoConRecaudador = await _db.AsignacionesGrupoRecaudo
+                .AnyAsync(a => a.Estado == "Activa" && a.GrupoId == grupoId.Value, cancellationToken);
+            if (grupoConRecaudador)
+            {
+                var individuales = await _db.AsignacionesVendedorRecaudo
+                    .Where(a => a.Estado == "Activa" && a.VendedorId == usuarioId)
+                    .ToListAsync(cancellationToken);
+                foreach (var individual in individuales)
+                {
+                    individual.Estado = "Retirada";
+                    individual.FechaModificacion = _clock.LocalNow;
+                }
+            }
         }
 
         await _db.SaveChangesAsync(cancellationToken);

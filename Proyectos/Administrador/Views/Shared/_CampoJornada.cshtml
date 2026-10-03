@@ -1,0 +1,22 @@
+@using NewRich.Admin.Constants
+@using NewRich.Domain.Services
+@model NewRich.Admin.Models.LoteriaFormViewModel
+<div class="field">
+    <label asp-for="JornadaId"></label>
+    <select asp-for="JornadaId" class="searchable" data-jornada-horario>
+        <option value="">@UiTexts.SeleccionaJornada</option>
+        @foreach (var jornada in Model.Jornadas)
+        {
+            if (JornadaPorHoraCierre.TryRangoHoraFin(jornada.Nombre, out var minimo, out var maximo))
+            {
+                <option value="@jornada.JornadaId" data-jornada-min="@JornadaPorHoraCierre.HoraHtml(minimo)" data-jornada-max="@JornadaPorHoraCierre.HoraHtml(maximo)">@jornada.Nombre</option>
+            }
+            else
+            {
+                <option value="@jornada.JornadaId">@jornada.Nombre</option>
+            }
+        }
+    </select>
+    <span class="field-help">@UiTexts.JornadasSub</span>
+    <span asp-validation-for="JornadaId"></span>
+</div>

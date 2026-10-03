@@ -4,6 +4,7 @@ using NewRich.Pda.Core.Auth;
 using NewRich.Maui.Data;
 using NewRich.Maui.Services;
 using NewRich.Maui.Views.Observador;
+using NewRich.Maui.Views.Recaudador;
 using NewRich.Maui.Views.Shared;
 using NewRich.Maui.Views.Vendedor;
 
@@ -73,8 +74,16 @@ public static class MauiProgram
         builder.Services.AddTransient<ConsultasPage>();
         builder.Services.AddTransient<KpiPage>();
         builder.Services.AddTransient<ObservadorMasPage>();
+        builder.Services.AddTransient<VendedoresAccionesPage>();
         builder.Services.AddTransient<CasosPage>();
         builder.Services.AddTransient<ObservadorShell>();
+        builder.Services.AddTransient<RecaudadorHomePage>();
+        builder.Services.AddTransient<RecaudadorCobroPage>();
+        builder.Services.AddTransient<RecaudadorHistorialPage>();
+        builder.Services.AddTransient<RecaudadorMetricasPage>();
+        builder.Services.AddTransient<RecaudadorMasPage>();
+        builder.Services.AddTransient<RecaudadorSincronizacionPage>();
+        builder.Services.AddTransient<RecaudadorShell>();
 
         var app = builder.Build();
         _ = app.Services.GetRequiredService<ActualizacionEnVivoServicio>();

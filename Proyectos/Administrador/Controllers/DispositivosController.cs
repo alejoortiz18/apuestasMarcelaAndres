@@ -106,12 +106,12 @@ public sealed class DispositivosController : AdminControllerBase
     }
 
     /// <summary>
-    /// Ejecuta el registro completo e informa el avance por el hub. La respuesta nunca incluye el
-    /// codigo del dispositivo.
+    /// Ejecuta el registro completo e informa el avance por el hub. Al terminar bien devuelve el
+    /// nombre con que el equipo quedo registrado.
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Registrar(TipoDispositivo tipo, string? conexionId, CancellationToken cancellationToken)
+    public async Task<IActionResult> Registrar(ClaseEquipoPda clase, TipoDispositivo tipo, string? conexionId, CancellationToken cancellationToken)
     {
         if (!_candado.Tomar())
         {
@@ -121,12 +121,13 @@ public sealed class DispositivosController : AdminControllerBase
         try
         {
             var avance = new AvanceRegistroPdaPorHub(_hub, conexionId);
-            var resultado = await _registro.RegistrarAsync(tipo, avance, cancellationToken);
+            var resultado = await _registro.RegistrarAsync(clase, tipo, avance, cancellationToken);
             return Json(new
             {
                 exitoso = resultado.Exitoso,
                 mensaje = resultado.Mensaje,
                 modelo = resultado.Modelo,
+                nombreRegistrado = resultado.Exitoso ? resultado.NombreRegistrado : null,
                 detalle = resultado.Exitoso ? UiTexts.PdaRegistroCompletadoDetalle : null
             });
         }

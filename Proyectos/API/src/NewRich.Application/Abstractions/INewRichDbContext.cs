@@ -15,6 +15,7 @@ public interface INewRichDbContext
     DbSet<DispositivoUsuario> DispositivosUsuarios { get; }
     DbSet<Sesion> Sesiones { get; }
     DbSet<Loteria> Loterias { get; }
+    DbSet<Jornada> Jornadas { get; }
     DbSet<LoteriaDiaSemana> LoteriasDiasSemana { get; }
     DbSet<Venta> Ventas { get; }
     DbSet<Boleto> Boletos { get; }
@@ -37,11 +38,18 @@ public interface INewRichDbContext
     DbSet<LlaveAdministrador> LlavesAdministrador { get; }
     DbSet<VersionAplicacion> VersionesAplicacion { get; }
     DbSet<AuditoriaRetencion> AuditoriasRetencion { get; }
+    DbSet<AsignacionGrupoRecaudo> AsignacionesGrupoRecaudo { get; }
+    DbSet<PorcentajeGrupoRecaudo> PorcentajesGrupoRecaudo { get; }
+    DbSet<AsignacionVendedorRecaudo> AsignacionesVendedorRecaudo { get; }
+    DbSet<ObligacionRecaudo> ObligacionesRecaudo { get; }
+    DbSet<PagoRegistradoRecaudo> PagosRecaudo { get; }
+    DbSet<TirillaCobroRecaudo> TirillasCobroRecaudo { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     Task ExecuteInTransactionAsync(Func<CancellationToken, Task> action, CancellationToken cancellationToken = default);
     Task AsegurarEsquemaRetencionAsync(CancellationToken cancellationToken = default);
     Task AsegurarEsquemaCapacidadOfflineAsync(CancellationToken cancellationToken = default);
+    Task AsegurarEsquemaJornadasAsync(CancellationToken cancellationToken = default);
     Task<bool> IntentarBloquearRetencionAsync(CancellationToken cancellationToken = default);
     void DescartarCambios();
 }

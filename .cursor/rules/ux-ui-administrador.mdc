@@ -1,0 +1,12 @@
+---
+description: Aplicar el libro UX/UI a todo cambio de interfaz
+alwaysApply: true
+---
+
+# UX/UI en cada cambio de interfaz
+
+Antes de crear o modificar controles, vistas o estilos del administrador (o de otra interfaz del proyecto), leer y aplicar `.agents/skills/swapuestas-ux-ui-rules/SKILL.md`.
+
+- Reutilizar el sistema visual existente (variables de color, bordes dorados, botones `primary` / `secondary` / `danger`, campos con foco dorado).
+- Los controles nuevos deben verse pulidos: estados de foco, hover, deshabilitado y error visibles, áreas táctiles cómodas y textos en español de Colombia centralizados en `UiTexts`.
+- Registrar en el libro UX/UI el comportamiento nuevo que se acuerde.

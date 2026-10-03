@@ -26,6 +26,9 @@ public sealed class ConfiguracionController : AdminControllerBase
 
     public async Task<IActionResult> Index(
         string? q,
+        string? jornada,
+        string? orden,
+        string? dir,
         int page = 1,
         int pageSize = 5,
         int pageNumeros = 1,
@@ -55,10 +58,15 @@ public sealed class ConfiguracionController : AdminControllerBase
             loterias = loterias.Where(l => l.Nombre.Contains(termino, StringComparison.OrdinalIgnoreCase)).ToList();
         }
 
+        loterias = CatalogoLoteriasOrden.Aplicar(loterias, jornada, orden, dir);
+
         return View(new ConfiguracionIndexViewModel
         {
             Form = Mapear(configTask.Result.Data),
             Busqueda = q,
+            Jornada = string.IsNullOrWhiteSpace(jornada) ? null : jornada.Trim(),
+            Orden = CatalogoLoteriasOrden.NormalizarOrden(orden),
+            Direccion = string.Equals(dir, "desc", StringComparison.OrdinalIgnoreCase) ? "desc" : "asc",
             Pagina = PagingHelper.Paginate(loterias, page, pageSize),
             DiasVenta = MapDias(todas),
             Topes = todas.OrderBy(l => l.Nombre).ToList(),
@@ -191,14 +199,25 @@ public sealed class ConfiguracionController : AdminControllerBase
     public async Task<IActionResult> GuardarHorarios(
         List<HorarioLoteriaRequest> horarios,
         string? q,
+        string? jornada,
+        string? orden,
+        string? dir,
         int page = 1,
         int pageSize = 5,
         CancellationToken cancellationToken = default)
     {
         SetNav("configuracion", UiTexts.NavConfiguracion);
+        var volver = new { q, jornada, orden, dir, page, pageSize };
+        var pendientes = (horarios ?? []).Where(item => item.LoteriaId != Guid.Empty).ToList();
+        if (pendientes.Count == 0)
+        {
+            SetAvisoModal(SuccessMessages.HorariosSinCambios);
+            return RedirectToAction(nameof(Index), volver);
+        }
+
         var result = await _api.ActualizarHorariosLoteriasAsync(new ActualizarHorariosLoteriasRequest
         {
-            Loterias = horarios ?? []
+            Loterias = pendientes
         }, cancellationToken);
         var denied = RedirectIfUnauthorized(result);
         if (denied is not null)
@@ -206,8 +225,23 @@ public sealed class ConfiguracionController : AdminControllerBase
             return denied;
         }
 
-        SetFlash(result.Success ? SuccessMessages.RegistroActualizado : result.Message, result.Success);
-        return RedirectToAction(nameof(Index), new { q, page, pageSize });
+        if (!result.Success)
+        {
+            SetFlash(result.Message, false);
+            return RedirectToAction(nameof(Index), volver);
+        }
+
+        TempData["HorariosGuardados"] = true;
+        if (string.Equals(result.Message, SuccessMessages.HorariosSinCambios, StringComparison.Ordinal))
+        {
+            SetAvisoModal(result.Message);
+        }
+        else
+        {
+            SetFlash(SuccessMessages.RegistroActualizado);
+        }
+
+        return RedirectToAction(nameof(Index), volver);
     }
 
     [HttpPost]
@@ -264,10 +298,10 @@ public sealed class ConfiguracionController : AdminControllerBase
     }
 
     [HttpGet]
-    public IActionResult CrearLoteria()
+    public async Task<IActionResult> CrearLoteria(CancellationToken cancellationToken)
     {
         SetNav("configuracion", UiTexts.AgregarLoteria);
-        return View("LoteriaForm", new LoteriaFormViewModel());
+        return View("LoteriaForm", new LoteriaFormViewModel { Jornadas = await JornadasAsync(_api, cancellationToken) });
     }
 
     [HttpPost]
@@ -275,6 +309,7 @@ public sealed class ConfiguracionController : AdminControllerBase
     public async Task<IActionResult> CrearLoteria(LoteriaFormViewModel model, CancellationToken cancellationToken)
     {
         SetNav("configuracion", UiTexts.AgregarLoteria);
+        model.Jornadas = await JornadasAsync(_api, cancellationToken);
         if (!ModelState.IsValid)
         {
             return View("LoteriaForm", model);
@@ -286,7 +321,8 @@ public sealed class ConfiguracionController : AdminControllerBase
             Tope = model.Tope,
             DiasHabilitados = model.DiasHabilitados,
             HoraInicio = model.HoraInicio,
-            HoraFin = model.HoraFin
+            HoraFin = model.HoraFin,
+            JornadaId = model.JornadaId
         }, cancellationToken);
         var unauthorized = RedirectIfUnauthorized(result);
         if (unauthorized is not null)
@@ -329,7 +365,9 @@ public sealed class ConfiguracionController : AdminControllerBase
             Estado = item.Estado,
             Tope = item.Tope,
             HoraInicio = FormatoHoraInput(item.HoraInicio, string.Empty),
-            HoraFin = FormatoHoraInput(item.HoraFin, string.Empty)
+            HoraFin = FormatoHoraInput(item.HoraFin, string.Empty),
+            JornadaId = item.JornadaId,
+            Jornadas = await JornadasAsync(_api, cancellationToken)
         });
     }
 
@@ -338,6 +376,7 @@ public sealed class ConfiguracionController : AdminControllerBase
     public async Task<IActionResult> EditarLoteria(Guid id, LoteriaFormViewModel model, CancellationToken cancellationToken)
     {
         SetNav("configuracion", UiTexts.Editar);
+        model.Jornadas = await JornadasAsync(_api, cancellationToken);
         if (!ModelState.IsValid)
         {
             return View("LoteriaForm", model);
@@ -349,7 +388,8 @@ public sealed class ConfiguracionController : AdminControllerBase
             Estado = model.Estado,
             Tope = model.Tope,
             HoraInicio = model.HoraInicio,
-            HoraFin = model.HoraFin
+            HoraFin = model.HoraFin,
+            JornadaId = model.JornadaId
         }, cancellationToken);
         var unauthorized = RedirectIfUnauthorized(result);
         if (unauthorized is not null)
@@ -391,7 +431,8 @@ public sealed class ConfiguracionController : AdminControllerBase
             Nombre = item.Nombre,
             Estado = nuevo,
             HoraInicio = item.HoraInicio ?? string.Empty,
-            HoraFin = item.HoraFin ?? string.Empty
+            HoraFin = item.HoraFin ?? string.Empty,
+            JornadaId = item.JornadaId
         }, cancellationToken);
         unauthorized = RedirectIfUnauthorized(result);
         if (unauthorized is not null)

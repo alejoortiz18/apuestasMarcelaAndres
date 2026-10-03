@@ -407,7 +407,7 @@ public sealed class OfflineService : IOfflineService
         if (codigo.EstadoDelCodigo != EstadoCodigoOffline.Registrado)
         {
             codigo.EstadoDelCodigo = EstadoCodigoOffline.Utilizado;
-            codigo.FechaVentaOffline ??= sobre.Jugada.Fecha == default ? _clock.LocalNow : sobre.Jugada.Fecha;
+            codigo.FechaVentaOffline ??= FechaVentaColombia(sobre.Jugada);
             await _db.SaveChangesAsync(cancellationToken);
         }
 
@@ -482,7 +482,7 @@ public sealed class OfflineService : IOfflineService
         }
 
         var ventaId = Guid.NewGuid();
-        var fecha = sobre.Jugada.Fecha == default ? _clock.LocalNow : sobre.Jugada.Fecha;
+        var fecha = FechaVentaColombia(sobre.Jugada);
         var venta = new Venta
         {
             VentaId = ventaId,
@@ -529,6 +529,20 @@ public sealed class OfflineService : IOfflineService
         codigo.FechaVentaOffline ??= fecha;
         await _db.SaveChangesAsync(cancellationToken);
         return Result.Ok(SuccessMessages.VentasOfflineSincronizadas);
+    }
+
+    /// <summary>
+    /// El JSON que sincroniza el PDA ya trae la hora de Colombia; la tirilla impresa (NR3) trae el instante en UTC.
+    /// El QR conserva su fecha original porque se vuelve a armar desde ella.
+    /// </summary>
+    private DateTime FechaVentaColombia(JugadaOffline jugada)
+    {
+        if (jugada.Fecha == default)
+        {
+            return _clock.LocalNow;
+        }
+
+        return jugada.Fecha.Kind == DateTimeKind.Utc ? ZonaHorariaColombia.ALocal(jugada.Fecha) : jugada.Fecha;
     }
 
     private static OfflineResumenResponse ResumenDe(IReadOnlyList<CodigoPreventaOffline> items) => new()

@@ -4,6 +4,10 @@
 @model LlaveUsbViewModel
 @{
     ViewData["Title"] = UiTexts.LlaveAdminTitulo;
+    if (!string.IsNullOrWhiteSpace(Model.Error))
+    {
+        ViewData["AvisoPagina"] = Model.Error;
+    }
 }
 <div class="heading">
     <div>
@@ -13,10 +17,6 @@
     </div>
     <a class="secondary" asp-action="Index">@UiTexts.Cancelar</a>
 </div>
-@if (!string.IsNullOrWhiteSpace(Model.Error))
-{
-    <div class="notice error" role="alert">@Model.Error</div>
-}
 @if (Model.Administradores.Count == 0)
 {
     <p class="empty">@UiTexts.LlaveAdminSinAdministradores</p>

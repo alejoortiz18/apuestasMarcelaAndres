@@ -43,15 +43,6 @@ public sealed class CampoGrupoUsuarioTests
     }
 
     [Fact]
-    public void El_alta_de_pda_solo_ofrece_los_tipos_asignables()
-    {
-        var vista = File.ReadAllText(Ruta("Views", "Dispositivos", "Crear.cshtml"));
-
-        vista.Should().Contain("TipoPda.Asignables");
-        vista.Should().NotContain("GetEnumSelectList<TipoDispositivo>");
-    }
-
-    [Fact]
     public void El_formulario_completo_tambien_sincroniza_el_campo_grupo()
     {
         var script = File.ReadAllText(Ruta("wwwroot", "js", "site.js"));

@@ -202,3 +202,14 @@ public static class BarraMenuObservador
             MenuInferiorObservador.RutaActiva,
             MenuInferiorObservador.CapaId);
 }
+
+public static class BarraMenuRecaudador
+{
+    public static void Asegurar(Page? pagina, string? ubicacion) =>
+        BarraMenuPda.Asegurar(
+            pagina,
+            ubicacion,
+            MenuInferiorRecaudador.Items,
+            MenuInferiorRecaudador.RutaActiva,
+            MenuInferiorRecaudador.CapaId);
+}

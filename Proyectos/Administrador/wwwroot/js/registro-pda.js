@@ -1,5 +1,5 @@
-// Registro guiado de PDA. Muestra el avance de 0% a 100% y el resultado. El codigo unico del
-// dispositivo nunca viaja hasta esta pantalla: lo genera la API y lo graba el servidor en el equipo.
+// Registro guiado de PDA. Muestra el avance de 0% a 100% y el resultado. El codigo unico lo genera
+// la API y lo graba el servidor en el equipo; solo llega aqui al final, como nombre registrado.
 (function () {
   const raiz = document.querySelector("[data-registro-pda]");
   if (!raiz) {
@@ -10,9 +10,7 @@
   const pasoInstalar = raiz.querySelector('[data-paso="instalar"]');
   const botonContinuar = raiz.querySelector("[data-continuar]");
   const botonReintentar = raiz.querySelector("[data-reintentar]");
-  const errorVerificacion = raiz.querySelector("[data-verificacion-error]");
   const estadoVerificacion = raiz.querySelector("[data-verificacion-estado]");
-  const errorRegistro = raiz.querySelector("[data-registro-error]");
   const accionesError = raiz.querySelector("[data-acciones-error]");
   const barra = raiz.querySelector("[data-barra]");
   const relleno = raiz.querySelector("[data-barra-relleno]");
@@ -21,10 +19,61 @@
   const modelo = raiz.querySelector("[data-modelo]");
   const dialogo = document.getElementById("registroPdaDialog");
   const tipo = raiz.querySelector("[data-tipo]");
+  const clases = Array.prototype.slice.call(raiz.querySelectorAll("[data-clase]"));
   const token = raiz.querySelector('input[name="__RequestVerificationToken"]');
+  const perfiles = tipo
+    ? Array.prototype.map.call(tipo.options, function (opcion) {
+        return {
+          valor: opcion.value,
+          texto: opcion.text,
+          clases: (opcion.getAttribute("data-clases") || "").split(" ").filter(Boolean)
+        };
+      })
+    : [];
 
   let conexion = null;
   let tokenRegistro = "";
+
+  function claseElegida() {
+    const marcada = clases.find(function (entrada) {
+      return entrada.checked;
+    });
+    return marcada ? marcada.value : "";
+  }
+
+  // El PDA de venta y el celular admiten perfiles distintos, asi que la lista se arma
+  // con los que acepta el equipo elegido y nunca ofrece una combinacion que el servidor rechaza.
+  function sincronizarPerfiles() {
+    if (!tipo || perfiles.length === 0) {
+      return;
+    }
+    const clase = claseElegida();
+    const permitidos = perfiles.filter(function (perfil) {
+      return perfil.clases.indexOf(clase) >= 0;
+    });
+    if (permitidos.length === 0) {
+      return;
+    }
+    const anterior = tipo.value;
+    tipo.replaceChildren();
+    permitidos.forEach(function (perfil) {
+      const opcion = document.createElement("option");
+      opcion.value = perfil.valor;
+      opcion.text = perfil.texto;
+      opcion.setAttribute("data-clases", perfil.clases.join(" "));
+      tipo.appendChild(opcion);
+    });
+    const conserva = permitidos.some(function (perfil) {
+      return perfil.valor === anterior;
+    });
+    tipo.value = conserva ? anterior : permitidos[0].valor;
+    const buscador = tipo.parentNode
+      ? tipo.parentNode.querySelector(".search-select-input")
+      : null;
+    if (buscador) {
+      buscador.value = tipo.options[tipo.selectedIndex].text;
+    }
+  }
 
   function mostrar(elemento, texto) {
     if (!elemento) {
@@ -45,6 +94,12 @@
     elemento.setAttribute("hidden", "hidden");
   }
 
+  function avisoError(texto) {
+    if (typeof window.openAviso === "function" && texto) {
+      window.openAviso(texto);
+    }
+  }
+
   function enviar(url, conConfirmacion) {
     const datos = new FormData();
     if (token) {
@@ -55,6 +110,10 @@
     }
     if (tipo) {
       datos.append("tipo", tipo.value);
+    }
+    const clase = claseElegida();
+    if (clase) {
+      datos.append("clase", clase);
     }
     const headers = { "X-Requested-With": "XMLHttpRequest" };
     if (conConfirmacion && tokenRegistro) {
@@ -108,16 +167,14 @@
   }
 
   function verificar() {
-    ocultar(errorVerificacion);
     mostrar(estadoVerificacion, raiz.getAttribute("data-texto-verificando"));
     botonContinuar.disabled = true;
     enviar(raiz.getAttribute("data-url-verificar"))
       .then(function (datos) {
         if (!datos.listo) {
           ocultar(estadoVerificacion);
-          mostrar(errorVerificacion, datos.mensaje);
           botonContinuar.disabled = false;
-          errorVerificacion.focus();
+          avisoError(datos.mensaje);
           return;
         }
         if (modelo && datos.modelo) {
@@ -130,13 +187,12 @@
       })
       .catch(function () {
         ocultar(estadoVerificacion);
-        mostrar(errorVerificacion, raiz.getAttribute("data-texto-error"));
         botonContinuar.disabled = false;
+        avisoError(raiz.getAttribute("data-texto-error"));
       });
   }
 
   function registrar() {
-    ocultar(errorRegistro);
     ocultar(accionesError);
     if (bitacora) {
       bitacora.replaceChildren();
@@ -145,13 +201,20 @@
     enviar(raiz.getAttribute("data-url-registrar"), true)
       .then(function (datos) {
         if (!datos.exitoso) {
-          mostrar(errorRegistro, datos.mensaje);
           mostrar(accionesError);
-          errorRegistro.focus();
+          avisoError(datos.mensaje);
           return;
         }
         pintarAvance({ porcentaje: 100, mensaje: datos.mensaje });
         if (dialogo) {
+          const nombre = dialogo.querySelector("[data-nombre-registrado]");
+          const filaNombre = dialogo.querySelector("[data-nombre-registrado-fila]");
+          if (nombre && datos.nombreRegistrado) {
+            nombre.textContent = datos.nombreRegistrado;
+            mostrar(filaNombre);
+          } else {
+            ocultar(filaNombre);
+          }
           mostrar(dialogo);
           const aceptar = dialogo.querySelector("a.primary");
           if (aceptar) {
@@ -160,16 +223,9 @@
         }
       })
       .catch(function () {
-        mostrar(errorRegistro, raiz.getAttribute("data-texto-error"));
         mostrar(accionesError);
+        avisoError(raiz.getAttribute("data-texto-error"));
       });
-  }
-
-  if (errorVerificacion) {
-    errorVerificacion.setAttribute("tabindex", "-1");
-  }
-  if (errorRegistro) {
-    errorRegistro.setAttribute("tabindex", "-1");
   }
 
   function pedirRegistro(siguiente) {
@@ -185,6 +241,11 @@
       siguiente();
     });
   }
+
+  clases.forEach(function (entrada) {
+    entrada.addEventListener("change", sincronizarPerfiles);
+  });
+  sincronizarPerfiles();
 
   botonContinuar.addEventListener("click", function () {
     pedirRegistro(function () {

@@ -4,6 +4,7 @@ using NewRich.Admin.Models;
 using NewRich.Admin.Services;
 using NewRich.Application.Contracts.Consultas;
 using NewRich.Application.Contracts.Loterias;
+using NewRich.Application.Services;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Enums;
 
@@ -18,7 +19,14 @@ public sealed class LoteriasController : AdminControllerBase
         _api = api;
     }
 
-    public async Task<IActionResult> Index(string? q, int? estado, int page = 1, int pageSize = 5, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> Index(
+        string? q,
+        int? estado,
+        string? orden,
+        string? dir,
+        int page = 1,
+        int pageSize = 5,
+        CancellationToken cancellationToken = default)
     {
         SetVentasNav(UiTexts.VentasVistaLoteria);
         var result = await _api.ListarLoteriasAsync(cancellationToken);
@@ -43,12 +51,15 @@ public sealed class LoteriasController : AdminControllerBase
             items = items.Where(l => l.Estado == (EstadoGeneral)estado.Value).ToList();
         }
 
+        items = ResumenLoteriasOrden.Aplicar(items, orden, dir);
         ViewBag.Query = q;
         ViewBag.Estado = estado;
         return View(new LoteriasIndexViewModel
         {
             Busqueda = q,
             Estado = estado,
+            Orden = ResumenLoteriasOrden.NormalizarOrden(orden),
+            Direccion = string.Equals(dir, "desc", StringComparison.OrdinalIgnoreCase) ? "desc" : "asc",
             Pagina = PagingHelper.Paginate(items, page, pageSize)
         });
     }
@@ -95,10 +106,10 @@ public sealed class LoteriasController : AdminControllerBase
     }
 
     [HttpGet]
-    public IActionResult Crear()
+    public async Task<IActionResult> Crear(CancellationToken cancellationToken)
     {
         SetVentasNav(UiTexts.VentasVistaLoteria, UiTexts.NuevaLoteria);
-        return View("Form", new LoteriaFormViewModel());
+        return View("Form", new LoteriaFormViewModel { Jornadas = await JornadasAsync(_api, cancellationToken) });
     }
 
     [HttpPost]
@@ -106,6 +117,7 @@ public sealed class LoteriasController : AdminControllerBase
     public async Task<IActionResult> Crear(LoteriaFormViewModel model, CancellationToken cancellationToken)
     {
         SetVentasNav(UiTexts.VentasVistaLoteria, UiTexts.NuevaLoteria);
+        model.Jornadas = await JornadasAsync(_api, cancellationToken);
         if (!ModelState.IsValid)
         {
             return View("Form", model);
@@ -117,7 +129,8 @@ public sealed class LoteriasController : AdminControllerBase
             Tope = model.Tope,
             DiasHabilitados = model.DiasHabilitados,
             HoraInicio = model.HoraInicio,
-            HoraFin = model.HoraFin
+            HoraFin = model.HoraFin,
+            JornadaId = model.JornadaId
         }, cancellationToken);
         var unauthorized = RedirectIfUnauthorized(result);
         if (unauthorized is not null)
@@ -160,7 +173,9 @@ public sealed class LoteriasController : AdminControllerBase
             Estado = item.Estado,
             Tope = item.Tope,
             HoraInicio = item.HoraInicio ?? string.Empty,
-            HoraFin = item.HoraFin ?? string.Empty
+            HoraFin = item.HoraFin ?? string.Empty,
+            JornadaId = item.JornadaId,
+            Jornadas = await JornadasAsync(_api, cancellationToken)
         });
     }
 
@@ -169,6 +184,7 @@ public sealed class LoteriasController : AdminControllerBase
     public async Task<IActionResult> Editar(Guid id, LoteriaFormViewModel model, CancellationToken cancellationToken)
     {
         SetVentasNav(UiTexts.VentasVistaLoteria, UiTexts.Editar);
+        model.Jornadas = await JornadasAsync(_api, cancellationToken);
         if (!ModelState.IsValid)
         {
             return View("Form", model);
@@ -180,7 +196,8 @@ public sealed class LoteriasController : AdminControllerBase
             Estado = model.Estado,
             Tope = model.Tope,
             HoraInicio = model.HoraInicio,
-            HoraFin = model.HoraFin
+            HoraFin = model.HoraFin,
+            JornadaId = model.JornadaId
         }, cancellationToken);
 
         var unauthorized = RedirectIfUnauthorized(result);

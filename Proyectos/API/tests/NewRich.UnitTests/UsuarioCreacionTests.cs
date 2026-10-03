@@ -89,27 +89,15 @@ public sealed class UsuarioCreacionTests
     }
 
     [Fact]
-    public async Task CrearAsync_rechaza_el_rol_recaudador_que_esta_version_no_maneja()
-    {
-        var (sut, db) = CreateSut();
-
-        var result = await sut.CrearAsync(Solicitud(RolUsuario.Recaudador), CancellationToken.None);
-
-        result.IsSuccess.Should().BeFalse();
-        result.Message.Should().Be(UsuarioMessages.RolRecaudadorNoDisponible);
-        (await db.Usuarios.CountAsync()).Should().Be(0);
-    }
-
-    [Fact]
     public void El_rol_recaudador_que_guarda_la_base_compartida_se_puede_leer()
     {
         Enum.Parse<RolUsuario>("Recaudador").Should().Be((RolUsuario)5);
     }
 
     [Fact]
-    public void Los_roles_asignables_no_incluyen_super_ni_recaudador()
+    public void Los_roles_asignables_no_incluyen_super()
     {
-        RolConsola.Asignables.Should().Equal(RolUsuario.Administrador, RolUsuario.Vendedor, RolUsuario.Observador);
+        RolConsola.Asignables.Should().Equal(RolUsuario.Administrador, RolUsuario.Vendedor, RolUsuario.Observador, RolUsuario.Recaudador);
     }
 
     [Fact]
@@ -157,6 +145,18 @@ public sealed class UsuarioCreacionTests
 
         result.IsSuccess.Should().BeTrue();
         (await db.Usuarios.CountAsync(u => u.Documento == null)).Should().Be(2);
+    }
+
+    [Fact]
+    public async Task CrearAsync_permite_recaudador_sin_grupo()
+    {
+        var (sut, _) = CreateSut();
+
+        var result = await sut.CrearAsync(Solicitud(RolUsuario.Recaudador), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Rol.Should().Be(RolUsuario.Recaudador);
+        result.Data.GrupoId.Should().BeNull();
     }
 
     private static CrearUsuarioRequest Solicitud(RolUsuario rol) => new()
