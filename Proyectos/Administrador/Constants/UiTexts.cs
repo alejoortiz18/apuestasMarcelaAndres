@@ -374,9 +374,17 @@ public static class UiTexts
     public const string CatalogoLoterias = "Catálogo de loterías";
     public const string HorarioHabilitado = "Horario habilitado";
     public const string GuardarHorarios = "Guardar horarios";
+    public const string GuardarHorariosDesactivado = "Cambia la hora de inicio o de fin de una lotería para habilitar el guardado.";
     public const string HoraInicioLoteria = "Hora de inicio";
     public const string HoraFinLoteria = "Hora de fin";
     public const string HorarioLoteriaAyuda = "Debe estar dentro del horario de actividad del PDA. La hora de inicio debe ser menor que la hora de fin.";
+    public const string Jornada = "Jornada";
+    public const string SeleccionaJornada = "Selecciona la jornada";
+    public const string JornadasSub = "Mañana cierra hasta las 12:00, Tarde hasta las 18:00 y Noche el resto del día. Al cambiar la hora de fin, la lotería pasa a esa jornada.";
+    public const string HoraFinSegunJornada = "La hora de fin solo admite valores de la jornada elegida.";
+    public const string FiltrarPorJornada = "Filtrar por jornada";
+    public const string TodasLasJornadas = "Todas";
+    public const string TopesPorJornada = "Filtrar topes por jornada";
     public const string ResumenPorLoteria = "Resumen por lotería";
     public const string ResumenPorLoteriaSub = "Boletos y valores registrados en el sistema";
     public const string Ciudad = "Ciudad";

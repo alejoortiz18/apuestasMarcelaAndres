@@ -8,8 +8,7 @@
     </div>
 </div>
 <div class="panel">
-    <div asp-validation-summary="ModelOnly" class="notice error"></div>
-    <form method="post" data-protected-action="@AccionesProtegidas.LoteriasGuardar">
+    <form method="post" data-protected-action="@AccionesProtegidas.LoteriasGuardar" data-hora-fin-jornada>
         <div class="field">
             <label asp-for="Nombre"></label>
             <input asp-for="Nombre" />
@@ -31,6 +30,7 @@
             <span class="field-help">@UiTexts.TopeLoteriaAyuda</span>
             <span asp-validation-for="Tope"></span>
         </div>
+        <partial name="_CampoJornada" model="Model" />
         <div class="field">
             <label asp-for="HoraInicio"></label>
             <input asp-for="HoraInicio" type="time" step="60" />
@@ -39,7 +39,7 @@
         </div>
         <div class="field">
             <label asp-for="HoraFin"></label>
-            <input asp-for="HoraFin" type="time" step="60" />
+            <input asp-for="HoraFin" type="time" step="60" data-hora-fin data-hora-fin-mensaje="@UiTexts.HoraFinSegunJornada" />
             <span asp-validation-for="HoraFin"></span>
         </div>
         @if (!Model.LoteriaId.HasValue)

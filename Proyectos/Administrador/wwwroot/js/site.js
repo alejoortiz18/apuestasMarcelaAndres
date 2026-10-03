@@ -863,7 +863,7 @@
     aviso.classList.add("hidden");
     aviso.setAttribute("hidden", "hidden");
     if (avisoTrigger && typeof avisoTrigger.focus === "function") {
-      avisoTrigger.focus();
+      avisoTrigger.focus({ preventScroll: true });
     }
     avisoTrigger = null;
   }
@@ -877,9 +877,10 @@
     aviso.classList.remove("hidden");
     aviso.removeAttribute("hidden");
     if (avisoClose) {
-      avisoClose.focus();
+      avisoClose.focus({ preventScroll: true });
     }
   }
+  window.openAviso = openAviso;
 
   document.querySelectorAll("[data-aviso]").forEach(function (el) {
     el.addEventListener("click", function () {
@@ -921,7 +922,7 @@
     });
   });
   if (aviso && !aviso.classList.contains("hidden") && avisoClose) {
-    avisoClose.focus();
+    avisoClose.focus({ preventScroll: true });
   }
 
   document.querySelectorAll("[data-chat-scroll]").forEach(function (el) {
@@ -1568,6 +1569,269 @@ iniciarDiasVenta();
 })();
 
 (function () {
+  document.querySelectorAll("form[data-hora-fin-jornada]").forEach(function (form) {
+    var jornada = form.querySelector("select[data-jornada-horario]");
+    var horaFin = form.querySelector("input[data-hora-fin]");
+    if (!jornada || !horaFin) {
+      return;
+    }
+    var mensaje = horaFin.getAttribute("data-hora-fin-mensaje") || "";
+
+    function rango() {
+      var opcion = jornada.options[jornada.selectedIndex];
+      return {
+        min: opcion ? opcion.getAttribute("data-jornada-min") || "" : "",
+        max: opcion ? opcion.getAttribute("data-jornada-max") || "" : ""
+      };
+    }
+
+    function validar() {
+      var r = rango();
+      var valor = horaFin.value;
+      var fuera = valor && r.min && r.max && (valor < r.min || valor > r.max);
+      horaFin.setCustomValidity(fuera ? mensaje : "");
+    }
+
+    function aplicar() {
+      var r = rango();
+      if (r.min && r.max) {
+        horaFin.min = r.min;
+        horaFin.max = r.max;
+      } else {
+        horaFin.removeAttribute("min");
+        horaFin.removeAttribute("max");
+      }
+      validar();
+    }
+
+    jornada.addEventListener("change", aplicar);
+    horaFin.addEventListener("input", validar);
+    horaFin.addEventListener("change", validar);
+    aplicar();
+  });
+})();
+
+(function () {
+  var formHorarios = document.querySelector("form[data-horarios-catalogo]");
+  if (!formHorarios) {
+    return;
+  }
+  var KEY_HORARIOS = "nr-horarios-pendientes";
+  var botonHorarios = document.querySelector("[data-guardar-horarios]");
+  var tituloDesactivado = botonHorarios ? botonHorarios.getAttribute("title") || "" : "";
+
+  function horaClave(valor) {
+    var partes = String(valor || "").match(/(\d{1,2}):(\d{2})/);
+    return partes ? partes[1].padStart(2, "0") + ":" + partes[2] : "";
+  }
+
+  function horarioCambio(inicio, fin) {
+    return horaClave(inicio.value) !== horaClave(inicio.getAttribute("data-original"))
+      || horaClave(fin.value) !== horaClave(fin.getAttribute("data-original"));
+  }
+
+  function leerHorarios() {
+    try {
+      return JSON.parse(sessionStorage.getItem(KEY_HORARIOS) || "{}");
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function camposPorLoteria() {
+    var porId = {};
+    formHorarios.querySelectorAll("[data-loteria-id][data-hora]").forEach(function (input) {
+      var id = input.getAttribute("data-loteria-id");
+      porId[id] = porId[id] || {};
+      porId[id][input.getAttribute("data-hora")] = input;
+    });
+    return porId;
+  }
+
+  function capturarHorariosPagina() {
+    var mapa = leerHorarios();
+    var porId = camposPorLoteria();
+    Object.keys(porId).forEach(function (id) {
+      var inicio = porId[id].inicio;
+      var fin = porId[id].fin;
+      if (!inicio || !fin) {
+        return;
+      }
+      if (horarioCambio(inicio, fin)) {
+        mapa[id] = { inicio: horaClave(inicio.value), fin: horaClave(fin.value) };
+      } else {
+        delete mapa[id];
+      }
+    });
+    sessionStorage.setItem(KEY_HORARIOS, JSON.stringify(mapa));
+    return mapa;
+  }
+
+  function marcarHorarios(mapa) {
+    formHorarios.querySelectorAll("tr[data-row-id]").forEach(function (fila) {
+      fila.classList.toggle("is-horario-cambio", !!mapa[fila.getAttribute("data-row-id")]);
+    });
+    if (!botonHorarios) {
+      return;
+    }
+    var hay = Object.keys(mapa).length > 0;
+    botonHorarios.disabled = !hay;
+    if (hay) {
+      botonHorarios.removeAttribute("title");
+    } else {
+      botonHorarios.setAttribute("title", tituloDesactivado);
+    }
+  }
+
+  if (formHorarios.getAttribute("data-horarios-guardados") === "1") {
+    sessionStorage.removeItem(KEY_HORARIOS);
+  }
+
+  var pendientes = leerHorarios();
+  formHorarios.querySelectorAll("[data-loteria-id][data-hora]").forEach(function (input) {
+    var guardado = pendientes[input.getAttribute("data-loteria-id")];
+    if (guardado && guardado[input.getAttribute("data-hora")]) {
+      input.value = guardado[input.getAttribute("data-hora")];
+    }
+    input.addEventListener("input", function () { marcarHorarios(capturarHorariosPagina()); });
+    input.addEventListener("change", function () { marcarHorarios(capturarHorariosPagina()); });
+  });
+  marcarHorarios(capturarHorariosPagina());
+
+  document.querySelectorAll("[data-horarios-pager] a").forEach(function (enlace) {
+    enlace.addEventListener("click", capturarHorariosPagina);
+  });
+
+  formHorarios.addEventListener("submit", function (event) {
+    var mapa = capturarHorariosPagina();
+    marcarHorarios(mapa);
+    var extra = formHorarios.querySelector("[data-horarios-extra]");
+    var ids = Object.keys(mapa).filter(function (id) { return mapa[id].inicio && mapa[id].fin; });
+    if (!extra || ids.length === 0) {
+      event.preventDefault();
+      return;
+    }
+    extra.innerHTML = "";
+    ids.forEach(function (id, indice) {
+      extra.insertAdjacentHTML("beforeend",
+        '<input type="hidden" name="horarios[' + indice + '].LoteriaId" value="' + id + '" />' +
+        '<input type="hidden" name="horarios[' + indice + '].HoraInicio" value="' + mapa[id].inicio + '" />' +
+        '<input type="hidden" name="horarios[' + indice + '].HoraFin" value="' + mapa[id].fin + '" />');
+    });
+    formHorarios.querySelectorAll("input[name^='horarios']").forEach(function (campo) {
+      if (!campo.closest("[data-horarios-extra]")) {
+        campo.disabled = true;
+      }
+    });
+  });
+})();
+
+(function conservarLugarDeTrabajo() {
+  var clave = "nr.scroll." + location.pathname;
+  var pendiente = leer();
+
+  function principal() {
+    return document.querySelector("main");
+  }
+
+  function leer() {
+    var raw = sessionStorage.getItem(clave);
+    if (!raw) {
+      return null;
+    }
+    sessionStorage.removeItem(clave);
+    try {
+      return JSON.parse(raw);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function guardar() {
+    var main = principal();
+    var actual = { main: main ? main.scrollTop : 0, win: window.scrollY || 0 };
+    try {
+      var previo = JSON.parse(sessionStorage.getItem(clave) || "null");
+      if (previo) {
+        actual.main = Math.max(actual.main, previo.main || 0);
+        actual.win = Math.max(actual.win, previo.win || 0);
+      }
+    } catch (error) {
+      /* se reemplaza el valor dañado */
+    }
+    sessionStorage.setItem(clave, JSON.stringify(actual));
+  }
+
+  function aplicar() {
+    if (!pendiente) {
+      return;
+    }
+    if ("scrollRestoration" in history) {
+      history.scrollRestoration = "manual";
+    }
+    var main = principal();
+    if (main) {
+      main.scrollTop = pendiente.main || 0;
+    }
+    if (pendiente.win) {
+      window.scrollTo(0, pendiente.win);
+    }
+  }
+
+  function esEnvio(boton) {
+    if (!(boton instanceof HTMLElement) || boton.closest("#confirmacionForm")) {
+      return false;
+    }
+    var tipo = (boton.getAttribute("type") || (boton.tagName === "BUTTON" ? "submit" : "")).toLowerCase();
+    return tipo === "submit";
+  }
+
+  aplicar();
+  requestAnimationFrame(function () {
+    aplicar();
+    requestAnimationFrame(aplicar);
+  });
+  window.addEventListener("load", aplicar);
+  window.addEventListener("pageshow", aplicar);
+
+  document.addEventListener("click", function (event) {
+    var boton = event.target.closest("button[type='submit'], button:not([type]), input[type='submit']");
+    if (esEnvio(boton)) {
+      var formId = boton.getAttribute("form");
+      var form = formId ? document.getElementById(formId) : boton.form || boton.closest("form");
+      if (form instanceof HTMLFormElement) {
+        guardar();
+      }
+      return;
+    }
+    var enlace = event.target.closest("a[href]");
+    if (!enlace || enlace.getAttribute("target") === "_blank") {
+      return;
+    }
+    var url;
+    try {
+      url = new URL(enlace.href, location.href);
+    } catch (error) {
+      return;
+    }
+    if (url.origin === location.origin && url.pathname === location.pathname) {
+      guardar();
+    }
+  }, true);
+
+  document.addEventListener("submit", function (event) {
+    var form = event.target;
+    if (!(form instanceof HTMLFormElement) || form.id === "confirmacionForm") {
+      return;
+    }
+    if (form.getAttribute("data-protected-action") && form.dataset.protegidoOk !== "1") {
+      return;
+    }
+    guardar();
+  });
+})();
+
+(function () {
   document.querySelectorAll("[data-nav-group]").forEach(function (grupo) {
     var boton = grupo.querySelector(".nav-parent");
     var submenu = grupo.querySelector(".nav-sub");
@@ -1585,5 +1849,77 @@ iniciarDiasVenta();
       }
     });
   });
+})();
+
+(function filtrarTopesPorJornada() {
+  var raiz = document.querySelector("[data-topes-jornadas]");
+  if (!raiz) {
+    return;
+  }
+  var clave = "nr.topes.jornada";
+  var tabs = Array.prototype.slice.call(raiz.querySelectorAll("[role='tab']"));
+  var filas = Array.prototype.slice.call(raiz.querySelectorAll("tbody tr[data-jornada]"));
+  var vacio = raiz.querySelector("[data-topes-vacio]");
+  var panel = raiz.querySelector("[role='tabpanel']");
+
+  function activar(tab) {
+    var jornada = tab.getAttribute("data-jornada") || "";
+    var visibles = 0;
+    filas.forEach(function (fila) {
+      var coincide = !jornada || fila.getAttribute("data-jornada") === jornada;
+      fila.hidden = !coincide;
+      if (coincide) {
+        visibles += 1;
+      }
+    });
+    tabs.forEach(function (otra) {
+      var activa = otra === tab;
+      otra.classList.toggle("is-active", activa);
+      otra.setAttribute("aria-selected", activa ? "true" : "false");
+      otra.tabIndex = activa ? 0 : -1;
+    });
+    if (panel) {
+      panel.hidden = visibles === 0;
+      panel.setAttribute("aria-labelledby", tab.id);
+    }
+    if (vacio) {
+      vacio.hidden = visibles > 0;
+    }
+    sessionStorage.setItem(clave, jornada);
+  }
+
+  tabs.forEach(function (tab, indice) {
+    tab.addEventListener("click", function () {
+      activar(tab);
+    });
+    tab.addEventListener("keydown", function (evento) {
+      var destino = null;
+      if (evento.key === "ArrowRight") {
+        destino = tabs[(indice + 1) % tabs.length];
+      } else if (evento.key === "ArrowLeft") {
+        destino = tabs[(indice - 1 + tabs.length) % tabs.length];
+      } else if (evento.key === "Home") {
+        destino = tabs[0];
+      } else if (evento.key === "End") {
+        destino = tabs[tabs.length - 1];
+      }
+      if (!destino) {
+        return;
+      }
+      evento.preventDefault();
+      destino.focus();
+      activar(destino);
+    });
+  });
+
+  var guardada = sessionStorage.getItem(clave);
+  var inicial = tabs.find(function (tab) {
+    return guardada !== null && (tab.getAttribute("data-jornada") || "") === guardada;
+  }) || tabs.find(function (tab) {
+    return tab.classList.contains("is-active");
+  }) || tabs[0];
+  if (inicial) {
+    activar(inicial);
+  }
 })();
 

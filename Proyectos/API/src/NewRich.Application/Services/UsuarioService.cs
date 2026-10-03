@@ -309,12 +309,17 @@ public sealed class UsuarioService : IUsuarioService
         await _db.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<Result<RestablecerPasswordResponse>> RestablecerPasswordAsync(Guid usuarioId, CancellationToken cancellationToken)
+    public async Task<Result<RestablecerPasswordResponse>> RestablecerPasswordAsync(Guid usuarioId, RolUsuario rolSolicitante, CancellationToken cancellationToken)
     {
         var usuario = await _db.Usuarios.FirstOrDefaultAsync(u => u.UsuarioId == usuarioId, cancellationToken);
         if (usuario is null)
         {
             return Result<RestablecerPasswordResponse>.Fail(UsuarioMessages.UsuarioNoEncontrado, 404);
+        }
+
+        if (rolSolicitante == RolUsuario.Observador && usuario.Rol != RolUsuario.Vendedor)
+        {
+            return Result<RestablecerPasswordResponse>.Fail(UsuarioMessages.ObservadorSoloVendedores);
         }
 
         if (usuario.Estado != EstadoUsuario.Activo)
@@ -344,12 +349,17 @@ public sealed class UsuarioService : IUsuarioService
         }, SuccessMessages.PasswordRestablecido);
     }
 
-    public async Task<Result> DesbloquearAsync(Guid usuarioId, CancellationToken cancellationToken)
+    public async Task<Result> DesbloquearAsync(Guid usuarioId, RolUsuario rolSolicitante, CancellationToken cancellationToken)
     {
         var usuario = await _db.Usuarios.FirstOrDefaultAsync(u => u.UsuarioId == usuarioId, cancellationToken);
         if (usuario is null)
         {
             return Result.Fail(UsuarioMessages.UsuarioNoEncontrado, 404);
+        }
+
+        if (rolSolicitante == RolUsuario.Observador && usuario.Rol != RolUsuario.Vendedor)
+        {
+            return Result.Fail(UsuarioMessages.ObservadorSoloVendedores);
         }
 
         if (!usuario.EstadoBloqueado)

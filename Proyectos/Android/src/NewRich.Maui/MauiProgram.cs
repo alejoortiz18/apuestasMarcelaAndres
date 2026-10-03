@@ -74,6 +74,7 @@ public static class MauiProgram
         builder.Services.AddTransient<ConsultasPage>();
         builder.Services.AddTransient<KpiPage>();
         builder.Services.AddTransient<ObservadorMasPage>();
+        builder.Services.AddTransient<VendedoresAccionesPage>();
         builder.Services.AddTransient<CasosPage>();
         builder.Services.AddTransient<ObservadorShell>();
         builder.Services.AddTransient<RecaudadorHomePage>();

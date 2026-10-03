@@ -6,6 +6,7 @@ using NewRich.Application.Contracts.Configuracion;
 using NewRich.Application.Contracts.Consultas;
 using NewRich.Application.Contracts.Dispositivos;
 using NewRich.Application.Contracts.Grupos;
+using NewRich.Application.Contracts.Jornadas;
 using NewRich.Application.Contracts.Kpi;
 using NewRich.Application.Contracts.Loterias;
 using NewRich.Application.Contracts.Notificaciones;
@@ -34,8 +35,8 @@ public interface IUsuarioService
     Task<Result<UsuarioResponse>> CrearAsync(CrearUsuarioRequest request, CancellationToken cancellationToken);
     Task<Result<UsuarioResponse>> ActualizarAsync(Guid usuarioId, ActualizarUsuarioRequest request, CancellationToken cancellationToken);
     Task<Result> EliminarAsync(Guid usuarioId, Guid solicitanteId, CancellationToken cancellationToken);
-    Task<Result<RestablecerPasswordResponse>> RestablecerPasswordAsync(Guid usuarioId, CancellationToken cancellationToken);
-    Task<Result> DesbloquearAsync(Guid usuarioId, CancellationToken cancellationToken);
+    Task<Result<RestablecerPasswordResponse>> RestablecerPasswordAsync(Guid usuarioId, RolUsuario rolSolicitante, CancellationToken cancellationToken);
+    Task<Result> DesbloquearAsync(Guid usuarioId, RolUsuario rolSolicitante, CancellationToken cancellationToken);
 }
 
 public interface IDispositivoService
@@ -58,6 +59,11 @@ public interface ILoteriaService
     Task<Result<IReadOnlyList<LoteriaResponse>>> ActualizarTopesAsync(ActualizarTopesLoteriasRequest request, CancellationToken cancellationToken);
     Task<Result<IReadOnlyList<LoteriaResponse>>> ActualizarHorariosAsync(ActualizarHorariosLoteriasRequest request, CancellationToken cancellationToken);
     Task<Result<IReadOnlyList<LoteriaResponse>>> ActualizarDiasAsync(ActualizarDiasLoteriasRequest request, CancellationToken cancellationToken);
+}
+
+public interface IJornadaService
+{
+    Task<Result<IReadOnlyList<JornadaResponse>>> ListarAsync(CancellationToken cancellationToken);
 }
 
 public interface IGrupoService

@@ -1793,6 +1793,43 @@ label.check input {
   color: #f4efe4;
   border-color: #102820;
 }
+[data-horarios-catalogo] tbody tr.is-horario-cambio {
+  background: #f7f0d8;
+  box-shadow: inset 4px 0 0 var(--gold);
+}
+.jornada-filtro {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+.jornada-filtro-opcion {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 8px 14px;
+  min-height: 40px;
+  text-decoration: none;
+}
+.jornada-filtro-opcion:hover,
+.jornada-filtro-opcion:focus-visible {
+  border-color: var(--gold);
+  outline: 2px solid #f0d078;
+  outline-offset: 2px;
+}
+.jornada-filtro-opcion.is-active {
+  background: #102820;
+  color: #f4efe4;
+  border-color: #102820;
+}
+button.jornada-filtro-opcion {
+  font: inherit;
+  cursor: pointer;
+}
+[data-topes-jornadas] [hidden] { display: none !important; }
 .dias-venta-toolbar {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

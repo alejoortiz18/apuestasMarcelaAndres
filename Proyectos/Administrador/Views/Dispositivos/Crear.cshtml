@@ -74,7 +74,6 @@
             </select>
             <span class="field-help">@UiTexts.RegistroPdaTipoAyuda</span>
         </div>
-        <div class="notice error hidden" role="alert" data-verificacion-error hidden></div>
         <div class="notice hidden" role="status" aria-live="polite" data-verificacion-estado hidden></div>
         <div class="text-center-actions">
             <button class="primary" type="button" data-continuar>@UiTexts.RegistroPdaContinuar</button>
@@ -103,7 +102,6 @@
         </div>
         <h3 class="registro-bitacora-titulo">@UiTexts.RegistroPdaBitacora</h3>
         <ol class="registro-bitacora" role="status" aria-live="polite" data-bitacora></ol>
-        <div class="notice error hidden" role="alert" data-registro-error hidden></div>
         <div class="text-center-actions hidden" data-acciones-error hidden>
             <button class="primary" type="button" data-reintentar>@UiTexts.RegistroPdaReintentar</button>
             <a class="secondary" asp-controller="@cancelarController" asp-action="@cancelarAction">@UiTexts.Cancelar</a>

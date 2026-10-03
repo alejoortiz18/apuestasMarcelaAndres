@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using NewRich.Domain.Enums;
 using NewRich.Shared.Results;
 
 namespace NewRich.Api.Controllers;
@@ -23,4 +24,9 @@ public abstract class ApiControllerBase : ControllerBase
 
     protected Guid? DispositivoId =>
         Guid.TryParse(User.FindFirst("dispositivoId")?.Value, out var id) ? id : null;
+
+    protected RolUsuario RolSolicitante =>
+        User.IsInRole(nameof(RolUsuario.Observador)) && !User.IsInRole(nameof(RolUsuario.Administrador))
+            ? RolUsuario.Observador
+            : RolUsuario.Administrador;
 }

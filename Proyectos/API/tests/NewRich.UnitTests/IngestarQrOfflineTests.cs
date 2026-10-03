@@ -55,6 +55,48 @@ public sealed class IngestarQrOfflineTests
     }
 
     [Fact]
+    public async Task Pda_sincroniza_venta_de_la_noche_con_la_hora_de_Colombia_que_trae_el_qr()
+    {
+        var colombia = new DateTime(2026, 10, 1, 21, 30, 0);
+        var (sut, db, qr) = CreateSut(new DateTime(2026, 10, 2, 13, 0, 0, DateTimeKind.Utc));
+        var (codigo, loteria, cifrado) = await SemillaAsync(db, qr);
+        var json = Sobre(cifrado, codigo.ConsecutivoUnico, loteria.LoteriaId, colombia)
+            .Replace("\"2026-10-01T21:30:00\"", "\"2026-10-01T21:30:00-05:00\"");
+        json.Should().Contain("21:30:00-05:00");
+
+        var result = await sut.SincronizarVentasAsync(
+            codigo.UsuarioId,
+            new SincronizarVentasOfflineRequest { QrJson = [json] },
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue(result.Message);
+        db.Ventas.Single().FechaVenta.Should().Be(colombia);
+        db.Boletos.Single().FechaCreacion.Should().Be(colombia);
+        (await db.CodigosPreventaOffline.FindAsync(codigo.CodigoId))!.FechaVentaOffline.Should().Be(colombia);
+    }
+
+    [Fact]
+    public async Task Admin_registra_tirilla_impresa_de_la_noche_en_hora_de_Colombia_del_mismo_dia()
+    {
+        var instanteQr = new DateTime(2026, 10, 2, 2, 30, 0, DateTimeKind.Utc);
+        var colombia = new DateTime(2026, 10, 1, 21, 30, 0);
+        var (sut, db, qr) = CreateSut(new DateTime(2026, 10, 2, 13, 0, 0, DateTimeKind.Utc));
+        var (codigo, loteria, cifrado) = await SemillaAsync(db, qr);
+        var papel = SobreQrOfflineCodec.ParaTirilla(cifrado, codigo.ConsecutivoUnico, Jugada(loteria.LoteriaId, instanteQr));
+
+        var registro = await sut.RegistrarQrAsync(Guid.NewGuid(), new RegistrarQrOfflineRequest { Qr = papel }, CancellationToken.None);
+
+        registro.IsSuccess.Should().BeTrue(registro.Message);
+        db.Ventas.Single().FechaVenta.Should().Be(colombia);
+        var boleto = db.Boletos.Single();
+        boleto.FechaCreacion.Should().Be(colombia);
+        (await db.CodigosPreventaOffline.FindAsync(codigo.CodigoId))!.FechaVentaOffline.Should().Be(colombia);
+        SobreQrOfflineCodec.TryLeer(SobreQrOfflineCodec.ParaPapel(boleto.QrCifrado, boleto.CodigoPublico), out var reimpreso)
+            .Should().BeTrue();
+        reimpreso.Jugada.Fecha.Should().Be(instanteQr);
+    }
+
+    [Fact]
     public async Task Admin_no_vuelve_a_crear_venta_si_el_pda_ya_sincronizo()
     {
         var (sut, db, qr) = CreateSut();
@@ -205,23 +247,25 @@ public sealed class IngestarQrOfflineTests
         registro.Message.Should().Be(UsuarioMessages.QrInvalidoOAlterado);
     }
 
-    private static string Sobre(string cifrado, string consecutivo, Guid loteriaId) =>
-        SobreQrOfflineCodec.Armar(cifrado, consecutivo, new JugadaOffline
-        {
-            Tipo = TipoApuesta.INDIVIDUAL.ToString(),
-            Fecha = new DateTime(2026, 9, 11, 11, 0, 0, DateTimeKind.Utc),
-            Total = 1000,
-            Lineas =
-            [
-                new LineaJugadaOffline
-                {
-                    Numero = "4321",
-                    Valor = 1000,
-                    LoteriaIds = [loteriaId],
-                    Loterias = ["Chance"]
-                }
-            ]
-        });
+    private static string Sobre(string cifrado, string consecutivo, Guid loteriaId, DateTime? fecha = null) =>
+        SobreQrOfflineCodec.Armar(cifrado, consecutivo, Jugada(loteriaId, fecha ?? new DateTime(2026, 9, 11, 11, 0, 0, DateTimeKind.Utc)));
+
+    private static JugadaOffline Jugada(Guid loteriaId, DateTime fecha) => new()
+    {
+        Tipo = TipoApuesta.INDIVIDUAL.ToString(),
+        Fecha = fecha,
+        Total = 1000,
+        Lineas =
+        [
+            new LineaJugadaOffline
+            {
+                Numero = "4321",
+                Valor = 1000,
+                LoteriaIds = [loteriaId],
+                Loterias = ["Chance"]
+            }
+        ]
+    };
 
     private static async Task<(CodigoPreventaOffline Codigo, Loteria Loteria, string Cifrado)> SemillaAsync(
         NewRichDbContext db,

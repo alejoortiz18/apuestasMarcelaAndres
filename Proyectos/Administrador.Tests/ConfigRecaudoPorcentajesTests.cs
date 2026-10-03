@@ -42,7 +42,7 @@ public sealed class ConfigRecaudoPorcentajesTests
         ]);
         var redireccion = resultado.Should().BeOfType<RedirectToActionResult>().Subject;
         redireccion.ActionName.Should().Be("Index");
-        sut.TempData["FlashOk"].Should().Be("Listo.");
+        sut.TempData["AvisoModal"].Should().Be("Listo.");
     }
 
     [Fact]
@@ -59,7 +59,7 @@ public sealed class ConfigRecaudoPorcentajesTests
             null,
             CancellationToken.None);
 
-        sut.TempData["FlashError"].Should().Be("El porcentaje debe estar entre 1 y 100.");
+        sut.TempData["AvisoModal"].Should().Be("El porcentaje debe estar entre 1 y 100.");
     }
 
     [Fact]
@@ -96,7 +96,7 @@ public sealed class ConfigRecaudoPorcentajesTests
         api.Verify(x => x.RetirarGrupoRecaudoAsync(sur, It.IsAny<CancellationToken>()), Times.Once);
         api.Verify(x => x.RetirarGrupoRecaudoAsync(oeste, It.IsAny<CancellationToken>()), Times.Never);
         resultado.Should().BeOfType<RedirectToActionResult>().Which.ActionName.Should().Be("Index");
-        sut.TempData.Should().ContainKey("FlashOk");
+        sut.TempData.Should().ContainKey("AvisoModal");
     }
 
     [Fact]
@@ -115,7 +115,7 @@ public sealed class ConfigRecaudoPorcentajesTests
 
         api.Verify(x => x.AsignarGrupoRecaudoAsync(It.IsAny<AsignarGrupoRecaudoRequest>(), It.IsAny<CancellationToken>()), Times.Never);
         api.Verify(x => x.RetirarGrupoRecaudoAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
-        sut.TempData["FlashError"].Should().Be(UiTexts.EligeRecaudadorParaGuardar);
+        sut.TempData["AvisoModal"].Should().Be(UiTexts.EligeRecaudadorParaGuardar);
     }
 
     [Fact]

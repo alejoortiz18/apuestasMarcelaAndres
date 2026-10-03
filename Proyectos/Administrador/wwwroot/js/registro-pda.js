@@ -10,9 +10,7 @@
   const pasoInstalar = raiz.querySelector('[data-paso="instalar"]');
   const botonContinuar = raiz.querySelector("[data-continuar]");
   const botonReintentar = raiz.querySelector("[data-reintentar]");
-  const errorVerificacion = raiz.querySelector("[data-verificacion-error]");
   const estadoVerificacion = raiz.querySelector("[data-verificacion-estado]");
-  const errorRegistro = raiz.querySelector("[data-registro-error]");
   const accionesError = raiz.querySelector("[data-acciones-error]");
   const barra = raiz.querySelector("[data-barra]");
   const relleno = raiz.querySelector("[data-barra-relleno]");
@@ -96,6 +94,12 @@
     elemento.setAttribute("hidden", "hidden");
   }
 
+  function avisoError(texto) {
+    if (typeof window.openAviso === "function" && texto) {
+      window.openAviso(texto);
+    }
+  }
+
   function enviar(url, conConfirmacion) {
     const datos = new FormData();
     if (token) {
@@ -163,16 +167,14 @@
   }
 
   function verificar() {
-    ocultar(errorVerificacion);
     mostrar(estadoVerificacion, raiz.getAttribute("data-texto-verificando"));
     botonContinuar.disabled = true;
     enviar(raiz.getAttribute("data-url-verificar"))
       .then(function (datos) {
         if (!datos.listo) {
           ocultar(estadoVerificacion);
-          mostrar(errorVerificacion, datos.mensaje);
           botonContinuar.disabled = false;
-          errorVerificacion.focus();
+          avisoError(datos.mensaje);
           return;
         }
         if (modelo && datos.modelo) {
@@ -185,13 +187,12 @@
       })
       .catch(function () {
         ocultar(estadoVerificacion);
-        mostrar(errorVerificacion, raiz.getAttribute("data-texto-error"));
         botonContinuar.disabled = false;
+        avisoError(raiz.getAttribute("data-texto-error"));
       });
   }
 
   function registrar() {
-    ocultar(errorRegistro);
     ocultar(accionesError);
     if (bitacora) {
       bitacora.replaceChildren();
@@ -200,9 +201,8 @@
     enviar(raiz.getAttribute("data-url-registrar"), true)
       .then(function (datos) {
         if (!datos.exitoso) {
-          mostrar(errorRegistro, datos.mensaje);
           mostrar(accionesError);
-          errorRegistro.focus();
+          avisoError(datos.mensaje);
           return;
         }
         pintarAvance({ porcentaje: 100, mensaje: datos.mensaje });
@@ -223,16 +223,9 @@
         }
       })
       .catch(function () {
-        mostrar(errorRegistro, raiz.getAttribute("data-texto-error"));
         mostrar(accionesError);
+        avisoError(raiz.getAttribute("data-texto-error"));
       });
-  }
-
-  if (errorVerificacion) {
-    errorVerificacion.setAttribute("tabindex", "-1");
-  }
-  if (errorRegistro) {
-    errorRegistro.setAttribute("tabindex", "-1");
   }
 
   function pedirRegistro(siguiente) {

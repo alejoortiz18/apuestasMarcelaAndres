@@ -171,6 +171,12 @@ public sealed class NewRichApiClient
     public Task<Result<IReadOnlyList<UsuarioResponse>>> UsuariosAsync(CancellationToken ct) =>
         Enviar<IReadOnlyList<UsuarioResponse>>(HttpMethod.Get, "api/Usuarios", null, ct);
 
+    public Task<Result<RestablecerPasswordResponse>> RestablecerPasswordAsync(Guid usuarioId, CancellationToken ct) =>
+        Enviar<RestablecerPasswordResponse>(HttpMethod.Post, $"api/Usuarios/{usuarioId}/restablecer-password", null, ct);
+
+    public Task<Result> DesbloquearUsuarioAsync(Guid usuarioId, CancellationToken ct) =>
+        EnviarSinDatos(HttpMethod.Post, $"api/Usuarios/{usuarioId}/desbloquear", null, ct);
+
     public Task<Result<IReadOnlyList<DispositivoResponse>>> DispositivosAsync(CancellationToken ct) =>
         Enviar<IReadOnlyList<DispositivoResponse>>(HttpMethod.Get, "api/Dispositivos", null, ct);
 

@@ -51,6 +51,7 @@ public sealed class ObservadorMasPage : ContentPage
                 Item(PdaTexts.ResultadosTitulo, PdaTexts.ResultadosSoloLectura, () => Navigation.PushAsync(services.GetRequiredService<ResultadosPage>())),
                 Item(PdaTexts.ValidarTicket, PdaTexts.ValidarTicketAyudaCorta, () => Shell.Current.GoToAsync("//ovalidar")),
                 Item(PdaTexts.Kpi, PdaTexts.KpiAyuda, () => Navigation.PushAsync(services.GetRequiredService<KpiPage>())),
+                Item(PdaTexts.VendedoresAcciones, PdaTexts.VendedoresAccionesAyuda, () => Navigation.PushAsync(services.GetRequiredService<VendedoresAccionesPage>())),
                 Item(PdaTexts.CerrarSesion, PdaTexts.CerrarSesionAyuda, async () =>
                 {
                     await chat.DesconectarAsync();

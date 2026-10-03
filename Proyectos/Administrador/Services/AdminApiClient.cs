@@ -11,6 +11,7 @@ using NewRich.Application.Contracts.Configuracion;
 using NewRich.Application.Contracts.Consultas;
 using NewRich.Application.Contracts.Dispositivos;
 using NewRich.Application.Contracts.Grupos;
+using NewRich.Application.Contracts.Jornadas;
 using NewRich.Application.Contracts.Kpi;
 using NewRich.Application.Contracts.Loterias;
 using NewRich.Application.Contracts.Llaves;
@@ -58,6 +59,7 @@ public interface IAdminApiClient
     Task<ApiCallResult<List<LoteriaResponse>>> ActualizarHorariosLoteriasAsync(ActualizarHorariosLoteriasRequest request, CancellationToken cancellationToken);
     Task<ApiCallResult<List<LoteriaResponse>>> ActualizarDiasLoteriasAsync(ActualizarDiasLoteriasRequest request, CancellationToken cancellationToken);
 
+    Task<ApiCallResult<List<JornadaResponse>>> ListarJornadasAsync(CancellationToken cancellationToken);
     Task<ApiCallResult<List<GrupoResponse>>> ListarGruposAsync(CancellationToken cancellationToken);
     Task<ApiCallResult<GrupoResponse>> ObtenerGrupoAsync(Guid id, CancellationToken cancellationToken);
     Task<ApiCallResult<GrupoResponse>> CrearGrupoAsync(CrearGrupoRequest request, CancellationToken cancellationToken);
@@ -223,6 +225,9 @@ public sealed class AdminApiClient : IAdminApiClient
 
     public Task<ApiCallResult<List<LoteriaResponse>>> ActualizarDiasLoteriasAsync(ActualizarDiasLoteriasRequest request, CancellationToken cancellationToken) =>
         SendAsync<List<LoteriaResponse>>(HttpMethod.Put, "api/Loterias/dias", request, true, cancellationToken);
+
+    public Task<ApiCallResult<List<JornadaResponse>>> ListarJornadasAsync(CancellationToken cancellationToken) =>
+        SendAsync<List<JornadaResponse>>(HttpMethod.Get, "api/Jornadas", null, true, cancellationToken);
 
     public Task<ApiCallResult<List<GrupoResponse>>> ListarGruposAsync(CancellationToken cancellationToken) =>
         SendAsync<List<GrupoResponse>>(HttpMethod.Get, "api/Grupos", null, true, cancellationToken);

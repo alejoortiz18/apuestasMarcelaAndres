@@ -34,7 +34,7 @@ public sealed class ConfigRecaudoVendedoresSinGrupoTests
         api.Verify(x => x.AsignarVendedorGrupoAsync(centro, ana, It.IsAny<CancellationToken>()), Times.Once);
         api.Verify(x => x.AsignarVendedorGrupoAsync(It.IsAny<Guid>(), beto, It.IsAny<CancellationToken>()), Times.Never);
         resultado.Should().BeOfType<RedirectToActionResult>().Which.ActionName.Should().Be("Index");
-        sut.TempData.Should().ContainKey("FlashOk");
+        sut.TempData.Should().ContainKey("AvisoModal");
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public sealed class ConfigRecaudoVendedoresSinGrupoTests
             null,
             CancellationToken.None);
 
-        sut.TempData["FlashError"].Should().Be("Confirma la contraseña.");
+        sut.TempData["AvisoModal"].Should().Be("Confirma la contraseña.");
     }
 
     [Fact]

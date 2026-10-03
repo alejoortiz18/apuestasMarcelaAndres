@@ -27,7 +27,7 @@ public sealed class ConfigRecaudoIntegrantesTests
         var redireccion = resultado.Should().BeOfType<RedirectToActionResult>().Subject;
         redireccion.ActionName.Should().Be("Ver");
         redireccion.RouteValues!["id"].Should().Be(grupo);
-        sut.TempData.Should().ContainKey("FlashOk");
+        sut.TempData.Should().ContainKey("AvisoModal");
     }
 
     [Fact]
@@ -40,7 +40,7 @@ public sealed class ConfigRecaudoIntegrantesTests
 
         await sut.EliminarDelGrupo(Guid.NewGuid(), Guid.NewGuid(), null, null, CancellationToken.None);
 
-        sut.TempData["FlashError"].Should().Be("Confirma la contraseña.");
+        sut.TempData["AvisoModal"].Should().Be("Confirma la contraseña.");
     }
 
     [Fact]

@@ -24,6 +24,7 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
     public DbSet<DispositivoUsuario> DispositivosUsuarios => Set<DispositivoUsuario>();
     public DbSet<Sesion> Sesiones => Set<Sesion>();
     public DbSet<Loteria> Loterias => Set<Loteria>();
+    public DbSet<Jornada> Jornadas => Set<Jornada>();
     public DbSet<LoteriaDiaSemana> LoteriasDiasSemana => Set<LoteriaDiaSemana>();
     public DbSet<Venta> Ventas => Set<Venta>();
     public DbSet<Boleto> Boletos => Set<Boleto>();
@@ -82,6 +83,17 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
         }
 
         await Database.ExecuteSqlRawAsync(EsquemaCapacidadOffline, cancellationToken);
+    }
+
+    public async Task AsegurarEsquemaJornadasAsync(CancellationToken cancellationToken = default)
+    {
+        if (!Database.IsRelational())
+        {
+            return;
+        }
+
+        await Database.ExecuteSqlRawAsync(EsquemaJornadas, cancellationToken);
+        await Database.ExecuteSqlRawAsync(AsignacionJornadas, cancellationToken);
     }
 
     public async Task<bool> IntentarBloquearRetencionAsync(CancellationToken cancellationToken = default)
@@ -226,6 +238,15 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
             e.Property(x => x.Tope).HasColumnType("decimal(18,2)");
             e.Property(x => x.HoraInicio).HasColumnType("time(0)");
             e.Property(x => x.HoraFin).HasColumnType("time(0)");
+            e.HasOne(x => x.Jornada).WithMany(x => x.Loterias).HasForeignKey(x => x.JornadaId);
+        });
+
+        modelBuilder.Entity<Jornada>(e =>
+        {
+            e.ToTable("Jornadas");
+            e.HasKey(x => x.JornadaId);
+            e.Property(x => x.Nombre).HasMaxLength(80);
+            e.HasIndex(x => x.Nombre).IsUnique();
         });
 
         modelBuilder.Entity<LoteriaDiaSemana>(e =>
@@ -514,6 +535,47 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
               AND parent_object_id = OBJECT_ID(N'dbo.Dispositivos'))
         BEGIN
             ALTER TABLE dbo.Dispositivos ADD CONSTRAINT CK_Dispositivos_Capacidad CHECK (CapacidadCodigosOffline >= 0);
+        END
+        """;
+
+    private const string EsquemaJornadas = """
+        IF OBJECT_ID(N'dbo.Jornadas', N'U') IS NULL
+        BEGIN
+            CREATE TABLE dbo.Jornadas (
+                JornadaId     UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
+                Nombre        NVARCHAR(80)     NOT NULL,
+                FechaCreacion DATETIME2        NOT NULL,
+                CONSTRAINT PK_Jornadas PRIMARY KEY (JornadaId),
+                CONSTRAINT UQ_Jornadas_Nombre UNIQUE (Nombre)
+            );
+        END
+        IF NOT EXISTS (SELECT 1 FROM dbo.Jornadas)
+        BEGIN
+            INSERT INTO dbo.Jornadas (JornadaId, Nombre, FechaCreacion)
+            VALUES
+                (NEWID(), N'Mañana', DATEADD(HOUR, -5, SYSUTCDATETIME())),
+                (NEWID(), N'Tarde', DATEADD(HOUR, -5, SYSUTCDATETIME())),
+                (NEWID(), N'Noche', DATEADD(HOUR, -5, SYSUTCDATETIME()));
+        END
+        IF COL_LENGTH(N'dbo.Loterias', N'JornadaId') IS NULL
+        BEGIN
+            ALTER TABLE dbo.Loterias ADD JornadaId UNIQUEIDENTIFIER NULL;
+        END
+        """;
+
+    // Va en un lote aparte: SQL Server compila el lote completo y la columna JornadaId aún no existe al agregarla.
+    private const string AsignacionJornadas = """
+        UPDATE l SET l.JornadaId = j.JornadaId
+        FROM dbo.Loterias l
+        INNER JOIN dbo.Jornadas j ON j.Nombre = CASE
+            WHEN l.HoraFin <= '12:00:00' THEN N'Mañana'
+            WHEN l.HoraFin <= '18:00:00' THEN N'Tarde'
+            ELSE N'Noche' END
+        WHERE l.JornadaId IS NULL;
+        IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_Loterias_Jornadas')
+        BEGIN
+            ALTER TABLE dbo.Loterias WITH CHECK
+            ADD CONSTRAINT FK_Loterias_Jornadas FOREIGN KEY (JornadaId) REFERENCES dbo.Jornadas (JornadaId);
         END
         """;
 

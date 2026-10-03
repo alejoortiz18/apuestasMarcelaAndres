@@ -415,6 +415,33 @@ public static class PdaTexts
     public const string PendienteHoy = "Pendiente";
     public const string DeudaAcumulada = "Deuda acumulada";
     public const string OrdenarPor = "Ordenar";
+    public const string VendedoresAcciones = "Vendedores";
+    public const string VendedoresAccionesAyuda = "Desbloquear o restablecer contraseña";
+    public const string VendedoresAccionesSub = "Solo vendedores. La contraseña temporal se muestra una vez.";
+    public const string DesbloquearVendedor = "Desbloquear";
+    public const string RestablecerContrasenaVendedor = "Restablecer contraseña";
+    public const string SiDesbloquear = "Sí, desbloquear";
+    public const string SiRestablecer = "Sí, restablecer";
+    public const string VendedorBloqueado = "Bloqueado";
+    public const string VendedorActivo = "Activo";
+    public const string SinVendedores = "No hay vendedores para mostrar.";
+    public const string EstadoVendedor = "Estado";
+    public const string TodosLosGrupos = "Todos los grupos";
+    public const string SinGrupo = "Sin grupo";
+    public const string EstadoBloqueados = "Bloqueados";
+    public const string EstadoSinBloqueo = "Sin bloqueo";
+    public const string LimpiarFiltros = "Limpiar filtros";
+    public const string MostrandoVendedores = "Mostrando {0} de {1} vendedores";
+    public const string SinVendedoresConFiltros = "No hay vendedores que coincidan con los filtros. Cambie la búsqueda o use Limpiar filtros.";
+    public const string Documento = "Documento";
+    public const string PasswordTemporalMostrada = "Contraseña temporal";
+    public const string Aceptar = "Aceptar";
+
+    public static string ConfirmarDesbloqueoVendedor(string nombre) =>
+        $"¿Desbloquear a {nombre}? Podrá volver a ingresar al PDA.";
+
+    public static string ConfirmarRestablecerVendedor(string nombre) =>
+        $"¿Restablecer la contraseña de {nombre}? La contraseña actual dejará de servir y la temporal se mostrará una sola vez.";
 
     public static string ActualizacionMensaje(string nombreVersion, int numeroCompilacion) =>
         $"Hay una versión nueva ({nombreVersion}, compilación {numeroCompilacion}). Descárgala e instálala en este dispositivo.";

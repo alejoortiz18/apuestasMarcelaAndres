@@ -29,4 +29,24 @@ public sealed class ObservadorTextsTests
         PdaTexts.HoraCierrePda.Should().Be("Hora de cierre del PDA");
         PdaTexts.FiltroGeneral.Should().Be("General");
     }
+
+    [Fact]
+    public void Textos_de_la_pantalla_de_vendedores_del_observador()
+    {
+        PdaTexts.VendedoresAcciones.Should().Be("Vendedores");
+        PdaTexts.DesbloquearVendedor.Should().Be("Desbloquear");
+        PdaTexts.RestablecerContrasenaVendedor.Should().Be("Restablecer contraseña");
+        PdaTexts.Aceptar.Should().Be("Aceptar");
+        PdaTexts.SiDesbloquear.Should().Be("Sí, desbloquear");
+        PdaTexts.SiRestablecer.Should().Be("Sí, restablecer");
+    }
+
+    [Fact]
+    public void Antes_de_desbloquear_o_restablecer_se_pregunta_nombrando_al_vendedor()
+    {
+        PdaTexts.ConfirmarDesbloqueoVendedor("Ana Ruiz")
+            .Should().Be("¿Desbloquear a Ana Ruiz? Podrá volver a ingresar al PDA.");
+        PdaTexts.ConfirmarRestablecerVendedor("Ana Ruiz")
+            .Should().Be("¿Restablecer la contraseña de Ana Ruiz? La contraseña actual dejará de servir y la temporal se mostrará una sola vez.");
+    }
 }

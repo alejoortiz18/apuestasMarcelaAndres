@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NewRich.Admin.Constants;
 using NewRich.Admin.Models;
+using NewRich.Admin.Services;
+using NewRich.Application.Contracts.Jornadas;
 using NewRich.Application.Services;
 
 namespace NewRich.Admin.Controllers;
@@ -20,10 +22,7 @@ public abstract class AdminControllerBase : Controller
         return null;
     }
 
-    protected void SetFlash(string message, bool success = true)
-    {
-        TempData[success ? "FlashOk" : "FlashError"] = message;
-    }
+    protected void SetFlash(string message, bool success = true) => SetAvisoModal(message);
 
     protected void SetAvisoModal(string? message)
     {
@@ -57,6 +56,9 @@ public abstract class AdminControllerBase : Controller
         ViewData["Crumb"] = leaf ?? UiTexts.NavVentas;
         ViewData["Title"] = leaf ?? UiTexts.LoteriasTitulo;
     }
+
+    protected static async Task<IReadOnlyList<JornadaResponse>> JornadasAsync(IAdminApiClient api, CancellationToken cancellationToken) =>
+        (await api.ListarJornadasAsync(cancellationToken)).Data ?? [];
 
     protected bool EsPeticionAjax() =>
         string.Equals(Request.Headers["X-Requested-With"], "XMLHttpRequest", StringComparison.OrdinalIgnoreCase);
