@@ -1,0 +1,19 @@
+Llave de firma del APK com.newrich.pda (NewRich.Maui)
+=====================================================
+
+Esta copia es el respaldo. La llave de compilación está en:
+  Proyectos/Android/signing/produccion.keystore
+
+Archivo:      produccion.keystore
+Origen:       debug.keystore de Xamarin con el que se firmó la versión 85 en campo
+Alias:        androiddebugkey
+Contraseña del almacén (storepass): android
+Contraseña de la llave (keypass):   android
+Certificado:  CN=Android Debug, O=Android, C=US
+SHA-256:      D3:07:02:71:17:62:AF:78:BE:41:EC:97:03:DB:E5:00:0B:AE:1C:E9:2F:99:19:94:13:C0:3B:98:BD:5F:C4:D9
+
+Las versiones nuevas tienen que firmarse con esta misma llave para instalarse
+encima de la app que ya está en los PDA. La rama Produccion no se modifica.
+
+La compilación del proyecto Maui usa Directory.Build.props en
+Proyectos/Android/src/NewRich.Maui para apuntar a esa llave.
