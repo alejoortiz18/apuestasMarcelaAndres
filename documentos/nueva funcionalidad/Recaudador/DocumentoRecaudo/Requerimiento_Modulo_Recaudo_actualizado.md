@@ -300,24 +300,47 @@ Dentro del panel y del historial se puede consultar nombre, grupo actual, recaud
 
 ## 8. Historial
 
-El administrador y Super consultan todo. El recaudador consulta el historial de sus asignados.
+El historial es la lista de pagos registrados. Cada fila es un pago que un recaudador recibió desde el PDA. El administrador lo consulta y no registra, no anula y no corrige pagos.
+
+### 8.1. Quién lo consulta
+
+| Perfil | Qué ve | Dónde |
+| --- | --- | --- |
+| Administrador y Super | Los pagos de todos los recaudadores | Web, menú Recaudo > Historial (`historialRecaudo`) |
+| Recaudador | Solo los pagos que él registró | PDA, opción Historial |
+
+En el detalle del recaudador (7.2), el botón **Ver historial** abre el historial filtrado por ese recaudador y las mismas fechas.
+
+### 8.2. Columnas
 
 | Campo | Descripción |
 | --- | --- |
-| Fecha | Día de la obligación |
-| Ventas | Total vendido |
-| Porcentaje | Porcentaje aplicado |
-| Valor generado | Obligación del día |
-| Deuda anterior | Saldo anterior |
-| Total por pagar | Obligación más saldo anterior |
-| Valor pagado | Total recibido ese día |
-| Saldo pendiente | Deuda resultante |
+| Fecha y hora | Hora de Colombia en que se cobró. Si el cobro se hizo sin conexión, es la hora del PDA al cobrar, no la de sincronización |
 | Recaudador | Usuario que recibió el dinero |
-| Estado | Por cobrar, deudado o al día |
+| Vendedor | Quien pagó |
+| Grupo | Grupo actual del vendedor, o Sin grupo |
+| Valor recibido | Valor del pago |
+| Saldo resultante | Lo que el vendedor quedó debiendo después de ese pago |
+| Estado | Al día si el saldo resultante es cero; Deudado si quedó debiendo |
 
-El historial se conserva si el vendedor o el grupo dejan de estar asignados. Cada pago guarda el recaudador que lo recibió.
+Los pagos se listan del más reciente al más antiguo.
 
-El administrador filtra el historial de recaudos por recaudador, grupo, vendedor, fecha inicial, fecha final y estado. Cada movimiento muestra fecha y hora, recaudador, vendedor, grupo, valor recibido, obligación afectada y saldo resultante.
+### 8.3. Filtros en la web
+
+- Desde y Hasta. Por defecto, hoy.
+- Recaudador, Grupo y Vendedor, cada uno con la opción Todos.
+- Estado: Todos los estados, Al día o Deudado.
+- Filas por página: 5, 10 o 15.
+
+**Buscar** aplica los filtros y **Limpiar filtros** vuelve a hoy sin filtros. La tabla tiene paginación y conserva los filtros al cambiar de página.
+
+### 8.4. Historial en el PDA
+
+El recaudador ve sus pagos de los últimos 30 días, en tarjetas con el vendedor, la fecha y hora con el grupo, el valor recibido con el saldo y el estado. Si no hay pagos, muestra "No hay cobros registrados en este periodo."
+
+### 8.5. Conservación
+
+El historial sale de los pagos guardados, no de las asignaciones. Se conserva si el vendedor o el grupo dejan de estar asignados o cambian de recaudador. Cada pago guarda el recaudador que lo recibió. Los cobros hechos sin conexión aparecen cuando el PDA los sincroniza, con la hora en que se cobraron.
 
 ## 9. Gráficos y métricas
 

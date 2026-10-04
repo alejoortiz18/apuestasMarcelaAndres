@@ -1,4 +1,5 @@
 @using NewRich.Admin.Constants
+@using NewRich.Admin.Controllers
 @using NewRich.Admin.Models
 @model MetricasRecaudoViewModel
 <div class="heading">
@@ -8,26 +9,57 @@
         <p>@UiTexts.MetricasRecaudoSub</p>
     </div>
 </div>
-<div class="panel">
-    <form class="toolbar" method="get">
-        <div class="field">
-            <label for="desde">@UiTexts.Desde</label>
-            <input id="desde" name="desde" type="date" value="@Model.Desde.ToString("yyyy-MM-dd")" />
+<div data-tablero-recaudo data-tablero-encabezado="@MetricasRecaudoController.EncabezadoTablero" data-tablero-error="@UiTexts.ErrorTablero">
+    <div class="panel tablero-filtros">
+        <form class="toolbar" method="get" asp-action="Index" data-tablero-form>
+            <div class="field">
+                <label for="desde">@UiTexts.Desde</label>
+                <input id="desde" name="desde" type="date" value="@Model.Desde.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="field">
+                <label for="hasta">@UiTexts.Hasta</label>
+                <input id="hasta" name="hasta" type="date" value="@Model.Hasta.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="field">
+                <label for="recaudadorId">@UiTexts.Recaudador</label>
+                <select id="recaudadorId" name="recaudadorId" class="searchable">
+                    <option value="">@UiTexts.TodosLosRecaudadores</option>
+                    @foreach (var opcion in Model.OpcionesRecaudadores)
+                    {
+                        <option value="@opcion.Id" selected="@(Model.RecaudadorId == opcion.Id)">@opcion.Nombre</option>
+                    }
+                </select>
+            </div>
+            <div class="field">
+                <label for="grupo">@UiTexts.Grupo</label>
+                <select id="grupo" name="grupo" class="searchable">
+                    <option value="">@UiTexts.TodosLosGrupos</option>
+                    @foreach (var opcion in Model.OpcionesGrupos)
+                    {
+                        <option value="@opcion" selected="@(Model.Grupo == opcion)">@opcion</option>
+                    }
+                </select>
+            </div>
+            <button class="primary" type="submit">@UiTexts.Aplicar</button>
+            <a class="secondary" asp-action="Index" data-tablero-limpiar>@UiTexts.LimpiarFiltros</a>
+        </form>
+        <div class="tablero-filtros-pie">
+            <nav class="jornada-filtro" aria-label="@UiTexts.PeriodoRapido">
+                @foreach (var rango in Model.Rangos)
+                {
+                    <a class="jornada-filtro-opcion@(rango.Activo ? " is-active" : null)"
+                       asp-action="Index" asp-route-desde="@rango.Desde.ToString("yyyy-MM-dd")" asp-route-hasta="@rango.Hasta.ToString("yyyy-MM-dd")"
+                       asp-route-recaudadorId="@Model.RecaudadorId" asp-route-grupo="@Model.Grupo"
+                       data-tablero-rango data-tablero-defecto="@(rango.Dias == 7 ? "true" : null)" data-desde="@rango.Desde.ToString("yyyy-MM-dd")" data-hasta="@rango.Hasta.ToString("yyyy-MM-dd")"
+                       aria-current="@(rango.Activo ? "true" : null)">@rango.Etiqueta</a>
+                }
+            </nav>
+            <div class="tablero-estado" aria-live="polite">
+                <span class="tablero-cargando" data-tablero-cargando hidden><i aria-hidden="true"></i>@UiTexts.ActualizandoTablero</span>
+            </div>
         </div>
-        <div class="field">
-            <label for="hasta">@UiTexts.Hasta</label>
-            <input id="hasta" name="hasta" type="date" value="@Model.Hasta.ToString("yyyy-MM-dd")" />
-        </div>
-        <button class="primary" type="submit">@UiTexts.Aplicar</button>
-    </form>
-</div>
-<div class="recaudo-metricas">
-    <article class="recaudo-metrica"><span>@UiTexts.TotalVendido</span><strong class="recaudo-cifra">@FormatoPesos.De(Model.TotalVendido)</strong></article>
-    <article class="recaudo-metrica"><span>@UiTexts.TotalPorRecaudar</span><strong class="recaudo-cifra">@FormatoPesos.De(Model.TotalPorRecaudar)</strong></article>
-    <article class="recaudo-metrica"><span>@UiTexts.TotalRecaudado</span><strong class="recaudo-cifra">@FormatoPesos.De(Model.TotalRecaudado)</strong></article>
-    <article class="recaudo-metrica"><span>@UiTexts.TotalPendiente</span><strong class="recaudo-cifra">@FormatoPesos.De(Model.TotalPendiente)</strong></article>
-    <article class="recaudo-metrica"><span>@UiTexts.PorcentajeDeRecaudo</span><strong class="recaudo-cifra">@Model.PorcentajeRecaudo %</strong></article>
-    <article class="recaudo-metrica"><span>@UiTexts.VendedoresAlDia</span><strong class="recaudo-cifra">@Model.VendedoresAlDia</strong></article>
-    <article class="recaudo-metrica"><span>@UiTexts.VendedoresEnDeuda</span><strong class="recaudo-cifra">@Model.VendedoresEnDeuda</strong></article>
-    <article class="recaudo-metrica"><span>@UiTexts.GruposConPendiente</span><strong class="recaudo-cifra">@Model.GruposConPendiente</strong></article>
+    </div>
+    <div class="tablero" data-tablero-resultados aria-busy="false">
+        <partial name="_TableroRecaudo" model="Model" />
+    </div>
 </div>

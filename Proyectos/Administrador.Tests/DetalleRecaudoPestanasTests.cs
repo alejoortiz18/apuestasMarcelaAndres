@@ -160,7 +160,9 @@ public sealed class DetalleRecaudoPestanasTests
     [Fact]
     public void La_vista_dibuja_lo_que_debian_en_rojo_y_lo_cobrado_en_verde_con_leyenda()
     {
-        var vista = File.ReadAllText(RutaVista());
+        var detalle = File.ReadAllText(RutaVista());
+        detalle.Should().Contain("_GraficoLineaRecaudo");
+        var vista = detalle + File.ReadAllText(Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(RutaVista()))!, "Shared", "_GraficoLineaRecaudo.cshtml"));
 
         vista.Should().Contain("class=\"linea-debia\"");
         vista.Should().Contain("class=\"linea-cobrado\"");

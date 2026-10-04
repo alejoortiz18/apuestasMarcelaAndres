@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace NewRich.Admin.Models;
 
-public sealed record PuntoLineaRecaudo(DateOnly Fecha, decimal Debia, decimal Cobrado)
+public sealed record PuntoLineaRecaudo(DateOnly Fecha, decimal Debia, decimal Cobrado, decimal Generado = 0m)
 {
     public decimal Pendiente => Math.Max(0m, Debia - Cobrado);
 
@@ -10,6 +10,9 @@ public sealed record PuntoLineaRecaudo(DateOnly Fecha, decimal Debia, decimal Co
         ? 0
         : (int)Math.Min(100m, Math.Round(Cobrado * 100m / Debia, MidpointRounding.AwayFromZero));
 }
+
+/// <param name="Nombre">Recaudador, grupo o alcance que se nombra en el resumen accesible del gráfico.</param>
+public sealed record GraficoLineaRecaudoVista(GraficoLineaRecaudo Grafico, string Nombre);
 
 /// <summary>Coordenadas del gráfico de línea de tiempo del detalle de recaudo, en unidades del viewBox del SVG.</summary>
 public sealed class GraficoLineaRecaudo
@@ -23,22 +26,35 @@ public sealed class GraficoLineaRecaudo
     public const int Divisiones = 4;
     private const int FechasVisibles = 10;
 
-    private GraficoLineaRecaudo(IReadOnlyList<PuntoLineaRecaudo> puntos, decimal maximo)
+    private const double AnchoBarraMaximo = 26;
+
+    private GraficoLineaRecaudo(IReadOnlyList<PuntoLineaRecaudo> puntos, decimal maximo, bool mostrarGenerado)
     {
         Puntos = puntos;
         Maximo = maximo;
+        MostrarGenerado = mostrarGenerado;
     }
 
     public IReadOnlyList<PuntoLineaRecaudo> Puntos { get; }
     public decimal Maximo { get; }
-    public bool SinMovimiento => Puntos.All(p => p.Debia <= 0m && p.Cobrado <= 0m);
+
+    /// <summary>Dibuja una barra dorada por día con lo generado por las ventas.</summary>
+    public bool MostrarGenerado { get; }
+    public bool SinMovimiento => Puntos.All(p => p.Debia <= 0m && p.Cobrado <= 0m && p.Generado <= 0m);
     public double Base => Alto - MargenInferior;
 
-    public static GraficoLineaRecaudo De(IReadOnlyList<PuntoLineaRecaudo> puntos)
+    public static GraficoLineaRecaudo De(IReadOnlyList<PuntoLineaRecaudo> puntos, bool mostrarGenerado = false)
     {
-        var mayor = puntos.Count == 0 ? 0m : puntos.Max(p => Math.Max(p.Debia, p.Cobrado));
-        return new GraficoLineaRecaudo(puntos, Redondear(mayor));
+        var mayor = puntos.Count == 0 ? 0m : puntos.Max(p => Math.Max(Math.Max(p.Debia, p.Cobrado), mostrarGenerado ? p.Generado : 0m));
+        return new GraficoLineaRecaudo(puntos, Redondear(mayor), mostrarGenerado);
     }
+
+    public double AnchoBarra =>
+        Math.Min(AnchoBarraMaximo, (Ancho - MargenIzquierdo - MargenDerecho) / Math.Max(1, Puntos.Count) * 0.5);
+
+    public double BarraX(int indice) => X(indice) - AnchoBarra / 2;
+
+    public double AltoBarra(decimal valor) => Base - Y(valor);
 
     public double X(int indice)
     {

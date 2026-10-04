@@ -158,7 +158,7 @@ public sealed class RecaudoPdaTests
         var filas = TresFilas();
         var ana = filas[0];
 
-        RecaudoListas.ConPendientes(filas, [new PagoPendienteRecaudo(ana.VendedorId, 30_000m, "clave-ana", DateTime.UtcNow)]);
+        RecaudoListas.ConPendientes(filas, [new PagoPendienteRecaudo(ana.VendedorId, 30_000m, "clave-ana", DateTime.UtcNow)], RecaudoListas.HoyEnColombia());
 
         ana.Lista.Should().Be(nameof(ListaCobro.Cobrados));
         ana.PagosHoy.Should().Be(30_000m);

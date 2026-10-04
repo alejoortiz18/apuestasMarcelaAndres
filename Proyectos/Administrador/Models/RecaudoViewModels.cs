@@ -151,20 +151,6 @@ public sealed class FilaHistorialRecaudo
     public string Estado { get; init; } = string.Empty;
 }
 
-public sealed class MetricasRecaudoViewModel
-{
-    public DateOnly Desde { get; init; }
-    public DateOnly Hasta { get; init; }
-    public decimal TotalVendido { get; init; }
-    public decimal TotalPorRecaudar { get; init; }
-    public decimal TotalRecaudado { get; init; }
-    public decimal TotalPendiente { get; init; }
-    public int PorcentajeRecaudo { get; init; }
-    public int VendedoresAlDia { get; init; }
-    public int VendedoresEnDeuda { get; init; }
-    public int GruposConPendiente { get; init; }
-}
-
 public static class DetalleRecaudoPestanas
 {
     public const string Cobrados = "cobrados";

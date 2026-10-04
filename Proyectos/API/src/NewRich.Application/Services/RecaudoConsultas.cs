@@ -347,6 +347,7 @@ public sealed partial class RecaudoService
                 Debia = filas.Sum(f => f.SaldoAnterior + f.ValorACobrar),
                 Cobrado = filas.Sum(f => f.PagosHoy),
                 Generado = filas.Sum(f => f.ValorACobrar),
+                Vendido = filas.Sum(f => f.TotalVendido),
                 Grupos = filas
                     .GroupBy(f => f.Grupo)
                     .OrderBy(g => g.Key)
@@ -355,7 +356,8 @@ public sealed partial class RecaudoService
                         Grupo = g.Key,
                         Debia = g.Sum(f => f.SaldoAnterior + f.ValorACobrar),
                         Cobrado = g.Sum(f => f.PagosHoy),
-                        Generado = g.Sum(f => f.ValorACobrar)
+                        Generado = g.Sum(f => f.ValorACobrar),
+                        Vendido = g.Sum(f => f.TotalVendido)
                     })
                     .ToList()
             });

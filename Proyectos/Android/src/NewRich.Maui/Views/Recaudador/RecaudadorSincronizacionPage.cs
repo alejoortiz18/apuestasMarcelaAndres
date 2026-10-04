@@ -62,7 +62,7 @@ public sealed class RecaudadorSincronizacionPage : ContentPage
             var obligaciones = await _api.ObligacionesRecaudoAsync(null, CancellationToken.None);
             if (obligaciones.IsSuccess && obligaciones.Data is not null)
             {
-                await _local.GuardarObligacionesRecaudoAsync(RecaudoListas.ConPendientes(obligaciones.Data, quedan));
+                await _local.GuardarObligacionesRecaudoAsync(RecaudoListas.ConPendientes(obligaciones.Data, quedan, RecaudoListas.HoyEnColombia()));
             }
 
             _resultado.Text = quedan.Count == 0

@@ -385,8 +385,12 @@ public static class PdaTexts
     public const string BuscarVendedorAyuda = "Nombre, alias, usuario o documento";
     public const string HistorialRecaudo = "Historial";
     public const string MetricasRecaudo = "Métricas";
-    public const string Pendientes = "Pendientes";
+    public const string Hoy = "Hoy";
     public const string Cobrados = "Cobrados";
+    public const string Adeudados = "Adeudados";
+    public const string SinVentasHoyPorCobrar = "No hay vendedores con ventas de hoy por cobrar.";
+    public const string SinCobradosHoy = "Hoy todavía no se ha cobrado a ningún vendedor.";
+    public const string SinAdeudados = "No hay vendedores con deuda pendiente.";
     public const string Todos = "Todos";
     public const string PdaRecaudador = "PDA recaudador";
     public const string RegistrarCobro = "Registrar cobro";

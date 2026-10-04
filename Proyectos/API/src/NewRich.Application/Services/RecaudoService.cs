@@ -21,6 +21,7 @@ public interface IRecaudoService
     Task<Result<IReadOnlyList<MovimientoRecaudoResponse>>> HistorialAsync(FiltroHistorialRecaudo filtro, CancellationToken cancellationToken);
     Task<Result<MetricasRecaudoResponse>> MetricasAsync(DateOnly desde, DateOnly hasta, CancellationToken cancellationToken);
     Task<Result<DetalleRecaudadorResponse>> DetalleAsync(Guid recaudadorId, DateOnly desde, DateOnly hasta, CancellationToken cancellationToken);
+    Task<Result<TableroRecaudoResponse>> TableroAsync(FiltroTableroRecaudo filtro, CancellationToken cancellationToken);
     Task<Result<IReadOnlyList<LineaRecaudoDiaResponse>>> LineaDeTiempoAsync(Guid recaudadorId, DateOnly desde, DateOnly hasta, CancellationToken cancellationToken);
     Task<Result> RetirarGrupoAsync(Guid grupoId, CancellationToken cancellationToken);
     Task<Result> RetirarVendedorAsync(Guid vendedorId, CancellationToken cancellationToken);

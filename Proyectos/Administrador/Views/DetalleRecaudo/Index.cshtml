@@ -42,7 +42,6 @@
             </span>
         </article>
     }
-    string Pct(double valor) => GraficoLineaRecaudo.Numero(valor) + "%";
     var desde = Model.Desde.ToString("yyyy-MM-dd");
     var hasta = Model.Hasta.ToString("yyyy-MM-dd");
     var enCobrados = Model.Pestana == DetalleRecaudoPestanas.Cobrados;
@@ -124,75 +123,7 @@
     }
     else
     {
-        var ultimo = grafico.Puntos[^1];
-        <figure class="recaudo-grafico">
-            <div class="grafico-lienzo">
-            <svg viewBox="0 0 @GraficoLineaRecaudo.Numero(GraficoLineaRecaudo.Ancho) @GraficoLineaRecaudo.Numero(GraficoLineaRecaudo.Alto)" role="img"
-                 aria-label="@string.Format(UiTexts.GraficoResumenFormato, Model.GraficoGrupo ?? Model.Nombre, grafico.Puntos[0].Fecha.ToString("dd/MM/yyyy"), ultimo.Fecha.ToString("dd/MM/yyyy"), FormatoPesos.De(ultimo.Debia), FormatoPesos.De(ultimo.Cobrado))">
-                @foreach (var valor in grafico.Escala())
-                {
-                    var y = GraficoLineaRecaudo.Numero(grafico.Y(valor));
-                    <g>
-                        <line class="grafico-guia" x1="@GraficoLineaRecaudo.Numero(GraficoLineaRecaudo.MargenIzquierdo)" y1="@y" x2="@GraficoLineaRecaudo.Numero(GraficoLineaRecaudo.Ancho - GraficoLineaRecaudo.MargenDerecho)" y2="@y" />
-                        <text class="grafico-eje" x="@GraficoLineaRecaudo.Numero(GraficoLineaRecaudo.MargenIzquierdo - 8)" y="@GraficoLineaRecaudo.Numero(grafico.Y(valor) + 4)" text-anchor="end">@FormatoPesos.De(valor)</text>
-                    </g>
-                }
-                @for (var i = 0; i < grafico.Puntos.Count; i++)
-                {
-                    if (grafico.MostrarFecha(i))
-                    {
-                        <g>
-                            <text class="grafico-eje" x="@GraficoLineaRecaudo.Numero(grafico.X(i))" y="@GraficoLineaRecaudo.Numero(GraficoLineaRecaudo.Alto - 12)" text-anchor="middle">@grafico.Puntos[i].Fecha.ToString("dd/MM")</text>
-                        </g>
-                    }
-                }
-                <polyline class="linea-debia" points="@grafico.Trazo(p => p.Debia)" />
-                <polyline class="linea-cobrado" points="@grafico.Trazo(p => p.Cobrado)" />
-                @for (var i = 0; i < grafico.Puntos.Count; i++)
-                {
-                    var punto = grafico.Puntos[i];
-                    var x = GraficoLineaRecaudo.Numero(grafico.X(i));
-                    <g>
-                        <circle class="punto-debia" cx="@x" cy="@GraficoLineaRecaudo.Numero(grafico.Y(punto.Debia))" r="4" />
-                        <circle class="punto-cobrado" cx="@x" cy="@GraficoLineaRecaudo.Numero(grafico.Y(punto.Cobrado))" r="4" />
-                    </g>
-                }
-            </svg>
-            <div class="grafico-dias" style="left:@Pct(GraficoLineaRecaudo.MargenIzquierdo / GraficoLineaRecaudo.Ancho * 100);right:@Pct(GraficoLineaRecaudo.MargenDerecho / GraficoLineaRecaudo.Ancho * 100);top:@Pct(GraficoLineaRecaudo.MargenSuperior / GraficoLineaRecaudo.Alto * 100);bottom:@Pct(GraficoLineaRecaudo.MargenInferior / GraficoLineaRecaudo.Alto * 100)">
-                @for (var i = 0; i < grafico.Puntos.Count; i++)
-                {
-                    var punto = grafico.Puntos[i];
-                    <div class="grafico-dia@(grafico.TooltipALaIzquierda(i) ? " tip-izquierda" : null)" tabindex="0" role="img"
-                         style="left:@Pct(grafico.PosicionX(i));width:@Pct(grafico.AnchoFranja)"
-                         aria-label="@string.Format(UiTexts.PuntoGraficoFormato, GraficoLineaRecaudo.FechaLarga(punto.Fecha), FormatoPesos.De(punto.Debia), FormatoPesos.De(punto.Cobrado), FormatoPesos.De(punto.Pendiente))">
-                        <span class="grafico-dia-guia" aria-hidden="true"></span>
-                        <span class="grafico-dia-punto debia" style="top:@Pct(grafico.PosicionY(punto.Debia))" aria-hidden="true"></span>
-                        <span class="grafico-dia-punto cobrado" style="top:@Pct(grafico.PosicionY(punto.Cobrado))" aria-hidden="true"></span>
-                        <div class="grafico-tip" aria-hidden="true">
-                            <strong class="grafico-tip-fecha">@GraficoLineaRecaudo.FechaLarga(punto.Fecha)</strong>
-                            <dl>
-                                <div><dt><i class="tip-marca debia"></i>@UiTexts.TipLeDebian</dt><dd>@FormatoPesos.De(punto.Debia)</dd></div>
-                                <div><dt><i class="tip-marca cobrado"></i>@UiTexts.TipCobro</dt><dd>@FormatoPesos.De(punto.Cobrado)</dd></div>
-                                <div class="tip-pendiente"><dt>@UiTexts.TipQuedoPendiente</dt><dd>@FormatoPesos.De(punto.Pendiente)</dd></div>
-                            </dl>
-                            <div class="tip-avance">
-                                <span>@string.Format(UiTexts.TipAvanceFormato, punto.Avance)</span>
-                                <span class="tip-avance-barra"><i style="width:@Pct(punto.Avance)"></i></span>
-                            </div>
-                        </div>
-                    </div>
-                }
-            </div>
-            </div>
-            <figcaption class="grafico-leyenda">
-                <span class="leyenda-debia">@UiTexts.LoQueDebian</span>
-                <span class="leyenda-cobrado">@UiTexts.LoCobrado</span>
-            </figcaption>
-        </figure>
-        @if (grafico.Puntos.Count == 1)
-        {
-            <div class="panel-sub">@UiTexts.UnSoloDiaGrafico</div>
-        }
+        <partial name="_GraficoLineaRecaudo" model="new GraficoLineaRecaudoVista(grafico, Model.GraficoGrupo ?? Model.Nombre)" />
     }
 </div>
 <div class="panel">

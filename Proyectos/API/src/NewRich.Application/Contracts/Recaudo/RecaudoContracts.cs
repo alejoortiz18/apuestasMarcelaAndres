@@ -201,6 +201,7 @@ public sealed class LineaRecaudoDiaResponse
 
     /// <summary>Lo generado ese día por las ventas, sin deudas anteriores.</summary>
     public decimal Generado { get; set; }
+    public decimal Vendido { get; set; }
     public IReadOnlyList<LineaGrupoDiaResponse> Grupos { get; set; } = [];
 }
 
@@ -210,6 +211,78 @@ public sealed class LineaGrupoDiaResponse
     public decimal Debia { get; set; }
     public decimal Cobrado { get; set; }
     public decimal Generado { get; set; }
+    public decimal Vendido { get; set; }
+}
+
+/// <summary>Tablero de métricas de recaudo del administrador, ya filtrado por periodo, recaudador y grupo.</summary>
+public sealed class TableroRecaudoResponse
+{
+    public DateOnly Desde { get; set; }
+    public DateOnly Hasta { get; set; }
+
+    /// <summary>Verdadero si el periodo pedido pasaba de 31 días y se tomaron los últimos 31.</summary>
+    public bool PeriodoRecortado { get; set; }
+    public decimal TotalVendido { get; set; }
+    public decimal TotalPorRecaudar { get; set; }
+    public decimal TotalRecaudado { get; set; }
+    public decimal TotalPendiente { get; set; }
+
+    /// <summary>Parte del pendiente que viene de días anteriores o quedó tras un cobro.</summary>
+    public decimal DeudaAnterior { get; set; }
+
+    /// <summary>Parte del pendiente generada en la fecha Hasta que aún no pasa por un cobro.</summary>
+    public decimal PendienteDelDia { get; set; }
+    public int PorcentajeRecaudo { get; set; }
+    public int VendedoresAlDia { get; set; }
+    public int VendedoresPorCobrar { get; set; }
+    public int VendedoresEnDeuda { get; set; }
+    public int GruposConPendiente { get; set; }
+    public IReadOnlyList<LineaRecaudoDiaResponse> Dias { get; set; } = [];
+    public IReadOnlyList<RecaudoAgrupadoResponse> Recaudadores { get; set; } = [];
+    public IReadOnlyList<RecaudoAgrupadoResponse> Grupos { get; set; } = [];
+    public IReadOnlyList<SaldoVendedorRecaudoResponse> MayoresSaldos { get; set; } = [];
+    public IReadOnlyList<OpcionRecaudoResponse> OpcionesRecaudadores { get; set; } = [];
+    public IReadOnlyList<string> OpcionesGrupos { get; set; } = [];
+}
+
+/// <summary>Una barra del tablero: un recaudador o un grupo con sus valores del periodo.</summary>
+public sealed class RecaudoAgrupadoResponse
+{
+    public Guid? Id { get; set; }
+    public string Nombre { get; set; } = string.Empty;
+
+    /// <summary>En grupos: recaudador o recaudadores que lo cobran.</summary>
+    public string Detalle { get; set; } = string.Empty;
+    public int Vendedores { get; set; }
+    public decimal TotalPorRecaudar { get; set; }
+    public decimal TotalRecaudado { get; set; }
+    public decimal TotalPendiente { get; set; }
+    public int PorcentajeRecaudo { get; set; }
+}
+
+public sealed class SaldoVendedorRecaudoResponse
+{
+    public Guid VendedorId { get; set; }
+    public string Nombre { get; set; } = string.Empty;
+    public string Grupo { get; set; } = string.Empty;
+    public string Recaudador { get; set; } = string.Empty;
+    public decimal DeudaAnterior { get; set; }
+    public decimal PendienteDelDia { get; set; }
+    public decimal TotalPendiente { get; set; }
+}
+
+public sealed class OpcionRecaudoResponse
+{
+    public Guid Id { get; set; }
+    public string Nombre { get; set; } = string.Empty;
+}
+
+public sealed class FiltroTableroRecaudo
+{
+    public DateOnly Desde { get; set; }
+    public DateOnly Hasta { get; set; }
+    public Guid? RecaudadorId { get; set; }
+    public string? Grupo { get; set; }
 }
 
 public sealed class GrupoDetalleRecaudoResponse

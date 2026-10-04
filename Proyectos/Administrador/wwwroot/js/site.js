@@ -1923,3 +1923,205 @@ iniciarDiasVenta();
   }
 })();
 
+(function () {
+  var raiz = document.querySelector("[data-tablero-recaudo]");
+  if (!raiz) {
+    return;
+  }
+
+  var form = raiz.querySelector("[data-tablero-form]");
+  var resultados = raiz.querySelector("[data-tablero-resultados]");
+  var cargando = raiz.querySelector("[data-tablero-cargando]");
+  var encabezado = raiz.getAttribute("data-tablero-encabezado") || "X-Tablero";
+  var textoError = raiz.getAttribute("data-tablero-error") || "";
+  var rangos = Array.from(raiz.querySelectorAll("[data-tablero-rango]"));
+  var desde = form.querySelector("[name='desde']");
+  var hasta = form.querySelector("[name='hasta']");
+  var refrescoMs = 60000;
+  var esperaFechaMs = 450;
+  var peticion = null;
+  var temporizador = null;
+  var esperaFecha = null;
+
+  function avisar(texto) {
+    if (texto && typeof window.openAviso === "function") {
+      window.openAviso(texto);
+    }
+  }
+
+  function direccion() {
+    var datos = new URLSearchParams(new FormData(form));
+    var vacias = [];
+    datos.forEach(function (valor, clave) {
+      if (!valor) {
+        vacias.push(clave);
+      }
+    });
+    vacias.forEach(function (clave) { datos.delete(clave); });
+    var consulta = datos.toString();
+    return (form.getAttribute("action") || window.location.pathname).split("?")[0] + (consulta ? "?" + consulta : "");
+  }
+
+  function marcarRangos() {
+    rangos.forEach(function (rango) {
+      var activo = rango.getAttribute("data-desde") === desde.value && rango.getAttribute("data-hasta") === hasta.value;
+      rango.classList.toggle("is-active", activo);
+      if (activo) {
+        rango.setAttribute("aria-current", "true");
+      } else {
+        rango.removeAttribute("aria-current");
+      }
+    });
+  }
+
+  function elegir(select, valor) {
+    select.value = valor;
+    var visible = select.parentNode.querySelector(".search-select-input");
+    if (visible) {
+      var opcion = select.options[select.selectedIndex];
+      visible.value = opcion ? opcion.text : "";
+    }
+  }
+
+  function programar() {
+    clearTimeout(temporizador);
+    temporizador = setTimeout(function () {
+      if (document.visibilityState !== "visible" || resultados.matches(":hover") || resultados.contains(document.activeElement)) {
+        programar();
+        return;
+      }
+      actualizar(true);
+    }, refrescoMs);
+  }
+
+  function actualizar(silencioso) {
+    if (peticion) {
+      peticion.abort();
+    }
+    var propia = new AbortController();
+    peticion = propia;
+    var url = direccion();
+    var cabeceras = {};
+    cabeceras[encabezado] = "1";
+    if (!silencioso) {
+      resultados.setAttribute("aria-busy", "true");
+      cargando.hidden = false;
+    }
+
+    fetch(url, { headers: cabeceras, credentials: "same-origin", signal: propia.signal })
+      .then(function (respuesta) {
+        if (respuesta.redirected) {
+          window.location.href = respuesta.url;
+          return null;
+        }
+        if (!respuesta.ok) {
+          throw new Error(String(respuesta.status));
+        }
+        return respuesta.text();
+      })
+      .then(function (html) {
+        if (html === null || propia !== peticion) {
+          return;
+        }
+        resultados.innerHTML = html;
+        history.replaceState(null, "", url);
+        marcarRangos();
+        var aviso = resultados.querySelector("[data-tablero-aviso]");
+        if (aviso && !silencioso) {
+          avisar(aviso.getAttribute("data-tablero-aviso"));
+        }
+      })
+      .catch(function (error) {
+        if (error && error.name === "AbortError") {
+          return;
+        }
+        if (!silencioso) {
+          avisar(textoError);
+        }
+      })
+      .finally(function () {
+        if (propia !== peticion) {
+          return;
+        }
+        peticion = null;
+        resultados.setAttribute("aria-busy", "false");
+        cargando.hidden = true;
+        programar();
+      });
+  }
+
+  form.addEventListener("submit", function (evento) {
+    evento.preventDefault();
+    clearTimeout(esperaFecha);
+    actualizar(false);
+  });
+
+  form.addEventListener("change", function (evento) {
+    if (evento.target !== desde && evento.target !== hasta) {
+      actualizar(false);
+      return;
+    }
+    clearTimeout(esperaFecha);
+    esperaFecha = setTimeout(function () {
+      if (!desde.value || !hasta.value) {
+        return;
+      }
+      if (desde.value > hasta.value) {
+        if (evento.target === desde) {
+          hasta.value = desde.value;
+        } else {
+          desde.value = hasta.value;
+        }
+      }
+      marcarRangos();
+      actualizar(false);
+    }, esperaFechaMs);
+  });
+
+  rangos.forEach(function (rango) {
+    rango.addEventListener("click", function (evento) {
+      evento.preventDefault();
+      desde.value = rango.getAttribute("data-desde");
+      hasta.value = rango.getAttribute("data-hasta");
+      marcarRangos();
+      actualizar(false);
+    });
+  });
+
+  var limpiar = form.querySelector("[data-tablero-limpiar]");
+  var rangoDefecto = rangos.find(function (rango) { return rango.hasAttribute("data-tablero-defecto"); });
+  if (limpiar && rangoDefecto) {
+    limpiar.addEventListener("click", function (evento) {
+      evento.preventDefault();
+      desde.value = rangoDefecto.getAttribute("data-desde");
+      hasta.value = rangoDefecto.getAttribute("data-hasta");
+      form.querySelectorAll("select").forEach(function (select) { elegir(select, ""); });
+      marcarRangos();
+      actualizar(false);
+    });
+  }
+
+  resultados.addEventListener("click", function (evento) {
+    var enlace = evento.target.closest("[data-tablero-grupo]");
+    var select = form.querySelector("[name='grupo']");
+    if (!enlace || !select) {
+      return;
+    }
+    var valor = enlace.getAttribute("data-tablero-grupo");
+    if (!Array.from(select.options).some(function (opcion) { return opcion.value === valor; })) {
+      return;
+    }
+    evento.preventDefault();
+    elegir(select, valor);
+    actualizar(false);
+  });
+
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible") {
+      programar();
+    }
+  });
+
+  programar();
+})();
+

@@ -422,6 +422,113 @@ public sealed class RecaudoServiceTests
         fila.PorcentajeRecaudado.Should().Be(60);
     }
 
+    [Fact]
+    public async Task El_tablero_suma_toda_la_operacion_y_arma_las_barras_por_recaudador_y_grupo()
+    {
+        var (sut, _, carmen, rosa) = await DosRecaudadoresAsync();
+        var hoy = new DateOnly(2026, 9, 28);
+
+        var tablero = await sut.TableroAsync(new FiltroTableroRecaudo { Desde = hoy, Hasta = hoy }, CancellationToken.None);
+
+        tablero.IsSuccess.Should().BeTrue();
+        var t = tablero.Data!;
+        t.TotalVendido.Should().Be(3000m);
+        t.TotalPorRecaudar.Should().Be(300m);
+        t.TotalRecaudado.Should().Be(60m);
+        t.TotalPendiente.Should().Be(240m);
+        t.PorcentajeRecaudo.Should().Be(20);
+        t.DeudaAnterior.Should().Be(40m);
+        t.PendienteDelDia.Should().Be(200m);
+        (t.VendedoresAlDia + t.VendedoresPorCobrar + t.VendedoresEnDeuda).Should().Be(2);
+        t.GruposConPendiente.Should().Be(2);
+        t.Recaudadores.Select(r => (r.Nombre, r.TotalPorRecaudar, r.TotalRecaudado, r.TotalPendiente, r.PorcentajeRecaudo))
+            .Should().Equal(("Carmen Recaudo", 100m, 60m, 40m, 60), ("Rosa Recaudo", 200m, 0m, 200m, 0));
+        t.Grupos.Select(g => (g.Nombre, g.Detalle, g.TotalPendiente)).Should().Equal(("Centro", "Carmen Recaudo", 40m), ("Sur", "Rosa Recaudo", 200m));
+        t.MayoresSaldos.Select(s => s.Nombre).Should().Equal("Beto Sur", "Ana Vende");
+        t.OpcionesRecaudadores.Select(o => o.Id).Should().BeEquivalentTo([carmen.UsuarioId, rosa.UsuarioId]);
+        t.OpcionesGrupos.Should().Equal("Centro", "Sur");
+        t.Dias.Should().ContainSingle().Which.Cobrado.Should().Be(60m);
+    }
+
+    [Fact]
+    public async Task El_tablero_filtrado_por_recaudador_solo_muestra_lo_suyo()
+    {
+        var (sut, _, carmen, _) = await DosRecaudadoresAsync();
+        var hoy = new DateOnly(2026, 9, 28);
+
+        var t = (await sut.TableroAsync(new FiltroTableroRecaudo { Desde = hoy, Hasta = hoy, RecaudadorId = carmen.UsuarioId }, CancellationToken.None)).Data!;
+
+        t.TotalPorRecaudar.Should().Be(100m);
+        t.TotalPendiente.Should().Be(40m);
+        t.Recaudadores.Should().ContainSingle(r => r.Id == carmen.UsuarioId);
+        t.Grupos.Select(g => g.Nombre).Should().Equal("Centro");
+        t.OpcionesGrupos.Should().Equal("Centro", "Sur");
+    }
+
+    [Fact]
+    public async Task El_tablero_filtrado_por_grupo_usa_los_dias_y_saldos_de_ese_grupo()
+    {
+        var (sut, _, _, rosa) = await DosRecaudadoresAsync();
+
+        var t = (await sut.TableroAsync(new FiltroTableroRecaudo
+        {
+            Desde = new DateOnly(2026, 9, 27),
+            Hasta = new DateOnly(2026, 9, 28),
+            Grupo = "Sur"
+        }, CancellationToken.None)).Data!;
+
+        t.TotalVendido.Should().Be(2000m);
+        t.TotalPorRecaudar.Should().Be(200m);
+        t.TotalRecaudado.Should().Be(0m);
+        t.Dias.Select(d => d.Debia).Should().Equal(0m, 200m);
+        t.Recaudadores.Should().ContainSingle(r => r.Id == rosa.UsuarioId);
+        t.MayoresSaldos.Select(s => s.Nombre).Should().Equal("Beto Sur");
+    }
+
+    [Fact]
+    public async Task El_tablero_avisa_cuando_el_periodo_pasa_de_31_dias()
+    {
+        var (sut, _, _, _) = await DosRecaudadoresAsync();
+
+        var t = (await sut.TableroAsync(new FiltroTableroRecaudo { Desde = new DateOnly(2026, 8, 1), Hasta = new DateOnly(2026, 9, 28) }, CancellationToken.None)).Data!;
+
+        t.PeriodoRecortado.Should().BeTrue();
+        t.Desde.Should().Be(new DateOnly(2026, 8, 29));
+        t.Dias.Should().HaveCount(31);
+    }
+
+    private static async Task<(RecaudoService Sut, NewRichDbContext Db, Usuario Carmen, Usuario Rosa)> DosRecaudadoresAsync()
+    {
+        var (sut, db, carmen, _) = await PrepararVendedorConVentaAsync(new DateTime(2026, 9, 28, 20, 0, 0, DateTimeKind.Utc));
+        await sut.RegistrarPagoAsync(carmen.UsuarioId, new RegistrarPagoRecaudoRequest
+        {
+            VendedorId = db.UsuariosGrupos.Single().UsuarioId,
+            Valor = 60m,
+            ClaveIdempotencia = "pago-tablero"
+        }, CancellationToken.None);
+        var sur = await AgregarGrupo(db, "Sur");
+        var rosa = await AgregarUsuario(db, "Rosa Recaudo", RolUsuario.Recaudador);
+        var beto = await AgregarUsuario(db, "Beto Sur", RolUsuario.Vendedor);
+        db.UsuariosGrupos.Add(new UsuarioGrupo { UsuarioId = beto.UsuarioId, GrupoId = sur.GrupoId });
+        db.Ventas.Add(new Venta
+        {
+            VentaId = Guid.NewGuid(),
+            UsuarioId = beto.UsuarioId,
+            FechaVenta = new DateTime(2026, 9, 28, 9, 0, 0, DateTimeKind.Unspecified),
+            Total = 2000m,
+            TipoApuesta = TipoApuesta.INDIVIDUAL,
+            IdempotencyKey = Guid.NewGuid().ToString("N")
+        });
+        await db.SaveChangesAsync();
+        await sut.AsignarGrupoAsync(new AsignarGrupoRecaudoRequest
+        {
+            RecaudadorId = rosa.UsuarioId,
+            GrupoId = sur.GrupoId,
+            Porcentaje = 10
+        }, rosa.UsuarioId, CancellationToken.None);
+        return (sut, db, carmen, rosa);
+    }
+
     private static async Task<(RecaudoService Sut, NewRichDbContext Db, Usuario Recaudador, Usuario Vendedor)> DeudaDelDiaAnteriorCobradaHoyAsync()
     {
         var (sut, db, recaudador, vendedor) = await PrepararVendedorConVentaAsync(

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using NewRich.Application.Contracts.Android;
 using NewRich.Application.Contracts.Configuracion;
@@ -383,11 +384,18 @@ public sealed class LocalDatabase
     public async Task<CredencialLocalRegistro?> CredencialAsync() =>
         await LeerJsonAsync<CredencialLocalRegistro>("credencial");
 
-    public Task GuardarObligacionesRecaudoAsync(IReadOnlyList<ObligacionRecaudoResponse> filas) =>
-        GuardarJsonAsync("recaudo-obligaciones", filas.ToList());
+    public async Task GuardarObligacionesRecaudoAsync(IReadOnlyList<ObligacionRecaudoResponse> filas)
+    {
+        await GuardarJsonAsync("recaudo-obligaciones", filas.ToList());
+        await GuardarJsonAsync("recaudo-obligaciones-dia", RecaudoListas.HoyEnColombia().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+    }
 
-    public async Task<IReadOnlyList<ObligacionRecaudoResponse>> ObligacionesRecaudoLocalAsync() =>
-        await LeerJsonAsync<List<ObligacionRecaudoResponse>>("recaudo-obligaciones") ?? [];
+    public async Task<IReadOnlyList<ObligacionRecaudoResponse>> ObligacionesRecaudoLocalAsync()
+    {
+        var filas = await LeerJsonAsync<List<ObligacionRecaudoResponse>>("recaudo-obligaciones") ?? [];
+        var dia = await LeerJsonAsync<string>("recaudo-obligaciones-dia");
+        return RecaudoListas.DelDia(filas, dia, RecaudoListas.HoyEnColombia());
+    }
 
     public Task GuardarPagosRecaudoAsync(IReadOnlyList<PagoPendienteRecaudo> pagos) =>
         GuardarJsonAsync("recaudo-pagos", pagos.ToList());

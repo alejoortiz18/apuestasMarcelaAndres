@@ -6,6 +6,19 @@ namespace NewRich.Pda.Core;
 
 public readonly record struct ResumenTurnoRecaudo(decimal TotalPorRecaudar, decimal TotalRecaudado, int Grupos, int Vendedores);
 
+/// <summary>Botones de lista de la pantalla Recaudar.</summary>
+public enum FiltroCobro
+{
+    /// <summary>Ventas de hoy que todavía no pasan por un cobro.</summary>
+    Hoy,
+
+    /// <summary>Vendedores a los que se les cobró hoy.</summary>
+    Cobrados,
+
+    /// <summary>Vendedores con deuda de días anteriores o que quedó tras un cobro.</summary>
+    Adeudados
+}
+
 public static class RecaudoListas
 {
     public const string SinGrupo = "Sin grupo";
@@ -51,22 +64,93 @@ public static class RecaudoListas
         return fila;
     }
 
-    /// <summary>Los cobros guardados sin conexión que el API todavía no tiene se aplican sobre la lista descargada.</summary>
+    public static DateOnly HoyEnColombia() => DateOnly.FromDateTime(ZonaHorariaColombia.ALocal(DateTime.UtcNow));
+
+    /// <summary>
+    /// Los cobros guardados sin conexión que el API todavía no tiene se aplican sobre la lista descargada.
+    /// Los de otro día solo bajan la deuda: no cuentan como cobro de hoy.
+    /// </summary>
     public static IReadOnlyList<ObligacionRecaudoResponse> ConPendientes(
         IReadOnlyList<ObligacionRecaudoResponse> filas,
-        IEnumerable<PagoPendienteRecaudo> pendientes)
+        IEnumerable<PagoPendienteRecaudo> pendientes,
+        DateOnly hoy)
     {
         foreach (var pago in pendientes)
         {
             var fila = filas.FirstOrDefault(f => f.VendedorId == pago.VendedorId);
-            if (fila is not null)
+            if (fila is null)
+            {
+                continue;
+            }
+
+            if (DateOnly.FromDateTime(ZonaHorariaColombia.ALocal(DateTime.SpecifyKind(pago.FechaLocal, DateTimeKind.Utc))) == hoy)
             {
                 TrasCobro(fila, pago.Valor);
+            }
+            else
+            {
+                fila.TotalPendiente = Math.Max(0m, fila.TotalPendiente - pago.Valor);
             }
         }
 
         return filas;
     }
+
+    /// <summary>
+    /// La lista guardada en el PDA solo vale para el día en que se descargó. De otro día (o sin fecha) queda
+    /// solo la deuda: lo vendido, lo generado y lo cobrado ese día vuelven a cero.
+    /// </summary>
+    public static IReadOnlyList<ObligacionRecaudoResponse> DelDia(
+        IReadOnlyList<ObligacionRecaudoResponse> filas,
+        string? diaGuardado,
+        DateOnly hoy)
+    {
+        if (DateOnly.TryParseExact(diaGuardado, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var dia) && dia == hoy)
+        {
+            return filas;
+        }
+
+        var quedan = new List<ObligacionRecaudoResponse>();
+        foreach (var fila in filas)
+        {
+            var deuda = Math.Max(0m, fila.TotalPendiente);
+            if (EstadoCobroRecaudoRegla.Clasificar(deuda, 0m, 0m) is not { } clasificacion)
+            {
+                continue;
+            }
+
+            fila.TotalVendido = 0m;
+            fila.ValorACobrar = 0m;
+            fila.PagosHoy = 0m;
+            fila.PendienteDelDia = 0m;
+            fila.UltimoPago = null;
+            fila.SaldoAnterior = deuda;
+            fila.TotalPendiente = deuda;
+            fila.Estado = clasificacion.Estado.ToString();
+            fila.Color = clasificacion.Color.ToString();
+            fila.Lista = clasificacion.Lista.ToString();
+            quedan.Add(fila);
+        }
+
+        return quedan;
+    }
+
+    public static bool Cumple(ObligacionRecaudoResponse fila, FiltroCobro filtro) => filtro switch
+    {
+        FiltroCobro.Hoy => RecaudoPagoVista.Saldos(fila).PendienteDelDia > 0m,
+        FiltroCobro.Cobrados => fila.PagosHoy > 0m
+            && string.Equals(fila.Lista, nameof(ListaCobro.Cobrados), StringComparison.OrdinalIgnoreCase),
+        FiltroCobro.Adeudados => RecaudoPagoVista.Saldos(fila).SaldoAnterior > 0m,
+        _ => true
+    };
+
+    public static IReadOnlyList<ObligacionRecaudoResponse> De(
+        IEnumerable<ObligacionRecaudoResponse> filas,
+        FiltroCobro filtro,
+        string busqueda,
+        string orden,
+        string? grupo = null) =>
+        De(filas.Where(f => Cumple(f, filtro)), (ListaCobro?)null, busqueda, orden, grupo);
 
     public static IReadOnlyList<ObligacionRecaudoResponse> De(
         IEnumerable<ObligacionRecaudoResponse> filas,

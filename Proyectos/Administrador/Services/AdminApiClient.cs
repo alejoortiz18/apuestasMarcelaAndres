@@ -135,6 +135,7 @@ public interface IAdminApiClient
     Task<ApiCallResult<object>> RetirarVendedorRecaudoAsync(Guid vendedorId, CancellationToken cancellationToken);
     Task<ApiCallResult<List<MovimientoRecaudoResponse>>> HistorialRecaudoAsync(FiltroHistorialRecaudo filtro, CancellationToken cancellationToken);
     Task<ApiCallResult<MetricasRecaudoResponse>> MetricasRecaudoAsync(DateOnly desde, DateOnly hasta, CancellationToken cancellationToken);
+    Task<ApiCallResult<TableroRecaudoResponse>> TableroRecaudoAsync(DateOnly desde, DateOnly hasta, Guid? recaudadorId, string? grupo, CancellationToken cancellationToken);
     Task<ApiCallResult<DetalleRecaudadorResponse>> DetalleRecaudoAsync(Guid recaudadorId, DateOnly desde, DateOnly hasta, CancellationToken cancellationToken);
 }
 
@@ -584,6 +585,13 @@ public sealed class AdminApiClient : IAdminApiClient
         SendAsync<MetricasRecaudoResponse>(HttpMethod.Get, "api/Recaudo/Metricas" + BuildQuery(
             ("desde", desde.ToString("yyyy-MM-dd")),
             ("hasta", hasta.ToString("yyyy-MM-dd"))), null, true, cancellationToken);
+
+    public Task<ApiCallResult<TableroRecaudoResponse>> TableroRecaudoAsync(DateOnly desde, DateOnly hasta, Guid? recaudadorId, string? grupo, CancellationToken cancellationToken) =>
+        SendAsync<TableroRecaudoResponse>(HttpMethod.Get, "api/Recaudo/Tablero" + BuildQuery(
+            ("desde", desde.ToString("yyyy-MM-dd")),
+            ("hasta", hasta.ToString("yyyy-MM-dd")),
+            ("recaudadorId", recaudadorId?.ToString()),
+            ("grupo", grupo)), null, true, cancellationToken);
 
     public Task<ApiCallResult<DetalleRecaudadorResponse>> DetalleRecaudoAsync(Guid recaudadorId, DateOnly desde, DateOnly hasta, CancellationToken cancellationToken) =>
         SendAsync<DetalleRecaudadorResponse>(HttpMethod.Get, $"api/Recaudo/Detalle/{recaudadorId}" + BuildQuery(

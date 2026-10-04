@@ -26,12 +26,13 @@ public sealed class RecaudadorCobroPage : ContentPage
     private readonly ActivityIndicator _spinner = new() { IsRunning = false, IsVisible = false, Color = Ui.Gold };
     private readonly Grid _modal = new() { IsVisible = false };
     private readonly List<Button> _botonesGrupo = [];
-    private Button? _botonPendientes;
+    private Button? _botonHoy;
     private Button? _botonCobrados;
+    private Button? _botonAdeudados;
     private string _firmaGrupos = string.Empty;
     private string? _grupo;
     private string _consulta = string.Empty;
-    private ListaCobro _filtroLista = ListaCobro.Pendientes;
+    private FiltroCobro _filtroLista = FiltroCobro.Hoy;
     private IReadOnlyList<ObligacionRecaudoResponse> _filas = [];
     private bool _ocupado;
 
@@ -106,13 +107,14 @@ public sealed class RecaudadorCobroPage : ContentPage
 
     private View Listas()
     {
-        _botonPendientes = BotonLista(PdaTexts.Pendientes, ListaCobro.Pendientes);
-        _botonCobrados = BotonLista(PdaTexts.Cobrados, ListaCobro.Cobrados);
+        _botonHoy = BotonLista(PdaTexts.Hoy, FiltroCobro.Hoy);
+        _botonCobrados = BotonLista(PdaTexts.Cobrados, FiltroCobro.Cobrados);
+        _botonAdeudados = BotonLista(PdaTexts.Adeudados, FiltroCobro.Adeudados);
         return new Grid
         {
-            ColumnDefinitions = new ColumnDefinitionCollection { new(GridLength.Star), new(GridLength.Star) },
+            ColumnDefinitions = new ColumnDefinitionCollection { new(GridLength.Star), new(GridLength.Star), new(GridLength.Star) },
             ColumnSpacing = 8,
-            Children = { Celda(_botonPendientes, 0), Celda(_botonCobrados, 1) }
+            Children = { Celda(_botonHoy, 0), Celda(_botonCobrados, 1), Celda(_botonAdeudados, 2) }
         };
     }
 
@@ -122,7 +124,7 @@ public sealed class RecaudadorCobroPage : ContentPage
         return vista;
     }
 
-    private Button BotonLista(string texto, ListaCobro lista)
+    private Button BotonLista(string texto, FiltroCobro lista)
     {
         var boton = new Button
         {
@@ -221,7 +223,7 @@ public sealed class RecaudadorCobroPage : ContentPage
                 var remoto = await _api.ObligacionesRecaudoAsync(null, CancellationToken.None);
                 if (remoto.IsSuccess && remoto.Data is not null)
                 {
-                    _filas = RecaudoListas.ConPendientes(remoto.Data, await _local.PagosRecaudoPendientesAsync());
+                    _filas = RecaudoListas.ConPendientes(remoto.Data, await _local.PagosRecaudoPendientesAsync(), RecaudoListas.HoyEnColombia());
                     await _local.GuardarObligacionesRecaudoAsync(_filas);
                 }
                 else
@@ -289,8 +291,9 @@ public sealed class RecaudadorCobroPage : ContentPage
 
     private void Pintar()
     {
-        Marcar(_botonPendientes, _filtroLista == ListaCobro.Pendientes);
-        Marcar(_botonCobrados, _filtroLista == ListaCobro.Cobrados);
+        Marcar(_botonHoy, _filtroLista == FiltroCobro.Hoy);
+        Marcar(_botonCobrados, _filtroLista == FiltroCobro.Cobrados);
+        Marcar(_botonAdeudados, _filtroLista == FiltroCobro.Adeudados);
         for (var i = 0; i < _botonesGrupo.Count; i++)
         {
             var esTodos = i == 0;
@@ -308,7 +311,13 @@ public sealed class RecaudadorCobroPage : ContentPage
         _lista.Children.Clear();
         if (visibles.Count == 0)
         {
-            _lista.Children.Add(new Label { Text = PdaTexts.SinAsignadosHoy, TextColor = Ui.Muted, Margin = 8 });
+            var vacio = _filtroLista switch
+            {
+                FiltroCobro.Cobrados => PdaTexts.SinCobradosHoy,
+                FiltroCobro.Adeudados => PdaTexts.SinAdeudados,
+                _ => PdaTexts.SinVentasHoyPorCobrar
+            };
+            _lista.Children.Add(new Label { Text = vacio, TextColor = Ui.Muted, Margin = 8 });
             return;
         }
 
