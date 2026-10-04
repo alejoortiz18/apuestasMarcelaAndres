@@ -51,12 +51,7 @@ public sealed class RecaudadorSincronizacionPage : ContentPage
             var quedan = new List<PagoPendienteRecaudo>();
             foreach (var pago in pendientes)
             {
-                var envio = await _api.RegistrarPagoRecaudoAsync(new RegistrarPagoRecaudoRequest
-                {
-                    VendedorId = pago.VendedorId,
-                    Valor = pago.Valor,
-                    ClaveIdempotencia = pago.ClaveIdempotencia
-                }, CancellationToken.None);
+                var envio = await _api.RegistrarPagoRecaudoAsync(RecaudoColaPagos.Solicitud(pago), CancellationToken.None);
                 if (!envio.IsSuccess)
                 {
                     quedan.Add(pago);
@@ -67,7 +62,7 @@ public sealed class RecaudadorSincronizacionPage : ContentPage
             var obligaciones = await _api.ObligacionesRecaudoAsync(null, CancellationToken.None);
             if (obligaciones.IsSuccess && obligaciones.Data is not null)
             {
-                await _local.GuardarObligacionesRecaudoAsync(obligaciones.Data);
+                await _local.GuardarObligacionesRecaudoAsync(RecaudoListas.ConPendientes(obligaciones.Data, quedan));
             }
 
             _resultado.Text = quedan.Count == 0

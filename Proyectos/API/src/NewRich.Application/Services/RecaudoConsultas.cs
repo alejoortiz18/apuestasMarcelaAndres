@@ -19,9 +19,9 @@ public sealed partial class RecaudoService
         var lista = new List<RecaudadorResumenResponse>();
         foreach (var recaudador in recaudadores)
         {
-            var filas = (await ObligacionesAsync(recaudador.UsuarioId, hasta, cancellationToken)).Data ?? [];
-            var porRecaudar = filas.Sum(f => f.ValorACobrar);
-            var recaudado = filas.Sum(f => f.PagosHoy);
+            var (dias, filas) = await PeriodoAsync(recaudador.UsuarioId, desde, hasta, cancellationToken);
+            var porRecaudar = dias.Sum(d => d.Generado);
+            var recaudado = dias.Sum(d => d.Cobrado);
             var pendiente = filas.Sum(f => f.TotalPendiente);
             var grupos = await _db.AsignacionesGrupoRecaudo
                 .Where(a => a.Estado == "Activa" && a.RecaudadorId == recaudador.UsuarioId)
@@ -40,7 +40,7 @@ public sealed partial class RecaudoService
                 TotalPorRecaudar = porRecaudar,
                 TotalRecaudado = recaudado,
                 SaldoPendiente = pendiente,
-                PorcentajeRecaudado = porRecaudar <= 0m ? 0 : (int)Math.Round(recaudado * 100m / porRecaudar, MidpointRounding.AwayFromZero)
+                PorcentajeRecaudado = PorcentajeDe(recaudado, pendiente)
             });
         }
 
@@ -272,13 +272,14 @@ public sealed partial class RecaudoService
 
         var porRecaudar = panel.Sum(p => p.TotalPorRecaudar);
         var recaudado = panel.Sum(p => p.TotalRecaudado);
+        var pendiente = panel.Sum(p => p.SaldoPendiente);
         return Result<MetricasRecaudoResponse>.Ok(new MetricasRecaudoResponse
         {
             TotalVendido = filas.Sum(f => f.TotalVendido),
             TotalPorRecaudar = porRecaudar,
             TotalRecaudado = recaudado,
-            TotalPendiente = panel.Sum(p => p.SaldoPendiente),
-            PorcentajeRecaudo = porRecaudar <= 0m ? 0 : (int)Math.Round(recaudado * 100m / porRecaudar, MidpointRounding.AwayFromZero),
+            TotalPendiente = pendiente,
+            PorcentajeRecaudo = PorcentajeDe(recaudado, pendiente),
             VendedoresAlDia = filas.Count(f => f.Estado == nameof(EstadoCobro.AlDia)),
             VendedoresEnDeuda = filas.Count(f => f.Estado == nameof(EstadoCobro.Deudado)),
             GruposConPendiente = filas.Where(f => f.TotalPendiente > 0m).Select(f => f.Grupo).Distinct().Count()
@@ -293,19 +294,136 @@ public sealed partial class RecaudoService
             return Result<DetalleRecaudadorResponse>.Fail(UsuarioMessages.UsuarioNoEncontrado, 404);
         }
 
-        var filas = (await ObligacionesAsync(recaudadorId, hasta, cancellationToken)).Data ?? [];
-        var porRecaudar = filas.Sum(f => f.ValorACobrar);
-        var recaudado = filas.Sum(f => f.PagosHoy);
+        var (dias, filas) = await PeriodoAsync(recaudadorId, desde, hasta, cancellationToken);
+        var recaudado = dias.Sum(d => d.Cobrado);
+        var pendiente = filas.Sum(f => f.TotalPendiente);
         return Result<DetalleRecaudadorResponse>.Ok(new DetalleRecaudadorResponse
         {
             RecaudadorId = recaudadorId,
             Nombre = recaudador.NombreCompleto,
-            TotalPorRecaudar = porRecaudar,
+            Usuario = recaudador.NombreUsuario,
+            Documento = recaudador.Documento,
+            TotalPorRecaudar = dias.Sum(d => d.Generado),
             TotalRecaudado = recaudado,
-            SaldoPendiente = filas.Sum(f => f.TotalPendiente),
-            PorcentajeRecaudado = porRecaudar <= 0m ? 0 : (int)Math.Round(recaudado * 100m / porRecaudar, MidpointRounding.AwayFromZero),
-            Vendedores = filas
+            SaldoPendiente = pendiente,
+            PorcentajeRecaudado = PorcentajeDe(recaudado, pendiente),
+            Grupos = await GruposDelRecaudadorAsync(recaudadorId, dias, filas, cancellationToken),
+            Vendedores = filas,
+            LineaDeTiempo = dias
         }, SuccessMessages.OperacionExitosa);
+    }
+
+    public const int DiasMaximosLineaDeTiempo = 31;
+
+    public async Task<Result<IReadOnlyList<LineaRecaudoDiaResponse>>> LineaDeTiempoAsync(Guid recaudadorId, DateOnly desde, DateOnly hasta, CancellationToken cancellationToken)
+    {
+        var (dias, _) = await PeriodoAsync(recaudadorId, desde, hasta, cancellationToken);
+        return Result<IReadOnlyList<LineaRecaudoDiaResponse>>.Ok(dias, SuccessMessages.OperacionExitosa);
+    }
+
+    /// <summary>Recorre los días del periodo (a lo sumo 31, terminando en hasta). Devuelve cada día y las obligaciones de hasta.</summary>
+    private async Task<(IReadOnlyList<LineaRecaudoDiaResponse> Dias, IReadOnlyList<ObligacionRecaudoResponse> FilasHasta)> PeriodoAsync(
+        Guid recaudadorId,
+        DateOnly desde,
+        DateOnly hasta,
+        CancellationToken cancellationToken)
+    {
+        var inicio = desde > hasta ? hasta : desde;
+        var primerDia = hasta.AddDays(1 - DiasMaximosLineaDeTiempo);
+        if (inicio < primerDia)
+        {
+            inicio = primerDia;
+        }
+
+        var dias = new List<LineaRecaudoDiaResponse>();
+        IReadOnlyList<ObligacionRecaudoResponse> filasHasta = [];
+        for (var dia = inicio; dia <= hasta; dia = dia.AddDays(1))
+        {
+            var filas = (await ObligacionesAsync(recaudadorId, dia, cancellationToken)).Data ?? [];
+            filasHasta = filas;
+            dias.Add(new LineaRecaudoDiaResponse
+            {
+                Fecha = dia,
+                Debia = filas.Sum(f => f.SaldoAnterior + f.ValorACobrar),
+                Cobrado = filas.Sum(f => f.PagosHoy),
+                Generado = filas.Sum(f => f.ValorACobrar),
+                Grupos = filas
+                    .GroupBy(f => f.Grupo)
+                    .OrderBy(g => g.Key)
+                    .Select(g => new LineaGrupoDiaResponse
+                    {
+                        Grupo = g.Key,
+                        Debia = g.Sum(f => f.SaldoAnterior + f.ValorACobrar),
+                        Cobrado = g.Sum(f => f.PagosHoy),
+                        Generado = g.Sum(f => f.ValorACobrar)
+                    })
+                    .ToList()
+            });
+        }
+
+        return (dias, filasHasta);
+    }
+
+    private async Task<IReadOnlyList<GrupoDetalleRecaudoResponse>> GruposDelRecaudadorAsync(
+        Guid recaudadorId,
+        IReadOnlyList<LineaRecaudoDiaResponse> dias,
+        IReadOnlyList<ObligacionRecaudoResponse> filas,
+        CancellationToken cancellationToken)
+    {
+        var asignaciones = await _db.AsignacionesGrupoRecaudo
+            .Where(a => a.Estado == "Activa" && a.RecaudadorId == recaudadorId)
+            .ToListAsync(cancellationToken);
+        var ids = asignaciones.Select(a => a.GrupoId).ToList();
+        var grupos = await _db.Grupos.Where(g => ids.Contains(g.GrupoId)).ToListAsync(cancellationToken);
+        var miembros = await _db.UsuariosGrupos.Where(m => ids.Contains(m.GrupoId)).ToListAsync(cancellationToken);
+        var resumen = grupos
+            .OrderBy(g => g.Nombre)
+            .Select(g => Resumen(
+                g.Nombre,
+                asignaciones.First(a => a.GrupoId == g.GrupoId).Porcentaje,
+                miembros.Count(m => m.GrupoId == g.GrupoId),
+                dias,
+                filas))
+            .ToList();
+
+        var sueltos = await _db.AsignacionesVendedorRecaudo.CountAsync(
+            a => a.Estado == "Activa" && a.RecaudadorId == recaudadorId,
+            cancellationToken);
+        if (sueltos > 0)
+        {
+            resumen.Add(Resumen("Sin grupo", null, sueltos, dias, filas));
+        }
+
+        return resumen;
+    }
+
+    private static GrupoDetalleRecaudoResponse Resumen(
+        string nombre,
+        int? porcentaje,
+        int vendedores,
+        IReadOnlyList<LineaRecaudoDiaResponse> dias,
+        IReadOnlyList<ObligacionRecaudoResponse> filas)
+    {
+        var delGrupo = dias.SelectMany(d => d.Grupos).Where(g => g.Grupo == nombre).ToList();
+        var recaudado = delGrupo.Sum(g => g.Cobrado);
+        var pendiente = filas.Where(f => f.Grupo == nombre).Sum(f => f.TotalPendiente);
+        return new GrupoDetalleRecaudoResponse
+        {
+            Nombre = nombre,
+            Porcentaje = porcentaje,
+            Vendedores = vendedores,
+            TotalPorRecaudar = delGrupo.Sum(g => g.Generado),
+            TotalRecaudado = recaudado,
+            TotalPendiente = pendiente,
+            PorcentajeRecaudado = PorcentajeDe(recaudado, pendiente)
+        };
+    }
+
+    /// <summary>Avance del recaudo: lo cobrado sobre todo lo que debían (lo cobrado más lo que sigue pendiente).</summary>
+    private static int PorcentajeDe(decimal recaudado, decimal pendiente)
+    {
+        var debian = recaudado + Math.Max(0m, pendiente);
+        return debian <= 0m ? 0 : (int)Math.Round(recaudado * 100m / debian, MidpointRounding.AwayFromZero);
     }
 
     public async Task<Result> RetirarGrupoAsync(Guid grupoId, CancellationToken cancellationToken)

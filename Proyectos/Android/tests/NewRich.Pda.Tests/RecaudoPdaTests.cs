@@ -127,6 +127,72 @@ public sealed class RecaudoPdaTests
     }
 
     [Fact]
+    public void La_tirilla_del_cobro_sin_conexion_avisa_que_esta_pendiente_de_sincronizar()
+    {
+        var sinConexion = TirillaCobroTexto.De("Carmen Recaudo", "Ana", new DateTime(2026, 9, 29, 10, 15, 0), 1_000m, 500m, sinConexion: true);
+        var enLinea = TirillaCobroTexto.De("Carmen Recaudo", "Ana", new DateTime(2026, 9, 29, 10, 15, 0), 1_000m, 500m);
+
+        sinConexion.Should().Contain("Cobro guardado en el PDA");
+        sinConexion.Should().Contain("Pendiente de sincronizar");
+        sinConexion.Split(Environment.NewLine).Should().OnlyContain(l => l.Length <= TirillaTexto.AnchoImpresora);
+        enLinea.Should().NotContain("Pendiente de sincronizar");
+    }
+
+    [Fact]
+    public void El_pago_guardado_sin_conexion_se_envia_con_la_hora_en_que_se_cobro()
+    {
+        var vendedor = Guid.NewGuid();
+        var cobro = new DateTime(2026, 9, 29, 4, 50, 0, DateTimeKind.Utc);
+
+        var solicitud = RecaudoColaPagos.Solicitud(new PagoPendienteRecaudo(vendedor, 1_000m, "clave-1", cobro));
+
+        solicitud.VendedorId.Should().Be(vendedor);
+        solicitud.Valor.Should().Be(1_000m);
+        solicitud.ClaveIdempotencia.Should().Be("clave-1");
+        solicitud.FechaHoraCobro.Should().Be(cobro);
+    }
+
+    [Fact]
+    public void Los_pagos_que_faltan_por_subir_siguen_aplicados_al_recargar_la_lista()
+    {
+        var filas = TresFilas();
+        var ana = filas[0];
+
+        RecaudoListas.ConPendientes(filas, [new PagoPendienteRecaudo(ana.VendedorId, 30_000m, "clave-ana", DateTime.UtcNow)]);
+
+        ana.Lista.Should().Be(nameof(ListaCobro.Cobrados));
+        ana.PagosHoy.Should().Be(30_000m);
+        ana.TotalPendiente.Should().Be(50_000m);
+        RecaudoPagoVista.Saldos(ana).SaldoAnterior.Should().Be(50_000m);
+    }
+
+    [Fact]
+    public void Solo_la_falta_de_red_guarda_el_cobro_para_despues()
+    {
+        RecaudoPagoVista.EsFallaDeRed(PdaTexts.SinConexionServidor).Should().BeTrue();
+        RecaudoPagoVista.EsFallaDeRed("El valor del pago no es valido.").Should().BeFalse();
+        RecaudoPagoVista.EsFallaDeRed(null).Should().BeFalse();
+    }
+
+    [Fact]
+    public void El_cobro_sin_conexion_imprime_la_tirilla_y_avisa_que_quedo_guardado()
+    {
+        var cobro = File.ReadAllText(RutaMaui("Views", "Recaudador", "RecaudadorCobroPage.cs"));
+        var inicio = File.ReadAllText(RutaMaui("Views", "Recaudador", "RecaudadorHomePage.cs"));
+        var sincronizar = File.ReadAllText(RutaMaui("Views", "Recaudador", "RecaudadorSincronizacionPage.cs"));
+
+        cobro.Should().Contain("sinConexion: true");
+        cobro.Should().Contain("PdaTexts.CobroGuardadoSinConexion");
+        cobro.Should().Contain("RecaudoPagoVista.EsFallaDeRed");
+        cobro.Should().Contain("RecaudoColaPagos.Solicitud");
+        cobro.Should().Contain("RecaudoListas.ConPendientes");
+        inicio.Should().Contain("RecaudoListas.ConPendientes");
+        sincronizar.Should().Contain("RecaudoColaPagos.Solicitud");
+        sincronizar.Should().Contain("RecaudoListas.ConPendientes");
+        PdaTexts.CobroGuardadoSinConexion.Should().Contain("sincroniz");
+    }
+
+    [Fact]
     public void La_tirilla_parte_los_nombres_largos_sin_pasarse_del_ancho()
     {
         var texto = TirillaCobroTexto.De(

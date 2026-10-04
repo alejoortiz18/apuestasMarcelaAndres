@@ -21,6 +21,7 @@ public interface IRecaudoService
     Task<Result<IReadOnlyList<MovimientoRecaudoResponse>>> HistorialAsync(FiltroHistorialRecaudo filtro, CancellationToken cancellationToken);
     Task<Result<MetricasRecaudoResponse>> MetricasAsync(DateOnly desde, DateOnly hasta, CancellationToken cancellationToken);
     Task<Result<DetalleRecaudadorResponse>> DetalleAsync(Guid recaudadorId, DateOnly desde, DateOnly hasta, CancellationToken cancellationToken);
+    Task<Result<IReadOnlyList<LineaRecaudoDiaResponse>>> LineaDeTiempoAsync(Guid recaudadorId, DateOnly desde, DateOnly hasta, CancellationToken cancellationToken);
     Task<Result> RetirarGrupoAsync(Guid grupoId, CancellationToken cancellationToken);
     Task<Result> RetirarVendedorAsync(Guid vendedorId, CancellationToken cancellationToken);
     Task<Result> GenerarDesdeVentaAsync(Guid vendedorId, CancellationToken cancellationToken);
@@ -283,9 +284,10 @@ public sealed partial class RecaudoService : IRecaudoService
             var pagosDelVendedor = pagosHoy.Where(p => p.VendedorId == usuario.UsuarioId).ToList();
             var pagadoHoy = pagosDelVendedor.Sum(p => p.Valor);
             var generadoAlUltimoCobro = 0m;
+            DateTime? ultimoCobro = null;
             if (pagosDelVendedor.Count > 0)
             {
-                var ultimoCobro = pagosDelVendedor.Max(p => p.FechaHora);
+                ultimoCobro = pagosDelVendedor.Max(p => p.FechaHora);
                 var vendidoAlCobrar = ventas.Where(v => v.UsuarioId == usuario.UsuarioId && v.FechaVenta <= ultimoCobro).Sum(v => v.Total);
                 generadoAlUltimoCobro = CalculoRecaudo.ObligacionDelDia(vendidoAlCobrar, cobro.Value.Porcentaje);
             }
@@ -314,6 +316,7 @@ public sealed partial class RecaudoService : IRecaudoService
                 TotalPendiente = totalPendiente,
                 PendienteDelDia = CalculoRecaudo.PendienteDelDia(generado, generadoAlUltimoCobro, totalPendiente),
                 PagosHoy = pagadoHoy,
+                UltimoPago = ultimoCobro,
                 Estado = clasificacion.Value.Estado.ToString(),
                 Color = clasificacion.Value.Color.ToString(),
                 Lista = clasificacion.Value.Lista.ToString(),
@@ -343,7 +346,8 @@ public sealed partial class RecaudoService : IRecaudoService
             }, SuccessMessages.OperacionExitosa);
         }
 
-        var hoy = DateOnly.FromDateTime(ZonaHorariaColombia.ALocal(_clock.UtcNow));
+        var momento = ZonaHorariaColombia.ALocal(MomentoDelCobro(request.FechaHoraCobro, _clock.UtcNow));
+        var hoy = DateOnly.FromDateTime(momento);
         var lista = await ObligacionesAsync(recaudadorId, hoy, cancellationToken);
         var fila = lista.Data?.FirstOrDefault(o => o.VendedorId == request.VendedorId);
         if (fila is null)
@@ -388,7 +392,7 @@ public sealed partial class RecaudoService : IRecaudoService
             Valor = request.Valor,
             SaldoResultante = evaluacion.SaldoRestante,
             ClaveIdempotencia = request.ClaveIdempotencia.Trim(),
-            FechaHora = _clock.LocalNow
+            FechaHora = momento
         };
         _db.PagosRecaudo.Add(pago);
         _db.TirillasCobroRecaudo.Add(new TirillaCobroRecaudo
@@ -413,5 +417,26 @@ public sealed partial class RecaudoService : IRecaudoService
             FechaHora = pago.FechaHora,
             Consecutivo = tirilla?.Consecutivo ?? 0
         }, SuccessMessages.OperacionExitosa);
+    }
+
+    /// <summary>
+    /// El cobro hecho sin conexión conserva su hora. Una hora futura o de hace más de una semana no es confiable y se usa la del servidor.
+    /// </summary>
+    private static DateTime MomentoDelCobro(DateTime? fechaHoraCobro, DateTime ahoraUtc)
+    {
+        if (fechaHoraCobro is null)
+        {
+            return ahoraUtc;
+        }
+
+        var cobroUtc = DateTime.SpecifyKind(fechaHoraCobro.Value.Kind == DateTimeKind.Local
+            ? fechaHoraCobro.Value.ToUniversalTime()
+            : fechaHoraCobro.Value, DateTimeKind.Utc);
+        if (cobroUtc > ahoraUtc.AddMinutes(5) || cobroUtc < ahoraUtc.AddDays(-7))
+        {
+            return ahoraUtc;
+        }
+
+        return cobroUtc;
     }
 }

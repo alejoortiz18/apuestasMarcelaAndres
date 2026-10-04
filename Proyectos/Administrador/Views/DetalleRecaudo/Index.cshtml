@@ -16,6 +16,37 @@
         "azul" => "azul",
         _ => string.Empty
     };
+    var ayudaId = 0;
+    void Encabezado(string titulo, string ayuda)
+    {
+        ayudaId++;
+        var id = $"ayuda-columna-{ayudaId}";
+        <th>
+            <span class="th-ayuda" tabindex="0" aria-describedby="@id">
+                @titulo
+                <span class="th-ayuda-icono" aria-hidden="true">?</span>
+                <span class="th-ayuda-texto" role="tooltip" id="@id">@ayuda</span>
+            </span>
+        </th>
+    }
+    void Tarjeta(string titulo, string ayuda, string valor)
+    {
+        ayudaId++;
+        var id = $"ayuda-tarjeta-{ayudaId}";
+        <article class="recaudo-metrica recaudo-metrica-ayuda">
+            <span>@titulo</span>
+            <strong class="recaudo-cifra">@valor</strong>
+            <span class="th-ayuda metrica-ayuda" tabindex="0" aria-label="@titulo" aria-describedby="@id">
+                <span class="th-ayuda-icono" aria-hidden="true">?</span>
+                <span class="th-ayuda-texto" role="tooltip" id="@id">@ayuda</span>
+            </span>
+        </article>
+    }
+    string Pct(double valor) => GraficoLineaRecaudo.Numero(valor) + "%";
+    var desde = Model.Desde.ToString("yyyy-MM-dd");
+    var hasta = Model.Hasta.ToString("yyyy-MM-dd");
+    var enCobrados = Model.Pestana == DetalleRecaudoPestanas.Cobrados;
+    var grafico = Model.Grafico;
 }
 <div class="heading">
     <div>
@@ -23,88 +54,290 @@
         <h1>@Model.Nombre</h1>
         <p>@UiTexts.DetalleRecaudoSub</p>
     </div>
+    <div class="heading-actions">
+        <a class="secondary" asp-controller="HistorialRecaudo" asp-action="Index" asp-route-recaudadorId="@Model.RecaudadorId" asp-route-desde="@desde" asp-route-hasta="@hasta">@UiTexts.VerHistorial</a>
+        <a class="secondary" asp-controller="PanelRecaudo" asp-action="Index" asp-route-desde="@desde" asp-route-hasta="@hasta">@UiTexts.VolverAlPanel</a>
+    </div>
 </div>
 <div class="panel">
     <form class="toolbar" method="get">
         <input type="hidden" name="id" value="@Model.RecaudadorId" />
+        <input type="hidden" name="pestana" value="@Model.Pestana" />
+        <input type="hidden" name="grafico" value="@Model.GraficoGrupo" />
         <div class="field">
             <label for="desde">@UiTexts.Desde</label>
-            <input id="desde" name="desde" type="date" value="@Model.Desde.ToString("yyyy-MM-dd")" />
+            <input id="desde" name="desde" type="date" value="@desde" />
         </div>
         <div class="field">
             <label for="hasta">@UiTexts.Hasta</label>
-            <input id="hasta" name="hasta" type="date" value="@Model.Hasta.ToString("yyyy-MM-dd")" />
+            <input id="hasta" name="hasta" type="date" value="@hasta" />
         </div>
         <div class="field">
             <label for="pageSize">@UiTexts.FilasPorPagina</label>
             <select id="pageSize" name="pageSize">
                 @foreach (var size in PagingHelper.PageSizes)
                 {
-                    <option value="@size" selected="@(Model.Vendedores.PageSize == size)">@size</option>
+                    <option value="@size" selected="@(Model.PageSize == size)">@size</option>
                 }
             </select>
         </div>
         <button class="primary" type="submit">@UiTexts.Aplicar</button>
     </form>
 </div>
+<section class="panel" aria-label="@UiTexts.FichaDelRecaudador">
+    <dl class="recaudo-ficha">
+        <div><dt>@UiTexts.Usuario</dt><dd>@(string.IsNullOrWhiteSpace(Model.Usuario) ? UiTexts.NoAplica : Model.Usuario)</dd></div>
+        <div><dt>@UiTexts.Documento</dt><dd>@(string.IsNullOrWhiteSpace(Model.Documento) ? UiTexts.NoAplica : Model.Documento)</dd></div>
+        <div><dt>@UiTexts.GruposACargo</dt><dd>@Model.Grupos.Count(g => g.Porcentaje is not null)</dd></div>
+        <div><dt>@UiTexts.VendedoresACargo</dt><dd>@Model.Grupos.Sum(g => g.Vendedores)</dd></div>
+    </dl>
+</section>
 <div class="recaudo-metricas">
-    <article class="recaudo-metrica"><span>@UiTexts.TotalPorRecaudar</span><strong class="recaudo-cifra">@FormatoPesos.De(Model.TotalPorRecaudar)</strong></article>
-    <article class="recaudo-metrica"><span>@UiTexts.TotalRecaudado</span><strong class="recaudo-cifra">@FormatoPesos.De(Model.TotalRecaudado)</strong></article>
-    <article class="recaudo-metrica"><span>@UiTexts.SaldoPendiente</span><strong class="recaudo-cifra">@FormatoPesos.De(Model.SaldoPendiente)</strong></article>
-    <article class="recaudo-metrica"><span>@UiTexts.PorcentajeRecaudado</span><strong class="recaudo-cifra">@Model.PorcentajeRecaudado %</strong></article>
+    @{ Tarjeta(UiTexts.TotalPorRecaudar, UiTexts.AyudaDetalleTotalPorRecaudar, FormatoPesos.De(Model.TotalPorRecaudar)); }
+    @{ Tarjeta(UiTexts.TotalRecaudado, UiTexts.AyudaDetalleTotalRecaudado, FormatoPesos.De(Model.TotalRecaudado)); }
+    @{ Tarjeta(UiTexts.SaldoPendiente, UiTexts.AyudaDetalleSaldoPendiente, FormatoPesos.De(Model.SaldoPendiente)); }
+    @{ Tarjeta(UiTexts.PorcentajeRecaudado, UiTexts.AyudaDetallePorcentajeRecaudado, $"{Model.PorcentajeRecaudado} %"); }
 </div>
 <div class="panel">
     <div class="panel-head">
         <div>
-            <h2>@UiTexts.DetalleRecaudoTitulo</h2>
-            <div class="panel-sub">@Model.Vendedores.TotalCount registros</div>
+            <h2>@UiTexts.RecaudoPorDia</h2>
+            <div class="panel-sub">@UiTexts.RecaudoPorDiaSub</div>
         </div>
     </div>
-    @if (!Model.Vendedores.Items.Any())
+    @if (Model.Grupos.Any())
     {
-        <div class="empty">@UiTexts.Vacio</div>
+        <nav class="jornada-filtro" aria-label="@UiTexts.GraficoPorGrupo">
+            @foreach (var opcion in new string?[] { null }.Concat(Model.Grupos.Select(g => g.Nombre)))
+            {
+                var activa = opcion == Model.GraficoGrupo;
+                <a class="jornada-filtro-opcion@(activa ? " is-active" : null)"
+                   asp-action="Index" asp-route-id="@Model.RecaudadorId" asp-route-desde="@desde" asp-route-hasta="@hasta"
+                   asp-route-pageSize="@Model.PageSize" asp-route-pestana="@Model.Pestana" asp-route-grafico="@opcion"
+                   aria-current="@(activa ? "page" : null)">@(opcion ?? UiTexts.Todos)</a>
+            }
+        </nav>
+    }
+    @if (grafico.SinMovimiento)
+    {
+        <div class="empty">@UiTexts.SinMovimientoGrafico</div>
     }
     else
     {
-        <div class="table-wrap">
-            <table>
-                <thead>
-                <tr>
-                    <th>@UiTexts.Vendedor</th>
-                    <th>@UiTexts.Grupo</th>
-                    <th>@UiTexts.TotalVendido</th>
-                    <th>@UiTexts.TotalPorRecaudar</th>
-                    <th>@UiTexts.SaldoPendiente</th>
-                    <th>@UiTexts.TotalRecaudado</th>
-                    <th>@UiTexts.Estado</th>
-                </tr>
-                </thead>
-                <tbody>
-                @foreach (var fila in Model.Vendedores.Items)
+        var ultimo = grafico.Puntos[^1];
+        <figure class="recaudo-grafico">
+            <div class="grafico-lienzo">
+            <svg viewBox="0 0 @GraficoLineaRecaudo.Numero(GraficoLineaRecaudo.Ancho) @GraficoLineaRecaudo.Numero(GraficoLineaRecaudo.Alto)" role="img"
+                 aria-label="@string.Format(UiTexts.GraficoResumenFormato, Model.GraficoGrupo ?? Model.Nombre, grafico.Puntos[0].Fecha.ToString("dd/MM/yyyy"), ultimo.Fecha.ToString("dd/MM/yyyy"), FormatoPesos.De(ultimo.Debia), FormatoPesos.De(ultimo.Cobrado))">
+                @foreach (var valor in grafico.Escala())
                 {
-                    <tr>
-                        <td>
-                            <strong>@fila.Nombre</strong>
-                            @if (!string.IsNullOrWhiteSpace(fila.Alias))
-                            {
-                                <div class="panel-sub">@fila.Alias</div>
-                            }
-                            @if (fila.SenalSinGrupo)
-                            {
-                                <div class="panel-sub">@UiTexts.SenalDebeGrupo</div>
-                            }
-                        </td>
-                        <td>@fila.Grupo</td>
-                        <td>@FormatoPesos.De(fila.TotalVendido)</td>
-                        <td class="recaudo-cifra">@FormatoPesos.De(fila.ValorACobrar)</td>
-                        <td>@FormatoPesos.De(fila.TotalPendiente)</td>
-                        <td class="recaudo-cifra">@FormatoPesos.De(fila.PagosHoy)</td>
-                        <td><span class="estado-cobro @Color(fila.Color)">@Estado(fila.Estado)</span></td>
-                    </tr>
+                    var y = GraficoLineaRecaudo.Numero(grafico.Y(valor));
+                    <g>
+                        <line class="grafico-guia" x1="@GraficoLineaRecaudo.Numero(GraficoLineaRecaudo.MargenIzquierdo)" y1="@y" x2="@GraficoLineaRecaudo.Numero(GraficoLineaRecaudo.Ancho - GraficoLineaRecaudo.MargenDerecho)" y2="@y" />
+                        <text class="grafico-eje" x="@GraficoLineaRecaudo.Numero(GraficoLineaRecaudo.MargenIzquierdo - 8)" y="@GraficoLineaRecaudo.Numero(grafico.Y(valor) + 4)" text-anchor="end">@FormatoPesos.De(valor)</text>
+                    </g>
                 }
-                </tbody>
-            </table>
+                @for (var i = 0; i < grafico.Puntos.Count; i++)
+                {
+                    if (grafico.MostrarFecha(i))
+                    {
+                        <g>
+                            <text class="grafico-eje" x="@GraficoLineaRecaudo.Numero(grafico.X(i))" y="@GraficoLineaRecaudo.Numero(GraficoLineaRecaudo.Alto - 12)" text-anchor="middle">@grafico.Puntos[i].Fecha.ToString("dd/MM")</text>
+                        </g>
+                    }
+                }
+                <polyline class="linea-debia" points="@grafico.Trazo(p => p.Debia)" />
+                <polyline class="linea-cobrado" points="@grafico.Trazo(p => p.Cobrado)" />
+                @for (var i = 0; i < grafico.Puntos.Count; i++)
+                {
+                    var punto = grafico.Puntos[i];
+                    var x = GraficoLineaRecaudo.Numero(grafico.X(i));
+                    <g>
+                        <circle class="punto-debia" cx="@x" cy="@GraficoLineaRecaudo.Numero(grafico.Y(punto.Debia))" r="4" />
+                        <circle class="punto-cobrado" cx="@x" cy="@GraficoLineaRecaudo.Numero(grafico.Y(punto.Cobrado))" r="4" />
+                    </g>
+                }
+            </svg>
+            <div class="grafico-dias" style="left:@Pct(GraficoLineaRecaudo.MargenIzquierdo / GraficoLineaRecaudo.Ancho * 100);right:@Pct(GraficoLineaRecaudo.MargenDerecho / GraficoLineaRecaudo.Ancho * 100);top:@Pct(GraficoLineaRecaudo.MargenSuperior / GraficoLineaRecaudo.Alto * 100);bottom:@Pct(GraficoLineaRecaudo.MargenInferior / GraficoLineaRecaudo.Alto * 100)">
+                @for (var i = 0; i < grafico.Puntos.Count; i++)
+                {
+                    var punto = grafico.Puntos[i];
+                    <div class="grafico-dia@(grafico.TooltipALaIzquierda(i) ? " tip-izquierda" : null)" tabindex="0" role="img"
+                         style="left:@Pct(grafico.PosicionX(i));width:@Pct(grafico.AnchoFranja)"
+                         aria-label="@string.Format(UiTexts.PuntoGraficoFormato, GraficoLineaRecaudo.FechaLarga(punto.Fecha), FormatoPesos.De(punto.Debia), FormatoPesos.De(punto.Cobrado), FormatoPesos.De(punto.Pendiente))">
+                        <span class="grafico-dia-guia" aria-hidden="true"></span>
+                        <span class="grafico-dia-punto debia" style="top:@Pct(grafico.PosicionY(punto.Debia))" aria-hidden="true"></span>
+                        <span class="grafico-dia-punto cobrado" style="top:@Pct(grafico.PosicionY(punto.Cobrado))" aria-hidden="true"></span>
+                        <div class="grafico-tip" aria-hidden="true">
+                            <strong class="grafico-tip-fecha">@GraficoLineaRecaudo.FechaLarga(punto.Fecha)</strong>
+                            <dl>
+                                <div><dt><i class="tip-marca debia"></i>@UiTexts.TipLeDebian</dt><dd>@FormatoPesos.De(punto.Debia)</dd></div>
+                                <div><dt><i class="tip-marca cobrado"></i>@UiTexts.TipCobro</dt><dd>@FormatoPesos.De(punto.Cobrado)</dd></div>
+                                <div class="tip-pendiente"><dt>@UiTexts.TipQuedoPendiente</dt><dd>@FormatoPesos.De(punto.Pendiente)</dd></div>
+                            </dl>
+                            <div class="tip-avance">
+                                <span>@string.Format(UiTexts.TipAvanceFormato, punto.Avance)</span>
+                                <span class="tip-avance-barra"><i style="width:@Pct(punto.Avance)"></i></span>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+            </div>
+            <figcaption class="grafico-leyenda">
+                <span class="leyenda-debia">@UiTexts.LoQueDebian</span>
+                <span class="leyenda-cobrado">@UiTexts.LoCobrado</span>
+            </figcaption>
+        </figure>
+        @if (grafico.Puntos.Count == 1)
+        {
+            <div class="panel-sub">@UiTexts.UnSoloDiaGrafico</div>
+        }
+    }
+</div>
+<div class="panel">
+    <div class="panel-head">
+        <div>
+            <h2>@UiTexts.GruposACargo</h2>
+            <div class="panel-sub">@UiTexts.GruposACargoSub</div>
         </div>
-        <partial name="_Pager" model="Model.Vendedores" />
+    </div>
+    @if (!Model.Grupos.Any())
+    {
+        <div class="empty">@UiTexts.SinGruposACargo</div>
+    }
+    else
+    {
+        <div class="recaudo-grupos">
+            @foreach (var grupo in Model.Grupos)
+            {
+                <article class="recaudo-grupo">
+                    <header>
+                        <h3>@grupo.Nombre</h3>
+                        <span class="recaudo-grupo-porcentaje">@(grupo.Porcentaje is int p ? $"{p} %" : UiTexts.PorcentajeVariable)</span>
+                    </header>
+                    <div class="panel-sub">@string.Format(UiTexts.VendedoresFormato, grupo.Vendedores)</div>
+                    <dl>
+                        <div><dt>@UiTexts.TotalPorRecaudar</dt><dd>@FormatoPesos.De(grupo.TotalPorRecaudar)</dd></div>
+                        <div><dt>@UiTexts.TotalRecaudado</dt><dd class="recaudo-cifra">@FormatoPesos.De(grupo.TotalRecaudado)</dd></div>
+                        <div><dt>@UiTexts.TotalPendiente</dt><dd>@FormatoPesos.De(grupo.TotalPendiente)</dd></div>
+                    </dl>
+                    <div class="recaudo-grupo-avance">@string.Format(UiTexts.RecaudadoFormato, grupo.PorcentajeRecaudado)</div>
+                </article>
+            }
+        </div>
+    }
+</div>
+<div class="panel">
+    <div class="panel-head">
+        <div>
+            <nav class="view-tabs" aria-label="@UiTexts.VistaDelDetalleRecaudo">
+                <a class="view-tab @(enCobrados ? "is-active" : null)" asp-action="Index" asp-route-id="@Model.RecaudadorId" asp-route-desde="@desde" asp-route-hasta="@hasta" asp-route-pageSize="@Model.PageSize" asp-route-pestana="@DetalleRecaudoPestanas.Cobrados" asp-route-grafico="@Model.GraficoGrupo" aria-current="@(enCobrados ? "page" : null)">@UiTexts.PestanaCobrados (@Model.TotalCobrados)</a>
+                <a class="view-tab @(enCobrados ? null : "is-active")" asp-action="Index" asp-route-id="@Model.RecaudadorId" asp-route-desde="@desde" asp-route-hasta="@hasta" asp-route-pageSize="@Model.PageSize" asp-route-pestana="@DetalleRecaudoPestanas.Pendientes" asp-route-grafico="@Model.GraficoGrupo" aria-current="@(enCobrados ? null : "page")">@UiTexts.PestanaPendientes (@Model.TotalPendientes)</a>
+            </nav>
+            <div class="panel-sub">@(enCobrados ? UiTexts.CobradosSub : UiTexts.PendientesSub)</div>
+        </div>
+    </div>
+    @if (enCobrados)
+    {
+        @if (!Model.Cobrados.Items.Any())
+        {
+            <div class="empty">@UiTexts.SinCobrados</div>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>@UiTexts.Grupo</th>
+                        <th>@UiTexts.Vendedor</th>
+                        <th>@UiTexts.RecaudadorResponsable</th>
+                        @{ Encabezado(UiTexts.ValorQueDebiaPagar, UiTexts.AyudaColumnaValorQueDebiaPagar); }
+                        @{ Encabezado(UiTexts.ValorRecibido, UiTexts.AyudaColumnaValorRecibido); }
+                        @{ Encabezado(UiTexts.SaldoPendiente, UiTexts.AyudaColumnaSaldoPendiente); }
+                        @{ Encabezado(UiTexts.FechaHoraPago, UiTexts.AyudaColumnaFechaHoraPago); }
+                        @{ Encabezado(UiTexts.Estado, UiTexts.AyudaColumnaEstado); }
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var fila in Model.Cobrados.Items)
+                    {
+                        <tr>
+                            <td>@fila.Grupo</td>
+                            <td>
+                                <strong>@fila.Nombre</strong>
+                                @if (!string.IsNullOrWhiteSpace(fila.Alias))
+                                {
+                                    <div class="panel-sub">@fila.Alias</div>
+                                }
+                                @if (fila.SenalSinGrupo)
+                                {
+                                    <div class="panel-sub">@UiTexts.SenalDebeGrupo</div>
+                                }
+                            </td>
+                            <td>@fila.Recaudador</td>
+                            <td>@FormatoPesos.De(fila.ValorQueDebia)</td>
+                            <td class="recaudo-cifra">@FormatoPesos.De(fila.ValorRecibido)</td>
+                            <td>@FormatoPesos.De(fila.SaldoPendiente)</td>
+                            <td>@(fila.FechaPago?.ToString("dd/MM/yyyy HH:mm") ?? UiTexts.NoAplica)</td>
+                            <td><span class="estado-cobro @Color(fila.Color)">@Estado(fila.Estado)</span></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            <partial name="_Pager" model="Model.Cobrados" />
+        }
+    }
+    else
+    {
+        @if (!Model.Pendientes.Items.Any())
+        {
+            <div class="empty">@UiTexts.SinPendientes</div>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>@UiTexts.Grupo</th>
+                        <th>@UiTexts.Vendedor</th>
+                        <th>@UiTexts.RecaudadorResponsable</th>
+                        @{ Encabezado(UiTexts.ValorQueDebePagar, UiTexts.AyudaColumnaValorQueDebePagar); }
+                        @{ Encabezado(UiTexts.DeudaAnterior, UiTexts.AyudaColumnaDeudaAnterior); }
+                        @{ Encabezado(UiTexts.TotalPendiente, UiTexts.AyudaColumnaTotalPendienteDetalle); }
+                        @{ Encabezado(UiTexts.Estado, UiTexts.AyudaColumnaEstado); }
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var fila in Model.Pendientes.Items)
+                    {
+                        <tr>
+                            <td>@fila.Grupo</td>
+                            <td>
+                                <strong>@fila.Nombre</strong>
+                                @if (!string.IsNullOrWhiteSpace(fila.Alias))
+                                {
+                                    <div class="panel-sub">@fila.Alias</div>
+                                }
+                                @if (fila.SenalSinGrupo)
+                                {
+                                    <div class="panel-sub">@UiTexts.SenalDebeGrupo</div>
+                                }
+                            </td>
+                            <td>@fila.Recaudador</td>
+                            <td>@FormatoPesos.De(fila.ValorQueDebe)</td>
+                            <td>@FormatoPesos.De(fila.DeudaAnterior)</td>
+                            <td class="recaudo-cifra">@FormatoPesos.De(fila.TotalPendiente)</td>
+                            <td><span class="estado-cobro @Color(fila.Color)">@Estado(fila.Estado)</span></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            <partial name="_Pager" model="Model.Pendientes" />
+        }
     }
 </div>

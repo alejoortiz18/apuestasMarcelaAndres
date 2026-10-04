@@ -48,6 +48,9 @@ public static class RecaudoPagoVista
         return null;
     }
 
+    public static bool EsFallaDeRed(string? mensaje) =>
+        string.Equals(mensaje, PdaTexts.SinConexionServidor, StringComparison.Ordinal);
+
     public static RecaudoConfirmacion Confirmar(string vendedor, decimal pendiente, decimal valor) =>
         new(vendedor, pendiente, valor, pendiente - valor);
 

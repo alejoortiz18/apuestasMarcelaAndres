@@ -1,5 +1,8 @@
+using NewRich.Application.Contracts.Recaudo;
+
 namespace NewRich.Pda.Core;
 
+/// <param name="FechaLocal">Instante UTC en que se registró el cobro en el PDA.</param>
 public sealed record PagoPendienteRecaudo(
     Guid VendedorId,
     decimal Valor,
@@ -19,4 +22,12 @@ public static class RecaudoColaPagos
 
         return existentes.Append(pago).ToList();
     }
+
+    public static RegistrarPagoRecaudoRequest Solicitud(PagoPendienteRecaudo pago) => new()
+    {
+        VendedorId = pago.VendedorId,
+        Valor = pago.Valor,
+        ClaveIdempotencia = pago.ClaveIdempotencia,
+        FechaHoraCobro = DateTime.SpecifyKind(pago.FechaLocal, DateTimeKind.Utc)
+    };
 }

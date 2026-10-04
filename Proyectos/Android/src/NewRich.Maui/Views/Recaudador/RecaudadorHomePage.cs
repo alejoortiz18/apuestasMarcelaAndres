@@ -154,7 +154,7 @@ public sealed class RecaudadorHomePage : ContentPage
             var remoto = await _api.ObligacionesRecaudoAsync(null, CancellationToken.None);
             if (remoto.IsSuccess && remoto.Data is not null)
             {
-                filas = remoto.Data;
+                filas = RecaudoListas.ConPendientes(remoto.Data, await _local.PagosRecaudoPendientesAsync());
                 await _local.GuardarObligacionesRecaudoAsync(filas);
             }
             else

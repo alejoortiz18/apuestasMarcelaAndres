@@ -407,6 +407,7 @@ public static class PdaTexts
     public const string SincronizarRecaudo = "Sincronizar recaudo";
     public const string SincronizarRecaudoAyuda = "Sube los cobros pendientes y actualiza las obligaciones.";
     public const string SyncPagosPendientes = "{0} pagos siguen pendientes.";
+    public const string CobroGuardadoSinConexion = "No hay conexión. El cobro quedó guardado en el PDA y se imprimió la tirilla. Se enviará al servidor cuando vuelva la señal o al sincronizar el recaudo.";
     public const string TotalRecaudar = "Total recaudar";
     public const string TotalRecaudado = "Total recaudado";
     public const string GruposAsignados = "Total grupos asignados";

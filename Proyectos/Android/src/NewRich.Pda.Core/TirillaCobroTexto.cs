@@ -11,7 +11,8 @@ public static class TirillaCobroTexto
         string vendedor,
         DateTime fechaHora,
         decimal valorRecibido,
-        decimal saldoRestante)
+        decimal saldoRestante,
+        bool sinConexion = false)
     {
         var doble = new string('=', Ancho);
         var simple = new string('-', Ancho);
@@ -35,6 +36,13 @@ public static class TirillaCobroTexto
         lineas.Add(simple);
         lineas.AddRange(JustificarValor("SALDO QUE QUEDA", TirillaCuerpo.Pesos(saldoRestante)));
         lineas.Add(doble);
+        if (sinConexion)
+        {
+            lineas.Add(Centrar("Cobro guardado en el PDA"));
+            lineas.Add(Centrar("Pendiente de sincronizar"));
+            lineas.Add(simple);
+        }
+
         lineas.Add(Centrar("Gracias por su pago"));
         lineas.Add(doble);
         return string.Join(Environment.NewLine, lineas);

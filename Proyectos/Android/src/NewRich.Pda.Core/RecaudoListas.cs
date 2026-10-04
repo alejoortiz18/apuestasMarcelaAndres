@@ -51,6 +51,23 @@ public static class RecaudoListas
         return fila;
     }
 
+    /// <summary>Los cobros guardados sin conexión que el API todavía no tiene se aplican sobre la lista descargada.</summary>
+    public static IReadOnlyList<ObligacionRecaudoResponse> ConPendientes(
+        IReadOnlyList<ObligacionRecaudoResponse> filas,
+        IEnumerable<PagoPendienteRecaudo> pendientes)
+    {
+        foreach (var pago in pendientes)
+        {
+            var fila = filas.FirstOrDefault(f => f.VendedorId == pago.VendedorId);
+            if (fila is not null)
+            {
+                TrasCobro(fila, pago.Valor);
+            }
+        }
+
+        return filas;
+    }
+
     public static IReadOnlyList<ObligacionRecaudoResponse> De(
         IEnumerable<ObligacionRecaudoResponse> filas,
         ListaCobro? lista,

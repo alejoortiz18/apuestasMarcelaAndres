@@ -1,4 +1,5 @@
 using System.Globalization;
+using NewRich.Application.Contracts.Recaudo;
 using NewRich.Domain.Services;
 
 namespace NewRich.Admin.Models;
@@ -164,30 +165,63 @@ public sealed class MetricasRecaudoViewModel
     public int GruposConPendiente { get; init; }
 }
 
+public static class DetalleRecaudoPestanas
+{
+    public const string Cobrados = "cobrados";
+    public const string Pendientes = "pendientes";
+
+    public static string Leer(string? valor) =>
+        string.Equals(valor, Pendientes, StringComparison.OrdinalIgnoreCase) ? Pendientes : Cobrados;
+}
+
 public sealed class DetalleRecaudoViewModel
 {
     public Guid RecaudadorId { get; init; }
     public string Nombre { get; init; } = string.Empty;
+    public string Usuario { get; init; } = string.Empty;
+    public string? Documento { get; init; }
     public DateOnly Desde { get; init; }
     public DateOnly Hasta { get; init; }
     public decimal TotalPorRecaudar { get; init; }
     public decimal TotalRecaudado { get; init; }
     public decimal SaldoPendiente { get; init; }
     public int PorcentajeRecaudado { get; init; }
-    public PagedViewModel<FilaDetalleVendedor> Vendedores { get; init; } = new();
+    public IReadOnlyList<GrupoDetalleRecaudoResponse> Grupos { get; init; } = [];
+    public string? GraficoGrupo { get; init; }
+    public GraficoLineaRecaudo Grafico { get; init; } = GraficoLineaRecaudo.De([]);
+    public string Pestana { get; init; } = DetalleRecaudoPestanas.Cobrados;
+    public int TotalCobrados { get; init; }
+    public int TotalPendientes { get; init; }
+    public PagedViewModel<FilaCobradoRecaudo> Cobrados { get; init; } = new();
+    public PagedViewModel<FilaPendienteRecaudo> Pendientes { get; init; } = new();
+    public int PageSize => Pestana == DetalleRecaudoPestanas.Pendientes ? Pendientes.PageSize : Cobrados.PageSize;
 }
 
-public sealed class FilaDetalleVendedor
+public sealed class FilaCobradoRecaudo
 {
+    public string Grupo { get; init; } = string.Empty;
     public string Nombre { get; init; } = string.Empty;
     public string? Alias { get; init; }
-    public string Grupo { get; init; } = string.Empty;
-    public decimal TotalVendido { get; init; }
-    public decimal ValorACobrar { get; init; }
-    public decimal SaldoAnterior { get; init; }
-    public decimal TotalPendiente { get; init; }
-    public decimal PagosHoy { get; init; }
+    public bool SenalSinGrupo { get; init; }
+    public string Recaudador { get; init; } = string.Empty;
+    public decimal ValorQueDebia { get; init; }
+    public decimal ValorRecibido { get; init; }
+    public decimal SaldoPendiente { get; init; }
+    public DateTime? FechaPago { get; init; }
     public string Estado { get; init; } = string.Empty;
     public string Color { get; init; } = string.Empty;
+}
+
+public sealed class FilaPendienteRecaudo
+{
+    public string Grupo { get; init; } = string.Empty;
+    public string Nombre { get; init; } = string.Empty;
+    public string? Alias { get; init; }
     public bool SenalSinGrupo { get; init; }
+    public string Recaudador { get; init; } = string.Empty;
+    public decimal ValorQueDebe { get; init; }
+    public decimal DeudaAnterior { get; init; }
+    public decimal TotalPendiente { get; init; }
+    public string Estado { get; init; } = string.Empty;
+    public string Color { get; init; } = string.Empty;
 }

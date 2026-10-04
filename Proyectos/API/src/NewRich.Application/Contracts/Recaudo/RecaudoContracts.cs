@@ -30,6 +30,9 @@ public sealed class RegistrarPagoRecaudoRequest
     public Guid VendedorId { get; set; }
     public decimal Valor { get; set; }
     public string ClaveIdempotencia { get; set; } = string.Empty;
+
+    /// <summary>Instante UTC en que el PDA registró el cobro; lo envía el cobro hecho sin conexión.</summary>
+    public DateTime? FechaHoraCobro { get; set; }
 }
 
 public sealed class ObligacionRecaudoResponse
@@ -46,6 +49,9 @@ public sealed class ObligacionRecaudoResponse
     public decimal TotalPendiente { get; set; }
     public decimal PendienteDelDia { get; set; }
     public decimal PagosHoy { get; set; }
+
+    /// <summary>Hora de Colombia del último pago del día; vacía si no ha pagado.</summary>
+    public DateTime? UltimoPago { get; set; }
     public string Estado { get; set; } = string.Empty;
     public string Color { get; set; } = string.Empty;
     public string Lista { get; set; } = string.Empty;
@@ -175,9 +181,46 @@ public sealed class DetalleRecaudadorResponse
 {
     public Guid RecaudadorId { get; set; }
     public string Nombre { get; set; } = string.Empty;
+    public string Usuario { get; set; } = string.Empty;
+    public string? Documento { get; set; }
     public decimal TotalPorRecaudar { get; set; }
     public decimal TotalRecaudado { get; set; }
     public decimal SaldoPendiente { get; set; }
     public int PorcentajeRecaudado { get; set; }
+    public IReadOnlyList<GrupoDetalleRecaudoResponse> Grupos { get; set; } = [];
     public IReadOnlyList<ObligacionRecaudoResponse> Vendedores { get; set; } = [];
+    public IReadOnlyList<LineaRecaudoDiaResponse> LineaDeTiempo { get; set; } = [];
+}
+
+/// <summary>Un día del gráfico: lo que debían (deuda anterior más lo generado ese día) y lo cobrado ese día.</summary>
+public sealed class LineaRecaudoDiaResponse
+{
+    public DateOnly Fecha { get; set; }
+    public decimal Debia { get; set; }
+    public decimal Cobrado { get; set; }
+
+    /// <summary>Lo generado ese día por las ventas, sin deudas anteriores.</summary>
+    public decimal Generado { get; set; }
+    public IReadOnlyList<LineaGrupoDiaResponse> Grupos { get; set; } = [];
+}
+
+public sealed class LineaGrupoDiaResponse
+{
+    public string Grupo { get; set; } = string.Empty;
+    public decimal Debia { get; set; }
+    public decimal Cobrado { get; set; }
+    public decimal Generado { get; set; }
+}
+
+public sealed class GrupoDetalleRecaudoResponse
+{
+    public string Nombre { get; set; } = string.Empty;
+
+    /// <summary>Vacío en "Sin grupo": cada vendedor suelto tiene su propio porcentaje.</summary>
+    public int? Porcentaje { get; set; }
+    public int Vendedores { get; set; }
+    public decimal TotalPorRecaudar { get; set; }
+    public decimal TotalRecaudado { get; set; }
+    public decimal TotalPendiente { get; set; }
+    public int PorcentajeRecaudado { get; set; }
 }

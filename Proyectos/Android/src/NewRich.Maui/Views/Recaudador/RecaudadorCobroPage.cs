@@ -221,8 +221,12 @@ public sealed class RecaudadorCobroPage : ContentPage
                 var remoto = await _api.ObligacionesRecaudoAsync(null, CancellationToken.None);
                 if (remoto.IsSuccess && remoto.Data is not null)
                 {
-                    _filas = remoto.Data;
+                    _filas = RecaudoListas.ConPendientes(remoto.Data, await _local.PagosRecaudoPendientesAsync());
                     await _local.GuardarObligacionesRecaudoAsync(_filas);
+                }
+                else
+                {
+                    _filas = await _local.ObligacionesRecaudoLocalAsync();
                 }
             }
             else
@@ -553,44 +557,47 @@ public sealed class RecaudadorCobroPage : ContentPage
     {
         _ocupado = true;
         _spinner.IsVisible = _spinner.IsRunning = true;
-        var clave = Guid.NewGuid().ToString("N");
+        var pago = new PagoPendienteRecaudo(fila.VendedorId, valor, Guid.NewGuid().ToString("N"), DateTime.UtcNow);
+        var saldoQueQueda = RecaudoPagoVista.Saldos(fila).TotalAPagar - valor;
         var aplicado = false;
         try
         {
             var ping = await _api.ConectarAsync(
                 PdaConexion.UrlsPara(DeviceInfo.Current.DeviceType == DeviceType.Virtual),
                 CancellationToken.None);
-            if (!ping.IsSuccess)
+            if (ping.IsSuccess)
             {
-                var cola = RecaudoColaPagos.Encolar(
-                    new PagoPendienteRecaudo(fila.VendedorId, valor, clave, DateTime.UtcNow),
-                    await _local.PagosRecaudoPendientesAsync());
-                await _local.GuardarPagosRecaudoAsync(cola);
-                aplicado = true;
-                await DisplayAlert(PdaTexts.RegistrarCobro, PdaTexts.SinConexion, PdaTexts.Cerrar);
-                return;
+                var resultado = await _api.RegistrarPagoRecaudoAsync(RecaudoColaPagos.Solicitud(pago), CancellationToken.None);
+                if (resultado.IsSuccess && resultado.Data is not null)
+                {
+                    aplicado = true;
+                    await _impresora.ImprimirAsync(TirillaCobroTexto.De(
+                        resultado.Data.RecaudadorNombre,
+                        resultado.Data.VendedorNombre,
+                        resultado.Data.FechaHora,
+                        valor,
+                        resultado.Data.SaldoRestante), null);
+                    return;
+                }
+
+                if (!RecaudoPagoVista.EsFallaDeRed(resultado.Message))
+                {
+                    await DisplayAlert(PdaTexts.RegistrarCobro, resultado.Message, PdaTexts.Cerrar);
+                    return;
+                }
             }
 
-            var resultado = await _api.RegistrarPagoRecaudoAsync(new RegistrarPagoRecaudoRequest
-            {
-                VendedorId = fila.VendedorId,
-                Valor = valor,
-                ClaveIdempotencia = clave
-            }, CancellationToken.None);
-            if (!resultado.IsSuccess || resultado.Data is null)
-            {
-                await DisplayAlert(PdaTexts.RegistrarCobro, resultado.Message, PdaTexts.Cerrar);
-                return;
-            }
-
+            var cola = RecaudoColaPagos.Encolar(pago, await _local.PagosRecaudoPendientesAsync());
+            await _local.GuardarPagosRecaudoAsync(cola);
             aplicado = true;
-            var texto = TirillaCobroTexto.De(
-                resultado.Data.RecaudadorNombre,
-                resultado.Data.VendedorNombre,
-                resultado.Data.FechaHora,
+            await _impresora.ImprimirAsync(TirillaCobroTexto.De(
+                _sesion.Usuario?.NombreCompleto ?? PdaTexts.PdaRecaudador,
+                fila.NombreCompleto,
+                ZonaHorariaColombia.ALocal(pago.FechaLocal),
                 valor,
-                resultado.Data.SaldoRestante);
-            await _impresora.ImprimirAsync(texto, null);
+                saldoQueQueda,
+                sinConexion: true), null);
+            await DisplayAlert(PdaTexts.RegistrarCobro, PdaTexts.CobroGuardadoSinConexion, PdaTexts.Cerrar);
         }
         finally
         {
@@ -618,12 +625,7 @@ public sealed class RecaudadorCobroPage : ContentPage
         var quedan = new List<PagoPendienteRecaudo>();
         foreach (var pago in pendientes)
         {
-            var envio = await _api.RegistrarPagoRecaudoAsync(new RegistrarPagoRecaudoRequest
-            {
-                VendedorId = pago.VendedorId,
-                Valor = pago.Valor,
-                ClaveIdempotencia = pago.ClaveIdempotencia
-            }, CancellationToken.None);
+            var envio = await _api.RegistrarPagoRecaudoAsync(RecaudoColaPagos.Solicitud(pago), CancellationToken.None);
             if (!envio.IsSuccess)
             {
                 quedan.Add(pago);
