@@ -280,7 +280,16 @@ public sealed partial class RecaudoService : IRecaudoService
                 anterior = 0m;
             }
 
-            var pagadoHoy = pagosHoy.Where(p => p.VendedorId == usuario.UsuarioId).Sum(p => p.Valor);
+            var pagosDelVendedor = pagosHoy.Where(p => p.VendedorId == usuario.UsuarioId).ToList();
+            var pagadoHoy = pagosDelVendedor.Sum(p => p.Valor);
+            var generadoAlUltimoCobro = 0m;
+            if (pagosDelVendedor.Count > 0)
+            {
+                var ultimoCobro = pagosDelVendedor.Max(p => p.FechaHora);
+                var vendidoAlCobrar = ventas.Where(v => v.UsuarioId == usuario.UsuarioId && v.FechaVenta <= ultimoCobro).Sum(v => v.Total);
+                generadoAlUltimoCobro = CalculoRecaudo.ObligacionDelDia(vendidoAlCobrar, cobro.Value.Porcentaje);
+            }
+
             var clasificacion = EstadoCobroRecaudoRegla.Clasificar(anterior, generado, pagadoHoy);
             if (clasificacion is null)
             {
@@ -290,6 +299,7 @@ public sealed partial class RecaudoService : IRecaudoService
             var grupoNombre = miembro is null
                 ? "Sin grupo"
                 : nombresGrupo.FirstOrDefault(g => g.GrupoId == miembro.GrupoId)?.Nombre ?? "Sin grupo";
+            var totalPendiente = CalculoRecaudo.Pendiente(anterior, generado, pagadoHoy);
             respuesta.Add(new ObligacionRecaudoResponse
             {
                 VendedorId = usuario.UsuarioId,
@@ -301,7 +311,8 @@ public sealed partial class RecaudoService : IRecaudoService
                 TotalVendido = total,
                 ValorACobrar = generado,
                 SaldoAnterior = anterior,
-                TotalPendiente = CalculoRecaudo.Pendiente(anterior, generado, pagadoHoy),
+                TotalPendiente = totalPendiente,
+                PendienteDelDia = CalculoRecaudo.PendienteDelDia(generado, generadoAlUltimoCobro, totalPendiente),
                 PagosHoy = pagadoHoy,
                 Estado = clasificacion.Value.Estado.ToString(),
                 Color = clasificacion.Value.Color.ToString(),

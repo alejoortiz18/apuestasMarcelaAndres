@@ -203,6 +203,77 @@ public sealed class RecaudoServiceTests
     }
 
     [Fact]
+    public async Task Sin_cobro_lo_generado_hoy_queda_como_pendiente_del_dia()
+    {
+        var (sut, _, recaudador, vendedor) = await PrepararVendedorConVentaAsync(new DateTime(2026, 9, 28, 20, 0, 0, DateTimeKind.Utc));
+
+        var lista = await sut.ObligacionesAsync(recaudador.UsuarioId, new DateOnly(2026, 9, 28), CancellationToken.None);
+
+        var fila = lista.Data!.Single(o => o.VendedorId == vendedor.UsuarioId);
+        fila.PendienteDelDia.Should().Be(100m);
+        fila.TotalPendiente.Should().Be(100m);
+    }
+
+    [Fact]
+    public async Task Tras_el_cobro_lo_que_queda_del_dia_ya_no_es_pendiente_del_dia()
+    {
+        var (sut, _, recaudador, vendedor) = await PrepararVendedorConVentaAsync(new DateTime(2026, 9, 28, 20, 0, 0, DateTimeKind.Utc));
+        await sut.RegistrarPagoAsync(recaudador.UsuarioId, new RegistrarPagoRecaudoRequest
+        {
+            VendedorId = vendedor.UsuarioId,
+            Valor = 60m,
+            ClaveIdempotencia = "cobro-parcial"
+        }, CancellationToken.None);
+
+        var lista = await sut.ObligacionesAsync(recaudador.UsuarioId, new DateOnly(2026, 9, 28), CancellationToken.None);
+
+        var fila = lista.Data!.Single(o => o.VendedorId == vendedor.UsuarioId);
+        fila.PendienteDelDia.Should().Be(0m);
+        fila.TotalPendiente.Should().Be(40m);
+    }
+
+    [Fact]
+    public async Task Lo_vendido_despues_del_cobro_queda_como_pendiente_del_dia_y_sigue_cobrado()
+    {
+        var (sut, db, recaudador, vendedor) = await PrepararVendedorConVentaAsync(new DateTime(2026, 9, 28, 20, 0, 0, DateTimeKind.Utc));
+        await sut.RegistrarPagoAsync(recaudador.UsuarioId, new RegistrarPagoRecaudoRequest
+        {
+            VendedorId = vendedor.UsuarioId,
+            Valor = 60m,
+            ClaveIdempotencia = "cobro-antes-de-vender"
+        }, CancellationToken.None);
+        db.Ventas.Add(new Venta
+        {
+            VentaId = Guid.NewGuid(),
+            UsuarioId = vendedor.UsuarioId,
+            FechaVenta = new DateTime(2026, 9, 28, 17, 0, 0, DateTimeKind.Unspecified),
+            Total = 500m,
+            TipoApuesta = TipoApuesta.INDIVIDUAL,
+            IdempotencyKey = Guid.NewGuid().ToString("N")
+        });
+        await db.SaveChangesAsync();
+
+        var lista = await sut.ObligacionesAsync(recaudador.UsuarioId, new DateOnly(2026, 9, 28), CancellationToken.None);
+
+        var fila = lista.Data!.Single(o => o.VendedorId == vendedor.UsuarioId);
+        fila.ValorACobrar.Should().Be(150m);
+        fila.PendienteDelDia.Should().Be(50m);
+        fila.TotalPendiente.Should().Be(90m);
+        fila.Lista.Should().Be(nameof(ListaCobro.Cobrados));
+    }
+
+    [Theory]
+    [InlineData(150, 100, 90, 50)]
+    [InlineData(100, 100, 40, 0)]
+    [InlineData(100, 0, 100, 100)]
+    [InlineData(150, 100, 30, 30)]
+    public void Pendiente_del_dia_es_lo_generado_despues_del_ultimo_cobro(
+        decimal generadoHoy, decimal generadoAlCobrar, decimal totalPendiente, decimal esperado)
+    {
+        CalculoRecaudo.PendienteDelDia(generadoHoy, generadoAlCobrar, totalPendiente).Should().Be(esperado);
+    }
+
+    [Fact]
     public async Task Historial_y_metricas_responden_sin_movimientos()
     {
         var (sut, _) = Crear();

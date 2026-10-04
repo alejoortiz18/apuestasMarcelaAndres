@@ -350,7 +350,7 @@ public sealed class RecaudadorCobroPage : ContentPage
             Spacing = 10,
             Children =
             {
-                new Label { Text = fila.NombreCompleto, FontAttributes = FontAttributes.Bold, FontSize = 17, TextColor = Ui.Ink },
+                Encabezado(fila),
                 new Label { Text = string.IsNullOrWhiteSpace(fila.Alias) ? fila.Estado : $"{fila.Alias} · {fila.Estado}", TextColor = color, FontAttributes = FontAttributes.Bold, FontSize = 13 },
                 Cifras(fila, color),
                 valor,
@@ -393,6 +393,52 @@ public sealed class RecaudadorCobroPage : ContentPage
         };
     }
 
+    private static Grid Encabezado(ObligacionRecaudoResponse fila)
+    {
+        var grid = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitionCollection { new(GridLength.Star), new(GridLength.Auto) },
+            ColumnSpacing = 10
+        };
+        var nombre = new Label
+        {
+            Text = fila.NombreCompleto,
+            FontAttributes = FontAttributes.Bold,
+            FontSize = 17,
+            TextColor = Ui.Ink,
+            VerticalOptions = LayoutOptions.Center,
+            LineBreakMode = LineBreakMode.TailTruncation
+        };
+        var total = new Frame
+        {
+            Padding = new Thickness(12, 6),
+            CornerRadius = 10,
+            HasShadow = false,
+            BackgroundColor = Ui.Crema,
+            BorderColor = Ui.Gold,
+            HorizontalOptions = LayoutOptions.End,
+            Content = new VerticalStackLayout
+            {
+                Spacing = 0,
+                Children =
+                {
+                    new Label { Text = PdaTexts.TotalAPagar, FontSize = 11, TextColor = Ui.Muted, FontAttributes = FontAttributes.Bold, HorizontalTextAlignment = TextAlignment.End },
+                    new Label
+                    {
+                        Text = RecaudoPagoVista.Miles(RecaudoPagoVista.Saldos(fila).TotalAPagar),
+                        FontSize = 18,
+                        FontAttributes = FontAttributes.Bold,
+                        TextColor = Ui.Ink,
+                        HorizontalTextAlignment = TextAlignment.End
+                    }
+                }
+            }
+        };
+        grid.Add(nombre, 0);
+        grid.Add(total, 1);
+        return grid;
+    }
+
     private static Grid Cifras(ObligacionRecaudoResponse fila, Color acento)
     {
         var cifras = RecaudoPagoVista.CifrasTarjeta(fila);
@@ -413,7 +459,7 @@ public sealed class RecaudadorCobroPage : ContentPage
 
             var cifra = cifras[i];
             var pagado = cifra.Etiqueta == PdaTexts.TotalPagado;
-            var pendiente = cifra.Etiqueta == PdaTexts.TotalPendiente;
+            var pendiente = cifra.Etiqueta == PdaTexts.PendienteDelDia;
             var celda = new Frame
             {
                 Padding = new Thickness(10, 8),
@@ -481,17 +527,18 @@ public sealed class RecaudadorCobroPage : ContentPage
             return;
         }
 
-        var rechazo = RecaudoPagoVista.Rechazo(valor, fila.TotalPendiente);
+        var saldos = RecaudoPagoVista.Saldos(fila);
+        var rechazo = RecaudoPagoVista.Rechazo(valor, saldos.TotalAPagar);
         if (rechazo is not null)
         {
             await DisplayAlert(PdaTexts.RegistrarCobro, rechazo, PdaTexts.Cerrar);
             return;
         }
 
-        var confirmacion = RecaudoPagoVista.Confirmar(fila.NombreCompleto, fila.TotalPendiente, valor);
+        var confirmacion = RecaudoPagoVista.Confirmar(fila.NombreCompleto, saldos.TotalAPagar, valor);
         var aceptar = await DisplayAlert(
             PdaTexts.ConfirmarCobro,
-            $"{confirmacion.Vendedor}\n{PdaTexts.TotalPendiente}: {RecaudoPagoVista.Miles(confirmacion.Pendiente)}\n{PdaTexts.ValorRecibido}: {RecaudoPagoVista.Miles(confirmacion.Recibido)}\n{PdaTexts.SaldoQueQueda}: {RecaudoPagoVista.Miles(confirmacion.SaldoQueQueda)}",
+            $"{confirmacion.Vendedor}\n{PdaTexts.TotalAPagar}: {RecaudoPagoVista.Miles(confirmacion.Pendiente)}\n{PdaTexts.ValorRecibido}: {RecaudoPagoVista.Miles(confirmacion.Recibido)}\n{PdaTexts.SaldoQueQueda}: {RecaudoPagoVista.Miles(confirmacion.SaldoQueQueda)}",
             PdaTexts.ConfirmarCobro,
             PdaTexts.Cancelar);
         if (!aceptar)
@@ -542,8 +589,7 @@ public sealed class RecaudadorCobroPage : ContentPage
                 resultado.Data.VendedorNombre,
                 resultado.Data.FechaHora,
                 valor,
-                resultado.Data.SaldoRestante,
-                resultado.Data.Consecutivo);
+                resultado.Data.SaldoRestante);
             await _impresora.ImprimirAsync(texto, null);
         }
         finally

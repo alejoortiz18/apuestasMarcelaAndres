@@ -20,11 +20,11 @@ public static class PdaConexion
     public static string? NumeroSerie { get; set; }
     public const string UrlProduccion = "https://api-ventas-prod-ffh4dmdhgpcsapda.westus3-01.azurewebsites.net/";
 
-    /// <summary>Con el celular por USB, <c>adb reverse tcp:8090 tcp:8090</c> deja el API del PC aquí.</summary>
-    public const string UrlLocalUsb = "http://localhost:8090/";
+    /// <summary>Con el celular por USB, <c>adb reverse tcp:9091 tcp:9091</c> deja el API del PC aquí.</summary>
+    public const string UrlLocalUsb = "http://localhost:9091/";
 
     /// <summary>Alternativa por Wi-Fi. Cambiar si el PC recibe otra dirección en la red.</summary>
-    public const string UrlLocal = "http://192.168.1.28:8090/";
+    public const string UrlLocal = "http://192.168.1.28:9091/";
     public const string RutaHubChat = "/hubs/chat";
 
     /// <summary>Sondeo liviano. No descarga el documento de swagger.</summary>
@@ -32,7 +32,7 @@ public static class PdaConexion
 
     public static string BaseUrl(bool emulador) => UrlsPara(emulador)[0];
 
-    /// <summary>En esta rama el celular y el emulador hablan con el API local del puerto 8090. Primero el puente USB y luego la red.</summary>
+    /// <summary>En esta rama el celular y el emulador hablan con el API local del puerto 9091. Primero el puente USB y luego la red.</summary>
     public static IReadOnlyList<string> UrlsPara(bool emulador) =>
         [UrlLocalUsb, UrlLocal];
 

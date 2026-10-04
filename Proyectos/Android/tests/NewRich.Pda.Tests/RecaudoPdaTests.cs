@@ -105,22 +105,42 @@ public sealed class RecaudoPdaTests
     }
 
     [Fact]
-    public void La_tirilla_lleva_recaudador_vendedor_fecha_valor_saldo_y_consecutivo()
+    public void La_tirilla_lleva_recaudador_vendedor_fecha_valor_y_saldo_sin_consecutivo()
     {
         var texto = TirillaCobroTexto.De(
             "Carmen Recaudo",
             "Ana Pérez",
             new DateTime(2026, 9, 29, 10, 15, 0),
             30_000m,
-            100_000m,
-            12);
+            100_000m);
 
+        texto.Should().Contain("COMPROBANTE DE COBRO");
         texto.Should().Contain("Carmen Recaudo");
         texto.Should().Contain("Ana Pérez");
-        texto.Should().Contain("30.000");
-        texto.Should().Contain("100.000");
-        texto.Should().Contain("12");
         texto.Should().Contain("2026-09-29");
+        texto.Should().Contain("10:15");
+        texto.Should().NotContain("Consecutivo");
+        var lineas = texto.Split(Environment.NewLine);
+        lineas.Should().OnlyContain(l => l.Length <= TirillaTexto.AnchoImpresora);
+        lineas.Should().Contain(l => l.StartsWith("VALOR RECIBIDO") && l.EndsWith("$30.000") && l.Length == TirillaTexto.AnchoImpresora);
+        lineas.Should().Contain(l => l.StartsWith("SALDO QUE QUEDA") && l.EndsWith("$100.000") && l.Length == TirillaTexto.AnchoImpresora);
+    }
+
+    [Fact]
+    public void La_tirilla_parte_los_nombres_largos_sin_pasarse_del_ancho()
+    {
+        var texto = TirillaCobroTexto.De(
+            "Carmen Recaudo",
+            "María Fernanda Gutiérrez de la Torre",
+            new DateTime(2026, 9, 29, 10, 15, 0),
+            1_500_000m,
+            12_000_000m);
+
+        var lineas = texto.Split(Environment.NewLine);
+        lineas.Should().OnlyContain(l => l.Length <= TirillaTexto.AnchoImpresora);
+        texto.Should().Contain("María Fernanda");
+        texto.Should().Contain("Torre");
+        lineas.Should().Contain(l => l.EndsWith("$12.000.000"));
     }
 
     [Fact]
@@ -207,17 +227,88 @@ public sealed class RecaudoPdaTests
         var cifras = RecaudoPagoVista.CifrasTarjeta(TresFilas()[1]);
 
         cifras.Select(c => c.Etiqueta).Should().Equal(
-            PdaTexts.Vendido, PdaTexts.ACobrar, PdaTexts.TotalPagado, PdaTexts.TotalPendiente);
+            PdaTexts.VendidoHoy, PdaTexts.SaldoAnterior, PdaTexts.TotalPagado, PdaTexts.PendienteDelDia);
         cifras.Should().Contain(c => c.Etiqueta == PdaTexts.TotalPagado && c.Valor == 30_000m);
-        cifras.Should().Contain(c => c.Etiqueta == PdaTexts.TotalPendiente && c.Valor == 10_000m);
+        cifras.Should().Contain(c => c.Etiqueta == PdaTexts.PendienteDelDia && c.Valor == 0m);
+        cifras.Should().Contain(c => c.Etiqueta == PdaTexts.SaldoAnterior && c.Valor == 10_000m);
     }
 
     [Fact]
     public void La_tarjeta_pendiente_no_muestra_pagado()
     {
         RecaudoPagoVista.CifrasTarjeta(TresFilas()[0])
-            .Select(c => c.Etiqueta).Should().Equal(PdaTexts.Vendido, PdaTexts.ACobrar, PdaTexts.TotalPendiente);
+            .Select(c => c.Etiqueta).Should().Equal(PdaTexts.VendidoHoy, PdaTexts.SaldoAnterior, PdaTexts.PendienteDelDia);
     }
+
+    [Fact]
+    public void Sin_cobro_lo_de_hoy_es_pendiente_del_dia_y_no_pasa_al_saldo_anterior()
+    {
+        var fila = Fila(saldoAnterior: 0m, aCobrarHoy: 15_000m, pagadoHoy: 0m, pendienteDelDia: 15_000m);
+
+        var saldos = RecaudoPagoVista.Saldos(fila);
+
+        saldos.PendienteDelDia.Should().Be(15_000m);
+        saldos.SaldoAnterior.Should().Be(0m);
+        saldos.TotalAPagar.Should().Be(15_000m);
+        RecaudoPagoVista.CifrasTarjeta(fila).Should().Contain(c => c.Etiqueta == PdaTexts.SaldoAnterior && c.Valor == 0m);
+    }
+
+    [Fact]
+    public void Tras_el_cobro_lo_que_queda_pasa_al_saldo_anterior_y_se_suma_a_la_deuda_vieja()
+    {
+        var saldos = RecaudoPagoVista.Saldos(Fila(saldoAnterior: 2_000m, aCobrarHoy: 15_000m, pagadoHoy: 10_000m, pendienteDelDia: 0m));
+
+        saldos.PendienteDelDia.Should().Be(0m);
+        saldos.SaldoAnterior.Should().Be(7_000m);
+        saldos.TotalAPagar.Should().Be(7_000m);
+    }
+
+    [Fact]
+    public void Lo_vendido_despues_del_cobro_es_pendiente_del_dia()
+    {
+        var saldos = RecaudoPagoVista.Saldos(Fila(saldoAnterior: 0m, aCobrarHoy: 18_000m, pagadoHoy: 10_000m, pendienteDelDia: 3_000m));
+
+        saldos.PendienteDelDia.Should().Be(3_000m);
+        saldos.SaldoAnterior.Should().Be(5_000m);
+        saldos.TotalAPagar.Should().Be(8_000m);
+    }
+
+    [Fact]
+    public void Al_cobrar_sin_conexion_lo_que_queda_pasa_al_saldo_anterior_y_sigue_cobrado()
+    {
+        var fila = RecaudoListas.TrasCobro(Fila(saldoAnterior: 0m, aCobrarHoy: 15_000m, pagadoHoy: 0m, pendienteDelDia: 15_000m), 10_000m);
+
+        var saldos = RecaudoPagoVista.Saldos(fila);
+
+        saldos.PendienteDelDia.Should().Be(0m);
+        saldos.SaldoAnterior.Should().Be(5_000m);
+        fila.Lista.Should().Be(nameof(ListaCobro.Cobrados));
+    }
+
+    [Fact]
+    public void La_tarjeta_muestra_total_a_pagar_y_no_deja_recibir_mas_de_eso()
+    {
+        var cobro = File.ReadAllText(RutaMaui("Views", "Recaudador", "RecaudadorCobroPage.cs"));
+
+        cobro.Should().Contain("PdaTexts.TotalAPagar");
+        cobro.Should().Contain("RecaudoPagoVista.Rechazo(valor, saldos.TotalAPagar)");
+        RecaudoPagoVista.Rechazo(13_051m, 13_050m).Should().Be(PdaTexts.PagoRecaudoExcede);
+        PdaTexts.PagoRecaudoExcede.Should().Contain("total a pagar");
+    }
+
+    private static ObligacionRecaudoResponse Fila(decimal saldoAnterior, decimal aCobrarHoy, decimal pagadoHoy, decimal pendienteDelDia) => new()
+    {
+        PendienteDelDia = pendienteDelDia,
+        VendedorId = Guid.NewGuid(),
+        NombreCompleto = "Vendedor",
+        Grupo = "Centro",
+        TotalVendido = 67_000m,
+        ValorACobrar = aCobrarHoy,
+        SaldoAnterior = saldoAnterior,
+        PagosHoy = pagadoHoy,
+        TotalPendiente = saldoAnterior + aCobrarHoy - pagadoHoy,
+        Lista = pagadoHoy > 0m ? nameof(ListaCobro.Cobrados) : nameof(ListaCobro.Pendientes)
+    };
 
     private static string RutaMaui(params string[] partes)
     {

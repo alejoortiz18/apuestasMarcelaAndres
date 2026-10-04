@@ -27,8 +27,8 @@ public sealed class PdaConexionTests
     [Fact]
     public void La_aplicacion_habla_con_el_api_local()
     {
-        PdaConexion.UrlLocalUsb.Should().Be("http://localhost:8090/");
-        PdaConexion.UrlLocal.Should().Be("http://192.168.1.28:8090/");
+        PdaConexion.UrlLocalUsb.Should().Be("http://localhost:9091/");
+        PdaConexion.UrlLocal.Should().Be("http://192.168.1.28:9091/");
         PdaConexion.UrlsPara(emulador: false).Should().Equal(PdaConexion.UrlLocalUsb, PdaConexion.UrlLocal);
         PdaConexion.UrlsPara(emulador: true).Should().Equal(PdaConexion.UrlLocalUsb, PdaConexion.UrlLocal);
         PdaConexion.BaseUrl(emulador: false).Should().Be(PdaConexion.UrlLocalUsb);

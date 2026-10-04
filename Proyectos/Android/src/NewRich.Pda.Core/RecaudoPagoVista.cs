@@ -9,6 +9,8 @@ public sealed record RecaudoConfirmacion(string Vendedor, decimal Pendiente, dec
 
 public sealed record RecaudoCifraTarjeta(string Etiqueta, decimal Valor);
 
+public sealed record RecaudoSaldos(decimal SaldoAnterior, decimal PendienteDelDia, decimal TotalAPagar);
+
 public static class RecaudoPagoVista
 {
     private static readonly CultureInfo Cultura = CultureInfo.GetCultureInfo("es-CO");
@@ -49,19 +51,30 @@ public static class RecaudoPagoVista
     public static RecaudoConfirmacion Confirmar(string vendedor, decimal pendiente, decimal valor) =>
         new(vendedor, pendiente, valor, pendiente - valor);
 
+    /// <summary>
+    /// Lo del día que aún no pasa por un cobro es pendiente del día; lo que queda tras un cobro se suma al saldo anterior.
+    /// </summary>
+    public static RecaudoSaldos Saldos(ObligacionRecaudoResponse fila)
+    {
+        var total = Math.Max(0m, fila.TotalPendiente);
+        var pendienteDelDia = Math.Min(Math.Max(0m, fila.PendienteDelDia), total);
+        return new RecaudoSaldos(total - pendienteDelDia, pendienteDelDia, total);
+    }
+
     public static IReadOnlyList<RecaudoCifraTarjeta> CifrasTarjeta(ObligacionRecaudoResponse fila)
     {
+        var saldos = Saldos(fila);
         var cifras = new List<RecaudoCifraTarjeta>
         {
-            new(PdaTexts.Vendido, fila.TotalVendido),
-            new(PdaTexts.ACobrar, fila.ValorACobrar)
+            new(PdaTexts.VendidoHoy, fila.TotalVendido),
+            new(PdaTexts.SaldoAnterior, saldos.SaldoAnterior)
         };
         if (string.Equals(fila.Lista, nameof(ListaCobro.Cobrados), StringComparison.OrdinalIgnoreCase))
         {
             cifras.Add(new RecaudoCifraTarjeta(PdaTexts.TotalPagado, fila.PagosHoy));
         }
 
-        cifras.Add(new RecaudoCifraTarjeta(PdaTexts.TotalPendiente, fila.TotalPendiente));
+        cifras.Add(new RecaudoCifraTarjeta(PdaTexts.PendienteDelDia, saldos.PendienteDelDia));
         return cifras;
     }
 

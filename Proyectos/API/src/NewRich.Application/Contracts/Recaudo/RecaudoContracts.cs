@@ -44,6 +44,7 @@ public sealed class ObligacionRecaudoResponse
     public decimal ValorACobrar { get; set; }
     public decimal SaldoAnterior { get; set; }
     public decimal TotalPendiente { get; set; }
+    public decimal PendienteDelDia { get; set; }
     public decimal PagosHoy { get; set; }
     public string Estado { get; set; } = string.Empty;
     public string Color { get; set; } = string.Empty;

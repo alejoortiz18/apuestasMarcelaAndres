@@ -35,6 +35,7 @@ public static class RecaudoListas
     {
         fila.PagosHoy += valor;
         fila.TotalPendiente = Math.Max(0m, fila.TotalPendiente - valor);
+        fila.PendienteDelDia = 0m;
         fila.Lista = nameof(ListaCobro.Cobrados);
         if (fila.TotalPendiente <= 0m)
         {
