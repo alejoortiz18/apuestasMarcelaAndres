@@ -25,6 +25,7 @@ public sealed class TicketDraft
     {
         Tipo = tipo;
         MaxLineas = maxLineas;
+        ClaveIdempotencia = NuevaClave();
     }
 
     public TipoApuesta Tipo { get; }
@@ -32,6 +33,12 @@ public sealed class TicketDraft
     public IReadOnlyList<LineaBorrador> Lineas => _lineas;
     public decimal Total => TotalesApuesta.TotalBoleto(_lineas.Select(l => l.TotalLinea));
     public bool AlMaximo => _lineas.Count >= MaxLineas;
+
+    /// <summary>
+    /// Identifica este boleto ante el servidor. Se mantiene igual mientras el borrador no cambie,
+    /// para que un reenvío del mismo boleto devuelva la venta ya registrada en vez de crear otra.
+    /// </summary>
+    public string ClaveIdempotencia { get; private set; }
 
     public static TicketDraft Crear(TipoApuesta tipo, int maxLineas) => new(tipo, maxLineas);
 
@@ -74,6 +81,7 @@ public sealed class TicketDraft
             LoteriaIds = loteriaIds.ToArray(),
             LoteriaNombres = loteriaNombres.ToArray()
         });
+        ClaveIdempotencia = NuevaClave();
 
         return Result.Ok(string.Empty);
     }
@@ -86,8 +94,11 @@ public sealed class TicketDraft
         }
 
         _lineas.RemoveAt(indice);
+        ClaveIdempotencia = NuevaClave();
         return Result.Ok(string.Empty);
     }
+
+    private static string NuevaClave() => Guid.NewGuid().ToString("N");
 
     public ConfirmarVentaRequest ARequest()
     {

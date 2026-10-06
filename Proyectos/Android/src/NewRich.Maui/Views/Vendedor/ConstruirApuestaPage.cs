@@ -21,9 +21,13 @@ public sealed class ConstruirApuestaPage : ContentPage
     private readonly LocalDatabase _offline;
     private readonly IServiceProvider _services;
     private readonly LoteriasEnVivoServicio _loteriasVivo;
+    private readonly CargandoOverlay _cargando = new();
+    private readonly ContentView _cuerpo = new();
     private IReadOnlyList<LoteriaResponse> _loterias = [];
     private IReadOnlyList<string> _restringidos = [];
     private LineaBorrador? _correccion;
+    private Button? _jugar;
+    private bool _jugando;
 
     public ConstruirApuestaPage(
         NewRichApiClient api,
@@ -39,6 +43,10 @@ public sealed class ConstruirApuestaPage : ContentPage
         _loteriasVivo = loteriasVivo;
         Title = PdaTexts.JuegoNuevo;
         BackgroundColor = Ui.Paper;
+
+        // El árbol se arma una sola vez. Cada render reemplaza solo el contenido de _cuerpo,
+        // porque mover el overlay a un contenedor nuevo rompe la vista nativa de Android.
+        Content = new Grid { Children = { _cuerpo, _cargando } };
     }
 
     protected override async void OnAppearing()
@@ -303,8 +311,9 @@ public sealed class ConstruirApuestaPage : ContentPage
         }
 
         var jugar = Ui.Primario(PdaTexts.Jugar);
-        jugar.IsEnabled = draft.Lineas.Count > 0;
+        jugar.IsEnabled = draft.Lineas.Count > 0 && !_jugando;
         jugar.Clicked += async (_, _) => await JugarAsync(draft);
+        _jugar = jugar;
 
         var cancelar = Ui.Secundario(PdaTexts.CancelarBoleto);
         cancelar.Clicked += async (_, _) =>
@@ -333,7 +342,7 @@ public sealed class ConstruirApuestaPage : ContentPage
 
         form.Children.Add(agregar);
 
-        Content = new ScrollView
+        var cuerpo = new ScrollView
         {
             Content = new VerticalStackLayout
             {
@@ -366,16 +375,30 @@ public sealed class ConstruirApuestaPage : ContentPage
                 }
             }
         };
+
+        _cuerpo.Content = cuerpo;
     }
 
     private async Task JugarAsync(TicketDraft draft)
     {
+        if (_jugando)
+        {
+            return;
+        }
+
+        _jugando = true;
+        if (_jugar is not null)
+        {
+            _jugar.IsEnabled = false;
+        }
+
         try
         {
             await JugarInternoAsync(draft);
         }
         catch (Exception)
         {
+            _cargando.Ocultar();
             if (_sesion.Tirilla is not null)
             {
                 try
@@ -391,11 +414,22 @@ public sealed class ConstruirApuestaPage : ContentPage
             var disponibles = await _offline.ContarDisponiblesAsync();
             await this.AvisoAsync(PdaTexts.JuegoNuevo, PdaTexts.AvisoOperacionSinServidor(disponibles), PdaTexts.Entendido);
         }
+        finally
+        {
+            _cargando.Ocultar();
+            _jugando = false;
+            if (_jugar is not null)
+            {
+                _jugar.IsEnabled = draft.Lineas.Count > 0;
+            }
+        }
     }
 
     private async Task JugarInternoAsync(TicketDraft draft)
     {
+        _cargando.Mostrar(PdaTexts.ValidandoTopesJuego);
         var topeOk = await ValidarTopesAntesDePagarAsync(draft);
+        _cargando.Ocultar();
         if (!topeOk)
         {
             return;
@@ -407,6 +441,7 @@ public sealed class ConstruirApuestaPage : ContentPage
             return;
         }
 
+        _cargando.Mostrar(PdaTexts.RegistrandoJuego);
         if (PoliticaVentaPda.IntentarServidorAunqueAndroidReporteSinRed)
         {
             try
@@ -417,7 +452,7 @@ public sealed class ConstruirApuestaPage : ContentPage
                     sondeo.Token);
                 if (conexion.IsSuccess)
                 {
-                    var venta = await _api.ConfirmarVentaAsync(draft.ARequest(), Guid.NewGuid().ToString("N"), CancellationToken.None);
+                    var venta = await _api.ConfirmarVentaAsync(draft.ARequest(), draft.ClaveIdempotencia, CancellationToken.None);
                     if (!venta.IsSuccess || venta.Data is null)
                     {
                         if (venta.Message == VentaMessages.VentaFueraDeHorario)
@@ -425,6 +460,7 @@ public sealed class ConstruirApuestaPage : ContentPage
                             _sesion.HorarioCerrado = true;
                         }
 
+                        _cargando.Ocultar();
                         await this.AvisoAsync(PdaTexts.JuegoNuevo, venta.Message, PdaTexts.Cerrar);
                         return;
                     }
@@ -442,6 +478,7 @@ public sealed class ConstruirApuestaPage : ContentPage
         }
 
         var disponibles = await _offline.ContarDisponiblesAsync();
+        _cargando.Ocultar();
         if (!_sesion.Limites.PermitirJuegosOffline)
         {
             await this.AvisoAsync(PdaTexts.JuegoNuevo, VentaMessages.JuegosOfflineDeshabilitados, PdaTexts.Entendido);
@@ -466,9 +503,11 @@ public sealed class ConstruirApuestaPage : ContentPage
             return;
         }
 
+        _cargando.Mostrar(PdaTexts.RegistrandoJuego);
         var codigo = await _offline.ConsumirAsync();
         if (codigo is null)
         {
+            _cargando.Ocultar();
             await this.AvisoAsync(PdaTexts.SinCodigosOffline, PdaTexts.BorradorConservado, PdaTexts.Entendido);
             return;
         }
@@ -495,6 +534,7 @@ public sealed class ConstruirApuestaPage : ContentPage
                     CancellationToken.None);
                 if (!validacion.IsSuccess)
                 {
+                    _cargando.Ocultar();
                     await this.AvisoAsync(PdaTexts.JuegoNuevo, validacion.Message, PdaTexts.Entendido);
                     return false;
                 }
@@ -530,6 +570,7 @@ public sealed class ConstruirApuestaPage : ContentPage
 
     private async Task AvisarSuperacionAsync(TicketDraft draft, string mensaje, decimal disponible)
     {
+        _cargando.Ocultar();
         if (disponible <= 0m)
         {
             await this.AvisoAsync(PdaTexts.JuegoNuevo, mensaje, PdaTexts.Entendido);

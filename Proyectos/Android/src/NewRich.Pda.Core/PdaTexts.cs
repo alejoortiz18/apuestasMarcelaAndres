@@ -140,6 +140,8 @@ public static class PdaTexts
     public const string SinJuegos = "Aún no hay juegos agregados";
     public const string TotalApostado = "Total apostado";
     public const string Jugar = "JUGAR";
+    public const string ValidandoTopesJuego = "Validando los topes...";
+    public const string RegistrandoJuego = "Registrando el juego...";
     public const string CancelarBoleto = "Cancelar boleto";
     public const string Quitar = "Quitar";
     public const string EliminarJuego = "Eliminar juego";

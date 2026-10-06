@@ -9,6 +9,54 @@ namespace NewRich.Pda.Tests;
 public sealed class TicketDraftTests
 {
     [Fact]
+    public void La_clave_de_idempotencia_se_repite_mientras_el_borrador_no_cambie()
+    {
+        var draft = TicketDraft.Crear(TipoApuesta.COMBINADO, maxLineas: 1);
+        draft.AgregarLinea("1234", 1000, [Guid.NewGuid()], ["Bogota"]);
+
+        var primera = draft.ClaveIdempotencia;
+
+        primera.Should().NotBeNullOrWhiteSpace();
+        draft.ClaveIdempotencia.Should().Be(primera);
+    }
+
+    [Fact]
+    public void Dos_borradores_distintos_no_comparten_la_clave_de_idempotencia()
+    {
+        var uno = TicketDraft.Crear(TipoApuesta.COMBINADO, maxLineas: 1);
+        var otro = TicketDraft.Crear(TipoApuesta.COMBINADO, maxLineas: 1);
+
+        uno.ClaveIdempotencia.Should().NotBe(otro.ClaveIdempotencia);
+    }
+
+    [Fact]
+    public void Agregar_o_quitar_una_linea_renueva_la_clave_de_idempotencia()
+    {
+        var draft = TicketDraft.Crear(TipoApuesta.INDIVIDUAL, maxLineas: 6);
+        var alCrear = draft.ClaveIdempotencia;
+
+        draft.AgregarLinea("1234", 1000, [Guid.NewGuid()], ["Bogota"]);
+        var conUnaLinea = draft.ClaveIdempotencia;
+        conUnaLinea.Should().NotBe(alCrear);
+
+        draft.QuitarLinea(0);
+        draft.ClaveIdempotencia.Should().NotBe(conUnaLinea);
+    }
+
+    [Fact]
+    public void Una_linea_rechazada_conserva_la_clave_para_no_romper_el_reintento()
+    {
+        var draft = TicketDraft.Crear(TipoApuesta.INDIVIDUAL, maxLineas: 6);
+        draft.AgregarLinea("1234", 1000, [Guid.NewGuid()], ["Bogota"]);
+        var antes = draft.ClaveIdempotencia;
+
+        draft.AgregarLinea("abc", 1000, [Guid.NewGuid()], ["Bogota"]).IsSuccess.Should().BeFalse();
+        draft.QuitarLinea(9).IsSuccess.Should().BeFalse();
+
+        draft.ClaveIdempotencia.Should().Be(antes);
+    }
+
+    [Fact]
     public void Combinado_total_es_valor_por_cantidad_de_loterias()
     {
         var draft = TicketDraft.Crear(TipoApuesta.COMBINADO, maxLineas: 1);
