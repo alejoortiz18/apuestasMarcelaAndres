@@ -9,6 +9,7 @@ public sealed class LoginAndroidResponse
     public Guid UsuarioId { get; set; }
     public string NombreUsuario { get; set; } = string.Empty;
     public string NombreCompleto { get; set; } = string.Empty;
+    public string Alias { get; set; } = string.Empty;
     public RolUsuario Rol { get; set; }
     public bool DebeCambiarPassword { get; set; }
     public Guid? DispositivoId { get; set; }

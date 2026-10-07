@@ -55,7 +55,7 @@ public sealed class ObservadorHomePage : ContentPage
                         {
                             Children =
                             {
-                                Ui.Titulo(_sesion.Usuario?.NombreCompleto ?? PdaTexts.Inicio),
+                                Ui.Titulo(string.IsNullOrWhiteSpace(_sesion.Usuario?.Alias) ? PdaTexts.Inicio : _sesion.Usuario!.Alias),
                                 new Label
                                 {
                                     Text = PdaTexts.PdaObservador,

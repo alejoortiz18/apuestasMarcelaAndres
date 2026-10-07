@@ -72,7 +72,7 @@ public sealed class RecaudadorHomePage : ContentPage
                         {
                             Children =
                             {
-                                Ui.Titulo(_sesion.Usuario?.NombreCompleto ?? PdaTexts.Inicio),
+                                Ui.Titulo(string.IsNullOrWhiteSpace(_sesion.Usuario?.Alias) ? PdaTexts.Inicio : _sesion.Usuario!.Alias),
                                 new Label { Text = PdaTexts.PdaRecaudador, TextColor = Color.FromArgb("#aed8c4"), FontSize = 13 },
                                 _estado
                             }

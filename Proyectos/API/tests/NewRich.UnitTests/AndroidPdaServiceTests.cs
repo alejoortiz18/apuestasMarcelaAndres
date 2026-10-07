@@ -53,6 +53,39 @@ public sealed class AndroidPdaServiceTests
     }
 
     [Fact]
+    public async Task LoginMob_incluye_el_alias_del_usuario()
+    {
+        var (sut, db, auth) = CreateSut();
+        var usuarioId = Guid.NewGuid();
+        db.Usuarios.Add(new Usuario
+        {
+            UsuarioId = usuarioId,
+            NombreCompleto = "Camila Rojas",
+            NombreUsuario = "crojas",
+            Alias = "cami",
+            PasswordHash = "x",
+            PasswordSalt = "x",
+            Rol = RolUsuario.Vendedor
+        });
+        await db.SaveChangesAsync();
+
+        auth.Setup(a => a.LoginAsync(It.IsAny<LoginRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<LoginResponse>.Ok(new LoginResponse
+            {
+                Token = "t",
+                UsuarioId = usuarioId,
+                NombreUsuario = "crojas",
+                NombreCompleto = "Camila Rojas",
+                Rol = RolUsuario.Vendedor
+            }, SuccessMessages.OperacionExitosa));
+
+        var resultado = await sut.LoginMobAsync(new LoginRequest { Usuario = "crojas", Password = "x", CodigoDispositivo = "PDA-042" }, CancellationToken.None);
+
+        resultado.IsSuccess.Should().BeTrue();
+        resultado.Data!.Alias.Should().Be("cami");
+    }
+
+    [Fact]
     public async Task DescargarOfflineMob_marca_generados_del_pda_y_no_entrega_utilizados()
     {
         var (sut, db, _) = CreateSut();

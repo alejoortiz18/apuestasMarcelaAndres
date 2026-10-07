@@ -276,6 +276,12 @@ public sealed class AndroidPdaService : IAndroidPdaService
             .Select(x => x.Grupo!.Nombre)
             .FirstOrDefaultAsync(cancellationToken);
 
+        var alias = await _db.Usuarios
+            .AsNoTracking()
+            .Where(u => u.UsuarioId == login.UsuarioId)
+            .Select(u => u.Alias)
+            .FirstOrDefaultAsync(cancellationToken);
+
         var codigoPda = login.DispositivoId.HasValue
             ? await _db.Dispositivos.AsNoTracking()
                 .Where(d => d.DispositivoId == login.DispositivoId)
@@ -289,6 +295,7 @@ public sealed class AndroidPdaService : IAndroidPdaService
             UsuarioId = login.UsuarioId,
             NombreUsuario = login.NombreUsuario,
             NombreCompleto = login.NombreCompleto,
+            Alias = alias ?? string.Empty,
             Rol = login.Rol,
             DebeCambiarPassword = login.DebeCambiarPassword,
             DispositivoId = login.DispositivoId,
