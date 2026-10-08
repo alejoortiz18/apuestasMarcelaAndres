@@ -97,6 +97,15 @@ public sealed class AuthService : IAuthService
                     ?? await VincularCelularObservadorAsync(usuario, request, cancellationToken);
             }
 
+            if (dispositivo is null && usuario.Rol == RolUsuario.Recaudador)
+            {
+                dispositivo = usuario.DispositivosUsuarios
+                    .Where(x => x.Activo)
+                    .Select(x => x.Dispositivo)
+                    .FirstOrDefault(d => d is not null)
+                    ?? await VincularCelularAsync(usuario, request, TipoDispositivo.Recaudador, cancellationToken);
+            }
+
             if (dispositivo is null)
             {
                 return Result<LoginResponse>.Fail(AuthMessages.DispositivoNoRegistrado, 403);
@@ -271,7 +280,11 @@ public sealed class AuthService : IAuthService
     /// el que envía la app se deriva del modelo y lo comparten celulares iguales. La serie es
     /// única en la base y admite un solo nulo, así que sin serie se usa el código.
     /// </summary>
-    private async Task<Dispositivo> VincularCelularObservadorAsync(Usuario usuario, LoginRequest request, CancellationToken cancellationToken)
+    private Task<Dispositivo> VincularCelularObservadorAsync(Usuario usuario, LoginRequest request, CancellationToken cancellationToken) =>
+        VincularCelularAsync(usuario, request, TipoDispositivo.Observador, cancellationToken);
+
+    /// <summary>El recaudador también entra desde un celular y sigue la misma regla del observador.</summary>
+    private async Task<Dispositivo> VincularCelularAsync(Usuario usuario, LoginRequest request, TipoDispositivo tipo, CancellationToken cancellationToken)
     {
         var codigo = await GenerarCodigoCelularAsync(cancellationToken);
         var serie = request.NumeroSerie?.Trim();
@@ -279,7 +292,7 @@ public sealed class AuthService : IAuthService
         {
             DispositivoId = Guid.NewGuid(),
             CodigoDispositivo = codigo,
-            Tipo = TipoDispositivo.Observador,
+            Tipo = tipo,
             Estado = EstadoGeneral.Activo,
             Modelo = string.IsNullOrWhiteSpace(request.CodigoDispositivo) ? null : request.CodigoDispositivo.Trim(),
             NumeroSerie = string.IsNullOrWhiteSpace(serie) || serie.Length > 100 ? codigo : serie,

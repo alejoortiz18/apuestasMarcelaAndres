@@ -271,7 +271,7 @@ public sealed class PremioService : IPremioService
         boleto.CasoGanadorId = caso.CasoId;
 
         var admins = await _db.Usuarios
-            .Where(u => u.Rol == RolUsuario.Administrador && u.Estado == EstadoUsuario.Activo && !u.EstadoBloqueado)
+            .Where(u => (u.Rol == RolUsuario.Administrador || u.Rol == RolUsuario.Super) && u.Estado == EstadoUsuario.Activo && !u.EstadoBloqueado)
             .Select(u => u.UsuarioId)
             .ToListAsync(cancellationToken);
 

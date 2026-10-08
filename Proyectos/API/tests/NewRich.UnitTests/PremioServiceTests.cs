@@ -51,6 +51,23 @@ public sealed class PremioServiceTests
     }
 
     [Fact]
+    public async Task ReportarAsync_avisa_al_usuario_super_del_caso_ganador()
+    {
+        var (sut, db) = CreateSut();
+        var escenario = await CrearBoletoGanadorAsync(db);
+        var super = Usuario("Soporte NewRich", RolUsuario.Super);
+        db.Usuarios.Add(super);
+        await db.SaveChangesAsync();
+
+        var result = await sut.ReportarAsync(escenario.Vendedor.UsuarioId, Reporte(escenario.Boleto.CodigoPublico), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        db.Notificaciones.Should().Contain(n => n.Tipo == "CasoGanador" && n.UsuarioId == super.UsuarioId);
+        db.Notificaciones.Should().Contain(n => n.Tipo == "CasoGanador" && n.UsuarioId == escenario.Admin.UsuarioId);
+        db.Notificaciones.Should().NotContain(n => n.Tipo == "CasoGanador" && n.UsuarioId == escenario.Observador.UsuarioId);
+    }
+
+    [Fact]
     public async Task Caso_guarda_fechas_en_hora_de_Colombia()
     {
         var utc = new DateTime(2026, 10, 2, 15, 11, 1, DateTimeKind.Utc);

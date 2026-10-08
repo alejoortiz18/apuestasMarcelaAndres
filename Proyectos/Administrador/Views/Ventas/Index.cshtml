@@ -84,7 +84,7 @@
                         </td>
                         <td><strong>@row.CodigoPublico</strong></td>
                         <td>@row.Vendedor</td>
-                        <td>@row.Fecha.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>@row.Fecha.ToString("dd/MM/yyyy HH:mm")</td>
                         <td>@row.Total.ToString("C0", cultura)</td>
                         <td><span class="pill @EstadoUi.Pill(row.Estado)">@row.Estado</span></td>
                         <td>

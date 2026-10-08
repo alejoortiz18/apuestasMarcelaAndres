@@ -207,6 +207,7 @@ Every data table created in the MVC application must include pagination. A table
 - En **Más**, la opción **Vendedores** abre la lista de vendedores (solo ese rol), ordenada por nombre. Arriba van el buscador (nombre, alias, usuario o documento, sin importar tildes ni mayúsculas), los filtros de **Grupo** (Todos los grupos, cada grupo en orden alfabético y **Sin grupo** si aplica) y **Estado** (Todos, Bloqueados, Sin bloqueo), el texto *Mostrando X de Y vendedores* y **Limpiar filtros**.
 - Cada tarjeta muestra nombre, usuario, documento, grupo y estado (Bloqueado en rojo, Activo en verde), con los botones **Desbloquear** (habilitado solo si está bloqueado) y **Restablecer contraseña**.
 - Antes de ejecutar cualquiera de las dos acciones se pregunta nombrando al vendedor, con **Sí, desbloquear** o **Sí, restablecer** y **Cancelar**. Cancelar no cambia nada. Al restablecer, la contraseña temporal se muestra una sola vez en el mensaje de resultado. Mientras una acción está en curso no se acepta otra.
+- En **Validar**, después del recibo con el resultado del ticket aparece **Continuar registro** solo si el ticket tiene un caso ganador asignado a ese observador (en estado Asignado o En proceso). El botón abre la misma pantalla de registro de entrega que **Casos premios**. Si el ticket no ganó, no tiene caso o el caso es de otro observador, no se muestra el botón y el resultado se ve igual que antes.
 
 ## Responsive MVC checklist
 

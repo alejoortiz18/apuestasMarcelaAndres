@@ -1,8 +1,10 @@
 using NewRich.Application.Contracts.Boletos;
+using NewRich.Application.Contracts.Premios;
 using NewRich.Maui.Services;
 using NewRich.Maui.Views;
 using NewRich.Pda.Core;
 using NewRich.Pda.Core.Api;
+using NewRich.Pda.Core.Auth;
 using NewRich.Shared.Results;
 
 namespace NewRich.Maui.Views.Observador;
@@ -10,6 +12,7 @@ namespace NewRich.Maui.Views.Observador;
 public sealed class ObservadorValidarPage : ContentPage
 {
     private readonly NewRichApiClient _api;
+    private readonly SesionPda _sesion;
     private readonly IEscanerQrObservador _camara;
     private readonly ILectorQrFotoObservador _fotos;
     private readonly VerticalStackLayout _recibo = new() { Spacing = 12 };
@@ -18,10 +21,12 @@ public sealed class ObservadorValidarPage : ContentPage
 
     public ObservadorValidarPage(
         NewRichApiClient api,
+        SesionPda sesion,
         IEscanerQrObservador camara,
         ILectorQrFotoObservador fotos)
     {
         _api = api;
+        _sesion = sesion;
         _camara = camara;
         _fotos = fotos;
         Title = PdaTexts.ObservadorValidarTitulo;
@@ -161,6 +166,44 @@ public sealed class ObservadorValidarPage : ContentPage
         }
 
         _recibo.Children.Add(ReciboConsultaVista.Crear(TicketConsultaVista.De(consulta.Data)));
+        await MostrarContinuarRegistroAsync(consulta.Data);
+    }
+
+    private async Task MostrarContinuarRegistroAsync(ConsultaTicketResponse consulta)
+    {
+        CasoGanadorResponse? caso;
+        try
+        {
+            var asignados = await _api.PremiosAsignadosAsync(CancellationToken.None);
+            caso = asignados.IsSuccess
+                ? ObservadorContinuarRegistro.CasoDelTicket(consulta.BoletoId, asignados.Data)
+                : null;
+        }
+        catch (Exception)
+        {
+            caso = null;
+        }
+
+        if (caso is null)
+        {
+            return;
+        }
+
+        var continuar = Ui.Primario(PdaTexts.CasosPremiosContinuar);
+        continuar.Clicked += async (_, _) => await AbrirRegistroAsync(caso);
+        _recibo.Children.Add(continuar);
+    }
+
+    private async Task AbrirRegistroAsync(CasoGanadorResponse caso)
+    {
+        try
+        {
+            await Navigation.PushAsync(new RegistroEntregaPage(_api, _sesion, caso));
+        }
+        catch (Exception excepcion)
+        {
+            await this.AvisoAsync(PdaTexts.ObservadorValidarTitulo, excepcion.Message, PdaTexts.Cerrar);
+        }
     }
 
     private async Task LeerFotoAsync()
@@ -294,6 +337,7 @@ public sealed class ObservadorValidarPage : ContentPage
             }
 
             _recibo.Children.Add(ReciboConsultaVista.Crear(TicketConsultaVista.De(consulta.Data)));
+            await MostrarContinuarRegistroAsync(consulta.Data);
         }
         catch (Exception)
         {

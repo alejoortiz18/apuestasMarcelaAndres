@@ -524,6 +524,51 @@ public sealed class AuthServiceTests
     }
 
     [Fact]
+    public async Task LoginAsync_recaudador_sin_equipo_vincula_el_celular_en_el_primer_ingreso()
+    {
+        var (sut, db, usuario) = await CreateSutSinDispositivoAsync(RolUsuario.Recaudador);
+
+        var result = await sut.LoginAsync(new LoginRequest
+        {
+            Usuario = usuario.NombreUsuario,
+            Password = "Obs12345!",
+            CodigoDispositivo = "CEL-RMX3710",
+            NumeroSerie = "celular-recaudador-01"
+        }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Rol.Should().Be(RolUsuario.Recaudador);
+        var celular = await db.Dispositivos.SingleAsync();
+        celular.Tipo.Should().Be(TipoDispositivo.Recaudador);
+        celular.Estado.Should().Be(EstadoGeneral.Activo);
+        celular.NumeroSerie.Should().Be("celular-recaudador-01");
+        result.Data.DispositivoId.Should().Be(celular.DispositivoId);
+        var vinculo = await db.DispositivosUsuarios.SingleAsync();
+        vinculo.UsuarioId.Should().Be(usuario.UsuarioId);
+        vinculo.Activo.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task LoginAsync_recaudador_vuelve_a_entrar_con_el_celular_que_quedo_vinculado()
+    {
+        var (sut, db, usuario) = await CreateSutSinDispositivoAsync(RolUsuario.Recaudador);
+        var ingreso = new LoginRequest
+        {
+            Usuario = usuario.NombreUsuario,
+            Password = "Obs12345!",
+            CodigoDispositivo = "CEL-RMX3710"
+        };
+
+        var primero = await sut.LoginAsync(ingreso, CancellationToken.None);
+        var segundo = await sut.LoginAsync(ingreso, CancellationToken.None);
+
+        primero.IsSuccess.Should().BeTrue();
+        segundo.IsSuccess.Should().BeTrue();
+        segundo.Data!.DispositivoId.Should().Be(primero.Data!.DispositivoId);
+        (await db.Dispositivos.CountAsync()).Should().Be(1);
+    }
+
+    [Fact]
     public async Task LoginAsync_vendedor_sin_pda_registrado_sigue_sin_poder_entrar()
     {
         var (sut, db, usuario) = await CreateSutSinDispositivoAsync(RolUsuario.Vendedor);

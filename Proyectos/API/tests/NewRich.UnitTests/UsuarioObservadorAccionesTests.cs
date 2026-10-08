@@ -71,6 +71,42 @@ public sealed class UsuarioObservadorAccionesTests
         (await db.Usuarios.SingleAsync(u => u.UsuarioId == vendedor.UsuarioId)).EstadoBloqueado.Should().BeFalse();
     }
 
+    [Fact]
+    public async Task El_vendedor_desbloqueado_por_el_observador_ingresa_sin_cambiar_la_contrasena()
+    {
+        var (sut, db) = CreateSut();
+        var vendedor = await AgregarUsuarioAsync(db, "Pedro Vendedor", RolUsuario.Vendedor, bloqueado: true);
+
+        var result = await sut.DesbloquearAsync(vendedor.UsuarioId, RolUsuario.Observador, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue(result.Message);
+        result.Message.Should().Be(SuccessMessages.UsuarioDesbloqueadoPorObservador);
+        (await db.Usuarios.SingleAsync(u => u.UsuarioId == vendedor.UsuarioId)).EstadoValidado.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task El_desbloqueo_del_observador_conserva_el_cambio_pendiente_de_una_contrasena_temporal()
+    {
+        var (sut, db) = CreateSut();
+        var vendedor = await AgregarUsuarioAsync(db, "Pedro Vendedor", RolUsuario.Vendedor, bloqueado: true, debeCambiarPassword: true);
+
+        await sut.DesbloquearAsync(vendedor.UsuarioId, RolUsuario.Observador, CancellationToken.None);
+
+        (await db.Usuarios.SingleAsync(u => u.UsuarioId == vendedor.UsuarioId)).EstadoValidado.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task El_desbloqueo_del_administrador_sigue_pidiendo_cambiar_la_contrasena()
+    {
+        var (sut, db) = CreateSut();
+        var vendedor = await AgregarUsuarioAsync(db, "Pedro Vendedor", RolUsuario.Vendedor, bloqueado: true);
+
+        var result = await sut.DesbloquearAsync(vendedor.UsuarioId, RolUsuario.Administrador, CancellationToken.None);
+
+        result.Message.Should().Be(SuccessMessages.UsuarioDesbloqueado);
+        (await db.Usuarios.SingleAsync(u => u.UsuarioId == vendedor.UsuarioId)).EstadoValidado.Should().BeTrue();
+    }
+
     private static (UsuarioService Sut, NewRichDbContext Db) CreateSut()
     {
         var options = new DbContextOptionsBuilder<NewRichDbContext>()
@@ -81,7 +117,7 @@ public sealed class UsuarioObservadorAccionesTests
         return (sut, db);
     }
 
-    private static async Task<Usuario> AgregarUsuarioAsync(NewRichDbContext db, string nombre, RolUsuario rol, bool bloqueado = false)
+    private static async Task<Usuario> AgregarUsuarioAsync(NewRichDbContext db, string nombre, RolUsuario rol, bool bloqueado = false, bool debeCambiarPassword = false)
     {
         var usuario = new Usuario
         {
@@ -93,6 +129,7 @@ public sealed class UsuarioObservadorAccionesTests
             Rol = rol,
             Estado = EstadoUsuario.Activo,
             EstadoBloqueado = bloqueado,
+            EstadoValidado = debeCambiarPassword,
             FechaCreacion = DateTime.UtcNow
         };
         db.Usuarios.Add(usuario);

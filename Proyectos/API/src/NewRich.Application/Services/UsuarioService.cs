@@ -375,8 +375,13 @@ public sealed class UsuarioService : IUsuarioService
             return Result.Fail(UsuarioMessages.UsuarioNoBloqueado);
         }
 
+        var desbloqueoDelObservador = rolSolicitante == RolUsuario.Observador;
         usuario.EstadoBloqueado = false;
-        usuario.EstadoValidado = true;
+        if (!desbloqueoDelObservador)
+        {
+            usuario.EstadoValidado = true;
+        }
+
         usuario.IntentosFallidos = 0;
         var sesiones = await _db.Sesiones.Where(s => s.UsuarioId == usuarioId && s.Activa).ToListAsync(cancellationToken);
         foreach (var sesion in sesiones)
@@ -385,7 +390,9 @@ public sealed class UsuarioService : IUsuarioService
         }
 
         await _db.SaveChangesAsync(cancellationToken);
-        return Result.Ok(SuccessMessages.UsuarioDesbloqueado);
+        return Result.Ok(desbloqueoDelObservador
+            ? SuccessMessages.UsuarioDesbloqueadoPorObservador
+            : SuccessMessages.UsuarioDesbloqueado);
     }
 
     private IQueryable<Usuario> QueryUsuarios() =>
