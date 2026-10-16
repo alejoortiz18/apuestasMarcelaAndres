@@ -51,6 +51,63 @@ public sealed class RecaudoServiceTests
     }
 
     [Fact]
+    public async Task Configuracion_trata_como_libre_un_grupo_cuyo_recaudador_ya_no_existe()
+    {
+        var (sut, db) = Crear();
+        var grupo = await AgregarGrupo(db, "centro");
+        db.AsignacionesGrupoRecaudo.Add(new AsignacionGrupoRecaudo
+        {
+            AsignacionId = Guid.NewGuid(),
+            RecaudadorId = Guid.NewGuid(),
+            GrupoId = grupo.GrupoId,
+            Porcentaje = 15,
+            Estado = "Activa"
+        });
+        await db.SaveChangesAsync();
+        var hoy = new DateOnly(2026, 9, 28);
+
+        var config = await sut.ConfiguracionAsync(hoy, hoy, CancellationToken.None);
+
+        config.Data!.Grupos.Should().ContainSingle(g =>
+            g.GrupoId == grupo.GrupoId
+            && g.RecaudadorId == null
+            && g.RecaudadorNombre == string.Empty
+            && g.SinConfigurar
+            && g.Porcentaje == 15);
+    }
+
+    [Fact]
+    public async Task Asignar_grupo_cuando_el_recaudador_anterior_ya_no_existe_lo_deja_con_el_nuevo()
+    {
+        var (sut, db) = Crear();
+        var grupo = await AgregarGrupo(db, "centro");
+        var hugo = await AgregarUsuario(db, "Hugo", RolUsuario.Recaudador);
+        db.AsignacionesGrupoRecaudo.Add(new AsignacionGrupoRecaudo
+        {
+            AsignacionId = Guid.NewGuid(),
+            RecaudadorId = Guid.NewGuid(),
+            GrupoId = grupo.GrupoId,
+            Porcentaje = 15,
+            Estado = "Activa"
+        });
+        await db.SaveChangesAsync();
+
+        var asignado = await sut.AsignarGrupoAsync(new AsignarGrupoRecaudoRequest
+        {
+            RecaudadorId = hugo.UsuarioId,
+            GrupoId = grupo.GrupoId,
+            Porcentaje = 15
+        }, hugo.UsuarioId, CancellationToken.None);
+
+        asignado.IsSuccess.Should().BeTrue(asignado.Message);
+        db.AsignacionesGrupoRecaudo.Count(a => a.GrupoId == grupo.GrupoId && a.Estado == "Activa").Should().Be(1);
+        db.AsignacionesGrupoRecaudo.Should().ContainSingle(a =>
+            a.GrupoId == grupo.GrupoId && a.Estado == "Activa" && a.RecaudadorId == hugo.UsuarioId);
+        var config = await sut.ConfiguracionAsync(new DateOnly(2026, 9, 28), new DateOnly(2026, 9, 28), CancellationToken.None);
+        config.Data!.Grupos.Should().ContainSingle(g => g.GrupoId == grupo.GrupoId && g.RecaudadorNombre == "Hugo");
+    }
+
+    [Fact]
     public async Task Asignar_grupo_retira_la_asignacion_individual_del_miembro_con_el_mismo_recaudador()
     {
         var (sut, db) = Crear();
