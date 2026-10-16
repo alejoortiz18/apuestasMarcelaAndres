@@ -120,6 +120,33 @@ public sealed class UsuarioEliminacionTests
         db.Usuarios.Any(u => u.UsuarioId == vendedor.UsuarioId).Should().BeTrue();
     }
 
+    [Fact]
+    public async Task EliminarAsync_recaudador_retira_las_asignaciones_de_grupo()
+    {
+        var (sut, db) = CreateSut();
+        var admin = await AgregarUsuarioAsync(db, "Admin", RolUsuario.Administrador);
+        var recaudador = await AgregarUsuarioAsync(db, "Hugo", RolUsuario.Recaudador);
+        var grupo = new Grupo { GrupoId = Guid.NewGuid(), Nombre = "centro", FechaCreacion = DateTime.UtcNow };
+        db.Grupos.Add(grupo);
+        db.AsignacionesGrupoRecaudo.Add(new AsignacionGrupoRecaudo
+        {
+            AsignacionId = Guid.NewGuid(),
+            RecaudadorId = recaudador.UsuarioId,
+            GrupoId = grupo.GrupoId,
+            Porcentaje = 15,
+            Estado = "Activa",
+            FechaCreacion = DateTime.UtcNow,
+            FechaModificacion = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+
+        var result = await sut.EliminarAsync(recaudador.UsuarioId, admin.UsuarioId, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue(result.Message);
+        db.Usuarios.Any(u => u.UsuarioId == recaudador.UsuarioId).Should().BeFalse();
+        db.AsignacionesGrupoRecaudo.Should().ContainSingle(a => a.GrupoId == grupo.GrupoId && a.Estado == "Retirada");
+    }
+
     private static (UsuarioService Sut, NewRichDbContext Db) CreateSut()
     {
         var options = new DbContextOptionsBuilder<NewRichDbContext>()

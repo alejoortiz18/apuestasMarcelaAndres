@@ -9,11 +9,12 @@ La contraseña de SQL y las credenciales del perfil de publicación no se guarda
 se escriben solo en la copia publicada.
 
 Uso:
-  .\publicar-produccion-test.ps1 -PasswordSql '...' [-Parte Api|Admin|Todo]
+  .\publicar-produccion-test.ps1 -PasswordSql '...' -ConexionBlob '...' [-Parte Api|Admin|Todo]
 La parte Admin abre una consola elevada para escribir en IIS.
 #>
 param(
     [Parameter(Mandatory)][string]$PasswordSql,
+    [Parameter(Mandatory)][string]$ConexionBlob,
     [ValidateSet('Api', 'Admin', 'Todo')][string]$Parte = 'Todo',
     [string]$PerfilPublicacion = 'F:\apirichtest.PublishSettings'
 )
@@ -26,6 +27,7 @@ $UrlApiTest = 'https://apirichtest-gkgkguhyc6hdbtdb.westus3-01.azurewebsites.net
 $ServidorSql = 'sql-api-ventas-prod.database.windows.net'
 $BaseSql = 'testRich'
 $UsuarioSql = 'sqladmin'
+$ContenedorBlobTest = 'spkpruebas'
 $SitioIis = 'richTestWeb'
 $CarpetaIis = 'C:\inetpub\RichProduccionWebTest'
 $PuertoIis = 3000
@@ -48,6 +50,8 @@ function Publicar-Api {
     $json = Get-Content $ajustes -Raw | ConvertFrom-Json
     $json.ConnectionStrings.NewRichDatabase = "Server=tcp:$ServidorSql,1433;Initial Catalog=$BaseSql;User ID=$UsuarioSql;Password=$PasswordSql;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
     $json.Cors.Origenes = @($json.Cors.Origenes) + @("http://localhost:$PuertoIis", "http://127.0.0.1:$PuertoIis") | Select-Object -Unique
+    $json | Add-Member -NotePropertyName AzureBlobConnection -NotePropertyValue $ConexionBlob -Force
+    $json | Add-Member -NotePropertyName AzureBlobContainerName -NotePropertyValue $ContenedorBlobTest -Force
     Escribir-Json $ajustes $json
     Remove-Item (Join-Path $destino 'appsettings.Development.json') -ErrorAction SilentlyContinue
 

@@ -70,7 +70,7 @@ public sealed partial class RecaudoService
             var porRecaudar = integrantes?.TotalPorRecaudar ?? 0m;
             var recaudado = integrantes?.TotalRecaudado ?? 0m;
 
-            var sinConfigurar = asignacion is null;
+            var sinConfigurar = recaudador is null;
             if (sinConfigurar)
             {
                 alarmas.Add(grupo.Nombre);
@@ -81,7 +81,9 @@ public sealed partial class RecaudoService
                 GrupoId = grupo.GrupoId,
                 Nombre = grupo.Nombre,
                 Vendedores = miembros.Count(m => m.GrupoId == grupo.GrupoId),
-                Porcentaje = asignacion?.Porcentaje ?? guardados.FirstOrDefault(p => p.GrupoId == grupo.GrupoId)?.Porcentaje ?? 0,
+                Porcentaje = recaudador is null
+                    ? asignacion?.Porcentaje ?? guardados.FirstOrDefault(p => p.GrupoId == grupo.GrupoId)?.Porcentaje ?? 0
+                    : asignacion!.Porcentaje,
                 SinConfigurar = sinConfigurar,
                 TotalPorRecaudar = porRecaudar,
                 TotalRecaudado = recaudado,

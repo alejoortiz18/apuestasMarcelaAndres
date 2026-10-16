@@ -62,22 +62,34 @@ public sealed partial class RecaudoService : IRecaudoService
             .Where(g => g.GrupoId == request.GrupoId)
             .Select(g => g.UsuarioId)
             .ToListAsync(cancellationToken);
+        var idsRecaudadores = await _db.Usuarios
+            .Where(u => u.Rol == RolUsuario.Recaudador)
+            .Select(u => u.UsuarioId)
+            .ToListAsync(cancellationToken);
         var grupos = await _db.AsignacionesGrupoRecaudo.Where(a => a.Estado == "Activa").ToListAsync(cancellationToken);
         var sueltos = await _db.AsignacionesVendedorRecaudo.Where(a => a.Estado == "Activa").ToListAsync(cancellationToken);
+        var ahora = _clock.LocalNow;
+        foreach (var huerfana in grupos.Where(g => g.GrupoId == request.GrupoId && !idsRecaudadores.Contains(g.RecaudadorId)))
+        {
+            huerfana.Estado = "Retirada";
+            huerfana.FechaModificacion = ahora;
+        }
+
+        var gruposVivos = grupos.Where(g => idsRecaudadores.Contains(g.RecaudadorId)).ToList();
+        var sueltosVivos = sueltos.Where(s => idsRecaudadores.Contains(s.RecaudadorId)).ToList();
         var decision = AsignacionRecaudo.AsignarGrupo(
             request.GrupoId,
             request.RecaudadorId,
             request.Porcentaje,
             vendedores,
-            grupos.Select(g => new GrupoEnRecaudo(g.GrupoId, g.RecaudadorId, g.Porcentaje)).ToList(),
-            sueltos.Select(v => new VendedorEnRecaudo(v.VendedorId, null, v.RecaudadorId, v.Porcentaje)).ToList());
+            gruposVivos.Select(g => new GrupoEnRecaudo(g.GrupoId, g.RecaudadorId, g.Porcentaje)).ToList(),
+            sueltosVivos.Select(v => new VendedorEnRecaudo(v.VendedorId, null, v.RecaudadorId, v.Porcentaje)).ToList());
         if (!decision.Aceptada)
         {
             return Result.Fail(decision.Motivo, 409);
         }
 
-        var ahora = _clock.LocalNow;
-        var existente = grupos.FirstOrDefault(g => g.GrupoId == request.GrupoId && g.RecaudadorId == request.RecaudadorId);
+        var existente = gruposVivos.FirstOrDefault(g => g.GrupoId == request.GrupoId && g.RecaudadorId == request.RecaudadorId);
         if (existente is null)
         {
             _db.AsignacionesGrupoRecaudo.Add(new AsignacionGrupoRecaudo

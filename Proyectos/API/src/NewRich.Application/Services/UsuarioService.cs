@@ -287,6 +287,23 @@ public sealed class UsuarioService : IUsuarioService
             _db.Notificaciones.RemoveRange(await _db.Notificaciones.Where(x => x.UsuarioId == usuarioId).ToListAsync(ct));
             _db.LlavesAdministrador.RemoveRange(
                 await _db.LlavesAdministrador.Where(l => l.UsuarioId == usuarioId).ToListAsync(ct));
+            var ahora = _clock.LocalNow;
+            foreach (var asignacion in await _db.AsignacionesGrupoRecaudo
+                .Where(a => a.RecaudadorId == usuarioId && a.Estado == "Activa")
+                .ToListAsync(ct))
+            {
+                asignacion.Estado = "Retirada";
+                asignacion.FechaModificacion = ahora;
+            }
+
+            foreach (var asignacion in await _db.AsignacionesVendedorRecaudo
+                .Where(a => a.RecaudadorId == usuarioId && a.Estado == "Activa")
+                .ToListAsync(ct))
+            {
+                asignacion.Estado = "Retirada";
+                asignacion.FechaModificacion = ahora;
+            }
+
             _db.Usuarios.Remove(usuario);
             await _db.SaveChangesAsync(ct);
         }, cancellationToken);
