@@ -21,8 +21,18 @@ public static class DependencyInjection
         services.AddSingleton<IQrCryptoService, AesGcmQrCryptoService>();
         services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton<IConfirmacionAccionStore, ConfirmacionAccionBd>();
-        services.AddSingleton<IChatFileStorage, LocalChatFileStorage>();
-        services.AddSingleton<IApkAlmacen, AzureBlobApkAlmacen>();
+        if (OpcionesAwsS3.Configurado(configuration))
+        {
+            services.AddSingleton(_ => OpcionesAwsS3.Cliente(configuration));
+            services.AddSingleton<IChatFileStorage, S3ChatFileStorage>();
+            services.AddSingleton<IApkAlmacen, S3ApkAlmacen>();
+        }
+        else
+        {
+            services.AddSingleton<IChatFileStorage, LocalChatFileStorage>();
+            services.AddSingleton<IApkAlmacen, AzureBlobApkAlmacen>();
+        }
+
         return services;
     }
 }
