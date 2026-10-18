@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Globalization;
 using NewRich.Application.Contracts.Chat;
-using NewRich.Application.Contracts.JuegoNumerosManual;
 using NewRich.Application.Contracts.Premios;
 using NewRich.Application.Contracts.RegistrarJuegoManual;
+using NewRich.Application.Contracts.RegistrarJuegoNumerosWebManual;
 using NewRich.Application.Contracts.Ventas;
 using NewRich.Application.Services;
 using NewRich.Constants.Messages;
@@ -73,18 +73,24 @@ public sealed class VenderController : VendedorController
         var loteriasMarcadas = (model.LoteriasNumeros ?? []).Where(id => id != Guid.Empty).Distinct().ToList();
         var valorEscrito = Pesos(model.ValorJugado, out var valorJugado);
         var horarioCerrado = HorarioCerrado(operativo.Data);
+        var usarFilas = model.UsarFilas;
+        var usarNumeros = model.UsarNumeros;
         var decision = EvaluacionRegistrarJuego.Evaluar(
-            filas.Select(f => new FilaRegistroEntrada(f.LoteriaId != Guid.Empty, Pesos(f.Valor, out _), !string.IsNullOrWhiteSpace(f.Numero))).ToList(),
-            loteriasMarcadas.Count,
-            valorEscrito,
-            valorJugado,
-            numeros,
+            usarFilas
+                ? filas.Select(f => new FilaRegistroEntrada(f.LoteriaId != Guid.Empty, Pesos(f.Valor, out _), !string.IsNullOrWhiteSpace(f.Numero))).ToList()
+                : [new FilaRegistroEntrada(false, false, false)],
+            usarNumeros ? loteriasMarcadas.Count : 0,
+            usarNumeros && valorEscrito,
+            usarNumeros ? valorJugado : 0,
+            usarNumeros ? numeros : [string.Empty],
             operativo.Data?.NumerosRestringidos,
-            horarioCerrado);
+            horarioCerrado,
+            usarFilas,
+            usarNumeros);
 
         if (!decision.PuedeRegistrar)
         {
-            ModelState.AddModelError(string.Empty, MensajeDecision(decision, horarioCerrado));
+            ModelState.AddModelError(string.Empty, MensajeDecision(decision, horarioCerrado, usarFilas, usarNumeros));
             return View(await ArmarAsync(model, cancellationToken));
         }
 
@@ -154,9 +160,9 @@ public sealed class VenderController : VendedorController
         if (decision.Numeros == ParteJuego.Lista)
         {
             var ventaId = Guid.TryParse(model.VentaId, out var id) ? id : Guid.NewGuid();
-            var result = await _api.RegistrarJuegoNumerosAsync(new RegistrarJuegoNumerosManualRequest
+            var result = await _api.RegistrarJuegoNumerosWebAsync(new RegistrarJuegoNumerosWebManualRequest
             {
-                VentaId = ventaId,
+                RegistroId = ventaId,
                 ValorJugado = valorJugado,
                 Numeros = numeros.Select(n => n?.Trim() ?? string.Empty).Where(n => n.Length > 0).ToList(),
                 LoteriaIds = loteriasMarcadas
@@ -176,17 +182,14 @@ public sealed class VenderController : VendedorController
                 conservarNumeros = false;
                 numerosResultado = new ResultadoNumerosJuego
                 {
-                    Codigo = result.Data.CodigoImpreso,
-                    Fecha = result.Data.FechaVenta.ToString("dd-MM-yyyy HH:mm:ss"),
-                    Qr = QrImagen.DataUri(result.Data.Qr),
-                    Loterias = result.Data.Loterias,
-                    Numeros = result.Data.Numeros,
-                    ValorJugado = Montos.De(result.Data.ValorJugado),
-                    CantidadNumeros = result.Data.CantidadNumeros,
-                    CantidadLoterias = result.Data.CantidadLoterias,
-                    CantidadApuestas = result.Data.CantidadApuestas,
-                    ValorPorApuesta = Montos.De(result.Data.ValorPorApuesta),
-                    ApuestasConSobrante = result.Data.ApuestasConSobrante
+                    Codigo = result.Data.CodigoPublico,
+                    Fecha = result.Data.FechaRegistro.ToString("dd-MM-yyyy HH:mm:ss"),
+                    Filas = result.Data.Apuestas.Select(a => new FilaResultadoJuego
+                    {
+                        Loteria = a.Loteria,
+                        Numero = a.Numero,
+                        Valor = Montos.De(a.Valor)
+                    }).ToList()
                 };
             }
         }
@@ -196,6 +199,7 @@ public sealed class VenderController : VendedorController
         {
             vista.Filas = [new FilaJuegoForm()];
             vista.Clave = Guid.NewGuid().ToString("N");
+            vista.UsarFilas = false;
         }
 
         if (!conservarNumeros)
@@ -204,6 +208,7 @@ public sealed class VenderController : VendedorController
             vista.ValorJugado = string.Empty;
             vista.Numeros = [string.Empty];
             vista.VentaId = Guid.NewGuid().ToString("N");
+            vista.UsarNumeros = false;
         }
 
         vista.Resultado = filasResultado is null && numerosResultado is null
@@ -222,6 +227,8 @@ public sealed class VenderController : VendedorController
             HorarioCerrado = HorarioCerrado(operativa.Data),
             Clave = string.IsNullOrWhiteSpace(publicado?.Clave) ? Guid.NewGuid().ToString("N") : publicado.Clave,
             VentaId = string.IsNullOrWhiteSpace(publicado?.VentaId) ? Guid.NewGuid().ToString("N") : publicado.VentaId,
+            UsarFilas = publicado?.UsarFilas ?? false,
+            UsarNumeros = publicado?.UsarNumeros ?? false,
             Loterias = (loterias.Data ?? []).OrderBy(l => l.Nombre).ToList(),
             LoteriasHoy = (hoy.Data ?? []).OrderBy(l => l.Nombre).ToList(),
             Restringidos = operativa.Data?.NumerosRestringidos?.ToList() ?? [],
@@ -233,24 +240,26 @@ public sealed class VenderController : VendedorController
         };
     }
 
-    private static string MensajeDecision(DecisionRegistrarJuego decision, bool horarioCerrado)
+    private static string MensajeDecision(DecisionRegistrarJuego decision, bool horarioCerrado, bool usarFilas, bool usarNumeros)
     {
         if (horarioCerrado)
         {
             return UiTexts.JuegosCerrados;
         }
 
-        if (decision.Filas == ParteJuego.Parcial && decision.Numeros == ParteJuego.Parcial)
+        var faltaFilas = usarFilas && decision.Filas != ParteJuego.Lista;
+        var faltaNumeros = usarNumeros && decision.Numeros != ParteJuego.Lista;
+        if (faltaFilas && faltaNumeros)
         {
             return UiTexts.CompleteAmbos;
         }
 
-        if (decision.Filas == ParteJuego.Parcial)
+        if (faltaFilas)
         {
             return UiTexts.CompleteFilas;
         }
 
-        if (decision.Numeros == ParteJuego.Parcial)
+        if (faltaNumeros && decision.Numeros == ParteJuego.Parcial)
         {
             return decision.Motivo switch
             {
@@ -261,8 +270,13 @@ public sealed class VenderController : VendedorController
                 MotivoJuegoNumeros.Repetido => string.Format(JuegoNumerosManualMessages.NumeroRepetido, decision.Detalle),
                 MotivoJuegoNumeros.Restringido => string.Format(JuegoNumerosManualMessages.NumeroRestringido, decision.Detalle),
                 MotivoJuegoNumeros.Insuficiente => string.Format(JuegoNumerosManualMessages.ValorInsuficiente, decision.Apuestas),
-                _ => UiTexts.CompleteParaRegistrar
+                _ => UiTexts.CompleteNumeros
             };
+        }
+
+        if (faltaNumeros)
+        {
+            return UiTexts.CompleteNumeros;
         }
 
         return UiTexts.CompleteParaRegistrar;

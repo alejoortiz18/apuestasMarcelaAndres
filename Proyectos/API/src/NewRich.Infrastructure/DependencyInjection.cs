@@ -18,6 +18,7 @@ public static class DependencyInjection
         services.AddScoped<INewRichDbContext>(sp => sp.GetRequiredService<NewRichDbContext>());
         services.AddScoped<IVentaManualRepositorio, VentaManualRepositorio>();
         services.AddScoped<IRegistrarJuegoManualRepositorio, RegistrarJuegoManualRepositorio>();
+        services.AddScoped<IRegistrarJuegoNumerosWebManualRepositorio, RegistrarJuegoNumerosWebManualRepositorio>();
         services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
         services.AddSingleton<IQrCryptoService, AesGcmQrCryptoService>();

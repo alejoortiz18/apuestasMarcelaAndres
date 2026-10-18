@@ -63,6 +63,8 @@ public sealed class RegistrarJuegoViewModel
 {
     public string Clave { get; set; } = Guid.NewGuid().ToString("N");
     public string VentaId { get; set; } = Guid.NewGuid().ToString("N");
+    public bool UsarFilas { get; set; }
+    public bool UsarNumeros { get; set; }
     public bool HorarioCerrado { get; set; }
     public List<LoteriaResponse> Loterias { get; set; } = [];
     public List<LoteriaResponse> LoteriasHoy { get; set; } = [];
@@ -98,6 +100,7 @@ public sealed class ResultadoNumerosJuego
 {
     public string Codigo { get; set; } = string.Empty;
     public string Fecha { get; set; } = string.Empty;
+    public IReadOnlyList<FilaResultadoJuego> Filas { get; set; } = [];
     public string Qr { get; set; } = string.Empty;
     public IReadOnlyList<string> Loterias { get; set; } = [];
     public IReadOnlyList<string> Numeros { get; set; } = [];

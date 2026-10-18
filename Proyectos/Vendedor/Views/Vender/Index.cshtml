@@ -48,20 +48,27 @@
                 <h2>@UiTexts.TipoNumeros</h2>
                 <p><strong>@UiTexts.Codigo:</strong> @numeros.Codigo</p>
                 <p><strong>@UiTexts.Fecha:</strong> @numeros.Fecha</p>
-                <p><strong>@UiTexts.Loterias:</strong> @string.Join(", ", numeros.Loterias)</p>
-                <p><strong>@UiTexts.NumerosAJugar:</strong> @string.Join(", ", numeros.Numeros)</p>
-                <p><strong>@UiTexts.TotalApostado:</strong> @numeros.ValorJugado</p>
-                <p><strong>@UiTexts.CantidadApuestas:</strong> @numeros.CantidadApuestas</p>
-                <p><strong>@UiTexts.ValorPorApuesta:</strong> @numeros.ValorPorApuesta</p>
-                @if (numeros.ApuestasConSobrante > 0)
-                {
-                    <p>@UiTexts.Sobrante(numeros.ApuestasConSobrante)</p>
-                }
-                <p class="juego-suerte">@UiTexts.MuchaSuerte</p>
-                @if (!string.IsNullOrWhiteSpace(numeros.Qr))
-                {
-                    <img class="juego-qr" src="@numeros.Qr" alt="@numeros.Codigo" />
-                }
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                        <tr>
+                            <th>@UiTexts.Loteria</th>
+                            <th>@UiTexts.Numero</th>
+                            <th>@UiTexts.Valor</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var fila in numeros.Filas)
+                        {
+                            <tr>
+                                <td>@fila.Loteria</td>
+                                <td>@fila.Numero</td>
+                                <td>@fila.Valor</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
             </section>
         }
     </div>
@@ -71,8 +78,18 @@
     @Html.AntiForgeryToken()
     <input type="hidden" name="Clave" value="@Model.Clave" />
     <input type="hidden" name="VentaId" value="@Model.VentaId" />
-    <div class="juego-paneles">
-        <section class="juego-panel">
+    <div class="juego-opciones">
+        <label class="juego-check">
+            <input type="checkbox" name="UsarFilas" value="true" data-usar-filas @(Model.UsarFilas ? "checked" : null) />
+            <span>@UiTexts.PorFila</span>
+        </label>
+        <label class="juego-check">
+            <input type="checkbox" name="UsarNumeros" value="true" data-usar-numeros @(Model.UsarNumeros ? "checked" : null) />
+            <span>@UiTexts.TipoNumeros</span>
+        </label>
+    </div>
+    <div class="juego-paneles@(Model.UsarFilas != Model.UsarNumeros ? " una" : "")" @(Model.UsarFilas || Model.UsarNumeros ? null : "hidden")>
+        <section class="juego-panel" data-panel-filas @(Model.UsarFilas ? null : "hidden")>
             <h2>@UiTexts.PorFila</h2>
             <div data-filas>
                 @for (var i = 0; i < Model.Filas.Count; i++)
@@ -80,7 +97,7 @@
                     var fila = Model.Filas[i];
                     <div class="juego-fila" data-fila>
                         <label class="juego-campo">
-                            <span>@UiTexts.Loteria</span>
+                            <span>@UiTexts.Loteria <abbr class="obligatorio" title="Obligatorio">*</abbr></span>
                             <select class="searchable" name="Filas[@i].LoteriaId" data-loteria>
                                 <option value="">@UiTexts.SeleccioneLoteria</option>
                                 @foreach (var loteria in Model.Loterias)
@@ -97,11 +114,11 @@
                             </select>
                         </label>
                         <label class="juego-campo">
-                            <span>@UiTexts.Numero</span>
+                            <span>@UiTexts.Numero <abbr class="obligatorio" title="Obligatorio">*</abbr></span>
                             <input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" name="Filas[@i].Numero" value="@fila.Numero" data-numero />
                         </label>
                         <label class="juego-campo">
-                            <span>@UiTexts.Valor</span>
+                            <span>@UiTexts.Valor <abbr class="obligatorio" title="Obligatorio">*</abbr></span>
                             <input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" name="Filas[@i].Valor" value="@fila.Valor" data-pesos />
                         </label>
                         <div class="juego-fila-acciones">
@@ -112,9 +129,9 @@
                 }
             </div>
         </section>
-        <section class="juego-panel">
+        <section class="juego-panel" data-panel-numeros @(Model.UsarNumeros ? null : "hidden")>
             <h2>@UiTexts.TipoNumeros</h2>
-            <p class="juego-ayuda">@UiTexts.LoteriasAyuda</p>
+            <p class="juego-ayuda">@UiTexts.Loterias <abbr class="obligatorio" title="Obligatorio">*</abbr>. @UiTexts.LoteriasAyuda</p>
             @if (Model.LoteriasHoy.Count == 0)
             {
                 <p class="juego-error">@UiTexts.SinLoteriasHoy</p>
@@ -138,7 +155,7 @@
                 </div>
             }
             <label class="juego-campo">
-                <span>@UiTexts.ValorJugado</span>
+                <span>@UiTexts.ValorJugado <abbr class="obligatorio" title="Obligatorio">*</abbr></span>
                 <input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" name="ValorJugado" value="@Model.ValorJugado" data-valor-jugado />
             </label>
             <p class="juego-ayuda">@UiTexts.ValorJugadoAyuda</p>
@@ -147,7 +164,7 @@
                 {
                     <div class="juego-numero" data-linea-numero>
                         <label class="juego-campo">
-                            <span>@UiTexts.NumeroAJugar</span>
+                            <span>@UiTexts.NumeroAJugar <abbr class="obligatorio" title="Obligatorio">*</abbr></span>
                             <input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" maxlength="4" name="Numeros[@i]" value="@Model.Numeros[i]" data-numero-juego />
                         </label>
                         <div class="juego-fila-acciones">
@@ -176,7 +193,7 @@
 <template id="fila-juego">
     <div class="juego-fila" data-fila>
         <label class="juego-campo">
-            <span>@UiTexts.Loteria</span>
+            <span>@UiTexts.Loteria <abbr class="obligatorio" title="Obligatorio">*</abbr></span>
             <select class="searchable" data-loteria>
                 <option value="">@UiTexts.SeleccioneLoteria</option>
                 @foreach (var loteria in Model.Loterias)
@@ -186,11 +203,11 @@
             </select>
         </label>
         <label class="juego-campo">
-            <span>@UiTexts.Numero</span>
+            <span>@UiTexts.Numero <abbr class="obligatorio" title="Obligatorio">*</abbr></span>
             <input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" data-numero />
         </label>
         <label class="juego-campo">
-            <span>@UiTexts.Valor</span>
+            <span>@UiTexts.Valor <abbr class="obligatorio" title="Obligatorio">*</abbr></span>
             <input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" data-pesos />
         </label>
         <div class="juego-fila-acciones">
@@ -202,7 +219,7 @@
 <template id="linea-numero">
     <div class="juego-numero" data-linea-numero>
         <label class="juego-campo">
-            <span>@UiTexts.NumeroAJugar</span>
+            <span>@UiTexts.NumeroAJugar <abbr class="obligatorio" title="Obligatorio">*</abbr></span>
             <input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" maxlength="4" data-numero-juego />
         </label>
         <div class="juego-fila-acciones">

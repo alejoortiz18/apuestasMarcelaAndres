@@ -12,8 +12,8 @@ web.
 
 Adicionalmente, se requiere ampliar la parametrización de líneas de
 juego por vendedor e incorporar en el administrador un módulo llamado
-**Revisada manual**, con las vistas **Resumen**, **Cubrir**, **Por
-cubrir** y **Cubierto**.
+**Revisada manual**, con las vistas **Resumen**, **Por cubrir** y
+**Cubierto**.
 
 Antes de desarrollar, revisar la arquitectura, las entidades, las reglas
 de negocio, los permisos y los flujos actuales del sistema. Reutilizar
@@ -117,12 +117,11 @@ Agregar en el menú principal del administrador un nuevo ítem llamado
 **Revisada manual**, ubicado al mismo nivel que los ítems principales
 actuales.
 
-El módulo tendrá cuatro subítems:
+El módulo tendrá tres subítems:
 
 1.  **Resumen**
-2.  **Cubrir**
-3.  **Por cubrir**
-4.  **Cubierto**
+2.  **Por cubrir**
+3.  **Cubierto**
 
 Cada vista debe respetar el diseño visual y los componentes generales
 que ya utiliza el administrador, incluyendo tarjetas de indicadores,
@@ -132,59 +131,15 @@ filtros, tablas y controles de paginación cuando correspondan.
 
 #### Objetivo
 
-Permitir al administrador consultar las jugadas creadas por los
-vendedores que utilizan el nuevo sitio web del vendedor, organizadas por
-vendedor y con filtros por fecha y vendedor.
-
-#### Filtros y controles
-
--   Filtro por nombre del vendedor o alias.
--   Posibilidad de consultar un vendedor específico o todos los
-    vendedores.
--   Filtro por rango de fechas para consultar los valores
-    correspondientes al período seleccionado.
--   Control para elegir cuántos vendedores se muestran por página.
--   La tabla debe permitir ordenar cada columna de forma ascendente y
-    descendente mediante controles visibles en los encabezados.
--   Los filtros deben poder combinarse y actualizar los resultados de
-    acuerdo con los criterios seleccionados.
-
-#### Presentación de la información
-
--   Mostrar en la parte superior los vendedores que coincidan con los
-    filtros, o todos los vendedores cuando no se seleccione uno
-    específico.
--   Agrupar las ventas por vendedor.
--   En el encabezado de cada grupo, mostrar el nombre del vendedor y su
-    alias.
--   Dentro del grupo, organizar la información por lotería jugada.
--   Debajo de cada lotería, mostrar los números jugados y el valor
-    apostado correspondiente.
--   Los valores monetarios deben presentarse con separador de miles.
-
-#### Ejemplo ilustrativo
-
-**Vendedor:** Jaime --- **Alias:** Flaco
-
-  Lotería     Número jugado   Valor apostado
-  --------- --------------- ----------------
-  Paisita              1234            1.000
-  Bogotá               2345              500
-  Cali                 3456            1.500
-
-El ejemplo es ilustrativo. La vista debe reflejar los datos reales
-registrados en el sistema y conservar las relaciones entre vendedor,
-jugada, lotería, número y valor apostado.
-
-------------------------------------------------------------------------
-
-### 3.2. Subítem "Cubrir"
-
-#### Objetivo
-
 Mostrar las jugadas pendientes que se van a cubrir, agrupadas por
 lotería y número jugado, y permitir al administrador ejecutar la acción
 de cubrir sobre los registros que efectivamente se muestran en pantalla.
+
+Los datos de esta vista son los que el vendedor ingresa en **Registrar
+juego** del sitio web del vendedor. Entran los dos tipos de registro:
+**Por fila** y **Juego números**. Cada registro aporta su lotería, su
+número, su valor y la fecha y hora en que se registró. La forma de
+agrupar, filtrar, actualizar y cubrir sigue siendo la de esta vista.
 
 #### Encabezado y filtros
 
@@ -272,7 +227,7 @@ incluidos en el conjunto mostrado al momento de ejecutar la acción**.
 
 ------------------------------------------------------------------------
 
-### 3.3. Subítem "Por cubrir"
+### 3.2. Subítem "Por cubrir"
 
 #### Objetivo
 
@@ -288,7 +243,7 @@ correspondiente a esta etapa del flujo.
 -   Aplicar la comisión a los valores de los grupos que se muestran en
     esta vista.
 -   Mostrar los registros agrupados por lotería y número jugado, con una
-    presentación similar a la vista **Cubrir**.
+    presentación similar a la vista **Resumen**.
 
 #### Presentación de la información
 
@@ -333,7 +288,7 @@ correspondiente a esta etapa del flujo.
 
 ------------------------------------------------------------------------
 
-### 3.4. Subítem "Cubierto"
+### 3.3. Subítem "Cubierto"
 
 #### Objetivo
 
@@ -394,15 +349,15 @@ equivale a un descuento del 7,2727 % aproximadamente.
 
 El flujo funcional esperado es:
 
-1.  Las jugadas realizadas desde el sitio web del vendedor aparecen en
-    **Resumen**.
-2.  Las jugadas pendientes de procesar aparecen en **Cubrir**.
-3.  Al ejecutar **Por cubrir**, se registran únicamente los elementos
+1.  Las jugadas registradas en **Registrar juego** del sitio web del
+    vendedor, tanto **Por fila** como **Juego números**, aparecen
+    pendientes en **Resumen**.
+2.  Al ejecutar **Por cubrir**, se registran únicamente los elementos
     visibles que correspondan al grupo seleccionado y pasan al estado de
     **Por cubrir**.
-4.  En **Por cubrir**, el administrador ingresa la comisión y puede
+3.  En **Por cubrir**, el administrador ingresa la comisión y puede
     continuar mediante el botón **Cubrir**.
-5.  Los grupos procesados pasan a **Cubierto**, donde el administrador
+4.  Los grupos procesados pasan a **Cubierto**, donde el administrador
     ingresa el descuento y consulta el total a pagar.
 
 Antes de implementar, revisar los estados y entidades existentes para
@@ -477,18 +432,13 @@ todas las vistas.
 ### Módulo "Revisada manual"
 
 -   [ ] El administrador ve **Revisada manual** en el menú principal.
--   [ ] El módulo contiene **Resumen**, **Cubrir**, **Por cubrir** y
-    **Cubierto**.
--   [ ] **Resumen** permite filtrar por vendedor o alias y por fechas.
--   [ ] **Resumen** permite elegir la cantidad de vendedores por página
-    y ordenar las columnas ascendente o descendentemente.
--   [ ] **Resumen** agrupa las jugadas por vendedor, muestra nombre y
-    alias, y organiza las jugadas por lotería, número y valor.
--   [ ] **Cubrir** agrupa los registros por lotería y número, muestra
-    importes, horas y totales.
--   [ ] La vista **Cubrir** permite ingresar un valor mínimo de visualización y muestra las apuestas individuales cuyo valor sea igual o superior al valor configurado, junto con su lotería y número jugado, respetando los filtros de fecha.
+-   [ ] El módulo contiene **Resumen**, **Por cubrir** y **Cubierto**.
+-   [ ] **Resumen** muestra las jugadas de **Registrar juego** del sitio
+    del vendedor, de **Por fila** y de **Juego números**, agrupadas por
+    lotería y número, con importes, horas y totales.
+-   [ ] La vista **Resumen** permite ingresar un valor mínimo de visualización y muestra las apuestas individuales cuyo valor sea igual o superior al valor configurado, junto con su lotería y número jugado, respetando los filtros de fecha.
 -   [ ] El filtro por valor mínimo evalúa cada apuesta individualmente, sin sumar varias apuestas, y solo afecta la visualización; no modifica los registros ni permite incluir jugadas no visibles en una operación de cubrir.
--   [ ] La vista **Cubrir** se actualiza automáticamente cada minuto.
+-   [ ] La vista **Resumen** se actualiza automáticamente cada minuto.
 -   [ ] La acción **Por cubrir** procesa únicamente los registros
     incluidos en el grupo visible al momento de la operación.
 -   [ ] Los registros que no estaban incluidos en el conjunto visible no
@@ -515,21 +465,19 @@ Implementar y ejecutar pruebas para verificar, como mínimo:
 2.  Conservación de las operaciones y reglas actuales del PDA.
 3.  Límite de líneas independiente para PDA y sitio web del vendedor.
 4.  Registro y consulta de entregas de premios.
-5.  Filtros de vendedor, alias, fecha y paginación en **Resumen**.
-6.  Ordenamiento ascendente y descendente de las columnas.
-7.  Agrupación correcta por vendedor, lotería y número.
-8.  Actualización automática cada minuto de la vista **Cubrir**.
-9.  Confirmación de que una operación solo cubre los identificadores
+5.  Agrupación correcta por lotería y número en **Resumen**.
+6.  Actualización automática cada minuto de la vista **Resumen**.
+7.  Confirmación de que una operación solo cubre los identificadores
     visibles asociados al grupo seleccionado.
-10. Confirmación de que registros nuevos o no visibles no se agregan a
+8.  Confirmación de que registros nuevos o no visibles no se agregan a
     una operación ya iniciada.
-11. Cálculo correcto de la comisión y del total con comisión.
-12. Cálculo correcto del descuento y del total a pagar.
-13. Prevención de operaciones duplicadas ante doble clic, reintentos o
+9.  Cálculo correcto de la comisión y del total con comisión.
+10. Cálculo correcto del descuento y del total a pagar.
+11. Prevención de operaciones duplicadas ante doble clic, reintentos o
     solicitudes concurrentes.
-14. Persistencia de los estados y trazabilidad de las operaciones.
-15. Verificación de que el sitio web del vendedor no genere tirillas.
-16. Regresión de las funcionalidades actuales del administrador y del
+12. Persistencia de los estados y trazabilidad de las operaciones.
+13. Verificación de que el sitio web del vendedor no genere tirillas.
+14. Regresión de las funcionalidades actuales del administrador y del
     PDA.
 
 ------------------------------------------------------------------------

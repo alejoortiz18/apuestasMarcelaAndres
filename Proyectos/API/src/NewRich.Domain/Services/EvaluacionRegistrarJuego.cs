@@ -32,8 +32,8 @@ public sealed record DecisionRegistrarJuego(
     int ApuestasConSobrante);
 
 /// <summary>
-/// Decide si Registrar juego puede enviar las filas, Juego números, las dos o ninguna.
-/// Una parte vacía no viaja. Una parte empezada tiene que estar completa.
+/// Decide si Registrar juego puede enviar lo marcado.
+/// Una casilla exige solo ese formulario. Las dos casillas exigen los dos.
 /// </summary>
 public static class EvaluacionRegistrarJuego
 {
@@ -44,7 +44,9 @@ public static class EvaluacionRegistrarJuego
         decimal valorJugado,
         IReadOnlyList<string> lineas,
         IReadOnlyList<string>? restringidos,
-        bool horarioCerrado)
+        bool horarioCerrado,
+        bool usarFilas,
+        bool usarNumeros)
     {
         var parteFilas = EvaluarFilas(filas);
         var escritos = (lineas ?? []).Select(l => (l ?? string.Empty).Trim()).Where(l => l.Length > 0).ToList();
@@ -116,10 +118,9 @@ public static class EvaluacionRegistrarJuego
             }
         }
 
-        var puede = !horarioCerrado
-            && parteFilas != ParteJuego.Parcial
-            && parteNumeros != ParteJuego.Parcial
-            && (parteFilas == ParteJuego.Lista || parteNumeros == ParteJuego.Lista);
+        var filasOk = !usarFilas || parteFilas == ParteJuego.Lista;
+        var numerosOk = !usarNumeros || parteNumeros == ParteJuego.Lista;
+        var puede = !horarioCerrado && (usarFilas || usarNumeros) && filasOk && numerosOk;
 
         return new DecisionRegistrarJuego(parteFilas, parteNumeros, puede, motivo, detalle, apuestas, valorPorApuesta, sobrante);
     }

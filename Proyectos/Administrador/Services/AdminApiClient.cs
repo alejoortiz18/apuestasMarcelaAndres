@@ -20,6 +20,7 @@ using NewRich.Application.Contracts.Offline;
 using NewRich.Application.Contracts.Premios;
 using NewRich.Application.Contracts.Recaudo;
 using NewRich.Application.Contracts.Resultados;
+using NewRich.Application.Contracts.RevisadaManual;
 using NewRich.Application.Contracts.Usuarios;
 using NewRich.Application.Contracts.Ventas;
 using NewRich.Application.Contracts.Versiones;
@@ -137,6 +138,16 @@ public interface IAdminApiClient
     Task<ApiCallResult<MetricasRecaudoResponse>> MetricasRecaudoAsync(DateOnly desde, DateOnly hasta, CancellationToken cancellationToken);
     Task<ApiCallResult<TableroRecaudoResponse>> TableroRecaudoAsync(DateOnly desde, DateOnly hasta, Guid? recaudadorId, string? grupo, CancellationToken cancellationToken);
     Task<ApiCallResult<DetalleRecaudadorResponse>> DetalleRecaudoAsync(Guid recaudadorId, DateOnly desde, DateOnly hasta, CancellationToken cancellationToken);
+
+    Task<ApiCallResult<VistaRevisadaManualResponse>> RevisadaResumenAsync(DateTime desde, DateTime hasta, decimal? valorMinimo, CancellationToken cancellationToken);
+    Task<ApiCallResult<GrupoRevisadaManualResponse>> RevisadaMarcarPorCubrirAsync(MarcarPorCubrirRevisadaManualRequest request, CancellationToken cancellationToken);
+    Task<ApiCallResult<VistaRevisadaManualResponse>> RevisadaPorCubrirAsync(DateTime desde, DateTime hasta, CancellationToken cancellationToken);
+    Task<ApiCallResult<GrupoRevisadaManualResponse>> RevisadaCubrirAsync(CubrirRevisadaManualRequest request, CancellationToken cancellationToken);
+    Task<ApiCallResult<VistaRevisadaManualResponse>> RevisadaCubiertoAsync(DateTime desde, DateTime hasta, CancellationToken cancellationToken);
+    Task<ApiCallResult<GrupoRevisadaManualResponse>> RevisadaDescuentoAsync(DescuentoRevisadaManualRequest request, CancellationToken cancellationToken);
+    Task<ApiCallResult<ParametrosRevisadaManualResponse>> ParametrosRevisadaManualAsync(CancellationToken cancellationToken);
+    Task<ApiCallResult<ParametrosRevisadaManualResponse>> GuardarComisionRevisadaManualAsync(decimal porcentaje, CancellationToken cancellationToken);
+    Task<ApiCallResult<ParametrosRevisadaManualResponse>> GuardarDescuentoRevisadaManualAsync(decimal porcentaje, CancellationToken cancellationToken);
 }
 
 public sealed class AdminApiClient : IAdminApiClient
@@ -597,6 +608,40 @@ public sealed class AdminApiClient : IAdminApiClient
         SendAsync<DetalleRecaudadorResponse>(HttpMethod.Get, $"api/Recaudo/Detalle/{recaudadorId}" + BuildQuery(
             ("desde", desde.ToString("yyyy-MM-dd")),
             ("hasta", hasta.ToString("yyyy-MM-dd"))), null, true, cancellationToken);
+
+    public Task<ApiCallResult<VistaRevisadaManualResponse>> RevisadaResumenAsync(DateTime desde, DateTime hasta, decimal? valorMinimo, CancellationToken cancellationToken) =>
+        SendAsync<VistaRevisadaManualResponse>(HttpMethod.Get, "api/RevisadaManual/Resumen" + BuildQuery(
+            ("desde", desde.ToString("o")),
+            ("hasta", hasta.ToString("o")),
+            ("valorMinimo", valorMinimo?.ToString(System.Globalization.CultureInfo.InvariantCulture))), null, true, cancellationToken);
+
+    public Task<ApiCallResult<GrupoRevisadaManualResponse>> RevisadaMarcarPorCubrirAsync(MarcarPorCubrirRevisadaManualRequest request, CancellationToken cancellationToken) =>
+        SendAsync<GrupoRevisadaManualResponse>(HttpMethod.Post, "api/RevisadaManual/PorCubrir", request, true, cancellationToken);
+
+    public Task<ApiCallResult<VistaRevisadaManualResponse>> RevisadaPorCubrirAsync(DateTime desde, DateTime hasta, CancellationToken cancellationToken) =>
+        SendAsync<VistaRevisadaManualResponse>(HttpMethod.Get, "api/RevisadaManual/PorCubrir" + BuildQuery(
+            ("desde", desde.ToString("o")),
+            ("hasta", hasta.ToString("o"))), null, true, cancellationToken);
+
+    public Task<ApiCallResult<GrupoRevisadaManualResponse>> RevisadaCubrirAsync(CubrirRevisadaManualRequest request, CancellationToken cancellationToken) =>
+        SendAsync<GrupoRevisadaManualResponse>(HttpMethod.Post, "api/RevisadaManual/Cubrir", request, true, cancellationToken);
+
+    public Task<ApiCallResult<VistaRevisadaManualResponse>> RevisadaCubiertoAsync(DateTime desde, DateTime hasta, CancellationToken cancellationToken) =>
+        SendAsync<VistaRevisadaManualResponse>(HttpMethod.Get, "api/RevisadaManual/Cubierto" + BuildQuery(
+            ("desde", desde.ToString("o")),
+            ("hasta", hasta.ToString("o"))), null, true, cancellationToken);
+
+    public Task<ApiCallResult<GrupoRevisadaManualResponse>> RevisadaDescuentoAsync(DescuentoRevisadaManualRequest request, CancellationToken cancellationToken) =>
+        SendAsync<GrupoRevisadaManualResponse>(HttpMethod.Post, "api/RevisadaManual/Descuento", request, true, cancellationToken);
+
+    public Task<ApiCallResult<ParametrosRevisadaManualResponse>> ParametrosRevisadaManualAsync(CancellationToken cancellationToken) =>
+        SendAsync<ParametrosRevisadaManualResponse>(HttpMethod.Get, "api/ParametrosRevisadaManual", null, true, cancellationToken);
+
+    public Task<ApiCallResult<ParametrosRevisadaManualResponse>> GuardarComisionRevisadaManualAsync(decimal porcentaje, CancellationToken cancellationToken) =>
+        SendAsync<ParametrosRevisadaManualResponse>(HttpMethod.Post, "api/ParametrosRevisadaManual/Comision", new GuardarParametroRevisadaManualRequest { Porcentaje = porcentaje }, true, cancellationToken);
+
+    public Task<ApiCallResult<ParametrosRevisadaManualResponse>> GuardarDescuentoRevisadaManualAsync(decimal porcentaje, CancellationToken cancellationToken) =>
+        SendAsync<ParametrosRevisadaManualResponse>(HttpMethod.Post, "api/ParametrosRevisadaManual/Descuento", new GuardarParametroRevisadaManualRequest { Porcentaje = porcentaje }, true, cancellationToken);
 
     private async Task<ApiCallResult<ArchivoChat>> DescargarImagenPremioAsync(string ruta, CancellationToken cancellationToken)
     {

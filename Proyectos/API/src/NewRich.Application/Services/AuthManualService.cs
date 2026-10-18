@@ -4,7 +4,6 @@ using NewRich.Application.Contracts.Auth;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
 using NewRich.Domain.Enums;
-using NewRich.Domain.Services;
 using NewRich.Shared.Results;
 
 namespace NewRich.Application.Services;
@@ -78,11 +77,6 @@ public sealed class AuthManualService : IAuthManualService
             return Result<LoginResponse>.Fail(AuthMessages.CredencialesInvalidas, 401);
         }
 
-        if (await EstaFueraDeHorario(cancellationToken))
-        {
-            return Result<LoginResponse>.Fail(AuthMessages.FueraDeHorarioOperacion, 403);
-        }
-
         usuario.IntentosFallidos = 0;
         usuario.FechaUltimoAcceso = _clock.LocalNow;
         _db.IntentosFallidos.Add(new IntentosFallidos
@@ -124,17 +118,4 @@ public sealed class AuthManualService : IAuthManualService
         }, usuario.EstadoValidado ? AuthMessages.DebeCambiarPassword : SuccessMessages.OperacionExitosa);
     }
 
-    private async Task<bool> EstaFueraDeHorario(CancellationToken cancellationToken)
-    {
-        var aperturaCfg = await _db.Configuraciones.FirstOrDefaultAsync(c => c.Clave == "HoraApertura", cancellationToken);
-        var cierreCfg = await _db.Configuraciones.FirstOrDefaultAsync(c => c.Clave == "HoraCierre", cancellationToken);
-        if (aperturaCfg is null || cierreCfg is null
-            || !TimeSpan.TryParse(aperturaCfg.Valor, out var apertura)
-            || !TimeSpan.TryParse(cierreCfg.Valor, out var cierre))
-        {
-            return false;
-        }
-
-        return HorarioOperacion.EstaFuera(_clock.LocalNow.TimeOfDay, apertura, cierre);
-    }
 }

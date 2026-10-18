@@ -44,6 +44,11 @@ public interface INewRichDbContext
     DbSet<ObligacionRecaudo> ObligacionesRecaudo { get; }
     DbSet<PagoRegistradoRecaudo> PagosRecaudo { get; }
     DbSet<TirillaCobroRecaudo> TirillasCobroRecaudo { get; }
+    DbSet<OperacionRevisadaManual> OperacionesRevisadaManual { get; }
+    DbSet<ParametroRevisadaManual> ParametrosRevisadaManual { get; }
+    DbSet<LineaRevisadaManual> LineasRevisadaManual { get; }
+    DbSet<RegistroJuegoManual> RegistrosJuegoManual { get; }
+    DbSet<RegistroJuegoNumerosWebManual> RegistrosJuegoNumerosWebManual { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     Task ExecuteInTransactionAsync(Func<CancellationToken, Task> action, CancellationToken cancellationToken = default);
@@ -52,6 +57,9 @@ public interface INewRichDbContext
     Task AsegurarEsquemaJornadasAsync(CancellationToken cancellationToken = default);
     Task AsegurarEsquemaManualAsync(CancellationToken cancellationToken = default);
     Task AsegurarEsquemaRegistroJuegoAsync(CancellationToken cancellationToken = default);
+    Task AsegurarEsquemaRegistroJuegoNumerosWebAsync(CancellationToken cancellationToken = default);
+    Task AsegurarEsquemaRevisadaManualAsync(CancellationToken cancellationToken = default);
+    Task AsegurarEsquemaParametrosRevisadaManualAsync(CancellationToken cancellationToken = default);
     Task<bool> IntentarBloquearRetencionAsync(CancellationToken cancellationToken = default);
     void DescartarCambios();
 }

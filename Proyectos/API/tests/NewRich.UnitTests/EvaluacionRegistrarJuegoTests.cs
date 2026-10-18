@@ -15,7 +15,9 @@ public sealed class EvaluacionRegistrarJuegoTests
             0,
             [string.Empty],
             [],
-            false);
+            false,
+            true,
+            true);
 
         decision.Filas.Should().Be(ParteJuego.Vacia);
         decision.Numeros.Should().Be(ParteJuego.Vacia);
@@ -32,7 +34,9 @@ public sealed class EvaluacionRegistrarJuegoTests
             10_000,
             ["1234", "5678"],
             [],
-            false);
+            false,
+            true,
+            true);
 
         decision.Filas.Should().Be(ParteJuego.Lista);
         decision.Numeros.Should().Be(ParteJuego.Lista);
@@ -52,6 +56,8 @@ public sealed class EvaluacionRegistrarJuegoTests
             0,
             [string.Empty],
             [],
+            false,
+            true,
             false);
         var soloNumeros = EvaluacionRegistrarJuego.Evaluar(
             [new FilaRegistroEntrada(false, false, false)],
@@ -60,12 +66,33 @@ public sealed class EvaluacionRegistrarJuegoTests
             1_000,
             ["3214"],
             [],
-            false);
+            false,
+            false,
+            true);
 
         soloFilas.PuedeRegistrar.Should().BeTrue();
         soloFilas.Numeros.Should().Be(ParteJuego.Vacia);
         soloNumeros.PuedeRegistrar.Should().BeTrue();
         soloNumeros.Filas.Should().Be(ParteJuego.Vacia);
+    }
+
+    [Fact]
+    public void Evaluar_no_registra_si_estan_marcadas_las_dos_y_falta_una()
+    {
+        var decision = EvaluacionRegistrarJuego.Evaluar(
+            [new FilaRegistroEntrada(true, true, true)],
+            0,
+            false,
+            0,
+            [string.Empty],
+            [],
+            false,
+            true,
+            true);
+
+        decision.Filas.Should().Be(ParteJuego.Lista);
+        decision.Numeros.Should().Be(ParteJuego.Vacia);
+        decision.PuedeRegistrar.Should().BeFalse();
     }
 
     [Fact]
@@ -78,7 +105,9 @@ public sealed class EvaluacionRegistrarJuegoTests
             0,
             [string.Empty],
             [],
-            false);
+            false,
+            true,
+            true);
         var cerrado = EvaluacionRegistrarJuego.Evaluar(
             [new FilaRegistroEntrada(true, true, true)],
             1,
@@ -86,6 +115,8 @@ public sealed class EvaluacionRegistrarJuegoTests
             1_000,
             ["3214"],
             [],
+            true,
+            true,
             true);
 
         parcial.Filas.Should().Be(ParteJuego.Parcial);
@@ -104,7 +135,9 @@ public sealed class EvaluacionRegistrarJuegoTests
             1_000,
             ["12"],
             [],
-            false);
+            false,
+            false,
+            true);
         var restringido = EvaluacionRegistrarJuego.Evaluar(
             [],
             1,
@@ -112,7 +145,9 @@ public sealed class EvaluacionRegistrarJuegoTests
             1_000,
             ["1234"],
             ["1234"],
-            false);
+            false,
+            false,
+            true);
         var cortoDeDinero = EvaluacionRegistrarJuego.Evaluar(
             [],
             2,
@@ -120,7 +155,9 @@ public sealed class EvaluacionRegistrarJuegoTests
             3,
             ["1111", "2222"],
             [],
-            false);
+            false,
+            false,
+            true);
 
         corto.Numeros.Should().Be(ParteJuego.Parcial);
         corto.Motivo.Should().Be(MotivoJuegoNumeros.Formato);

@@ -68,7 +68,7 @@ public static class UiTexts
     public const string QuitarFila = "Quitar fila";
     public const string BuscarLoteria = "Buscar lotería";
     public const string SinResultados = "No se encontraron resultados";
-    public const string AyudaRegistrarJuego = "Las filas y el juego números se registran juntos.";
+    public const string AyudaRegistrarJuego = "Marque el tipo de juego. Si marca los dos, complete los dos. Los campos con * son obligatorios.";
     public const string PorFila = "Por fila";
     public const string NumeroAJugar = "Número a jugar";
     public const string NumerosAJugar = "Números a jugar";
@@ -79,8 +79,9 @@ public static class UiTexts
     public const string SeRegistraranFilas = "Se registrarán las filas.";
     public const string SeRegistraraNumeros = "Se registrará el juego números.";
     public const string SeRegistraranAmbos = "Se registrarán las filas y el juego números.";
-    public const string CompleteParaRegistrar = "Complete una jugada para registrar.";
+    public const string CompleteParaRegistrar = "Marque un tipo de juego y complete los campos obligatorios.";
     public const string CompleteFilas = "Complete lotería, número y valor en cada fila.";
+    public const string CompleteNumeros = "Complete loterías, valor jugado y número a jugar.";
     public const string CompleteAmbos = "Complete las filas y el juego números antes de registrar.";
     public const string MuchaSuerte = "¡Mucha suerte!";
 

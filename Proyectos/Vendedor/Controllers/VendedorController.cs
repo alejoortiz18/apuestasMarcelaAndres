@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NewRich.Application.Contracts.Configuracion;
-using NewRich.Domain.Services;
 using NewRich.Vendedor.Constants;
 using NewRich.Vendedor.Models;
 using NewRich.Vendedor.Services;
@@ -35,18 +34,7 @@ public abstract class VendedorController : Controller
         return RedirectToAction("Ingresar", "Cuenta", new { expired = true });
     }
 
-    protected static bool HorarioCerrado(ConfiguracionOperativaResponse? operativa)
-    {
-        if (operativa is null
-            || !TimeSpan.TryParse(operativa.HoraApertura, out var apertura)
-            || !TimeSpan.TryParse(operativa.HoraCierre, out var cierre))
-        {
-            return false;
-        }
-
-        var ahora = ZonaHorariaColombia.ALocal(DateTime.UtcNow).TimeOfDay;
-        return HorarioOperacion.EstaFuera(ahora, apertura, cierre);
-    }
+    protected static bool HorarioCerrado(ConfiguracionOperativaResponse? operativa) => false;
 
     protected static int MaximoLineas(ConfiguracionOperativaResponse? operativa, bool combo) =>
         operativa is null

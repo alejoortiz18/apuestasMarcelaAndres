@@ -29,6 +29,10 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
     public DbSet<Venta> Ventas => Set<Venta>();
     public DbSet<VentaManual> VentasManual => Set<VentaManual>();
     public DbSet<RegistroJuegoManual> RegistrosJuegoManual => Set<RegistroJuegoManual>();
+    public DbSet<RegistroJuegoNumerosWebManual> RegistrosJuegoNumerosWebManual => Set<RegistroJuegoNumerosWebManual>();
+    public DbSet<OperacionRevisadaManual> OperacionesRevisadaManual => Set<OperacionRevisadaManual>();
+    public DbSet<ParametroRevisadaManual> ParametrosRevisadaManual => Set<ParametroRevisadaManual>();
+    public DbSet<LineaRevisadaManual> LineasRevisadaManual => Set<LineaRevisadaManual>();
     public DbSet<BoletoManual> BoletosManual => Set<BoletoManual>();
     public DbSet<JuegoManual> JuegosManual => Set<JuegoManual>();
     public DbSet<JuegoLoteriaManual> JuegosLoteriasManual => Set<JuegoLoteriaManual>();
@@ -124,6 +128,37 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
         await Database.ExecuteSqlRawAsync(EsquemaRegistroJuego.Tablas, cancellationToken);
         await Database.ExecuteSqlRawAsync(EsquemaRegistroJuego.Registrar, cancellationToken);
         await Database.ExecuteSqlRawAsync(EsquemaRegistroJuego.Consultar, cancellationToken);
+    }
+
+    public async Task AsegurarEsquemaRegistroJuegoNumerosWebAsync(CancellationToken cancellationToken = default)
+    {
+        if (!Database.IsRelational())
+        {
+            return;
+        }
+
+        await Database.ExecuteSqlRawAsync(EsquemaRegistroJuegoNumerosWeb.Tablas, cancellationToken);
+        await Database.ExecuteSqlRawAsync(EsquemaRegistroJuegoNumerosWeb.Registrar, cancellationToken);
+    }
+
+    public async Task AsegurarEsquemaRevisadaManualAsync(CancellationToken cancellationToken = default)
+    {
+        if (!Database.IsRelational())
+        {
+            return;
+        }
+
+        await Database.ExecuteSqlRawAsync(EsquemaRevisadaManual.Tablas, cancellationToken);
+    }
+
+    public async Task AsegurarEsquemaParametrosRevisadaManualAsync(CancellationToken cancellationToken = default)
+    {
+        if (!Database.IsRelational())
+        {
+            return;
+        }
+
+        await Database.ExecuteSqlRawAsync(EsquemaParametrosRevisadaManual.Tablas, cancellationToken);
     }
 
     public async Task<bool> IntentarBloquearRetencionAsync(CancellationToken cancellationToken = default)
@@ -383,6 +418,58 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
             e.Property(x => x.Valor).HasColumnType("decimal(18,2)");
             e.Property(x => x.Numero).HasColumnType("nvarchar(max)");
             e.HasOne(x => x.Registro).WithMany(x => x.Filas).HasForeignKey(x => x.RegistroId);
+        });
+
+        modelBuilder.Entity<RegistroJuegoNumerosWebManual>(e =>
+        {
+            e.ToTable("RegistrosJuegoNumerosWeb", "manual");
+            e.HasKey(x => x.RegistroId);
+            e.Property(x => x.CodigoPublico).HasColumnType("char(7)");
+            e.Property(x => x.NombreCompleto).HasMaxLength(200);
+            e.Property(x => x.ValorJugado).HasColumnType("decimal(18,2)");
+            e.HasIndex(x => x.CodigoPublico).IsUnique();
+        });
+
+        modelBuilder.Entity<ApuestaRegistroJuegoNumerosWebManual>(e =>
+        {
+            e.ToTable("RegistroJuegoNumerosWebApuestas", "manual");
+            e.HasKey(x => x.ApuestaId);
+            e.Property(x => x.Numero).HasMaxLength(4);
+            e.Property(x => x.Valor).HasColumnType("decimal(18,2)");
+            e.HasOne(x => x.Registro).WithMany(x => x.Apuestas).HasForeignKey(x => x.RegistroId);
+        });
+
+        modelBuilder.Entity<ParametroRevisadaManual>(e =>
+        {
+            e.ToTable("ParametrosRevisadaManual", "manual");
+            e.HasKey(x => x.ParametroId);
+            e.Property(x => x.ComisionPorcentaje).HasColumnType("decimal(5,2)");
+            e.Property(x => x.DescuentoPorcentaje).HasColumnType("decimal(5,2)");
+        });
+
+        modelBuilder.Entity<OperacionRevisadaManual>(e =>
+        {
+            e.ToTable("RevisadaManualOperaciones", "manual");
+            e.HasKey(x => x.OperacionId);
+            e.Property(x => x.Estado).HasMaxLength(20);
+            e.Property(x => x.Numero).HasColumnType("nvarchar(max)");
+            e.Property(x => x.Subtotal).HasColumnType("decimal(18,2)");
+            e.Property(x => x.ComisionPorcentaje).HasColumnType("decimal(18,2)");
+            e.Property(x => x.ComisionValor).HasColumnType("decimal(18,2)");
+            e.Property(x => x.TotalConComision).HasColumnType("decimal(18,2)");
+            e.Property(x => x.DescuentoPorcentaje).HasColumnType("decimal(18,2)");
+            e.Property(x => x.DescuentoValor).HasColumnType("decimal(18,2)");
+            e.Property(x => x.TotalPagar).HasColumnType("decimal(18,2)");
+        });
+
+        modelBuilder.Entity<LineaRevisadaManual>(e =>
+        {
+            e.ToTable("RevisadaManualLineas", "manual");
+            e.HasKey(x => x.LineaId);
+            e.Property(x => x.Origen).HasMaxLength(20);
+            e.Property(x => x.Valor).HasColumnType("decimal(18,2)");
+            e.HasIndex(x => new { x.Origen, x.OrigenId }).IsUnique();
+            e.HasOne(x => x.Operacion).WithMany(x => x.Lineas).HasForeignKey(x => x.OperacionId);
         });
 
         modelBuilder.Entity<NumeroGanador>(e =>

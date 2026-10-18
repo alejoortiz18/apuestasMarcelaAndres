@@ -61,11 +61,6 @@ public sealed class RegistrarJuegoManualService : IRegistrarJuegoManualService
             return Result<RegistroJuegoManualResponse>.Ok(await MapAsync(existente, cancellationToken), VentaMessages.VentaDuplicadaIdempotente);
         }
 
-        if (await FueraDeHorario(cancellationToken))
-        {
-            return Result<RegistroJuegoManualResponse>.Fail(VentaMessages.VentaFueraDeHorario);
-        }
-
         if (request.Filas is null || request.Filas.Count == 0)
         {
             return Result<RegistroJuegoManualResponse>.Fail(RegistrarJuegoManualMessages.CamposObligatorios);
@@ -138,20 +133,6 @@ public sealed class RegistrarJuegoManualService : IRegistrarJuegoManualService
             Valor = f.Valor
         }).ToList();
         return Result<IReadOnlyList<FilaHistoricoJuegoManualResponse>>.Ok(lista, RegistrarJuegoManualMessages.Registrado);
-    }
-
-    private async Task<bool> FueraDeHorario(CancellationToken cancellationToken)
-    {
-        var aperturaCfg = await _db.Configuraciones.FirstOrDefaultAsync(c => c.Clave == "HoraApertura", cancellationToken);
-        var cierreCfg = await _db.Configuraciones.FirstOrDefaultAsync(c => c.Clave == "HoraCierre", cancellationToken);
-        if (aperturaCfg is null || cierreCfg is null
-            || !TimeSpan.TryParse(aperturaCfg.Valor, out var apertura)
-            || !TimeSpan.TryParse(cierreCfg.Valor, out var cierre))
-        {
-            return false;
-        }
-
-        return HorarioOperacion.EstaFuera(_clock.LocalNow.TimeOfDay, apertura, cierre);
     }
 
     private async Task<string> GenerarCodigo(CancellationToken cancellationToken)

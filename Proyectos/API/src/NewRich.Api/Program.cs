@@ -132,6 +132,9 @@ using (var alcance = app.Services.CreateScope())
     await db.AsegurarEsquemaJornadasAsync(CancellationToken.None);
     await db.AsegurarEsquemaManualAsync(CancellationToken.None);
     await db.AsegurarEsquemaRegistroJuegoAsync(CancellationToken.None);
+    await db.AsegurarEsquemaRegistroJuegoNumerosWebAsync(CancellationToken.None);
+    await db.AsegurarEsquemaRevisadaManualAsync(CancellationToken.None);
+    await db.AsegurarEsquemaParametrosRevisadaManualAsync(CancellationToken.None);
     var super = alcance.ServiceProvider.GetRequiredService<NewRich.Application.Services.ISuperUsuarioAsegurador>();
     await super.AsegurarAsync(CancellationToken.None);
 }

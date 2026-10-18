@@ -51,6 +51,33 @@ public sealed class RegistrarJuegoManualServiceTests
     }
 
     [Fact]
+    public async Task RegistrarAsync_registra_aunque_el_horario_del_sistema_este_cerrado()
+    {
+        var (sut, db) = await CreateSutAsync();
+        var vendedor = db.Usuarios.Single(u => u.Rol == RolUsuario.Vendedor);
+        var loteria = db.Loterias.Single();
+        db.Configuraciones.AddRange(
+            new Configuracion { ConfiguracionId = Guid.NewGuid(), Clave = "HoraApertura", Valor = "18:00", FechaActualizacion = Ahora },
+            new Configuracion { ConfiguracionId = Guid.NewGuid(), Clave = "HoraCierre", Valor = "20:00", FechaActualizacion = Ahora });
+        await db.SaveChangesAsync();
+
+        var result = await sut.RegistrarAsync(
+            vendedor.UsuarioId,
+            new RegistrarJuegoManualRequest
+            {
+                Filas =
+                [
+                    new FilaRegistrarJuegoManualRequest { LoteriaId = loteria.LoteriaId, Valor = 1000, Numero = "456" }
+                ]
+            },
+            Guid.NewGuid().ToString("N"),
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue(result.Message);
+        (await db.RegistrosJuegoManual.CountAsync()).Should().Be(1);
+    }
+
+    [Fact]
     public async Task ListarLoteriasAsync_incluye_las_inactivas()
     {
         var (sut, db) = await CreateSutAsync();
@@ -68,6 +95,33 @@ public sealed class RegistrarJuegoManualServiceTests
 
         result.IsSuccess.Should().BeTrue();
         result.Data!.Select(l => l.Nombre).Should().BeEquivalentTo("Cali", "Cerrada");
+    }
+
+    [Fact]
+    public async Task RegistrarAsync_guarda_aunque_el_horario_del_sistema_este_cerrado()
+    {
+        var (sut, db) = await CreateSutAsync();
+        var vendedor = db.Usuarios.Single(u => u.Rol == RolUsuario.Vendedor);
+        var loteria = db.Loterias.Single();
+        db.Configuraciones.AddRange(
+            new Configuracion { ConfiguracionId = Guid.NewGuid(), Clave = "HoraApertura", Valor = "18:00", FechaActualizacion = Ahora },
+            new Configuracion { ConfiguracionId = Guid.NewGuid(), Clave = "HoraCierre", Valor = "20:00", FechaActualizacion = Ahora });
+        await db.SaveChangesAsync();
+
+        var result = await sut.RegistrarAsync(
+            vendedor.UsuarioId,
+            new RegistrarJuegoManualRequest
+            {
+                Filas =
+                [
+                    new FilaRegistrarJuegoManualRequest { LoteriaId = loteria.LoteriaId, Valor = 1000, Numero = "456" }
+                ]
+            },
+            Guid.NewGuid().ToString("N"),
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue(result.Message);
+        (await db.RegistrosJuegoManual.CountAsync()).Should().Be(1);
     }
 
     [Fact]

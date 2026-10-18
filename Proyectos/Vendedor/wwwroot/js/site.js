@@ -2269,7 +2269,6 @@ iniciarDiasVenta();
   const numeros = form.querySelector("[data-numeros]");
   const registrar = form.querySelector("[data-registrar]");
   const aviso = form.querySelector("[data-aviso]");
-  const cerrado = form.getAttribute("data-horario-cerrado") === "si";
   let restringidos = [];
   try {
     restringidos = JSON.parse(form.getAttribute("data-restringidos") || "[]");
@@ -2415,27 +2414,38 @@ iniciarDiasVenta();
   }
 
   function sincronizar() {
-    const filasEstado = estadoFilas();
-    const numerosEstado = estadoNumeros();
+    const filasOn = !!(form.querySelector("[data-usar-filas]") || {}).checked;
+    const numerosOn = !!(form.querySelector("[data-usar-numeros]") || {}).checked;
+    const panelFilas = form.querySelector("[data-panel-filas]");
+    const panelNumeros = form.querySelector("[data-panel-numeros]");
+    const paneles = form.querySelector(".juego-paneles");
+    if (panelFilas) panelFilas.hidden = !filasOn;
+    if (panelNumeros) panelNumeros.hidden = !numerosOn;
+    if (paneles) {
+      paneles.hidden = !filasOn && !numerosOn;
+      paneles.classList.toggle("una", filasOn !== numerosOn);
+    }
+    const filasEstado = filasOn ? estadoFilas() : "vacia";
+    const numerosEstado = numerosOn ? estadoNumeros() : { parte: "vacia", motivo: "" };
     pintarCalculo();
-    const puede = !cerrado && filasEstado !== "parcial" && numerosEstado.parte !== "parcial" && (filasEstado === "lista" || numerosEstado.parte === "lista");
+    const faltaFilas = filasOn && filasEstado !== "lista";
+    const faltaNumeros = numerosOn && numerosEstado.parte !== "lista";
+    const puede = (filasOn || numerosOn) && !faltaFilas && !faltaNumeros;
     registrar.disabled = !puede;
-    if (cerrado) {
-      aviso.textContent = "Los juegos están cerrados en este horario.";
-    } else if (filasEstado === "parcial" && numerosEstado.parte === "parcial") {
+    if (!filasOn && !numerosOn) {
+      aviso.textContent = "Marque un tipo de juego y complete los campos obligatorios.";
+    } else if (faltaFilas && faltaNumeros) {
       aviso.textContent = "Complete las filas y el juego números antes de registrar.";
-    } else if (filasEstado === "parcial") {
+    } else if (faltaFilas) {
       aviso.textContent = "Complete lotería, número y valor en cada fila.";
-    } else if (numerosEstado.parte === "parcial") {
-      aviso.textContent = numerosEstado.motivo;
-    } else if (filasEstado === "lista" && numerosEstado.parte === "lista") {
+    } else if (faltaNumeros) {
+      aviso.textContent = numerosEstado.motivo || "Complete loterías, valor jugado y número a jugar.";
+    } else if (filasOn && numerosOn) {
       aviso.textContent = "Se registrarán las filas y el juego números.";
-    } else if (filasEstado === "lista") {
+    } else if (filasOn) {
       aviso.textContent = "Se registrarán las filas.";
-    } else if (numerosEstado.parte === "lista") {
-      aviso.textContent = "Se registrará el juego números.";
     } else {
-      aviso.textContent = "Complete una jugada para registrar.";
+      aviso.textContent = "Se registrará el juego números.";
     }
   }
 

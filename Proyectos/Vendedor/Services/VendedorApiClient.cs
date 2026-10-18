@@ -11,6 +11,7 @@ using NewRich.Application.Contracts.Loterias;
 using NewRich.Application.Contracts.Notificaciones;
 using NewRich.Application.Contracts.Premios;
 using NewRich.Application.Contracts.RegistrarJuegoManual;
+using NewRich.Application.Contracts.RegistrarJuegoNumerosWebManual;
 using NewRich.Application.Contracts.Resultados;
 using NewRich.Application.Contracts.Ventas;
 using NewRich.Vendedor.Constants;
@@ -30,7 +31,7 @@ public interface IVendedorApiClient
     Task<ApiCallResult<List<FilaHistoricoJuegoManualResponse>>> ConsultarRegistrosAsync(DateTime desde, DateTime hasta, CancellationToken cancellationToken);
     Task<ApiCallResult<VentaResponse>> ConfirmarAsync(ConfirmarVentaRequest request, string idempotencyKey, CancellationToken cancellationToken);
     Task<ApiCallResult<VentaResponse>> RegistrarNumerosAsync(RegistrarJuegoNumerosManualRequest request, CancellationToken cancellationToken);
-    Task<ApiCallResult<JuegoNumerosManualResponse>> RegistrarJuegoNumerosAsync(RegistrarJuegoNumerosManualRequest request, CancellationToken cancellationToken);
+    Task<ApiCallResult<RegistroJuegoNumerosWebManualResponse>> RegistrarJuegoNumerosWebAsync(RegistrarJuegoNumerosWebManualRequest request, CancellationToken cancellationToken);
     Task<ApiCallResult<List<VentaResponse>>> ConsultarVentasAsync(DateTime desde, DateTime hasta, CancellationToken cancellationToken);
     Task<ApiCallResult<NotificacionesResponse>> AlertasAsync(CancellationToken cancellationToken);
     Task<ApiCallResult<object>> MarcarAlertasLeidasAsync(CancellationToken cancellationToken);
@@ -93,8 +94,8 @@ public sealed class VendedorApiClient : IVendedorApiClient
     public Task<ApiCallResult<VentaResponse>> RegistrarNumerosAsync(RegistrarJuegoNumerosManualRequest request, CancellationToken cancellationToken) =>
         SendAsync<VentaResponse>(HttpMethod.Post, "api/VentasManual/RegistrarNumeros", request, true, null, cancellationToken);
 
-    public Task<ApiCallResult<JuegoNumerosManualResponse>> RegistrarJuegoNumerosAsync(RegistrarJuegoNumerosManualRequest request, CancellationToken cancellationToken) =>
-        SendAsync<JuegoNumerosManualResponse>(HttpMethod.Post, "api/JuegoNumerosManual/Registrar", request, true, null, cancellationToken);
+    public Task<ApiCallResult<RegistroJuegoNumerosWebManualResponse>> RegistrarJuegoNumerosWebAsync(RegistrarJuegoNumerosWebManualRequest request, CancellationToken cancellationToken) =>
+        SendAsync<RegistroJuegoNumerosWebManualResponse>(HttpMethod.Post, "api/RegistrarJuegoNumerosWebManual/Registrar", request, true, null, cancellationToken);
 
     public Task<ApiCallResult<List<VentaResponse>>> ConsultarVentasAsync(DateTime desde, DateTime hasta, CancellationToken cancellationToken)
     {
