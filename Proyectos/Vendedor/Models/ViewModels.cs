@@ -205,6 +205,75 @@ public static class Paginas
     }
 }
 
+public sealed class IndicadoresGastosViewModel
+{
+    public string Periodo { get; init; } = "mes";
+    public DateOnly? Desde { get; init; }
+    public DateOnly? Hasta { get; init; }
+    public string PeriodoTexto { get; init; } = string.Empty;
+    public string Total { get; init; } = "0";
+    public int Cantidad { get; init; }
+    public string Promedio { get; init; } = "0";
+    public string Mayor { get; init; } = "-";
+    public string MayorValor { get; init; } = "-";
+    public string? AnuladosTexto { get; init; }
+    public string SerieTitulo { get; init; } = string.Empty;
+    public IReadOnlyList<BarraIndicador> Tipos { get; init; } = [];
+    public IReadOnlyList<BarraIndicador> Serie { get; init; } = [];
+    public string? Aviso { get; init; }
+}
+
+public sealed class BarraIndicador
+{
+    public string Etiqueta { get; init; } = string.Empty;
+    public string Valor { get; init; } = string.Empty;
+    public string Detalle { get; init; } = string.Empty;
+    public int Porcentaje { get; init; }
+}
+
+public sealed class MisGastosViewModel
+{
+    public string Periodo { get; init; } = "mes";
+    public DateOnly? Desde { get; init; }
+    public DateOnly? Hasta { get; init; }
+    public string PeriodoTexto { get; init; } = string.Empty;
+    public string Total { get; init; } = "0";
+    public int Cantidad { get; init; }
+    public IReadOnlyList<GastoFilaViewModel> Items { get; init; } = [];
+    public PaginacionViewModel Paginacion { get; init; } = new();
+    public string? Aviso { get; init; }
+    public RegistrarGastoViewModel Formulario { get; init; } = new();
+    public bool AbrirModal { get; init; }
+}
+
+public sealed class GastoFilaViewModel
+{
+    public string Fecha { get; init; } = string.Empty;
+    public string Tipo { get; init; } = string.Empty;
+    public string Observacion { get; init; } = string.Empty;
+    public string Valor { get; init; } = string.Empty;
+    public string Estado { get; init; } = string.Empty;
+    public bool Anulado { get; init; }
+}
+
+public sealed class RegistrarGastoViewModel
+{
+    public Guid TipoGastoId { get; set; }
+    public DateOnly FechaGasto { get; set; }
+    public string Valor { get; set; } = string.Empty;
+    public string? Observacion { get; set; }
+    public string ClaveIdempotencia { get; set; } = string.Empty;
+    public IReadOnlyList<TipoGastoOpcionViewModel> Tipos { get; set; } = [];
+    public string? Error { get; set; }
+}
+
+public sealed class TipoGastoOpcionViewModel
+{
+    public Guid Id { get; init; }
+    public string Nombre { get; init; } = string.Empty;
+    public bool RequiereObservacion { get; init; }
+}
+
 public static class Montos
 {
     private static readonly CultureInfo Colombia = CultureInfo.GetCultureInfo("es-CO");

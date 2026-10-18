@@ -49,6 +49,9 @@ public interface INewRichDbContext
     DbSet<LineaRevisadaManual> LineasRevisadaManual { get; }
     DbSet<RegistroJuegoManual> RegistrosJuegoManual { get; }
     DbSet<RegistroJuegoNumerosWebManual> RegistrosJuegoNumerosWebManual { get; }
+    DbSet<TipoGasto> TiposGasto { get; }
+    DbSet<Gasto> Gastos { get; }
+    DbSet<AuditoriaCambioGasto> AuditoriaCambiosGasto { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     Task ExecuteInTransactionAsync(Func<CancellationToken, Task> action, CancellationToken cancellationToken = default);
@@ -60,6 +63,7 @@ public interface INewRichDbContext
     Task AsegurarEsquemaRegistroJuegoNumerosWebAsync(CancellationToken cancellationToken = default);
     Task AsegurarEsquemaRevisadaManualAsync(CancellationToken cancellationToken = default);
     Task AsegurarEsquemaParametrosRevisadaManualAsync(CancellationToken cancellationToken = default);
+    Task AsegurarEsquemaUtilidadesAsync(CancellationToken cancellationToken = default);
     Task<bool> IntentarBloquearRetencionAsync(CancellationToken cancellationToken = default);
     void DescartarCambios();
 }

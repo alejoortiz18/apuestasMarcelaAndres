@@ -24,6 +24,7 @@ public static class UiTexts
     public const string Buscar = "Buscar";
     public const string Limpiar = "Limpiar";
     public const string Guardar = "Guardar";
+    public const string Cancelar = "Cancelar";
     public const string Volver = "Volver";
     public const string Vacio = "No hay registros para mostrar.";
     public const string FilasPorPagina = "Filas por página";
@@ -124,6 +125,43 @@ public static class UiTexts
     public const string PaginaSiguiente = "Siguiente";
     public const string PaginaUltimo = "Ultimo";
     public const string SeleccionarFila = "Seleccionar";
+    public const string MenuVentas = "Ventas";
+    public const string MenuUtilidades = "Utilidades";
+    public const string MisGastos = "Mis gastos";
+    public const string Indicadores = "Indicadores";
+    public const string IndicadoresAyuda = "Informe de los gastos que usted registró. No incluye ventas ni ganancia.";
+    public const string GastoPromedio = "Gasto promedio";
+    public const string MayorGasto = "Mayor gasto";
+    public const string GastosPorTipo = "Gastos por tipo";
+    public const string GastosPorDia = "Gastos por día";
+    public const string GastosPorMes = "Gastos por mes";
+    public const string GastosDelTipo = "{0} registros";
+    public const string Participacion = "{0} %";
+    public const string AnuladosAparte = "Quedaron por fuera {0} gastos anulados, por {1}. No entran en los totales.";
+    public const string SinGastosPeriodo = "No hay gastos activos en este periodo.";
+    public const string RegistrarGasto = "Registrar gasto";
+    public const string MisGastosAyuda = "Aquí ve solo los gastos que usted registró.";
+    public const string Periodo = "Periodo";
+    public const string PeriodoHoy = "Hoy";
+    public const string PeriodoAyer = "Ayer";
+    public const string Periodo7 = "Últimos 7 días";
+    public const string Periodo30 = "Últimos 30 días";
+    public const string PeriodoMes = "Mes actual";
+    public const string PeriodoMesAnterior = "Mes anterior";
+    public const string PeriodoRango = "Rango personalizado";
+    public const string PeriodoAplicado = "Periodo aplicado: {0} al {1}.";
+    public const string RangoAyuda = "Desde y hasta se usan solo cuando el periodo es un rango personalizado.";
+    public const string TotalMisGastos = "Total de mis gastos";
+    public const string CantidadGastos = "Cantidad";
+    public const string TipoGasto = "Tipo de gasto";
+    public const string FechaGasto = "Fecha del gasto";
+    public const string EstadoActivo = "Activo";
+    public const string EstadoAnulado = "Anulado";
+    public const string GastoRegistrado = "El gasto quedó registrado: {0}, {1}, {2}.";
+    public const string SinTiposGasto = "No hay tipos de gasto disponibles.";
+    public const string ValorObligatorio = "Escriba un valor mayor que cero.";
+    public const string TipoObligatorio = "Seleccione un tipo de gasto.";
+    public const string FechaObligatoria = "Seleccione la fecha del gasto.";
 }
 
 public static class AuthCookieNames

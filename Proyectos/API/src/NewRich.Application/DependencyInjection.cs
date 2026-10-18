@@ -44,6 +44,7 @@ public static class DependencyInjection
         services.AddScoped<IAndroidPdaService, AndroidPdaService>();
         services.AddScoped<IObservadorTicketService, ObservadorTicketService>();
         services.AddScoped<IRecaudoService, RecaudoService>();
+        services.AddScoped<IGastosUtilidadesService, GastosUtilidadesService>();
         return services;
     }
 }

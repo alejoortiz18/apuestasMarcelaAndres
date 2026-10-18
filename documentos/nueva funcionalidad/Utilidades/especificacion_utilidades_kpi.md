@@ -1,831 +1,328 @@
-# Especificación funcional: Utilidades y análisis financiero
+# Especificación funcional: Utilidades
 
-**Estado:** Propuesta funcional para desarrollo\
-**Módulo:** Utilidades\
-**Perfiles:** Administrador y Vendedor Web\
-**Objetivo:** Centralizar los ingresos por ventas y los gastos
-operativos del sistema, ofrecer indicadores gerenciales confiables y
-permitir el control administrativo de los tipos de gasto y de los
-registros de descuentos y comisiones existentes.
+**Estado:** Alcance acordado para esta entrega  
+**Módulo:** Utilidades  
+**Perfiles:** Administrador y Vendedor Web  
+**Sitios:** Administrador y sitio del vendedor
 
-------------------------------------------------------------------------
+El administrador elige un periodo y ve tres cifras del mismo rango: ingresos por ventas, gastos registrados y la resta. El vendedor web deja registrado un gasto a su nombre y consulta solo lo que él mismo guardó. La ganancia la ve únicamente el administrador.
 
-## 1. Objetivos y principios de diseño
-
-1.  Crear un módulo llamado **Utilidades** para los perfiles
-    Administrador y Vendedor Web.
-2.  Centralizar en una sola vista los ingresos provenientes de las
-    ventas y los gastos registrados por todos los usuarios.
-3.  Mostrar indicadores financieros claros, trazables y filtrables por
-    periodo, usuario y tipo de movimiento.
-4.  Calcular las ganancias netas como ingresos por ventas menos gastos
-    registrados, sin duplicar ni alterar los datos de origen.
-5.  Permitir que el Administrador gestione los tipos de gasto y tenga
-    control administrativo sobre los registros de descuentos y
-    comisiones que actualmente se manejan en **Por cubrir** y
-    **Cubierto**.
-6.  Priorizar la experiencia de usuario: filtros visibles, cifras
-    consistentes, navegación simple, estados vacíos claros,
-    confirmaciones para acciones sensibles y acceso al detalle desde
-    cada KPI.
-7.  Mantener la integridad de los registros financieros: auditoría,
-    permisos por rol, validaciones y trazabilidad de cambios.
-
-> **Criterio contable:** las ganancias netas que se muestran en este
-> módulo son un resultado operativo calculado con los ingresos de ventas
-> identificados y los gastos registrados. No deben presentarse como
-> utilidad contable definitiva si no se incluyen todos los costos,
-> devoluciones, anulaciones, premios u otros conceptos aplicables. La
-> definición exacta de cada concepto debe validarse con las reglas
-> actuales del sistema.
+Esta entrega no incluye gráficos, comparación con otro periodo, alertas, exportación, soportes adjuntos ni un flujo de aprobación.
 
 ------------------------------------------------------------------------
 
-## 2. Navegación y permisos
+## 1. Resultado operativo
 
-### 2.1 Vendedor Web
+La ganancia neta operativa es la resta de los ingresos de ventas incluidos y de los gastos activos del periodo. No es el saldo de caja ni la utilidad contable. Devoluciones, premios y otros conceptos que no estén dentro de las tres fuentes de la sección 6 siguen fuera de esta resta.
 
-El menú tendrá dos elementos principales:
+Las tres cifras del administrador usan la misma regla:
 
--   **Ventas:** conservar todos los elementos que actualmente existen en
-    el menú del Vendedor Web, sin eliminar ni cambiar su comportamiento.
--   **Utilidades:** nuevo módulo con los subítems:
-    -   **Resumen:** panel de indicadores y análisis.
-    -   **Registrar gasto:** formulario para registrar un gasto.
-    -   **Movimientos:** listado de gastos registrados y consulta de
-        ingresos consolidados, según los permisos disponibles.
+- **Ingresos** = suma de las ventas incluidas de las tres fuentes del periodo, sin contar dos veces el mismo valor.
+- **Gastos** = suma de los gastos no anulados del periodo.
+- **Ganancia neta operativa** = ingresos − gastos.
 
-El menú actual de Ventas debe trasladarse visualmente bajo el grupo
-**Ventas**, preservando rutas, permisos, operaciones y funcionalidades
-existentes. No se deben duplicar ni perder opciones durante la
-reorganización.
+Si todavía no se puede calcular el ingreso con las reglas de la sección 6, el resumen no muestra un cero como si el cierre fuera real. Muestra los gastos y deja los ingresos y la ganancia en blanco, con la leyenda de que falta cerrar la fuente.
+
+Los importes se guardan como decimal de moneda, con la misma precisión que ya usan las ventas (`decimal(18,2)`). No se usa punto flotante binario. El periodo se corta con la misma zona horaria con la que la aplicación guarda `FechaVenta` y `FechaRegistro`.
+
+Un gasto anulado se conserva, se distingue en el listado y no entra en Gastos ni en la resta.
+
+------------------------------------------------------------------------
+
+## 2. Navegación
+
+### 2.1 Sitio del vendedor
+
+El menú plano actual pasa a dos grupos. Las rutas, los permisos y el comportamiento de cada pantalla se conservan. No se duplican ni se eliminan opciones.
+
+**Ventas**
+
+- Inicio
+- Registrar juego
+- Histórico
+- Alertas
+- Validar ticket
+- Resultados
+- Atención al cliente
+- Soporte técnico
+- Entrega de premio
+
+**Utilidades**
+
+- **Indicadores:** informe de los gastos activos que registró el usuario en el periodo: total, cantidad, promedio, mayor gasto, participación por tipo y evolución por día (por mes si el periodo pasa de 31 días). Los anulados se nombran aparte y no entran en las cifras. No incluye ventas ni ganancia.
+- **Mis gastos:** listado de los gastos que registró el usuario de la sesión. El botón Registrar gasto abre el formulario en un cuadro sobre esta misma página.
+
+El vendedor no tiene Resumen de ganancias ni Configuración de gastos.
 
 ### 2.2 Administrador
 
-El menú del Administrador tendrá el nuevo elemento **Utilidades**, con:
+Se agrega el grupo **Utilidades** debajo de **Revisada manual**. El resto del menú del administrador, incluido el grupo Ventas que ya existe, permanece donde está.
 
--   **Resumen**
--   **Registrar gasto**
--   **Movimientos**
--   **Configuración de gastos**
-
-Además, el Administrador tendrá acceso completo a los registros de
-descuentos y comisiones que actualmente se encuentran en **Por cubrir**
-y **Cubierto**, con las acciones permitidas por las reglas de negocio y
-con auditoría.
-
-### 2.3 Matriz de permisos
-
-  -----------------------------------------------------------------------
-  Funcionalidad           Vendedor Web            Administrador
-  ----------------------- ----------------------- -----------------------
-  Ver KPI consolidados    Sí                      Sí
-  del sistema                                     
-
-  Ver gastos de todos los Sí, según el alcance    Sí
-  usuarios                operativo definido      
-
-  Registrar gastos        Sí                      Sí
-
-  Consultar movimientos y Sí                      Sí
-  aplicar filtros                                 
-
-  Editar o anular gastos  Según política          Sí, con auditoría
-  propios                 configurable            
-
-  Editar o anular gastos  No                      Sí, con auditoría
-  de otros usuarios                               
-
-  Crear, editar, activar  No                      Sí
-  o desactivar tipos de                           
-  gasto                                           
-
-  Eliminar físicamente    No                      No recomendado; usar
-  tipos de gasto                                  desactivación
-  utilizados                                      
-
-  Administrar registros   No                      Sí, con trazabilidad
-  de descuentos y                                 
-  comisiones de Por                               
-  cubrir/Cubierto                                 
-
-  Consultar historial de  Solo el alcance         Sí
-  cambios                 permitido               
-  -----------------------------------------------------------------------
-
-Los permisos deben validarse en el servidor/API, no solamente ocultando
-opciones en la interfaz. Las acciones administrativas sensibles deben
-registrar quién las realizó, cuándo y qué cambió.
+- **Indicadores:** el mismo informe del vendedor, con los gastos de todos los usuarios: total, cantidad, promedio, mayor gasto, participación por tipo y evolución por día. Los anulados se nombran aparte. No incluye ventas ni ganancia.
+- **Resumen:** ingresos, gastos y ganancia neta operativa del periodo. El botón **Registrar gasto** abre el formulario en un cuadro sobre esta misma página.
+- **Movimientos:** gastos de todos los usuarios.
+- **Configuración de gastos**
 
 ------------------------------------------------------------------------
 
-## 3. Resumen: panel de KPI
+## 3. Permisos
 
-El panel debe funcionar como una herramienta de análisis gerencial, no
-únicamente como un listado de valores. Debe permitir identificar
-rápidamente cuánto ingresó, cuánto se gastó, qué resultado se obtuvo y
-dónde se concentran los movimientos.
+El servidor rechaza lo que el rol no puede hacer. Ocultar el menú no basta. El usuario del gasto sale de la sesión autenticada. El cliente no puede enviar otro usuario.
 
-### 3.1 Filtros globales
-
-Ubicar los filtros en una zona visible, por encima de los KPI. Todos los
-indicadores y gráficos del panel deben actualizarse con los mismos
-filtros.
-
-Filtros mínimos:
-
--   **Periodo:** hoy, ayer, últimos 7 días, últimos 30 días, mes actual,
-    mes anterior, rango personalizado y todo el histórico.
--   **Fecha desde / hasta:** cuando se seleccione rango personalizado.
--   **Usuario:** todos o un usuario específico.
--   **Tipo de gasto:** todos o un tipo determinado.
--   **Origen de venta:** esquema/tablas de origen identificadas,
-    incluyendo `dbo` y el esquema manual.
--   **Estado del movimiento:** activo, anulado u otros estados
-    existentes, de acuerdo con las reglas de negocio.
--   **Comparación:** periodo anterior equivalente, cuando haya datos
-    suficientes.
-
-Mostrar de forma visible el periodo aplicado, la fecha/hora de
-actualización y los filtros activos. Incluir acciones **Aplicar
-filtros** y **Limpiar filtros** si el volumen de datos hace conveniente
-aplicar los filtros bajo demanda.
-
-### 3.2 KPI principales
-
-Mostrar tarjetas en la parte superior, con formato de moneda colombiana
-(COP), separadores legibles y valores exactos accesibles al abrir el
-detalle.
-
-1.  **Ventas brutas:** suma de las ventas válidas del periodo, según la
-    definición de negocio.
-2.  **Otros ingresos:** solo si el sistema tiene fuentes adicionales de
-    ingresos identificadas y aprobadas. No sumar valores desconocidos
-    como ingresos.
-3.  **Ingresos totales:** suma de los conceptos de ingreso definidos
-    para el sistema, sin duplicar ventas.
-4.  **Gastos totales:** suma de los gastos válidos registrados por todos
-    los usuarios en el periodo.
-5.  **Ganancia neta operativa:** ingresos totales menos gastos totales
-    incluidos en el cálculo.
-6.  **Margen neto operativo (%):** ganancia neta operativa / ingresos
-    totales × 100. Si los ingresos son cero, mostrar "N/A" en lugar de
-    dividir por cero.
-7.  **Cantidad de gastos:** número de registros de gasto válidos.
-8.  **Gasto promedio:** gastos totales / cantidad de gastos válidos. Si
-    no hay gastos, mostrar cero o "N/A" según el estándar visual del
-    sistema.
-9.  **Usuarios que registraron gastos:** cantidad de usuarios diferentes
-    que registraron gastos en el periodo.
-
-Cada tarjeta debe mostrar, cuando aplique, variación frente al periodo
-anterior equivalente, con diferencia absoluta y porcentual. Una
-variación no debe mostrarse como 0 % si el periodo anterior tiene base
-cero; usar "Sin base de comparación".
-
-**Importante:** "Ganancia neta operativa" debe tener una definición
-visible mediante ayuda contextual. No debe confundirse con el saldo de
-caja ni con la utilidad contable total.
-
-### 3.3 KPI de gastos y control
-
-Agregar indicadores y desgloses para:
-
--   Gastos por usuario.
--   Gastos por tipo de gasto.
--   Gastos por día, semana y mes.
--   Gastos por observación o concepto, cuando sea útil y seguro.
--   Mayor gasto individual del periodo.
--   Tipos de gasto con mayor participación porcentual.
--   Tendencia de ingresos, gastos y ganancia neta operativa.
--   Comparación entre el periodo actual y el anterior.
--   Cantidad y valor de registros anulados, mostrados por separado y
-    excluidos de los totales activos.
--   Gastos pendientes de revisión, si se implementa un flujo de
-    aprobación.
-
-Los gráficos deben incluir títulos descriptivos, unidades, leyendas y
-estados vacíos. Al seleccionar un segmento, barra o punto, abrir el
-detalle filtrado correspondiente.
-
-### 3.4 Presentación recomendada
-
-Orden sugerido del panel:
-
-1.  Encabezado **Utilidades** con periodo seleccionado y última
-    actualización.
-2.  Filtros globales.
-3.  Fila de KPI financieros principales.
-4.  Gráfico temporal de ingresos, gastos y ganancia neta.
-5.  Distribución de gastos por tipo.
-6.  Distribución de gastos por usuario.
-7.  Tabla de movimientos recientes.
-8.  Alertas o hallazgos: aumento atípico del gasto, gasto concentrado en
-    un tipo o periodo con resultado negativo, siempre con reglas
-    explícitas y sin conclusiones engañosas.
-
-En pantallas pequeñas, las tarjetas deben reorganizarse sin perder
-legibilidad. Evitar saturar el panel: los indicadores secundarios pueden
-ubicarse en secciones expandibles.
+| Acción | Vendedor Web | Administrador |
+| --- | --- | --- |
+| Registrar un gasto a su nombre | Sí | Sí |
+| Ver el total y el listado de sus propios gastos | Sí | Sí, dentro del listado general |
+| Ver gastos de otros usuarios | No | Sí |
+| Ver ingresos y ganancia neta operativa | No | Sí |
+| Editar valor, fecha o tipo de un gasto | No | Sí, con motivo y rastro |
+| Anular un gasto | No | Sí, con motivo y rastro |
+| Crear, editar, activar o desactivar tipos de gasto | No | Sí |
+| Borrar un tipo que ya tiene gastos | No | No |
 
 ------------------------------------------------------------------------
 
-## 4. Registro de gastos
+## 4. Mis gastos (vendedor web)
 
-### 4.1 Formulario
+El vendedor consulta únicamente los gastos que él registró. No ve ventas, no ve la ganancia y no ve gastos de otras personas. El informe está en **Indicadores**. El listado está en **Mis gastos**. Cada página tiene su propio periodo.
 
-El usuario debe poder registrar un gasto mediante un formulario sencillo
-que incluya:
+### 4.1 Periodo
 
--   **Tipo de gasto:** obligatorio; selección desde el catálogo
-    configurado.
--   **Fecha del gasto:** obligatoria; por defecto, fecha actual.
--   **Valor:** obligatorio, mayor que cero, con formato COP y
-    almacenamiento numérico preciso.
--   **Observación:** obligatoria o configurable según el tipo de gasto;
-    longitud máxima definida por el sistema.
--   **Usuario que registra:** tomado de la sesión autenticada; no
-    editable desde el formulario.
--   **Referencia o soporte:** opcional, si la arquitectura admite
-    adjuntos o referencias documentales.
--   **Guardar** y **Cancelar**.
+El periodo de cada página es independiente:
 
-Tipos iniciales sugeridos: transporte, almuerzo/alimentación, entrega de
-premio, pago de servicios, mensajería/entregas, materiales/insumos,
-mantenimiento, comisiones/gastos bancarios y otros. El Administrador
-podrá configurar el catálogo. Estos valores son iniciales sugeridos, no
-una lista cerrada.
+- Hoy, ayer, últimos 7 días, últimos 30 días, mes actual, mes anterior y rango desde/hasta.
 
-### 4.2 Validaciones y experiencia de usuario
+Se muestra el periodo aplicado. La acción es consultar ese rango. Limpiar vuelve al mes actual.
 
--   Validar campos obligatorios en cliente y servidor.
--   Rechazar valores negativos, cero o formatos inválidos.
--   Evitar doble envío por clic repetido; usar protección contra
-    duplicados cuando sea viable.
--   Mostrar confirmación de guardado con el valor, tipo y fecha
-    registrados.
--   Después de guardar, actualizar los KPI y el listado sin exigir una
-    recarga completa cuando la arquitectura lo permita.
--   Si ocurre un error, conservar los datos del formulario y mostrar un
-    mensaje accionable.
--   No permitir que el usuario suplante a otro usuario mediante campos
-    manipulables.
--   Registrar fecha de creación y, cuando corresponda, fecha de
-    actualización.
+### 4.2 Indicadores
 
-### 4.3 Edición y anulación
+Informe de sus propios gastos activos del periodo:
 
-Los gastos no deberían borrarse físicamente una vez registrados. Para
-corregirlos, utilizar edición controlada o anulación lógica.
+- **Total de mis gastos:** suma.
+- **Cantidad:** número de gastos.
+- **Gasto promedio:** total dividido entre la cantidad.
+- **Mayor gasto:** el valor más alto, con su tipo y su fecha.
+- **Gastos por tipo:** cada tipo con su valor, su participación sobre el total y su cantidad, en barras.
+- **Gastos por día:** una barra por día con gasto. Si el periodo supera 31 días, las barras se agrupan por mes.
 
--   El Vendedor Web podrá editar/anular sus propios registros si la
-    política de negocio lo permite.
--   El Administrador podrá editar/anular registros de cualquier usuario.
--   Solicitar motivo de edición o anulación.
--   Guardar valores anteriores y nuevos, usuario, fecha y motivo en el
-    historial de auditoría.
--   Los movimientos anulados deben permanecer consultables,
-    identificarse claramente y excluirse de los KPI activos.
--   No permitir la edición de registros cerrados o conciliados si el
-    sistema incorpora ese estado, salvo un flujo administrativo
-    explícito.
+Los anulados del periodo se mencionan aparte (cantidad y valor) y no entran en ninguna de esas cifras. Si no hay gastos activos, las cifras quedan en cero y las gráficas muestran el estado vacío.
+
+### 4.3 Listado
+
+Columnas: fecha del gasto, tipo, observación, valor y estado. El total corresponde al conjunto filtrado, no solo a la página visible. Los anulados se ven marcados y no entran en el total. El vendedor no tiene acciones de editar ni anular.
 
 ------------------------------------------------------------------------
 
-## 5. Catálogo y configuración de tipos de gasto
+## 5. Resumen (administrador)
 
-Solo el Administrador podrá ingresar a **Utilidades \> Configuración de
-gastos**.
+El resumen muestra las tres cifras del sistema en el periodo elegido. No se parten por vendedor: el ingreso de esta entrega es un total, no una venta atribuida a cada persona.
 
-### 5.1 Campos del catálogo
+### 5.1 Periodo
 
--   Identificador único.
--   Nombre del tipo de gasto.
--   Descripción opcional.
--   Estado: activo/inactivo.
--   Fecha de creación y actualización.
--   Usuario que creó o actualizó el registro.
--   Opcional: código, categoría gerencial y si requiere observación
-    obligatoria.
+Las tres cifras usan el mismo periodo:
 
-### 5.2 Operaciones
+- Hoy, ayer, últimos 7 días, últimos 30 días, mes actual, mes anterior y rango desde/hasta.
 
--   Crear un tipo de gasto.
--   Consultar y buscar tipos existentes.
--   Editar nombre, descripción y configuración.
--   Activar o desactivar.
--   Consultar cuántos movimientos están asociados a cada tipo.
+Encima de las cifras se ve el periodo aplicado y el momento de la última lectura. Limpiar vuelve al mes actual.
 
-No eliminar físicamente un tipo que ya tenga movimientos asociados.
-Desactivarlo para impedir nuevos registros y conservar el historial. Los
-gastos antiguos deben seguir mostrando el tipo original aunque este se
-encuentre inactivo.
+El filtro de usuario, de tipo o de estado no vive en estas tres cifras. Vive en Movimientos. Así un recorte del listado no deja la ganancia como si el ingreso también se hubiera partido.
 
-El sistema debe impedir nombres duplicados cuando corresponda, ignorando
-diferencias de mayúsculas/minúsculas y espacios sobrantes.
+### 5.2 Cifras
+
+1. **Ingresos**, con la regla de la sección 6.
+2. **Gastos**, suma de los gastos activos de todos los usuarios en el periodo.
+3. **Ganancia neta operativa**, ingresos menos gastos.
+
+Junto a la ganancia hay una ayuda visible: es el resultado operativo del periodo. No es saldo de caja ni utilidad contable.
+
+Desde el resumen se puede pasar a Movimientos, ya acotado al mismo periodo, y a Registrar gasto.
 
 ------------------------------------------------------------------------
 
-## 6. Consolidación de ingresos por ventas
+## 6. Ingresos
 
-### 6.1 Fuentes
+Los ingresos del administrador suman tres fuentes que ya existen. Se leen. No se copian al esquema `utilidades` ni se modifican sus tablas.
 
-Los ingresos deben obtenerse de todas las tablas donde actualmente se
-almacenan ventas, incluyendo las fuentes del esquema `dbo` y las del
-esquema manual.
+| Fuente | Qué representa | Dónde está el importe |
+| --- | --- | --- |
+| Ventas del celular | Ventas del PDA | `dbo.Ventas.Total`, con fecha `FechaVenta` |
+| Juego manual | Ventas confirmadas en el esquema manual | `manual.Ventas.Total`, con fecha `FechaVenta` |
+| Sitio del vendedor | Jugadas de Registrar juego | Suma de `manual.RegistroJuegoFilas.Valor` por registro, con fecha `manual.RegistrosJuego.FechaRegistro` |
 
-Antes de implementar el cálculo, se debe inspeccionar el modelo de datos
-y documentar:
+`manual.RegistrosJuego` no tiene columna de total. El importe de esa fuente es la suma de sus filas. En `dbo.Ventas` y en `manual.Ventas` se usa el total de la cabecera. No se suma además el detalle (`Boletos`, `Juegos` o filas) cuando ese detalle repite el mismo valor.
 
--   Tablas que representan ventas.
--   Campos de importe, fecha, estado y usuario asociados.
--   Relación entre cabecera y detalle, si existe.
--   Estados que representan venta válida, anulada, devuelta o pendiente.
--   Posibles duplicados entre fuentes.
--   Reglas de descuentos, premios, pagos y anulaciones que afecten el
-    total.
--   Diferencias entre fecha de creación, fecha de venta y fecha de
-    liquidación.
+### 6.1 Lo que hay que cerrar antes de programar la cifra
 
-No se deben inventar nombres de tablas o columnas ni asumir que todos
-los importes representan ingresos reconocidos.
+Antes de mostrar Ingresos hay que dejar escrito, para cada fuente:
 
-### 6.2 Reglas de consolidación
+- Qué estados entran y cuáles quedan fuera (anulada, devuelta, pendiente de sincronizar u otro estado que ya exista).
+- Qué fecha corta el periodo: `FechaVenta` en las dos primeras fuentes y `FechaRegistro` en la tercera, salvo que el negocio indique otra.
+- Que el detalle no se esté sumando junto con la cabecera.
+- Una comparación del total de un periodo de prueba contra el reporte que el negocio ya usa, y la diferencia explicada si la hay.
 
-1.  Crear una capa o consulta de consolidación que unifique las fuentes
-    de ventas.
-2.  Normalizar fecha, importe, estado, usuario y origen.
-3.  Definir una clave de negocio que permita detectar duplicados cuando
-    una misma venta pueda aparecer en más de una fuente.
-4.  Excluir anulaciones y registros no válidos de los ingresos activos,
-    según las reglas reales del sistema.
-5.  Evitar sumar simultáneamente cabeceras y detalles cuando ambos
-    representen el mismo valor.
-6.  Mantener identificable la fuente original para auditoría y
-    conciliación.
-7.  Permitir filtrar por origen para analizar diferencias entre `dbo` y
-    el esquema manual.
-8.  Comparar los totales consolidados con los reportes actuales de
-    ventas y documentar cualquier diferencia antes de publicar el
-    módulo.
+Hasta cerrar esos cuatro puntos, Ingresos y Ganancia permanecen en blanco. Los gastos sí se pueden registrar y consultar.
 
-### 6.3 Rendimiento
-
-Si el volumen de ventas es alto, evaluar vistas SQL, consultas
-agregadas, índices adecuados o tablas de resumen. No duplicar
-información financiera sin una estrategia de actualización y
-conciliación. Los KPI deben consultar datos con tiempos razonables sin
-bloquear las operaciones de venta.
+El ingreso no se muestra por usuario en esta entrega, aunque las tablas tengan `UsuarioId`.
 
 ------------------------------------------------------------------------
 
-## 7. Cálculos y definiciones de los KPI
+## 7. Registro de gastos
 
-Las fórmulas deben centralizarse para que tarjetas, gráficos, tablas y
-exportaciones utilicen los mismos criterios.
+El formulario es el mismo para el administrador y para el vendedor web.
 
--   **Ingresos totales** = suma de los ingresos válidos incluidos en el
-    alcance aprobado.
--   **Gastos totales** = suma de los gastos no anulados dentro del
-    periodo y filtros seleccionados.
--   **Ganancia neta operativa** = ingresos totales − gastos totales.
--   **Margen neto operativo (%)** = ganancia neta operativa / ingresos
-    totales × 100, si los ingresos son mayores que cero.
--   **Gasto promedio** = gastos totales / cantidad de gastos válidos, si
-    la cantidad es mayor que cero.
--   **Participación por tipo (%)** = gasto del tipo / gastos totales ×
-    100, si los gastos totales son mayores que cero.
--   **Variación absoluta** = valor del periodo actual − valor del
-    periodo de comparación.
--   **Variación porcentual** = (valor actual − valor anterior) / valor
-    anterior × 100, únicamente si el valor anterior permite el cálculo.
+- **Tipo de gasto:** obligatorio, solo tipos activos.
+- **Fecha del gasto:** obligatoria, por defecto hoy. Es un día, no una hora.
+- **Valor:** obligatorio, mayor que cero, en pesos.
+- **Observación:** obligatoria cuando el tipo lo exige. Si el tipo no la exige, puede ir vacía.
+- **Guardar** y **Cancelar**.
 
-Las sumas deben realizarse con precisión decimal apropiada para moneda.
-No utilizar tipos de punto flotante binario para almacenar importes
-financieros. Definir una única zona horaria de negocio para agrupar y
-filtrar por fecha; confirmar que sea la zona horaria usada por la
-aplicación.
+El usuario que registra no aparece como campo editable. Al guardar, el gasto queda activo y entra en los totales de quien tenga permiso para verlos. No hay cola de aprobación.
 
-### 7.1 Alcance del resultado
+Validar en cliente y en servidor. Rechazar cero, negativos y formatos inválidos. Un segundo clic no crea otro gasto. Si el guardado falla, los datos siguen en el formulario y el mensaje dice qué corregir. La confirmación muestra tipo, valor y fecha.
 
-Los gastos registrados por cualquier usuario afectan el resultado global
-del sistema. El panel debe mostrar, por separado:
-
--   Resultado global de todos los usuarios.
--   Gastos registrados por usuario.
--   Ingresos por origen y, solo si la fuente lo permite con fiabilidad,
-    por usuario.
--   Resultado por periodo.
-
-No atribuir una venta a un usuario basándose en una suposición. Si no
-existe una relación fiable entre venta y usuario, mostrar el ingreso
-global y dejar el desglose por usuario como no disponible.
+Cancelar vuelve a Mis gastos en el sitio del vendedor y al Resumen en el administrador.
 
 ------------------------------------------------------------------------
 
-## 8. Movimientos y detalle analítico
+## 8. Edición y anulación
 
-Crear una vista de consulta con una tabla paginada, ordenable y
-filtrable.
+Solo el administrador corrige. El vendedor no edita ni anula, tampoco sus propios gastos.
 
-### 8.1 Columnas de gastos
+Corregir un gasto activo permite cambiar valor, fecha y tipo. Cada cambio pide un motivo. El rastro guarda el valor anterior, el valor nuevo, el motivo, quién lo hizo y cuándo. La observación no se edita: si quedó mal, se anula el gasto y se registra otro.
 
--   Fecha del gasto.
--   Tipo de gasto.
--   Observación.
--   Valor.
--   Usuario que registró.
--   Estado.
--   Fecha de creación.
--   Último usuario que modificó, cuando aplique.
--   Acciones disponibles según el rol.
+Anular también pide motivo. El gasto sigue en el listado, marcado como anulado, y deja de sumar. No se borra la fila.
 
-### 8.2 Consulta de ingresos
-
-Mostrar ventas consolidadas con, como mínimo, fecha, identificador de
-origen, fuente, importe y estado relevante. Mostrar datos personales
-únicamente cuando sean necesarios y el usuario tenga permiso para
-consultarlos.
-
-### 8.3 Funciones de consulta
-
--   Búsqueda por texto.
--   Filtros por periodo, usuario, tipo, origen y estado.
--   Ordenamiento por fecha y valor.
--   Paginación del lado del servidor cuando el volumen lo requiera.
--   Totales del conjunto filtrado, no solo de la página visible.
--   Exportación a CSV o Excel, si la plataforma ya dispone de esta
-    capacidad.
--   Acceso al detalle desde cada KPI o gráfico.
--   Indicadores de carga, error, sin resultados y filtros activos.
-
-La exportación debe respetar permisos y filtros aplicados, y no debe
-exponer información que el usuario no pueda consultar en pantalla.
+No hay borrado físico de gastos.
 
 ------------------------------------------------------------------------
 
-## 9. Control administrativo de descuentos y comisiones: Por cubrir y Cubierto
+## 9. Movimientos (administrador)
 
-El Administrador debe disponer de control integral sobre los registros
-existentes en los apartados **Por cubrir** y **Cubierto** del sitio
-administrador.
+Listado de los gastos de todos los usuarios, paginado en el servidor cuando el volumen lo exija.
 
-Antes de modificar esta funcionalidad, revisar las reglas, tablas,
-estados, permisos y acciones actuales para preservar su comportamiento.
+Filtros: el mismo periodo del resumen, usuario, tipo de gasto y estado (activo o anulado). Esos filtros recortan este listado y su total. No cambian las tres cifras del Resumen.
 
-### Capacidades requeridas
+Columnas: fecha del gasto, tipo, observación, valor, usuario que registró, estado y, si hubo cambio, quién lo modificó por última vez.
 
--   Consultar todos los registros de ambas secciones.
--   Filtrar por fecha, usuario, estado, tipo y demás campos disponibles.
--   Ver el detalle completo del registro.
--   Crear, editar, corregir, cambiar de estado o anular cuando la regla
-    de negocio lo permita.
--   Consultar quién creó o modificó un registro y cuándo.
--   Registrar motivo en cambios sensibles.
--   Mantener historial de cambios de estado y de valores.
--   Evitar que un mismo registro quede simultáneamente en estados
-    incompatibles.
--   Confirmar operaciones críticas antes de ejecutarlas.
--   Reflejar los cambios de forma consistente en las vistas actuales y
-    en los nuevos KPI, si dichos conceptos forman parte del cálculo
-    financiero aprobado.
+El total es el de todo el conjunto filtrado, no el de la página visible. Los activos suman. Los anulados se muestran y no suman.
 
-**Precaución:** no sumar automáticamente descuentos o comisiones como
-gastos o ingresos hasta verificar qué representan actualmente. Se debe
-documentar si son conceptos informativos, valores por pagar, valores ya
-pagados o movimientos que ya están incluidos en las ventas. Esto evita
-duplicar importes.
+Acciones del administrador sobre un gasto activo: editar valor, fecha y tipo, o anular. Ambas piden motivo y quedan en el rastro.
 
 ------------------------------------------------------------------------
 
-## 10. Modelo de datos propuesto
+## 10. Configuración de gastos
 
-Los nombres son sugerencias y deben adaptarse a las convenciones
-existentes.
+Solo el administrador.
 
-### 10.1 Tabla `TiposGasto`
+Campos:
 
-  --------------------------------------------------------------------------
-  Campo                      Tipo conceptual         Reglas
-  -------------------------- ----------------------- -----------------------
-  `Id`                       Entero/identificador    PK
+- Nombre, obligatorio y único sin distinguir mayúsculas ni espacios sobrantes.
+- Descripción opcional.
+- Activo o inactivo.
+- Si la observación es obligatoria al registrar.
+- Fecha y usuario de creación y de la última actualización.
 
-  `Nombre`                   Texto                   Obligatorio; único
-                                                     según regla definida
+Operaciones: crear, consultar, editar nombre, descripción y la exigencia de observación, activar y desactivar. Cada tipo muestra cuántos gastos lo usan.
 
-  `Descripcion`              Texto nullable          Opcional
+Un tipo con gastos no se elimina. Desactivarlo lo quita del formulario de registro nuevo. Los gastos ya guardados siguen mostrando ese nombre.
 
-  `Activo`                   Booleano                Por defecto verdadero
-
-  `RequiereObservacion`      Booleano                Por defecto verdadero o
-                                                     según configuración
-
-  `FechaCreacion`            Fecha/hora              Obligatoria
-
-  `UsuarioCreacionId`        Identificador           Usuario autenticado
-
-  `FechaActualizacion`       Fecha/hora nullable     Se actualiza al
-                                                     modificar
-
-  `UsuarioActualizacionId`   Identificador nullable  Usuario que modifica
-  --------------------------------------------------------------------------
-
-### 10.2 Tabla `Gastos`
-
-  --------------------------------------------------------------------------
-  Campo                      Tipo conceptual         Reglas
-  -------------------------- ----------------------- -----------------------
-  `Id`                       Identificador           PK
-
-  `TipoGastoId`              Identificador           FK a `TiposGasto`
-
-  `FechaGasto`               Fecha/hora              Obligatoria
-
-  `Valor`                    Decimal monetario       Mayor que cero
-
-  `Observacion`              Texto                   Según configuración del
-                                                     tipo
-
-  `UsuarioRegistroId`        Identificador           Usuario autenticado
-
-  `Estado`                   Texto/catálogo          Activo, anulado u otros
-                                                     estados aprobados
-
-  `MotivoAnulacion`          Texto nullable          Obligatorio al anular
-
-  `FechaCreacion`            Fecha/hora              Auditoría
-
-  `FechaActualizacion`       Fecha/hora nullable     Auditoría
-
-  `UsuarioActualizacionId`   Identificador nullable  Auditoría
-  --------------------------------------------------------------------------
-
-### 10.3 Historial de auditoría
-
-Crear una tabla o mecanismo equivalente para guardar los cambios
-relevantes:
-
--   Entidad y registro afectado.
--   Acción realizada.
--   Valores anteriores y nuevos, cuando aplique.
--   Motivo.
--   Usuario responsable.
--   Fecha y hora.
--   Identificador de correlación de la operación, si la arquitectura lo
-    soporta.
-
-El historial debe estar protegido contra modificaciones por usuarios
-comunes. La estrategia concreta debe ajustarse al patrón de auditoría ya
-utilizado por el sistema.
-
-### 10.4 Integridad y relaciones
-
--   Definir claves foráneas e índices de acuerdo con la base de datos
-    real.
--   Índices potenciales para fecha, tipo, usuario y estado, validados
-    con el plan de ejecución.
--   Usar borrado lógico para registros financieros.
--   Aplicar migraciones controladas y probarlas primero en un entorno no
-    productivo.
--   No alterar las tablas de ventas existentes salvo que sea
-    indispensable y esté aprobado.
+Semilla inicial, modificable después por el administrador: transporte, alimentación, entrega de premio, servicios, mensajería, materiales, mantenimiento, comisiones y gastos bancarios, y otros. Es un catálogo de gastos anotados a mano. No lee otros módulos.
 
 ------------------------------------------------------------------------
 
-## 11. API y arquitectura
+## 11. Datos
 
-Ajustar las rutas y convenciones al proyecto existente. Como referencia,
-la API podría exponer operaciones equivalentes a:
+Las tablas nuevas viven en el esquema `utilidades`. Los nombres se adaptan a las convenciones del proyecto si hace falta, sin salir de ese esquema.
 
--   `GET /api/utilidades/resumen`
--   `GET /api/utilidades/ingresos`
--   `GET /api/utilidades/gastos`
--   `POST /api/utilidades/gastos`
--   `GET /api/utilidades/gastos/{id}`
--   `PUT /api/utilidades/gastos/{id}`
--   `POST /api/utilidades/gastos/{id}/anular`
--   `GET /api/utilidades/tipos-gasto`
--   `POST /api/utilidades/tipos-gasto` --- solo Administrador
--   `PUT /api/utilidades/tipos-gasto/{id}` --- solo Administrador
--   `PATCH /api/utilidades/tipos-gasto/{id}/estado` --- solo
-    Administrador
--   Endpoints administrativos equivalentes para consultar y administrar
-    los registros de Por cubrir y Cubierto.
+### 11.1 `utilidades.TiposGasto`
 
-Las rutas son ilustrativas. Reutilizar autenticación, autorización,
-manejo de errores, validaciones, logging y patrones de respuesta
-existentes.
+| Campo | Regla |
+| --- | --- |
+| `Id` | Identificador, clave primaria |
+| `Nombre` | Obligatorio, único según la regla de la sección 10 |
+| `Descripcion` | Opcional |
+| `Activo` | Verdadero al crear |
+| `RequiereObservacion` | Define si el formulario exige observación |
+| `FechaCreacion`, `UsuarioCreacionId` | Obligatorios, desde la sesión |
+| `FechaActualizacion`, `UsuarioActualizacionId` | Se llenan al modificar |
 
-### Requisitos técnicos
+### 11.2 `utilidades.Gastos`
 
--   Separar lógica de negocio, acceso a datos y controladores/endpoints.
--   Validar autorización en cada operación.
--   Evitar consultas N+1 y cargas completas innecesarias.
--   Usar paginación para listados grandes.
--   Mantener filtros y cálculos en el servidor para garantizar
-    consistencia.
--   Usar transacciones cuando una operación modifique varios registros
-    relacionados.
--   Evitar que la API confíe en el usuario enviado por el cliente.
--   Registrar errores técnicos sin filtrar información sensible al
-    usuario final.
+| Campo | Regla |
+| --- | --- |
+| `Id` | Identificador, clave primaria |
+| `TipoGastoId` | Tipo existente. Puede quedar inactivo después |
+| `FechaGasto` | Día obligatorio |
+| `Valor` | `decimal(18,2)`, mayor que cero |
+| `Observacion` | Según el tipo |
+| `UsuarioRegistroId` | Usuario de la sesión. No se actualiza al editar |
+| `Estado` | Activo o anulado |
+| `ClaveIdempotencia` | Evita el doble envío del mismo guardado |
+| `FechaCreacion` | Auditoría |
+| `FechaActualizacion`, `UsuarioActualizacionId` | Se llenan al editar o anular |
+
+### 11.3 `utilidades.AuditoriaCambios`
+
+Un registro por edición o anulación:
+
+- Gasto afectado.
+- Acción: edición o anulación.
+- Valor, fecha y tipo anteriores y nuevos. En la anulación, el estado pasa de activo a anulado.
+- Motivo.
+- Usuario y fecha de la acción.
+
+Este rastro no lo modifica el vendedor ni el administrador desde la pantalla. Sirve para consulta de soporte, no como un módulo de auditoría general.
+
+Índices de apoyo, a validar con el plan de ejecución: fecha del gasto, tipo, usuario y estado. Las migraciones crean el esquema `utilidades` y estas tablas, y no alteran las tablas de ventas.
 
 ------------------------------------------------------------------------
 
-## 12. Requisitos no funcionales
+## 12. API
 
-### Seguridad
+Rutas propias, sin cambiar las existentes. La autorización, los errores y el formato de respuesta se reutilizan.
 
--   Autenticación obligatoria mediante el mecanismo actual.
--   Autorización por rol y por registro.
--   Validación de entradas y protección contra inyección SQL.
--   Protección de endpoints administrativos.
--   Auditoría de cambios sensibles.
--   No exponer credenciales ni datos sensibles en logs.
+- `GET /api/utilidades/resumen` — administrador. Ingresos, gastos y ganancia del periodo.
+- `GET /api/utilidades/mis-gastos` — usuario de la sesión. Total, cantidad y listado propios.
+- `GET /api/utilidades/gastos` — administrador. Listado de todos, con filtros y total del conjunto.
+- `POST /api/utilidades/gastos` — administrador y vendedor web.
+- `PUT /api/utilidades/gastos/{id}` — administrador. Edita valor, fecha y tipo, con motivo.
+- `POST /api/utilidades/gastos/{id}/anular` — administrador, con motivo.
+- `GET /api/utilidades/tipos-gasto` — tipos activos para el formulario. El administrador también consulta los inactivos en la configuración.
+- `POST /api/utilidades/tipos-gasto` — administrador.
+- `PUT /api/utilidades/tipos-gasto/{id}` — administrador.
+- `PATCH /api/utilidades/tipos-gasto/{id}/estado` — administrador.
 
-### Rendimiento
+Controladores nuevos, con `Utilidades` en el nombre: `ResumenUtilidadesController`, `GastosUtilidadesController` y `TiposGastoUtilidadesController`, o el equivalente que ya use el API. La lógica queda en servicios y repositorios de este módulo. La lectura de ventas es una dependencia explícita de solo consulta. No se agrega esta lógica a los controladores de ventas.
 
--   Resumen y filtros deben operar mediante agregaciones en base de
-    datos cuando sea posible.
--   Paginación del lado del servidor.
--   Índices definidos a partir de consultas reales.
--   Evitar cálculos independientes y divergentes entre componentes.
--   Definir un objetivo de rendimiento con base en el volumen real y
-    medirlo en pruebas.
-
-### Usabilidad y accesibilidad
-
--   Diseño adaptable a escritorio, tablet y móvil.
--   Etiquetas claras y formatos de moneda consistentes.
--   Contraste adecuado; no comunicar estados únicamente con colores.
--   Confirmaciones para anulación y acciones administrativas.
--   Mensajes de error concretos.
--   Navegación por teclado y etiquetas accesibles.
--   Estados de carga, vacío, error y éxito.
--   Fechas presentadas en la zona horaria de negocio.
-
-### Consistencia
-
--   Todos los KPI deben utilizar las mismas reglas de
-    inclusión/exclusión.
--   Las anulaciones deben reflejarse consistentemente en tablas,
-    gráficos, exportaciones y totales.
--   Definir si el panel usa datos en tiempo real o una actualización
-    periódica; indicar la última actualización.
--   Garantizar que filtros por fecha incluyan correctamente los límites
-    del periodo.
+Las tres cifras se calculan en un solo servicio. El resumen, el total de Mis gastos y el total de Movimientos no reimplementan la suma cada uno por su lado.
 
 ------------------------------------------------------------------------
 
 ## 13. Criterios de aceptación
 
-1.  El Administrador y el Vendedor Web ven el elemento **Utilidades**.
-2.  El menú actual del Vendedor Web queda agrupado bajo **Ventas** sin
-    perder funciones ni permisos.
-3.  Ambos perfiles pueden consultar los KPI consolidados permitidos.
-4.  Ambos perfiles pueden registrar gastos y el sistema asigna
-    automáticamente al usuario autenticado.
-5.  Un gasto válido actualiza los indicadores correspondientes y aparece
-    en Movimientos.
-6.  Los KPI reflejan los gastos de todos los usuarios, no solamente los
-    del usuario que inició sesión.
-7.  El panel permite filtrar por fechas y usuario; los filtros se
-    aplican coherentemente a tarjetas, gráficos y tablas.
-8.  La ganancia neta operativa corresponde a ingresos incluidos menos
-    gastos activos incluidos.
-9.  Si no hay ingresos, el margen no genera división por cero y se
-    muestra como no disponible.
-10. Los tipos de gasto pueden ser creados, editados, activados y
-    desactivados por el Administrador.
-11. Los tipos usados no se eliminan físicamente ni desaparecen de
-    movimientos históricos.
-12. Los registros anulados se conservan para auditoría y no se cuentan
-    como movimientos activos.
-13. Las ventas de `dbo` y del esquema manual se consolidan con reglas
-    documentadas y sin duplicaciones.
-14. Los totales consolidados se concilian con los reportes actuales
-    antes de liberar la funcionalidad.
-15. El Administrador puede administrar los registros de Por cubrir y
-    Cubierto conforme a las reglas existentes, con historial de cambios.
-16. Descuentos y comisiones no se contabilizan dos veces ni se
-    clasifican sin validar su significado.
-17. Los usuarios sin permisos no pueden ejecutar operaciones
-    administrativas llamando directamente a la API.
-18. Los filtros, KPI, gráficos y exportaciones producen resultados
-    consistentes para un mismo conjunto de datos.
-19. Los cambios sensibles dejan registro de auditoría.
-20. La interfaz funciona correctamente en escritorio y dispositivos
-    móviles.
+1. El administrador ve el grupo Utilidades con Resumen, Registrar gasto, Movimientos y Configuración de gastos.
+2. El sitio del vendedor agrupa el menú actual bajo Ventas, sin perder pantallas ni permisos, y agrega Utilidades con Mis gastos y Registrar gasto.
+3. El vendedor registra un gasto y el sistema lo guarda a su nombre. No hay forma de elegir otro usuario.
+4. El gasto guardado queda activo y aparece en Mis gastos de quien lo registró y en Movimientos del administrador.
+5. El vendedor ve el total, la cantidad y el listado de sus gastos del periodo. No ve ingresos, ni ganancia, ni gastos de otros, y no puede editar ni anular.
+6. El administrador ve, para el mismo periodo, ingresos, gastos de todos los usuarios y ganancia neta operativa.
+7. Con un usuario, un tipo o un estado elegido en Movimientos, cambia el listado y su total. Las tres cifras del Resumen siguen siendo las del periodo completo.
+8. La ganancia es ingresos menos gastos activos. Un anulado no entra en la resta y sigue visible.
+9. Si la regla de ingresos de la sección 6.1 no está cerrada, ingresos y ganancia no se muestran como cero.
+10. El administrador edita valor, fecha y tipo con un motivo, y el rastro conserva el anterior, el nuevo, quién y cuándo.
+11. El administrador anula con un motivo. El vendedor recibe rechazo si llama a editar o anular en el API.
+12. Un tipo usado se desactiva y deja de ofrecerse al registrar. El gasto viejo conserva el nombre. No se borra el tipo.
+13. Los ingresos leen `dbo.Ventas`, `manual.Ventas` y las filas de `manual.RegistrosJuego`, sin duplicar cabecera y detalle y sin copiar esas ventas al esquema `utilidades`.
+14. Las tablas nuevas están en el esquema `utilidades`. Las migraciones no cambian las tablas de ventas.
+15. Los controladores nuevos llevan `Utilidades` en el nombre y sus rutas cuelgan de `/api/utilidades/`.
 
 ------------------------------------------------------------------------
 
-## 14. Plan de implementación sugerido
+## 14. Orden de construcción
 
-### Fase 1: descubrimiento y validación
+1. Esquema `utilidades`, tipos de gasto, registro, Mis gastos y Movimientos, con permisos y anulación.
+2. Edición con motivo y rastro.
+3. Inventario de la sección 6.1 y, solo después de cerrarlo, la cifra de ingresos y la ganancia en el Resumen.
+4. Reagrupar el menú del sitio del vendedor y agregar el grupo Utilidades en los dos sitios.
 
--   Inspeccionar los menús actuales de Administrador y Vendedor Web.
--   Identificar las tablas de ventas de `dbo` y del esquema manual.
--   Revisar los estados y cálculos actuales de ventas, descuentos,
-    premios y comisiones.
--   Revisar los módulos Por cubrir y Cubierto.
--   Definir las reglas de inclusión, exclusión y conciliación.
--   Confirmar permisos por rol y volumen esperado.
-
-### Fase 2: datos y servicios
-
--   Crear el catálogo de tipos de gasto.
--   Crear la tabla de gastos y auditoría.
--   Implementar validaciones, permisos y operaciones de
-    registro/edición/anulación.
--   Construir y probar la capa de consolidación de ingresos.
--   Implementar un servicio único para los cálculos de KPI.
-
-### Fase 3: interfaz de usuario
-
--   Reorganizar el menú del Vendedor Web.
--   Crear Resumen, Registrar gasto y Movimientos.
--   Crear Configuración de gastos para Administrador.
--   Incorporar filtros globales, tarjetas KPI, gráficos y navegación al
-    detalle.
--   Adaptar la experiencia a dispositivos móviles.
-
-### Fase 4: administración y conciliación
-
--   Incorporar el control administrativo de Por cubrir y Cubierto.
--   Implementar auditoría y motivos para acciones sensibles.
--   Comparar resultados con los reportes existentes.
--   Corregir diferencias antes de activar los KPI definitivos.
-
-### Fase 5: pruebas y liberación
-
--   Pruebas unitarias de fórmulas.
--   Pruebas de integración con todas las fuentes de ventas.
--   Pruebas de permisos por rol.
--   Pruebas de edición, anulación y auditoría.
--   Pruebas con rangos de fecha, cambios de mes y periodos sin
-    movimientos.
--   Pruebas de rendimiento con volúmenes representativos.
--   Liberación controlada y seguimiento de errores.
-
-------------------------------------------------------------------------
-
-## 15. Decisiones pendientes antes de programar
-
-1.  Confirmar las tablas y columnas exactas que representan ventas
-    válidas en `dbo` y en el esquema manual.
-2.  Definir cómo se tratan devoluciones, anulaciones, descuentos,
-    premios y otros conceptos dentro de ingresos y resultado.
-3.  Confirmar si el Vendedor Web puede editar/anular sus propios gastos
-    o si solo puede registrarlos y consultarlos.
-4.  Determinar si los gastos requieren aprobación o quedan activos
-    inmediatamente.
-5.  Precisar las acciones administrativas permitidas sobre Por cubrir y
-    Cubierto, preservando las reglas actuales.
-6.  Confirmar si la atribución de ventas a un usuario existe de forma
-    fiable.
-7.  Definir la zona horaria y la frecuencia de actualización de los KPI.
-8.  Confirmar si se necesitan adjuntos o soportes para los gastos.
-9.  Definir la política de exportación y retención de auditoría.
-
-Estas decisiones no deben bloquear el diseño de la interfaz ni el
-catálogo de gastos, pero sí deben resolverse antes de cerrar la lógica
-financiera y publicar los indicadores definitivos.
-
----
-
-## 16. Regla arquitectónica obligatoria: aislamiento del módulo Utilidades
-
-La funcionalidad de **Utilidades debe permanecer separada del resto del sistema** en todo lo relacionado con nuevas estructuras y lógica de negocio. Esta separación no significa duplicar las fuentes existentes de ventas: el módulo debe leer y consolidar la información de las tablas actuales, pero guardar sus nuevos registros en estructuras propias.
-
-### 16.1 Base de datos y esquema
-
-- Crear un esquema de base de datos independiente llamado **`utilidades`** para las nuevas tablas propias del módulo.
-- Las nuevas tablas para gastos, tipos de gasto, auditoría y cualquier otro dato que se cree específicamente para esta funcionalidad deben pertenecer a ese esquema; por ejemplo, `utilidades.Gastos`, `utilidades.TiposGasto` y `utilidades.AuditoriaCambios`.
-- No crear tablas nuevas de Utilidades dentro de `dbo` ni dentro de los esquemas existentes del negocio.
-- No mover, renombrar, modificar ni duplicar las tablas existentes de ventas para implementar esta funcionalidad.
-- Los ingresos se deben consultar desde las tablas de ventas existentes, incluidas las fuentes del esquema `dbo` y del esquema manual. La capa de acceso de Utilidades podrá consultar esas fuentes en modo lectura y consolidarlas según las reglas definidas en este documento.
-- Cuando se necesite registrar un dato nuevo propio del módulo —por ejemplo, un gasto o un tipo de gasto—, debe almacenarse exclusivamente en las tablas del esquema `utilidades`.
-- Definir las claves foráneas y relaciones entre esquemas solo después de revisar el modelo real y confirmar que son compatibles con la arquitectura y las reglas actuales. No introducir dependencias que alteren el funcionamiento de los módulos existentes.
-- Si la plataforma utiliza migraciones, estas deben crear y mantener el esquema `utilidades` y sus tablas sin modificar accidentalmente las tablas ajenas al módulo.
-
-### 16.2 Controladores del API
-
-Los controladores nuevos deben identificarse claramente como parte de Utilidades usando la convención **`[Nombre]UtilidadesController`**. Ejemplos:
-
-- `GastosUtilidadesController`
-- `TiposGastoUtilidadesController`
-- `ResumenUtilidadesController`
-- `MovimientosUtilidadesController`
-
-Los nombres son ejemplos y deben adaptarse a la organización del API existente, conservando la palabra `Utilidades` en el nombre del controlador. Las rutas también deben agruparse bajo una ruta propia, por ejemplo, `/api/utilidades/...`, sin apropiarse ni cambiar rutas de controladores existentes.
-
-La lógica nueva debe mantenerse en servicios, repositorios o componentes propios del módulo Utilidades, con dependencias explícitas hacia las fuentes existentes únicamente para consultar los datos necesarios. Evitar mezclar la lógica de Utilidades dentro de controladores existentes de Ventas u otros módulos.
-
-### 16.3 Criterios de aceptación adicionales
-
-21. Todas las tablas nuevas que almacenan datos propios de Utilidades se crean en el esquema `utilidades`.
-22. Las ventas se leen de las tablas existentes y no se duplican en el esquema `utilidades` para alimentar los KPI.
-23. Los gastos, tipos de gasto y registros de auditoría nuevos se guardan en las tablas propias de `utilidades`.
-24. Los controladores nuevos cumplen la convención `[Nombre]UtilidadesController` y sus rutas se agrupan bajo `/api/utilidades/` o la convención equivalente ya establecida.
-25. La implementación no cambia el comportamiento ni la estructura de las tablas de ventas existentes.
-26. Las migraciones y pruebas verifican que los objetos nuevos se creen en el esquema correcto y que las consultas a las fuentes existentes sigan funcionando.
+Los gastos se pueden usar antes de que la cifra de ingresos esté cerrada. La ganancia no se publica antes de ese cierre.

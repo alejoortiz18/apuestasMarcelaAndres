@@ -800,6 +800,7 @@ table { width: 100%; border-collapse: collapse; min-width: 640px; }
 th, td { text-align: left; padding: 13px 10px; border-bottom: 1px solid #efe6d6; font-size: 12px; }
 th { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
 tbody tr:hover, tbody tr:focus-within { background: #f8f1dc; outline: 2px solid #e8c56b; outline-offset: -2px; }
+tr.fila-anulada td { color: var(--muted); }
 tbody tr.ganador,
 tbody tr.ganador:hover,
 tbody tr.ganador:focus-within { background: #a3f1ad; }
@@ -1677,6 +1678,42 @@ a[data-offline-associate][hidden] { display: none; }
 .kpi-note { padding: 11px; background: var(--paper); border-radius: 8px; color: var(--muted); font-size: 11px; margin-top: 15px; }
 .kpi-table-wrap { overflow: auto; }
 .metric-grid-2 { grid-template-columns: 1fr 1fr; }
+.informe-grid { margin-top: 16px; }
+.informe-dias {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  min-height: 180px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.informe-dia {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 52px;
+  flex: 1;
+}
+.informe-dia-valor { font-size: 10px; color: var(--muted); text-align: center; }
+.informe-dia-pista {
+  width: 18px;
+  height: 120px;
+  display: flex;
+  align-items: flex-end;
+  background: #f4ead0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.informe-dia-pista i {
+  display: block;
+  width: 100%;
+  background: var(--green);
+  border-radius: 8px;
+  min-height: 0;
+}
+.informe-dia-fecha { font-size: 10px; text-align: center; }
 
 .config-form { margin-bottom: 22px; }
 .version-aplicacion-lista {
@@ -1943,14 +1980,9 @@ button.jornada-filtro-opcion {
 }
 
 @media (max-width: 1050px) {
-  .app { grid-template-columns: 74px 1fr; }
-  .side { padding: 20px 10px; }
-  .brand { padding: 2px 0 16px; }
-  .brand-copy, .side-globo, .side-marco { display: none; }
-  .side-cuenta-copy { display: none; }
-  .side-cuenta > summary { justify-content: center; padding: 8px; }
-  .nav span, .nav-chevron, .nav-sub { display: none; }
-  .nav a, .nav-parent { justify-content: center; padding: 12px 4px; }
+  .app { grid-template-columns: 220px 1fr; }
+  .side { padding: 16px 10px; }
+  .side-globo { display: none; }
   .stats { grid-template-columns: repeat(2, 1fr); }
   .content { padding: 28px 25px; }
   .top { margin: 12px 16px 0; padding: 10px 16px; }
@@ -1966,7 +1998,8 @@ button.jornada-filtro-opcion {
 
 @media (max-width: 650px) {
   .app { display: block; height: auto; min-height: 100vh; overflow: visible; }
-  .side { display: none; }
+  .side { display: flex; width: 100%; max-height: 320px; }
+  .nav { max-height: 240px; }
   .top { height: auto; min-height: 62px; margin: 10px 12px 0; padding: 10px 14px; border-radius: 14px; }
   .crumb { max-width: 100%; }
   .top-user-name { display: none; }
@@ -2040,6 +2073,7 @@ button.jornada-filtro-opcion {
 .dialog.dialog-codigo,
 .dialog.dialog-usuario { width: min(520px, 100%); }
 .dialog.dialog-codigo { width: min(640px, 100%); max-height: min(90vh, 900px); overflow: auto; }
+.dialog.dialog-gasto { width: min(520px, 100%); max-height: min(90vh, 900px); overflow: auto; }
 .dialog.dialog-usuario { max-height: min(90vh, 900px); overflow: auto; }
 .codigo-dialog-titulo {
   display: flex;

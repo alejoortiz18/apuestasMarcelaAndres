@@ -13,6 +13,7 @@ using NewRich.Application.Contracts.Premios;
 using NewRich.Application.Contracts.RegistrarJuegoManual;
 using NewRich.Application.Contracts.RegistrarJuegoNumerosWebManual;
 using NewRich.Application.Contracts.Resultados;
+using NewRich.Application.Contracts.Utilidades;
 using NewRich.Application.Contracts.Ventas;
 using NewRich.Vendedor.Constants;
 using NewRich.Vendedor.Models;
@@ -44,6 +45,10 @@ public interface IVendedorApiClient
     Task<ApiCallResult<object>> ReportarTecnicoAsync(string observacion, string codigoTicket, CancellationToken cancellationToken);
     Task<ApiCallResult<List<CasoGanadorResponse>>> EntregasAsync(CancellationToken cancellationToken);
     Task<ApiCallResult<CasoGanadorResponse>> RegistrarEntregaAsync(Guid casoId, decimal valorGanado, CancellationToken cancellationToken);
+    Task<ApiCallResult<MisGastosResponse>> MisGastosAsync(string periodo, DateOnly? desde, DateOnly? hasta, int page, int pageSize, CancellationToken cancellationToken);
+    Task<ApiCallResult<InformeGastosPropiosResponse>> IndicadoresGastosAsync(string periodo, DateOnly? desde, DateOnly? hasta, CancellationToken cancellationToken);
+    Task<ApiCallResult<List<TipoGastoResponse>>> TiposGastoAsync(CancellationToken cancellationToken);
+    Task<ApiCallResult<GastoRegistradoResponse>> RegistrarGastoAsync(RegistrarGastoRequest request, CancellationToken cancellationToken);
 }
 
 public sealed class VendedorApiClient : IVendedorApiClient
@@ -161,6 +166,46 @@ public sealed class VendedorApiClient : IVendedorApiClient
 
     public Task<ApiCallResult<List<CasoGanadorResponse>>> EntregasAsync(CancellationToken cancellationToken) =>
         SendAsync<List<CasoGanadorResponse>>(HttpMethod.Get, "api/PremiosManual/Listar", null, true, null, cancellationToken);
+
+    public Task<ApiCallResult<MisGastosResponse>> MisGastosAsync(string periodo, DateOnly? desde, DateOnly? hasta, int page, int pageSize, CancellationToken cancellationToken)
+    {
+        var consulta = "api/utilidades/mis-gastos?periodo=" + Uri.EscapeDataString(periodo)
+            + "&page=" + page
+            + "&pageSize=" + pageSize;
+        if (desde is not null)
+        {
+            consulta += "&desde=" + desde.Value.ToString("yyyy-MM-dd");
+        }
+
+        if (hasta is not null)
+        {
+            consulta += "&hasta=" + hasta.Value.ToString("yyyy-MM-dd");
+        }
+
+        return SendAsync<MisGastosResponse>(HttpMethod.Get, consulta, null, true, null, cancellationToken);
+    }
+
+    public Task<ApiCallResult<InformeGastosPropiosResponse>> IndicadoresGastosAsync(string periodo, DateOnly? desde, DateOnly? hasta, CancellationToken cancellationToken)
+    {
+        var consulta = "api/utilidades/indicadores?periodo=" + Uri.EscapeDataString(periodo);
+        if (desde is not null)
+        {
+            consulta += "&desde=" + desde.Value.ToString("yyyy-MM-dd");
+        }
+
+        if (hasta is not null)
+        {
+            consulta += "&hasta=" + hasta.Value.ToString("yyyy-MM-dd");
+        }
+
+        return SendAsync<InformeGastosPropiosResponse>(HttpMethod.Get, consulta, null, true, null, cancellationToken);
+    }
+
+    public Task<ApiCallResult<List<TipoGastoResponse>>> TiposGastoAsync(CancellationToken cancellationToken) =>
+        SendAsync<List<TipoGastoResponse>>(HttpMethod.Get, "api/utilidades/tipos-gasto", null, true, null, cancellationToken);
+
+    public Task<ApiCallResult<GastoRegistradoResponse>> RegistrarGastoAsync(RegistrarGastoRequest request, CancellationToken cancellationToken) =>
+        SendAsync<GastoRegistradoResponse>(HttpMethod.Post, "api/utilidades/gastos", request, true, null, cancellationToken);
 
     public Task<ApiCallResult<CasoGanadorResponse>> RegistrarEntregaAsync(Guid casoId, decimal valorGanado, CancellationToken cancellationToken) =>
         SendAsync<CasoGanadorResponse>(

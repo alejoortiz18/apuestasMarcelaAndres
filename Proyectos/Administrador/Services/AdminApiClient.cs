@@ -22,6 +22,7 @@ using NewRich.Application.Contracts.Recaudo;
 using NewRich.Application.Contracts.Resultados;
 using NewRich.Application.Contracts.RevisadaManual;
 using NewRich.Application.Contracts.Usuarios;
+using NewRich.Application.Contracts.Utilidades;
 using NewRich.Application.Contracts.Ventas;
 using NewRich.Application.Contracts.Versiones;
 using NewRich.Application.Services;
@@ -148,6 +149,17 @@ public interface IAdminApiClient
     Task<ApiCallResult<ParametrosRevisadaManualResponse>> ParametrosRevisadaManualAsync(CancellationToken cancellationToken);
     Task<ApiCallResult<ParametrosRevisadaManualResponse>> GuardarComisionRevisadaManualAsync(decimal porcentaje, CancellationToken cancellationToken);
     Task<ApiCallResult<ParametrosRevisadaManualResponse>> GuardarDescuentoRevisadaManualAsync(decimal porcentaje, CancellationToken cancellationToken);
+
+    Task<ApiCallResult<ResumenUtilidadesResponse>> UtilidadesResumenAsync(string periodo, DateOnly? desde, DateOnly? hasta, CancellationToken cancellationToken);
+    Task<ApiCallResult<InformeGastosPropiosResponse>> UtilidadesIndicadoresAsync(string periodo, DateOnly? desde, DateOnly? hasta, CancellationToken cancellationToken);
+    Task<ApiCallResult<MovimientosGastosResponse>> UtilidadesMovimientosAsync(string periodo, DateOnly? desde, DateOnly? hasta, Guid? usuarioId, Guid? tipoGastoId, string? estado, int page, int pageSize, CancellationToken cancellationToken);
+    Task<ApiCallResult<List<TipoGastoResponse>>> UtilidadesTiposActivosAsync(CancellationToken cancellationToken);
+    Task<ApiCallResult<GastoRegistradoResponse>> UtilidadesRegistrarAsync(RegistrarGastoRequest request, CancellationToken cancellationToken);
+    Task<ApiCallResult<GastoRegistradoResponse>> UtilidadesCorregirAsync(Guid id, CorregirGastoRequest request, CancellationToken cancellationToken);
+    Task<ApiCallResult<GastoRegistradoResponse>> UtilidadesAnularAsync(Guid id, AnularGastoRequest request, CancellationToken cancellationToken);
+    Task<ApiCallResult<List<TipoGastoCatalogoResponse>>> UtilidadesCatalogoAsync(CancellationToken cancellationToken);
+    Task<ApiCallResult<TipoGastoCatalogoResponse>> UtilidadesCrearTipoAsync(GuardarTipoGastoRequest request, CancellationToken cancellationToken);
+    Task<ApiCallResult<TipoGastoCatalogoResponse>> UtilidadesActualizarTipoAsync(Guid id, ActualizarTipoGastoRequest request, CancellationToken cancellationToken);
 }
 
 public sealed class AdminApiClient : IAdminApiClient
@@ -642,6 +654,71 @@ public sealed class AdminApiClient : IAdminApiClient
 
     public Task<ApiCallResult<ParametrosRevisadaManualResponse>> GuardarDescuentoRevisadaManualAsync(decimal porcentaje, CancellationToken cancellationToken) =>
         SendAsync<ParametrosRevisadaManualResponse>(HttpMethod.Post, "api/ParametrosRevisadaManual/Descuento", new GuardarParametroRevisadaManualRequest { Porcentaje = porcentaje }, true, cancellationToken);
+
+    public Task<ApiCallResult<ResumenUtilidadesResponse>> UtilidadesResumenAsync(string periodo, DateOnly? desde, DateOnly? hasta, CancellationToken cancellationToken) =>
+        SendAsync<ResumenUtilidadesResponse>(HttpMethod.Get, "api/utilidades/resumen" + Periodo(periodo, desde, hasta), null, true, cancellationToken);
+
+    public Task<ApiCallResult<InformeGastosPropiosResponse>> UtilidadesIndicadoresAsync(string periodo, DateOnly? desde, DateOnly? hasta, CancellationToken cancellationToken) =>
+        SendAsync<InformeGastosPropiosResponse>(HttpMethod.Get, "api/utilidades/informe" + Periodo(periodo, desde, hasta), null, true, cancellationToken);
+
+    public Task<ApiCallResult<MovimientosGastosResponse>> UtilidadesMovimientosAsync(string periodo, DateOnly? desde, DateOnly? hasta, Guid? usuarioId, Guid? tipoGastoId, string? estado, int page, int pageSize, CancellationToken cancellationToken)
+    {
+        var consulta = "api/utilidades/movimientos" + Periodo(periodo, desde, hasta)
+            + "&page=" + page + "&pageSize=" + pageSize;
+        if (usuarioId is not null)
+        {
+            consulta += "&usuarioId=" + usuarioId;
+        }
+
+        if (tipoGastoId is not null)
+        {
+            consulta += "&tipoGastoId=" + tipoGastoId;
+        }
+
+        if (!string.IsNullOrWhiteSpace(estado))
+        {
+            consulta += "&estado=" + Uri.EscapeDataString(estado);
+        }
+
+        return SendAsync<MovimientosGastosResponse>(HttpMethod.Get, consulta, null, true, cancellationToken);
+    }
+
+    public Task<ApiCallResult<List<TipoGastoResponse>>> UtilidadesTiposActivosAsync(CancellationToken cancellationToken) =>
+        SendAsync<List<TipoGastoResponse>>(HttpMethod.Get, "api/utilidades/tipos-gasto", null, true, cancellationToken);
+
+    public Task<ApiCallResult<GastoRegistradoResponse>> UtilidadesRegistrarAsync(RegistrarGastoRequest request, CancellationToken cancellationToken) =>
+        SendAsync<GastoRegistradoResponse>(HttpMethod.Post, "api/utilidades/gastos", request, true, cancellationToken);
+
+    public Task<ApiCallResult<GastoRegistradoResponse>> UtilidadesCorregirAsync(Guid id, CorregirGastoRequest request, CancellationToken cancellationToken) =>
+        SendAsync<GastoRegistradoResponse>(HttpMethod.Post, "api/utilidades/gastos/" + id + "/corregir", request, true, cancellationToken);
+
+    public Task<ApiCallResult<GastoRegistradoResponse>> UtilidadesAnularAsync(Guid id, AnularGastoRequest request, CancellationToken cancellationToken) =>
+        SendAsync<GastoRegistradoResponse>(HttpMethod.Post, "api/utilidades/gastos/" + id + "/anular", request, true, cancellationToken);
+
+    public Task<ApiCallResult<List<TipoGastoCatalogoResponse>>> UtilidadesCatalogoAsync(CancellationToken cancellationToken) =>
+        SendAsync<List<TipoGastoCatalogoResponse>>(HttpMethod.Get, "api/utilidades/catalogo", null, true, cancellationToken);
+
+    public Task<ApiCallResult<TipoGastoCatalogoResponse>> UtilidadesCrearTipoAsync(GuardarTipoGastoRequest request, CancellationToken cancellationToken) =>
+        SendAsync<TipoGastoCatalogoResponse>(HttpMethod.Post, "api/utilidades/tipos-gasto", request, true, cancellationToken);
+
+    public Task<ApiCallResult<TipoGastoCatalogoResponse>> UtilidadesActualizarTipoAsync(Guid id, ActualizarTipoGastoRequest request, CancellationToken cancellationToken) =>
+        SendAsync<TipoGastoCatalogoResponse>(HttpMethod.Put, "api/utilidades/tipos-gasto/" + id, request, true, cancellationToken);
+
+    private static string Periodo(string periodo, DateOnly? desde, DateOnly? hasta)
+    {
+        var consulta = "?periodo=" + Uri.EscapeDataString(periodo);
+        if (desde is not null)
+        {
+            consulta += "&desde=" + desde.Value.ToString("yyyy-MM-dd");
+        }
+
+        if (hasta is not null)
+        {
+            consulta += "&hasta=" + hasta.Value.ToString("yyyy-MM-dd");
+        }
+
+        return consulta;
+    }
 
     private async Task<ApiCallResult<ArchivoChat>> DescargarImagenPremioAsync(string ruta, CancellationToken cancellationToken)
     {

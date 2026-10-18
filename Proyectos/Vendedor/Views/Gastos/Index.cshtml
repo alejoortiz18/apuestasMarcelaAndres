@@ -1,0 +1,207 @@
+@model NewRich.Vendedor.Models.MisGastosViewModel
+@{
+    var paginas = Math.Max(1, (int)Math.Ceiling(Model.Paginacion.Total / (double)Math.Max(1, Model.Paginacion.PageSize)));
+    var inicio = Model.Paginacion.Total == 0 ? 0 : ((Model.Paginacion.Page - 1) * Model.Paginacion.PageSize) + 1;
+    var fin = Math.Min(Model.Paginacion.Total, Model.Paginacion.Page * Model.Paginacion.PageSize);
+    string Enlace(int page) => Url.Action("Index", new
+    {
+        periodo = Model.Periodo,
+        desde = Model.Desde?.ToString("yyyy-MM-dd"),
+        hasta = Model.Hasta?.ToString("yyyy-MM-dd"),
+        page,
+        pageSize = Model.Paginacion.PageSize
+    }) ?? "#";
+    var opciones = new (string Valor, string Texto)[]
+    {
+        ("hoy", UiTexts.PeriodoHoy),
+        ("ayer", UiTexts.PeriodoAyer),
+        ("ultimos-7", UiTexts.Periodo7),
+        ("ultimos-30", UiTexts.Periodo30),
+        ("mes", UiTexts.PeriodoMes),
+        ("mes-anterior", UiTexts.PeriodoMesAnterior),
+        ("rango", UiTexts.PeriodoRango)
+    };
+}
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.MenuUtilidades</div>
+        <h1>@UiTexts.MisGastos</h1>
+        <p>@UiTexts.MisGastosAyuda</p>
+    </div>
+    <button type="button" class="primary" data-open-gasto>@UiTexts.RegistrarGasto</button>
+</div>
+@if (!string.IsNullOrWhiteSpace(Model.Aviso) && string.IsNullOrWhiteSpace(Model.PeriodoTexto))
+{
+    <div class="notice error" role="alert">@Model.Aviso</div>
+}
+<div class="panel">
+    <form class="toolbar" method="get">
+        <div class="field">
+            <label for="periodo">@UiTexts.Periodo</label>
+            <select id="periodo" name="periodo">
+                @foreach (var opcion in opciones)
+                {
+                    if (Model.Periodo == opcion.Valor)
+                    {
+                        <option value="@opcion.Valor" selected>@opcion.Texto</option>
+                    }
+                    else
+                    {
+                        <option value="@opcion.Valor">@opcion.Texto</option>
+                    }
+                }
+            </select>
+        </div>
+        <div class="field">
+            <label for="desde">@UiTexts.Desde</label>
+            <input id="desde" name="desde" type="date" value="@Model.Desde?.ToString("yyyy-MM-dd")" />
+        </div>
+        <div class="field">
+            <label for="hasta">@UiTexts.Hasta</label>
+            <input id="hasta" name="hasta" type="date" value="@Model.Hasta?.ToString("yyyy-MM-dd")" />
+        </div>
+        <div class="field">
+            <label for="pageSize">@UiTexts.FilasPorPagina</label>
+            <select id="pageSize" name="pageSize">
+                @foreach (var size in Paginas.Tamanos)
+                {
+                    if (Model.Paginacion.PageSize == size)
+                    {
+                        <option value="@size" selected>@size</option>
+                    }
+                    else
+                    {
+                        <option value="@size">@size</option>
+                    }
+                }
+            </select>
+        </div>
+        <button class="primary" type="submit">@UiTexts.Buscar</button>
+        <a class="secondary" asp-action="Index">@UiTexts.Limpiar</a>
+    </form>
+    <p class="field-help">@UiTexts.RangoAyuda</p>
+    @if (!string.IsNullOrWhiteSpace(Model.PeriodoTexto))
+    {
+        <p>@Model.PeriodoTexto</p>
+    }
+</div>
+<div class="panel">
+    <div class="table-wrap">
+        <table>
+            <thead>
+            <tr>
+                <th>@UiTexts.FechaGasto</th>
+                <th>@UiTexts.TipoGasto</th>
+                <th>@UiTexts.Observacion</th>
+                <th>@UiTexts.Valor</th>
+                <th>@UiTexts.Estado</th>
+            </tr>
+            </thead>
+            <tbody>
+            @if (Model.Items.Count == 0)
+            {
+                <tr>
+                    <td colspan="5">@UiTexts.Vacio</td>
+                </tr>
+            }
+            else
+            {
+                foreach (var fila in Model.Items)
+                {
+                    <tr class="@(fila.Anulado ? "fila-anulada" : null)">
+                        <td>@fila.Fecha</td>
+                        <td>@fila.Tipo</td>
+                        <td>@fila.Observacion</td>
+                        <td>@fila.Valor</td>
+                        <td><span class="pill @(fila.Anulado ? "bad" : "ok")">@fila.Estado</span></td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+    <nav class="pager" aria-label="Paginacion">
+        <p>@string.Format(UiTexts.Mostrando, inicio, fin, Model.Paginacion.Total)</p>
+        <div class="pages">
+            <a class="@(Model.Paginacion.Page <= 1 ? "disabled" : null)" href="@Enlace(1)">@UiTexts.PaginaInicio</a>
+            <a class="@(Model.Paginacion.Page <= 1 ? "disabled" : null)" href="@Enlace(Math.Max(1, Model.Paginacion.Page - 1))">@UiTexts.PaginaAnterior</a>
+            @for (var numero = 1; numero <= paginas; numero++)
+            {
+                if (paginas > 7 && numero != 1 && numero != paginas && Math.Abs(numero - Model.Paginacion.Page) > 1)
+                {
+                    if (numero == 2 || numero == paginas - 1)
+                    {
+                        <span aria-hidden="true">...</span>
+                    }
+                    continue;
+                }
+                <a class="@(numero == Model.Paginacion.Page ? "active" : null)" href="@Enlace(numero)" @(numero == Model.Paginacion.Page ? "aria-current=page" : null)>@numero</a>
+            }
+            <a class="@(Model.Paginacion.Page >= paginas ? "disabled" : null)" href="@Enlace(Math.Min(paginas, Model.Paginacion.Page + 1))">@UiTexts.PaginaSiguiente</a>
+            <a class="@(Model.Paginacion.Page >= paginas ? "disabled" : null)" href="@Enlace(paginas)">@UiTexts.PaginaUltimo</a>
+        </div>
+    </nav>
+</div>
+@{
+    var formulario = Model.Formulario;
+    var seleccionado = formulario.Tipos.FirstOrDefault(t => t.Id == formulario.TipoGastoId) ?? formulario.Tipos.FirstOrDefault();
+    var exige = seleccionado?.RequiereObservacion == true;
+    var modalAbierto = Model.AbrirModal;
+}
+<div id="gastoDialog" class="dialog-back@(modalAbierto ? "" : " hidden")" role="dialog" aria-modal="true" aria-labelledby="gastoDialogTitle" data-gasto-dialog @(modalAbierto ? null : "hidden")>
+    <div class="dialog dialog-gasto">
+        <h2 id="gastoDialogTitle">@UiTexts.RegistrarGasto</h2>
+        @if (!string.IsNullOrWhiteSpace(formulario.Error))
+        {
+            <div class="notice error" role="alert">@formulario.Error</div>
+        }
+        <form method="post" asp-action="Registrar" data-gasto-form>
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="ClaveIdempotencia" value="@formulario.ClaveIdempotencia" />
+            <input type="hidden" name="periodo" value="@Model.Periodo" />
+            <input type="hidden" name="desde" value="@Model.Desde?.ToString("yyyy-MM-dd")" />
+            <input type="hidden" name="hasta" value="@Model.Hasta?.ToString("yyyy-MM-dd")" />
+            <input type="hidden" name="page" value="@Model.Paginacion.Page" />
+            <input type="hidden" name="pageSize" value="@Model.Paginacion.PageSize" />
+            <div class="field">
+                <label for="TipoGastoId">@UiTexts.TipoGasto <span aria-hidden="true">*</span></label>
+                <select id="TipoGastoId" name="TipoGastoId" required @(formulario.Tipos.Count == 0 ? "disabled" : null)>
+                    @if (formulario.Tipos.Count == 0)
+                    {
+                        <option value="">@UiTexts.SinTiposGasto</option>
+                    }
+                    @foreach (var tipo in formulario.Tipos)
+                    {
+                        if (tipo.Id == formulario.TipoGastoId || (formulario.TipoGastoId == Guid.Empty && tipo.Id == seleccionado?.Id))
+                        {
+                            <option value="@tipo.Id" data-requiere="@(tipo.RequiereObservacion ? "1" : "0")" selected>@tipo.Nombre</option>
+                        }
+                        else
+                        {
+                            <option value="@tipo.Id" data-requiere="@(tipo.RequiereObservacion ? "1" : "0")">@tipo.Nombre</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="field">
+                <label for="FechaGasto">@UiTexts.FechaGasto <span aria-hidden="true">*</span></label>
+                <input id="FechaGasto" name="FechaGasto" type="date" required value="@formulario.FechaGasto.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="field">
+                <label for="Valor">@UiTexts.Valor <span aria-hidden="true">*</span></label>
+                <div class="money-input money-input-wide">
+                    <span class="money-prefix" aria-hidden="true">$</span>
+                    <input id="Valor" class="money-visible" name="Valor" type="text" inputmode="numeric" autocomplete="off" required data-gasto-valor value="@formulario.Valor" />
+                </div>
+            </div>
+            <div class="field">
+                <label for="Observacion">@UiTexts.Observacion <span data-exige-marca aria-hidden="true" @(exige ? null : "hidden")>*</span></label>
+                <textarea id="Observacion" name="Observacion" maxlength="500" rows="3" @(exige ? "required" : null)>@formulario.Observacion</textarea>
+            </div>
+            <div class="dialog-actions">
+                <button class="secondary" type="button" data-close-gasto>@UiTexts.Cancelar</button>
+                <button class="primary" type="submit" @(formulario.Tipos.Count == 0 ? "disabled" : null)>@UiTexts.Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>

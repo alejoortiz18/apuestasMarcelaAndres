@@ -901,6 +901,12 @@
     if (event.key !== "Escape") {
       return;
     }
+    if (window.cerrarGasto && window.cerrarGasto()) {
+      return;
+    }
+    if (window.cerrarTipo && window.cerrarTipo()) {
+      return;
+    }
     if (ticketDialog && !ticketDialog.classList.contains("hidden")) {
       closeTicket();
       return;
@@ -2123,5 +2129,162 @@ iniciarDiasVenta();
   });
 
   programar();
+})();
+
+(function () {
+  var dialog = document.querySelector("[data-gasto-dialog]");
+  var abrir = document.querySelector("[data-open-gasto]");
+  if (!dialog) {
+    window.cerrarGasto = function () { return false; };
+    return;
+  }
+
+  function abierto() {
+    return !dialog.hasAttribute("hidden");
+  }
+
+  function abrirGasto() {
+    dialog.classList.remove("hidden");
+    dialog.removeAttribute("hidden");
+    var campo = dialog.querySelector("#TipoGastoId");
+    if (campo) {
+      campo.focus();
+    }
+  }
+
+  function cerrarGasto() {
+    if (!abierto()) {
+      return false;
+    }
+    dialog.classList.add("hidden");
+    dialog.setAttribute("hidden", "");
+    if (abrir) {
+      abrir.focus();
+    }
+    return true;
+  }
+
+  window.cerrarGasto = cerrarGasto;
+  if (abrir) {
+    abrir.addEventListener("click", function (event) {
+      event.preventDefault();
+      abrirGasto();
+    });
+  }
+  dialog.querySelectorAll("[data-close-gasto]").forEach(function (boton) {
+    boton.addEventListener("click", cerrarGasto);
+  });
+  dialog.addEventListener("click", function (event) {
+    if (event.target === dialog) {
+      cerrarGasto();
+    }
+  });
+  if (abierto()) {
+    abrirGasto();
+  }
+
+  document.querySelectorAll("[data-gasto-valor]").forEach(function (input) {
+    function aplicar() {
+      var formateado = (input.value || "").replace(/\D/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+      if (input.value !== formateado) {
+        input.value = formateado;
+      }
+    }
+    input.addEventListener("input", aplicar);
+    aplicar();
+  });
+
+  document.querySelectorAll("form[data-gasto-form]").forEach(function (form) {
+    var tipo = form.querySelector("#TipoGastoId");
+    var observacion = form.querySelector("#Observacion");
+    var marca = form.querySelector("[data-exige-marca]");
+    function exigir() {
+      if (!tipo || !observacion) {
+        return;
+      }
+      var opcion = tipo.options[tipo.selectedIndex];
+      var requiere = opcion && opcion.getAttribute("data-requiere") === "1";
+      observacion.required = requiere;
+      if (marca) {
+        marca.hidden = !requiere;
+      }
+    }
+    if (tipo) {
+      tipo.addEventListener("change", exigir);
+    }
+    exigir();
+    form.addEventListener("submit", function () {
+      var boton = form.querySelector("[type=submit]");
+      if (boton && form.checkValidity()) {
+        boton.disabled = true;
+      }
+    });
+  });
+})();
+
+(function () {
+  var dialog = document.querySelector("[data-tipo-dialog]");
+  if (!dialog) {
+    window.cerrarTipo = function () { return false; };
+    return;
+  }
+
+  var form = dialog.querySelector("[data-tipo-form]");
+  var nombre = dialog.querySelector("#nombreTipo");
+  var descripcion = dialog.querySelector("#descripcionTipo");
+  var requiere = dialog.querySelector("#requiereTipo");
+  var activo = dialog.querySelector("#activoTipo");
+  var ultimo = null;
+
+  function abierto() {
+    return !dialog.hasAttribute("hidden");
+  }
+
+  function cerrarTipo() {
+    if (!abierto()) {
+      return false;
+    }
+    dialog.classList.add("hidden");
+    dialog.setAttribute("hidden", "");
+    if (ultimo) {
+      ultimo.focus();
+    }
+    return true;
+  }
+
+  window.cerrarTipo = cerrarTipo;
+  document.querySelectorAll("[data-editar-tipo]").forEach(function (boton) {
+    boton.addEventListener("click", function () {
+      ultimo = boton;
+      if (form) {
+        form.action = dialog.getAttribute("data-url") + "/" + boton.getAttribute("data-id");
+      }
+      if (nombre) {
+        nombre.value = boton.getAttribute("data-nombre") || "";
+      }
+      if (descripcion) {
+        descripcion.value = boton.getAttribute("data-descripcion") || "";
+      }
+      if (requiere) {
+        requiere.checked = boton.getAttribute("data-requiere") === "true";
+      }
+      if (activo) {
+        activo.value = boton.getAttribute("data-activo") === "true" ? "true" : "false";
+      }
+      dialog.classList.remove("hidden");
+      dialog.removeAttribute("hidden");
+      if (nombre) {
+        nombre.focus();
+      }
+    });
+  });
+  dialog.querySelectorAll("[data-close-tipo]").forEach(function (boton) {
+    boton.addEventListener("click", cerrarTipo);
+  });
+  dialog.addEventListener("click", function (event) {
+    if (event.target === dialog) {
+      cerrarTipo();
+    }
+  });
 })();
 

@@ -1045,6 +1045,9 @@
       closeCodigo();
       return;
     }
+    if (window.cerrarGasto && window.cerrarGasto()) {
+      return;
+    }
     if (aviso && !aviso.classList.contains("hidden")) {
       closeAviso();
       return;
@@ -2530,5 +2533,93 @@ iniciarDiasVenta();
   form.querySelectorAll("[data-numero-juego]").forEach(aplicarNumeroJuego);
   reindex();
   sincronizar();
+})();
+
+(function () {
+  var dialog = document.querySelector("[data-gasto-dialog]");
+  var abrir = document.querySelector("[data-open-gasto]");
+  if (!dialog) {
+    window.cerrarGasto = function () { return false; };
+    return;
+  }
+
+  function abierto() {
+    return !dialog.hasAttribute("hidden");
+  }
+
+  function abrirGasto() {
+    dialog.classList.remove("hidden");
+    dialog.removeAttribute("hidden");
+    var campo = dialog.querySelector("#TipoGastoId");
+    if (campo) {
+      campo.focus();
+    }
+  }
+
+  function cerrarGasto() {
+    if (!abierto()) {
+      return false;
+    }
+    dialog.classList.add("hidden");
+    dialog.setAttribute("hidden", "");
+    if (abrir) {
+      abrir.focus();
+    }
+    return true;
+  }
+
+  window.cerrarGasto = cerrarGasto;
+  if (abrir) {
+    abrir.addEventListener("click", abrirGasto);
+  }
+  dialog.querySelectorAll("[data-close-gasto]").forEach(function (boton) {
+    boton.addEventListener("click", cerrarGasto);
+  });
+  dialog.addEventListener("click", function (event) {
+    if (event.target === dialog) {
+      cerrarGasto();
+    }
+  });
+  if (abierto()) {
+    abrirGasto();
+  }
+
+  document.querySelectorAll("[data-gasto-valor]").forEach(function (input) {
+    function aplicar() {
+      var formateado = (input.value || "").replace(/\D/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+      if (input.value !== formateado) {
+        input.value = formateado;
+      }
+    }
+    input.addEventListener("input", aplicar);
+    aplicar();
+  });
+
+  document.querySelectorAll("form[data-gasto-form]").forEach(function (form) {
+    var tipo = form.querySelector("#TipoGastoId");
+    var observacion = form.querySelector("#Observacion");
+    var marca = form.querySelector("[data-exige-marca]");
+    function exigir() {
+      if (!tipo || !observacion) {
+        return;
+      }
+      var opcion = tipo.options[tipo.selectedIndex];
+      var requiere = opcion && opcion.getAttribute("data-requiere") === "1";
+      observacion.required = requiere;
+      if (marca) {
+        marca.hidden = !requiere;
+      }
+    }
+    if (tipo) {
+      tipo.addEventListener("change", exigir);
+    }
+    exigir();
+    form.addEventListener("submit", function () {
+      var boton = form.querySelector("[type=submit]");
+      if (boton && form.checkValidity()) {
+        boton.disabled = true;
+      }
+    });
+  });
 })();
 

@@ -63,6 +63,9 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
     public DbSet<PagoRegistradoRecaudo> PagosRecaudo => Set<PagoRegistradoRecaudo>();
     public DbSet<TirillaCobroRecaudo> TirillasCobroRecaudo => Set<TirillaCobroRecaudo>();
     public DbSet<ConfirmacionAccionPendiente> ConfirmacionesAccion => Set<ConfirmacionAccionPendiente>();
+    public DbSet<TipoGasto> TiposGasto => Set<TipoGasto>();
+    public DbSet<Gasto> Gastos => Set<Gasto>();
+    public DbSet<AuditoriaCambioGasto> AuditoriaCambiosGasto => Set<AuditoriaCambioGasto>();
 
     public async Task AsegurarEsquemaRetencionAsync(CancellationToken cancellationToken = default)
     {
@@ -149,6 +152,16 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
         }
 
         await Database.ExecuteSqlRawAsync(EsquemaRevisadaManual.Tablas, cancellationToken);
+    }
+
+    public async Task AsegurarEsquemaUtilidadesAsync(CancellationToken cancellationToken = default)
+    {
+        if (!Database.IsRelational())
+        {
+            return;
+        }
+
+        await Database.ExecuteSqlRawAsync(EsquemaUtilidades.Tablas, cancellationToken);
     }
 
     public async Task AsegurarEsquemaParametrosRevisadaManualAsync(CancellationToken cancellationToken = default)
@@ -677,6 +690,44 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
             e.HasKey(x => x.Token);
             e.Property(x => x.Token).HasMaxLength(64);
             e.Property(x => x.Accion).HasMaxLength(80);
+        });
+
+        modelBuilder.Entity<TipoGasto>(e =>
+        {
+            e.ToTable("TiposGasto", "utilidades");
+            e.HasKey(x => x.TipoGastoId);
+            e.Property(x => x.Nombre).HasMaxLength(80);
+            e.Property(x => x.Descripcion).HasMaxLength(300);
+            e.HasIndex(x => x.Nombre).IsUnique();
+        });
+
+        modelBuilder.Entity<Gasto>(e =>
+        {
+            e.ToTable("Gastos", "utilidades");
+            e.HasKey(x => x.GastoId);
+            e.Property(x => x.FechaGasto).HasColumnType("date");
+            e.Property(x => x.Valor).HasColumnType("decimal(18,2)");
+            e.Property(x => x.Observacion).HasMaxLength(500);
+            e.Property(x => x.Estado).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.ClaveIdempotencia).HasMaxLength(100);
+            e.HasIndex(x => x.ClaveIdempotencia).IsUnique();
+            e.HasIndex(x => new { x.UsuarioRegistroId, x.FechaGasto, x.Estado });
+            e.HasOne(x => x.Tipo).WithMany().HasForeignKey(x => x.TipoGastoId);
+        });
+
+        modelBuilder.Entity<AuditoriaCambioGasto>(e =>
+        {
+            e.ToTable("AuditoriaCambios", "utilidades");
+            e.HasKey(x => x.AuditoriaCambioGastoId);
+            e.Property(x => x.Accion).HasMaxLength(20);
+            e.Property(x => x.ValorAnterior).HasColumnType("decimal(18,2)");
+            e.Property(x => x.ValorNuevo).HasColumnType("decimal(18,2)");
+            e.Property(x => x.FechaAnterior).HasColumnType("date");
+            e.Property(x => x.FechaNueva).HasColumnType("date");
+            e.Property(x => x.EstadoAnterior).HasMaxLength(20);
+            e.Property(x => x.EstadoNuevo).HasMaxLength(20);
+            e.Property(x => x.Motivo).HasMaxLength(300);
+            e.HasIndex(x => x.GastoId);
         });
     }
 
