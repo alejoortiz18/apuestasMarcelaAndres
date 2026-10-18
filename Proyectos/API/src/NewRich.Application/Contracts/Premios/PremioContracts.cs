@@ -20,6 +20,11 @@ public sealed class EvidenciaFotoRequest
     public string? ContenidoBase64 { get; set; }
 }
 
+public sealed class RegistrarEntregaVendedorRequest
+{
+    public decimal ValorGanado { get; set; }
+}
+
 public sealed class RegistrarEntregaPremioRequest
 {
     public string NombreGanador { get; set; } = string.Empty;

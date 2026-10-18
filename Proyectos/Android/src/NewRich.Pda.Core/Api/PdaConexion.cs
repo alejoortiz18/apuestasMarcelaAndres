@@ -33,9 +33,9 @@ public static class PdaConexion
 
     public static string BaseUrl(bool emulador) => UrlsPara(emulador)[0];
 
-    /// <summary>En esta rama el celular y el emulador hablan con el API de test de Azure.</summary>
+    /// <summary>En desarrollo el celular habla con el API que corre en el PC: primero por USB y luego por Wi-Fi.</summary>
     public static IReadOnlyList<string> UrlsPara(bool emulador) =>
-        [UrlTest];
+        [UrlLocalUsb, UrlLocal];
 
     public static string HubChat(string baseUrl) => baseUrl.TrimEnd('/') + RutaHubChat;
 

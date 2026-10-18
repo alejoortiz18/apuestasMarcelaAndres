@@ -172,6 +172,8 @@ public interface IPremioService
 {
     Task<Result<IReadOnlyList<CasoGanadorResponse>>> ListarAsync(CancellationToken cancellationToken);
     Task<Result<IReadOnlyList<CasoGanadorResponse>>> ListarAsignadosAsync(Guid observadorId, CancellationToken cancellationToken);
+    Task<Result<IReadOnlyList<CasoGanadorResponse>>> ListarDelVendedorAsync(Guid vendedorId, CancellationToken cancellationToken);
+    Task<Result<CasoGanadorResponse>> RegistrarEntregaSitioWebAsync(Guid casoId, Guid vendedorId, decimal valorGanado, CancellationToken cancellationToken);
     Task<Result<CasoGanadorResponse>> ObtenerAsync(Guid casoId, CancellationToken cancellationToken);
     Task<Result<CasoGanadorResponse>> ReportarAsync(Guid solicitanteId, ReportarCasoGanadorRequest request, CancellationToken cancellationToken);
     Task<Result<DescargaAdjuntoResponse>> ObtenerFotoAsync(Guid casoId, CancellationToken cancellationToken);

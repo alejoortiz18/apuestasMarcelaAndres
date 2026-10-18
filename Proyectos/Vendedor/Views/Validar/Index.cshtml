@@ -1,0 +1,28 @@
+@model NewRich.Vendedor.Models.ValidarViewModel
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.ValidarTicket</div>
+        <h1>@UiTexts.ValidarTicket</h1>
+    </div>
+</div>
+<div class="panel">
+    <form method="post">
+        @Html.AntiForgeryToken()
+        <div class="field">
+            <label asp-for="Codigo">@UiTexts.CodigoTicket</label>
+            <textarea asp-for="Codigo" maxlength="400" rows="3"></textarea>
+            <span asp-validation-for="Codigo"></span>
+        </div>
+        <button class="primary" type="submit">@UiTexts.Consultar</button>
+    </form>
+</div>
+@if (!string.IsNullOrWhiteSpace(Model.Mensaje) || !string.IsNullOrWhiteSpace(Model.Resultado))
+{
+    <div class="panel">
+        @if (!string.IsNullOrWhiteSpace(Model.Resultado))
+        {
+            <p><strong>@Model.Resultado</strong></p>
+        }
+        <p>@Model.Mensaje</p>
+    </div>
+}

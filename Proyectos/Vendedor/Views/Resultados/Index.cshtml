@@ -1,0 +1,82 @@
+@model NewRich.Vendedor.Models.ResultadosViewModel
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.Resultados</div>
+        <h1>@UiTexts.Resultados</h1>
+    </div>
+</div>
+<div class="panel">
+    <form class="toolbar" method="get">
+        <div class="field">
+            <label for="fecha">@UiTexts.Fecha</label>
+            <input id="fecha" name="fecha" type="date" value="@Model.Fecha?.ToString("yyyy-MM-dd")" />
+        </div>
+        <div class="field">
+            <label for="loteriaId">@UiTexts.Loteria</label>
+            <select id="loteriaId" name="loteriaId">
+                <option value="">Todas</option>
+                @foreach (var loteria in Model.Loterias.OrderBy(l => l.Nombre))
+                {
+                    if (Model.LoteriaId == loteria.LoteriaId)
+                    {
+                        <option value="@loteria.LoteriaId" selected>@loteria.Nombre</option>
+                    }
+                    else
+                    {
+                        <option value="@loteria.LoteriaId">@loteria.Nombre</option>
+                    }
+                }
+            </select>
+        </div>
+        <div class="field">
+            <label for="pageSize">@UiTexts.FilasPorPagina</label>
+            <select id="pageSize" name="pageSize">
+                @foreach (var size in Paginas.Tamanos)
+                {
+                    if (Model.PageSize == size)
+                    {
+                        <option value="@size" selected>@size</option>
+                    }
+                    else
+                    {
+                        <option value="@size">@size</option>
+                    }
+                }
+            </select>
+        </div>
+        <button class="primary" type="submit">@UiTexts.Buscar</button>
+        <a class="secondary" asp-action="Index">@UiTexts.Limpiar</a>
+    </form>
+</div>
+<div class="panel">
+    @if (Model.Items.Count == 0)
+    {
+        <div class="empty">@UiTexts.Vacio</div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                <tr>
+                    <th>@UiTexts.FechaSorteo</th>
+                    <th>@UiTexts.Loteria</th>
+                    <th>@UiTexts.Numero</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var item in Model.Items)
+                {
+                    <tr>
+                        <td>@item.FechaJuego.ToString("dd-MM-yyyy")</td>
+                        <td>@item.Loteria</td>
+                        <td>@item.Numero</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        var paginacion = new PaginacionViewModel { Page = Model.Page, PageSize = Model.PageSize, Total = Model.Total, Accion = "Index", Controlador = "Resultados" };
+        <partial name="_Pager" model="paginacion" />
+    }
+</div>

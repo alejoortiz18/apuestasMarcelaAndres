@@ -1,0 +1,23 @@
+@model NewRich.Vendedor.Models.PaginacionViewModel
+@{
+    var paginas = Math.Max(1, (int)Math.Ceiling(Model.Total / (double)Math.Max(1, Model.PageSize)));
+    var inicio = Model.Total == 0 ? 0 : ((Model.Page - 1) * Model.PageSize) + 1;
+    var fin = Math.Min(Model.Total, Model.Page * Model.PageSize);
+    var query = Context.Request.Query.ToDictionary(p => p.Key, p => p.Value.ToString());
+    string Enlace(int page)
+    {
+        query["page"] = page.ToString();
+        query["pageSize"] = Model.PageSize.ToString();
+        return Url.Action(Model.Accion, Model.Controlador, query) ?? "#";
+    }
+}
+<nav class="pager" aria-label="Paginacion">
+    <p>@string.Format(UiTexts.Mostrando, inicio, fin, Model.Total)</p>
+    <div>
+        <a class="secondary @(Model.Page <= 1 ? "disabled" : "")" href="@Enlace(1)" aria-disabled="@(Model.Page <= 1)">@UiTexts.PaginaInicio</a>
+        <a class="secondary @(Model.Page <= 1 ? "disabled" : "")" href="@Enlace(Math.Max(1, Model.Page - 1))">@UiTexts.PaginaAnterior</a>
+        <span>@Model.Page / @paginas</span>
+        <a class="secondary @(Model.Page >= paginas ? "disabled" : "")" href="@Enlace(Math.Min(paginas, Model.Page + 1))">@UiTexts.PaginaSiguiente</a>
+        <a class="secondary @(Model.Page >= paginas ? "disabled" : "")" href="@Enlace(paginas)">@UiTexts.PaginaUltimo</a>
+    </div>
+</nav>

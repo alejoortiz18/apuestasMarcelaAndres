@@ -16,6 +16,8 @@ public static class DependencyInjection
         services.AddDbContext<NewRichDbContext>(options =>
             options.UseSqlServer(configuration.GetConnectionString("NewRichDatabase")));
         services.AddScoped<INewRichDbContext>(sp => sp.GetRequiredService<NewRichDbContext>());
+        services.AddScoped<IVentaManualRepositorio, VentaManualRepositorio>();
+        services.AddScoped<IRegistrarJuegoManualRepositorio, RegistrarJuegoManualRepositorio>();
         services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
         services.AddSingleton<IQrCryptoService, AesGcmQrCryptoService>();

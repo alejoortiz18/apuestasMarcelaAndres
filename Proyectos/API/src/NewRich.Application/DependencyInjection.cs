@@ -19,6 +19,9 @@ public static class DependencyInjection
         services.AddScoped<IRetencionHistoricaService, RetencionHistoricaService>();
         services.AddScoped<INumerosRestringidosService, NumerosRestringidosService>();
         services.AddScoped<IVentaService, VentaService>();
+        services.AddScoped<IVentaManualService, VentaManualService>();
+        services.AddScoped<IRegistrarJuegoManualService, RegistrarJuegoManualService>();
+        services.AddScoped<IAuthManualService, AuthManualService>();
         services.AddScoped<IResultadoService, ResultadoService>();
         services.AddScoped<IValidacionBoletoService, ValidacionBoletoService>();
         services.AddScoped<INotificacionTiempoReal, NotificacionTiempoRealNulo>();

@@ -1,0 +1,29 @@
+@model NewRich.Vendedor.Models.InicioViewModel
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.SitioVendedor</div>
+        <h1>@UiTexts.Inicio</h1>
+    </div>
+    @if (!Model.HorarioCerrado)
+    {
+        <a class="primary" asp-controller="Vender" asp-action="Index">@UiTexts.JuegoNuevo</a>
+    }
+</div>
+@if (Model.HorarioCerrado)
+{
+    <div class="panel"><p>@UiTexts.JuegosCerrados</p></div>
+}
+@if (!string.IsNullOrWhiteSpace(Model.Aviso))
+{
+    <div class="panel"><p>@Model.Aviso</p></div>
+}
+<div class="kpi-grid">
+    <article class="kpi">
+        <small>@UiTexts.VentasDelDia</small>
+        <strong>@Model.Total</strong>
+    </article>
+    <article class="kpi">
+        <small>@UiTexts.BoletosHoy</small>
+        <strong>@Model.Boletos</strong>
+    </article>
+</div>

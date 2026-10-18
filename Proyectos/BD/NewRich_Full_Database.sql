@@ -1452,6 +1452,109 @@ GO
 PRINT '';
 PRINT '==============================================';
 PRINT 'RESUMEN DE LA BASE DE DATOS NEW RICH';
+/* Esquema manual: ventas del sitio web del vendedor. No altera tablas de dbo. */
+IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = N'manual')
+    EXEC(N'CREATE SCHEMA manual');
+GO
+IF OBJECT_ID(N'manual.Ventas', N'U') IS NULL
+BEGIN
+    CREATE TABLE manual.Ventas (
+        VentaId         UNIQUEIDENTIFIER NOT NULL,
+        UsuarioId       UNIQUEIDENTIFIER NOT NULL,
+        FechaVenta      DATETIME2        NOT NULL,
+        Total           DECIMAL(18,2)    NOT NULL,
+        TipoApuesta     NVARCHAR(20)     NOT NULL,
+        IdempotencyKey  NVARCHAR(100)    NOT NULL,
+        CONSTRAINT PK_manual_Ventas PRIMARY KEY (VentaId),
+        CONSTRAINT UQ_manual_Ventas_IdempotencyKey UNIQUE (IdempotencyKey),
+        CONSTRAINT FK_manual_Ventas_Usuarios FOREIGN KEY (UsuarioId) REFERENCES dbo.Usuarios(UsuarioId),
+        CONSTRAINT CK_manual_Ventas_TipoApuesta CHECK (TipoApuesta IN ('COMBINADO', 'INDIVIDUAL'))
+    );
+END
+GO
+IF OBJECT_ID(N'manual.Boletos', N'U') IS NULL
+BEGIN
+    CREATE TABLE manual.Boletos (
+        BoletoId        UNIQUEIDENTIFIER NOT NULL,
+        VentaId         UNIQUEIDENTIFIER NOT NULL,
+        CodigoPublico   CHAR(7)          NOT NULL,
+        FechaCreacion   DATETIME2        NOT NULL,
+        VigenciaDias    INT              NOT NULL,
+        EstadoBoleto    NVARCHAR(30)     NOT NULL,
+        CONSTRAINT PK_manual_Boletos PRIMARY KEY (BoletoId),
+        CONSTRAINT UQ_manual_Boletos_CodigoPublico UNIQUE (CodigoPublico),
+        CONSTRAINT FK_manual_Boletos_Ventas FOREIGN KEY (VentaId) REFERENCES manual.Ventas(VentaId)
+    );
+END
+GO
+IF OBJECT_ID(N'manual.Juegos', N'U') IS NULL
+BEGIN
+    CREATE TABLE manual.Juegos (
+        JuegoId     UNIQUEIDENTIFIER NOT NULL,
+        BoletoId    UNIQUEIDENTIFIER NOT NULL,
+        Numero      CHAR(4)          NOT NULL,
+        Valor       DECIMAL(18,2)    NOT NULL,
+        TipoJuego   NVARCHAR(20)     NOT NULL,
+        CONSTRAINT PK_manual_Juegos PRIMARY KEY (JuegoId),
+        CONSTRAINT FK_manual_Juegos_Boletos FOREIGN KEY (BoletoId) REFERENCES manual.Boletos(BoletoId),
+        CONSTRAINT CK_manual_Juegos_TipoJuego CHECK (TipoJuego IN ('COMBINADA', 'INDIVIDUAL'))
+    );
+END
+GO
+IF OBJECT_ID(N'manual.JuegoLoterias', N'U') IS NULL
+BEGIN
+    CREATE TABLE manual.JuegoLoterias (
+        JuegoId     UNIQUEIDENTIFIER NOT NULL,
+        LoteriaId   UNIQUEIDENTIFIER NOT NULL,
+        CONSTRAINT PK_manual_JuegoLoterias PRIMARY KEY (JuegoId, LoteriaId),
+        CONSTRAINT FK_manual_JuegoLoterias_Juegos FOREIGN KEY (JuegoId) REFERENCES manual.Juegos(JuegoId),
+        CONSTRAINT FK_manual_JuegoLoterias_Loterias FOREIGN KEY (LoteriaId) REFERENCES dbo.Loterias(LoteriaId)
+    );
+END
+GO
+IF OBJECT_ID(N'manual.RegistrosJuego', N'U') IS NULL
+BEGIN
+    CREATE TABLE manual.RegistrosJuego (
+        RegistroId       UNIQUEIDENTIFIER NOT NULL,
+        UsuarioId        UNIQUEIDENTIFIER NOT NULL,
+        NombreCompleto   NVARCHAR(200)    NOT NULL,
+        FechaRegistro    DATETIME2        NOT NULL,
+        CodigoPublico    CHAR(7)          NOT NULL,
+        IdempotencyKey   NVARCHAR(100)    NOT NULL,
+        CONSTRAINT PK_manual_RegistrosJuego PRIMARY KEY (RegistroId),
+        CONSTRAINT UQ_manual_RegistrosJuego_Codigo UNIQUE (CodigoPublico),
+        CONSTRAINT UQ_manual_RegistrosJuego_IdempotencyKey UNIQUE (IdempotencyKey),
+        CONSTRAINT FK_manual_RegistrosJuego_Usuarios FOREIGN KEY (UsuarioId) REFERENCES dbo.Usuarios(UsuarioId)
+    );
+END
+GO
+IF COL_LENGTH(N'manual.RegistrosJuego', N'Total') IS NOT NULL
+    ALTER TABLE manual.RegistrosJuego DROP COLUMN Total;
+GO
+IF COL_LENGTH(N'manual.RegistrosJuego', N'NombreCompleto') IS NULL
+    ALTER TABLE manual.RegistrosJuego ADD NombreCompleto NVARCHAR(200) NOT NULL CONSTRAINT DF_manual_RegistrosJuego_NombreCompleto DEFAULT N'';
+GO
+UPDATE r
+SET NombreCompleto = u.NombreCompleto
+FROM manual.RegistrosJuego r
+INNER JOIN dbo.Usuarios u ON u.UsuarioId = r.UsuarioId
+WHERE r.NombreCompleto = N'';
+GO
+IF OBJECT_ID(N'manual.RegistroJuegoFilas', N'U') IS NULL
+BEGIN
+    CREATE TABLE manual.RegistroJuegoFilas (
+        FilaId       UNIQUEIDENTIFIER NOT NULL,
+        RegistroId   UNIQUEIDENTIFIER NOT NULL,
+        LoteriaId    UNIQUEIDENTIFIER NOT NULL,
+        Valor        DECIMAL(18,2)    NOT NULL,
+        Numero       NVARCHAR(MAX)    NOT NULL,
+        CONSTRAINT PK_manual_RegistroJuegoFilas PRIMARY KEY (FilaId),
+        CONSTRAINT FK_manual_RegistroJuegoFilas_Registros FOREIGN KEY (RegistroId) REFERENCES manual.RegistrosJuego(RegistroId),
+        CONSTRAINT FK_manual_RegistroJuegoFilas_Loterias FOREIGN KEY (LoteriaId) REFERENCES dbo.Loterias(LoteriaId)
+    );
+END
+GO
+
 PRINT '==============================================';
 SELECT 'TABLAS' AS Tipo, COUNT(*) AS Cantidad FROM sys.tables WHERE schema_id = SCHEMA_ID('dbo');
 SELECT 'PROCEDIMIENTOS' AS Tipo, COUNT(*) AS Cantidad FROM sys.procedures WHERE schema_id = SCHEMA_ID('dbo');

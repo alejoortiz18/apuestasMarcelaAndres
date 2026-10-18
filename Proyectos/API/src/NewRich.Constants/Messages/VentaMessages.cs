@@ -6,6 +6,7 @@ public static class VentaMessages
     public const string VentaNoEncontrada = "La venta no existe.";
     public const string VentaSinLineas = "La venta debe contener al menos una línea de juego.";
     public const string MaximoLineasExcedido = "Se superó el máximo de líneas permitidas para el tipo de apuesta seleccionado.";
+    public const string IndividualUnaLoteria = "En individual cada línea se juega en una sola lotería.";
     public const string TotalNoCoincide = "El total enviado no coincide con la suma de las líneas de la venta.";
     public const string VentaDuplicadaIdempotente = "La venta ya había sido confirmada previamente con la misma Idempotency-Key.";
     public const string VentaFueraDeHorario = "No es posible registrar ventas fuera del horario de operación.";

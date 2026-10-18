@@ -50,6 +50,8 @@ public interface INewRichDbContext
     Task AsegurarEsquemaRetencionAsync(CancellationToken cancellationToken = default);
     Task AsegurarEsquemaCapacidadOfflineAsync(CancellationToken cancellationToken = default);
     Task AsegurarEsquemaJornadasAsync(CancellationToken cancellationToken = default);
+    Task AsegurarEsquemaManualAsync(CancellationToken cancellationToken = default);
+    Task AsegurarEsquemaRegistroJuegoAsync(CancellationToken cancellationToken = default);
     Task<bool> IntentarBloquearRetencionAsync(CancellationToken cancellationToken = default);
     void DescartarCambios();
 }

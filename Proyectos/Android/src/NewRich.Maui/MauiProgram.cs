@@ -53,6 +53,11 @@ public static class MauiProgram
         builder.Services.AddSingleton<ActualizacionEnVivoServicio>();
         builder.Services.AddSingleton<CodigosOfflineEnVivoServicio>();
         builder.Services.AddSingleton<LoteriasEnVivoServicio>();
+        builder.Services.AddSingleton<JuegoNumerosManualApiClient>();
+        builder.Services.AddSingleton<JuegoNumerosManualServicio>();
+        builder.Services.AddTransient<JuegoNumerosManualPage>();
+        builder.Services.AddTransient<ResumenJuegoNumerosManualPage>();
+        builder.Services.AddTransient<TirillaJuegoNumerosManualPage>();
         builder.Services.AddTransient<ArranquePage>();
         builder.Services.AddTransient<LoginPage>();
         builder.Services.AddTransient<PasswordPage>();

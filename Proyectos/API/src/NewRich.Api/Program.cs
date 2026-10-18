@@ -4,6 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using NewRich.Api.Filters;
 using NewRich.Api.Hubs;
+using NewRich.Api.JuegoNumerosManual;
 using NewRich.Api.Realtime;
 using NewRich.Api.Retencion;
 using NewRich.Application;
@@ -18,6 +19,7 @@ builder.WebHost.ConfigureKestrel(opciones => opciones.Limits.MaxRequestBodySize 
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddJuegoNumerosManual();
 builder.Services.AddHostedService<RetencionHistoricaWorker>();
 builder.Services.AddScoped<INotificacionTiempoReal, SignalRNotificacionTiempoReal>();
 builder.Services.AddScoped<IChatTiempoReal, SignalRChatTiempoReal>();
@@ -128,6 +130,8 @@ using (var alcance = app.Services.CreateScope())
 {
     var db = alcance.ServiceProvider.GetRequiredService<NewRich.Application.Abstractions.INewRichDbContext>();
     await db.AsegurarEsquemaJornadasAsync(CancellationToken.None);
+    await db.AsegurarEsquemaManualAsync(CancellationToken.None);
+    await db.AsegurarEsquemaRegistroJuegoAsync(CancellationToken.None);
     var super = alcance.ServiceProvider.GetRequiredService<NewRich.Application.Services.ISuperUsuarioAsegurador>();
     await super.AsegurarAsync(CancellationToken.None);
 }

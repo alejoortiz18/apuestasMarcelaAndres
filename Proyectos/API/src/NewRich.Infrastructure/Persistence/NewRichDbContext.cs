@@ -27,6 +27,11 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
     public DbSet<Jornada> Jornadas => Set<Jornada>();
     public DbSet<LoteriaDiaSemana> LoteriasDiasSemana => Set<LoteriaDiaSemana>();
     public DbSet<Venta> Ventas => Set<Venta>();
+    public DbSet<VentaManual> VentasManual => Set<VentaManual>();
+    public DbSet<RegistroJuegoManual> RegistrosJuegoManual => Set<RegistroJuegoManual>();
+    public DbSet<BoletoManual> BoletosManual => Set<BoletoManual>();
+    public DbSet<JuegoManual> JuegosManual => Set<JuegoManual>();
+    public DbSet<JuegoLoteriaManual> JuegosLoteriasManual => Set<JuegoLoteriaManual>();
     public DbSet<Boleto> Boletos => Set<Boleto>();
     public DbSet<Juego> Juegos => Set<Juego>();
     public DbSet<JuegoLoteria> JuegoLoterias => Set<JuegoLoteria>();
@@ -94,6 +99,31 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
 
         await Database.ExecuteSqlRawAsync(EsquemaJornadas, cancellationToken);
         await Database.ExecuteSqlRawAsync(AsignacionJornadas, cancellationToken);
+    }
+
+    public async Task AsegurarEsquemaManualAsync(CancellationToken cancellationToken = default)
+    {
+        if (!Database.IsRelational())
+        {
+            return;
+        }
+
+        await Database.ExecuteSqlRawAsync(EsquemaManual.Tablas, cancellationToken);
+        await Database.ExecuteSqlRawAsync(EsquemaManual.ConfirmarVenta, cancellationToken);
+        await Database.ExecuteSqlRawAsync(EsquemaManual.ConsultarVentas, cancellationToken);
+        await Database.ExecuteSqlRawAsync(EsquemaManual.ConsultarPorCodigo, cancellationToken);
+    }
+
+    public async Task AsegurarEsquemaRegistroJuegoAsync(CancellationToken cancellationToken = default)
+    {
+        if (!Database.IsRelational())
+        {
+            return;
+        }
+
+        await Database.ExecuteSqlRawAsync(EsquemaRegistroJuego.Tablas, cancellationToken);
+        await Database.ExecuteSqlRawAsync(EsquemaRegistroJuego.Registrar, cancellationToken);
+        await Database.ExecuteSqlRawAsync(EsquemaRegistroJuego.Consultar, cancellationToken);
     }
 
     public async Task<bool> IntentarBloquearRetencionAsync(CancellationToken cancellationToken = default)
@@ -295,6 +325,64 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
             e.HasKey(x => new { x.JuegoId, x.LoteriaId });
             e.HasOne(x => x.Juego).WithMany(x => x.JuegoLoterias).HasForeignKey(x => x.JuegoId);
             e.HasOne(x => x.Loteria).WithMany(x => x.JuegoLoterias).HasForeignKey(x => x.LoteriaId);
+        });
+
+        modelBuilder.Entity<VentaManual>(e =>
+        {
+            e.ToTable("Ventas", "manual");
+            e.HasKey(x => x.VentaId);
+            e.Property(x => x.TipoApuesta).HasConversion(tipoApuesta).HasMaxLength(20);
+            e.Property(x => x.Total).HasColumnType("decimal(18,2)");
+            e.Property(x => x.IdempotencyKey).HasMaxLength(100);
+            e.HasIndex(x => x.IdempotencyKey).IsUnique();
+        });
+
+        modelBuilder.Entity<BoletoManual>(e =>
+        {
+            e.ToTable("Boletos", "manual");
+            e.HasKey(x => x.BoletoId);
+            e.Property(x => x.CodigoPublico).HasColumnType("char(7)");
+            e.Property(x => x.EstadoBoleto).HasMaxLength(30);
+            e.HasIndex(x => x.CodigoPublico).IsUnique();
+            e.HasOne(x => x.Venta).WithMany(x => x.Boletos).HasForeignKey(x => x.VentaId);
+        });
+
+        modelBuilder.Entity<JuegoManual>(e =>
+        {
+            e.ToTable("Juegos", "manual");
+            e.HasKey(x => x.JuegoId);
+            e.Property(x => x.Numero).HasColumnType("char(4)");
+            e.Property(x => x.Valor).HasColumnType("decimal(18,2)");
+            e.Property(x => x.TipoJuego).HasConversion(tipoJuego).HasMaxLength(20);
+            e.HasOne(x => x.Boleto).WithMany(x => x.Juegos).HasForeignKey(x => x.BoletoId);
+        });
+
+        modelBuilder.Entity<JuegoLoteriaManual>(e =>
+        {
+            e.ToTable("JuegoLoterias", "manual");
+            e.HasKey(x => new { x.JuegoId, x.LoteriaId });
+            e.Ignore(x => x.NombreLoteria);
+            e.HasOne(x => x.Juego).WithMany(x => x.Loterias).HasForeignKey(x => x.JuegoId);
+        });
+
+        modelBuilder.Entity<RegistroJuegoManual>(e =>
+        {
+            e.ToTable("RegistrosJuego", "manual");
+            e.HasKey(x => x.RegistroId);
+            e.Property(x => x.CodigoPublico).HasColumnType("char(7)");
+            e.Property(x => x.NombreCompleto).HasMaxLength(200);
+            e.Property(x => x.IdempotencyKey).HasMaxLength(100);
+            e.HasIndex(x => x.IdempotencyKey).IsUnique();
+            e.HasIndex(x => x.CodigoPublico).IsUnique();
+        });
+
+        modelBuilder.Entity<FilaRegistroJuegoManual>(e =>
+        {
+            e.ToTable("RegistroJuegoFilas", "manual");
+            e.HasKey(x => x.FilaId);
+            e.Property(x => x.Valor).HasColumnType("decimal(18,2)");
+            e.Property(x => x.Numero).HasColumnType("nvarchar(max)");
+            e.HasOne(x => x.Registro).WithMany(x => x.Filas).HasForeignKey(x => x.RegistroId);
         });
 
         modelBuilder.Entity<NumeroGanador>(e =>

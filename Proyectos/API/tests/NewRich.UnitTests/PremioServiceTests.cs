@@ -19,6 +19,26 @@ namespace NewRich.UnitTests;
 public sealed class PremioServiceTests
 {
     [Fact]
+    public async Task RegistrarEntregaSitioWebAsync_guarda_valor_ganado_y_quien_entrega()
+    {
+        var (sut, db) = CreateSut();
+        var escenario = await CrearBoletoGanadorAsync(db);
+        var reporte = await sut.ReportarAsync(escenario.Vendedor.UsuarioId, Reporte(escenario.Boleto.CodigoPublico), CancellationToken.None);
+        reporte.IsSuccess.Should().BeTrue(reporte.Message);
+
+        var entrega = await sut.RegistrarEntregaSitioWebAsync(reporte.Data!.CasoId, escenario.Vendedor.UsuarioId, 12000m, CancellationToken.None);
+
+        entrega.IsSuccess.Should().BeTrue(entrega.Message);
+        entrega.Data!.ValorTotalGanado.Should().Be(12000m);
+        entrega.Data.TotalApostado.Should().Be(5000m);
+        entrega.Data.FechaEntrega.Should().NotBeNull();
+        entrega.Data.PersonaQueEntrega.Should().Be("Laura Gil");
+        var repetida = await sut.RegistrarEntregaSitioWebAsync(reporte.Data.CasoId, escenario.Vendedor.UsuarioId, 12000m, CancellationToken.None);
+        repetida.IsSuccess.Should().BeFalse();
+        repetida.Message.Should().Be(PremioMessages.TransicionInvalida);
+    }
+
+    [Fact]
     public async Task ListarAsync_sin_casos_devuelve_lista_vacia()
     {
         var (sut, _) = CreateSut();

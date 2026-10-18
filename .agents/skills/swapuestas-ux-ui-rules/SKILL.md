@@ -202,12 +202,29 @@ Every data table created in the MVC application must include pagination. A table
 - La tirilla de cobro respeta el ancho de la impresora (27 caracteres) y no lleva consecutivo. Orden: encabezado centrado **NEW RICH** y **COMPROBANTE DE COBRO** entre líneas dobles; fecha y hora con el valor alineado a la derecha; **RECAUDADOR** y **VENDEDOR** como títulos con el nombre debajo (los nombres largos se parten por palabras); **VALOR RECIBIDO** y **SALDO QUE QUEDA** en mayúscula con el valor a la derecha; cierra con *Gracias por su pago* centrado.
 - Sin conexión (o si la red se cae al enviar), **Registrar cobro** guarda el pago en el PDA, mueve al vendedor a **Cobrados**, imprime la tirilla con *Cobro guardado en el PDA* y *Pendiente de sincronizar*, y muestra el aviso `CobroGuardadoSinConexion`. Al volver la señal, al abrir **Recaudar** o al usar **Sincronizar recaudo**, el pago sube con la hora en que se cobró. Los pagos que aún no suben siguen aplicados sobre la lista descargada.
 
+## PDA del vendedor: Juego números
+
+- **Juego nuevo** muestra tres botones: COMBO, INDIVIDUAL y **Juego números**.
+- El formulario abre con un aviso azul: *Juego números solo se registra con conexión al servidor*. Debajo van las loterías del día con casilla y *Cierra HH:mm* a la derecha (solo las que siguen abiertas), **Valor jugado** con `$` y separador de miles, y las líneas de **Número a jugar**. Cada línea tiene «−» (borde rojo) y solo la última tiene «+» (verde oscuro), de 48 px. Al agregar, el foco pasa a la línea nueva. Quitar la única línea la deja vacía. El error de cada número se muestra debajo de su línea.
+- La tarjeta verde oscuro **Cálculo de la jugada** se actualiza al escribir: total apostado, cantidad de números, de loterías, de apuestas individuales y valor por apuesta. Si la división no es exacta, un texto dorado dice cuántas apuestas llevan $1 más.
+- **Ver resumen** valida y abre el resumen: loterías, valor, números en tres columnas, cantidades, fecha y hora, y *¡Mucha suerte!* en verde. **Registrar jugada** se deshabilita mientras registra y muestra el cargando. **Corregir** vuelve al formulario sin perder datos.
+- Sin conexión no se registra: aparece **Conexión no disponible** con el mensaje de que el juego no se puede jugar sin conexión, y la jugada sigue en pantalla para reintentar sin duplicarla. Con el horario del PDA cerrado no se puede iniciar ni registrar.
+- **Jugada registrada** muestra la tirilla completa (texto monoespaciado con el QR actual del boleto) y la imprime una sola vez al abrir. **Finalizar** y el botón atrás vuelven al inicio; **Imprimir de nuevo** reimprime.
+
 ## PDA del observador
 
 - En **Más**, la opción **Vendedores** abre la lista de vendedores (solo ese rol), ordenada por nombre. Arriba van el buscador (nombre, alias, usuario o documento, sin importar tildes ni mayúsculas), los filtros de **Grupo** (Todos los grupos, cada grupo en orden alfabético y **Sin grupo** si aplica) y **Estado** (Todos, Bloqueados, Sin bloqueo), el texto *Mostrando X de Y vendedores* y **Limpiar filtros**.
 - Cada tarjeta muestra nombre, usuario, documento, grupo y estado (Bloqueado en rojo, Activo en verde), con los botones **Desbloquear** (habilitado solo si está bloqueado) y **Restablecer contraseña**.
 - Antes de ejecutar cualquiera de las dos acciones se pregunta nombrando al vendedor, con **Sí, desbloquear** o **Sí, restablecer** y **Cancelar**. Cancelar no cambia nada. Al restablecer, la contraseña temporal se muestra una sola vez en el mensaje de resultado. Mientras una acción está en curso no se acepta otra.
 - En **Validar**, después del recibo con el resultado del ticket aparece **Continuar registro** solo si el ticket tiene un caso ganador asignado a ese observador (en estado Asignado o En proceso). El botón abre la misma pantalla de registro de entrega que **Casos premios**. Si el ticket no ganó, no tiene caso o el caso es de otro observador, no se muestra el botón y el resultado se ve igual que antes.
+
+## Sitio web del vendedor
+
+- El sitio del vendedor es independiente del administrador y usa el mismo lienzo: fondo marfil, menú verde oscuro, acentos dorados, Cinzel y Manrope.
+- El menú es solo de vendedor: Inicio, Registrar juego, Histórico, Alertas, Validar ticket, Resultados, Atención al cliente, Soporte técnico y Entrega de premio.
+- Al registrar por fila no se genera ni se imprime tirilla. Juego números muestra en la misma página el código, el cálculo y el QR, sin enviarlo a imprimir.
+- Histórico lista las filas guardadas en Registrar juego: fecha, código, lotería, número y valor. Cada columna tiene flecha. El primer clic ordena de menor a mayor y el segundo de mayor a menor. La flecha dorada indica el orden actual; las demás muestran la flecha doble. Abre con la fecha de la más reciente a la más antigua. Fechas, orden y filas por página se conservan al paginar.
+- Registrar juego es una sola página con dos jugadas y un solo Registrar. Por fila conserva lotería, número y valor: la lotería lista todas las creadas, también las inactivas, y al abrirla el buscador filtra con cada letra sin distinguir tildes. El valor muestra puntos de miles. El número de la fila admite cualquier cantidad de dígitos, sin puntos. El más solo está en la última fila y el menos vacía la única fila. Juego números es la misma operación del PDA: loterías abiertas hoy, un valor jugado, números de 3 o 4 dígitos y el cálculo en vivo (total, cantidades, valor por apuesta y el peso de más). El más de esos números también queda solo en la última línea. Una jugada vacía no se envía. Una jugada empezada tiene que estar completa. Si las dos están listas, el mismo clic registra las dos. El aviso sobre el botón dice qué va a salir. Con el horario cerrado el botón sigue deshabilitado. Al guardar, el resultado de cada jugada queda arriba y el formulario de la que salió bien queda vacío para armar otra.
 
 ## Responsive MVC checklist
 
