@@ -1,0 +1,91 @@
+@using NewRich.Admin.Constants
+@model NewRich.Admin.Models.IndicadoresUtilidadesViewModel
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.UtilidadesKicker</div>
+        <h1>@UiTexts.NavUtilidadesIndicadores</h1>
+        <p>@UiTexts.IndicadoresAyuda</p>
+    </div>
+</div>
+<div class="panel">
+    <partial name="_Periodo" model="Model" />
+</div>
+<div class="metric-grid indicadores-utilidades">
+    <article class="metric">
+        <small>@UiTexts.TotalIngresos</small>
+        <strong>@Model.Ingresos</strong>
+    </article>
+    <article class="metric">
+        <small>@UiTexts.Ganancias</small>
+        <strong>@Model.Ganancia</strong>
+    </article>
+    <article class="metric">
+        <small>@UiTexts.TotalGastos</small>
+        <strong>@Model.Total</strong>
+    </article>
+    <article class="metric">
+        <small>@UiTexts.CantidadGastos</small>
+        <strong>@Model.Cantidad</strong>
+    </article>
+    <article class="metric">
+        <small>@UiTexts.GastoPromedio</small>
+        <strong>@Model.Promedio</strong>
+    </article>
+    <article class="metric">
+        <small>@UiTexts.MayorGasto</small>
+        <strong>@Model.MayorValor</strong>
+        <em>@Model.Mayor</em>
+    </article>
+</div>
+<div class="kpi-grid informe-grid">
+    <section class="kpi-section">
+        <h2>@UiTexts.GastosPorTipo</h2>
+        @if (Model.Tipos.Count == 0)
+        {
+            <p>@UiTexts.SinGastosPeriodo</p>
+        }
+        else
+        {
+            <div class="kpi-bars">
+                @foreach (var tipo in Model.Tipos)
+                {
+                    <div>
+                        <div class="kpi-bar-head">
+                            <span>@tipo.Etiqueta</span>
+                            <span>@tipo.Valor · @string.Format(UiTexts.Participacion, tipo.Porcentaje) · @string.Format(UiTexts.RegistrosDelTipo, tipo.Cantidad)</span>
+                        </div>
+                        <div class="kpi-bar gold" role="img" aria-label="@tipo.Etiqueta @tipo.Valor">
+                            <i style="width: @(tipo.Porcentaje)%"></i>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </section>
+    <section class="kpi-section">
+        <h2>@Model.SerieTitulo</h2>
+        @if (Model.Serie.Count == 0)
+        {
+            <p>@UiTexts.SinGastosPeriodo</p>
+        }
+        else
+        {
+            <div class="informe-dias" role="img" aria-label="@Model.SerieTitulo">
+                @foreach (var dia in Model.Serie)
+                {
+                    <div class="informe-dia">
+                        <span class="informe-dia-valor">@dia.Valor</span>
+                        <div class="informe-dia-pista">
+                            <i style="height: @(Math.Max(dia.Porcentaje, dia.Porcentaje == 0 ? 0 : 8))%"></i>
+                        </div>
+                        <span class="informe-dia-fecha">@dia.Etiqueta</span>
+                    </div>
+                }
+            </div>
+        }
+    </section>
+</div>
+@if (!string.IsNullOrWhiteSpace(Model.AnuladosTexto))
+{
+    <p class="kpi-note">@Model.AnuladosTexto</p>
+}

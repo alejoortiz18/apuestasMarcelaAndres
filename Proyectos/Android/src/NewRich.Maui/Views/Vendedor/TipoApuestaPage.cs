@@ -38,7 +38,9 @@ public sealed class TipoApuestaPage : ContentPage
         }
 
         var combinada = Tipo(PdaTexts.TipoCombinada, $"{PdaTexts.TipoCombinadaAyuda} Máximo {_sesion.Limites.MaxJuegosCombinado} juego.", TipoApuesta.COMBINADO);
+        combinada.IsVisible = false;
         var individual = Tipo(PdaTexts.TipoIndividual, $"{PdaTexts.TipoIndividualAyuda} Máximo {_sesion.Limites.MaxLineasIndividual} líneas.", TipoApuesta.INDIVIDUAL);
+        var juegoNumeros = JuegoNumeros();
         Content = new VerticalStackLayout
         {
             Padding = 16,
@@ -47,7 +49,8 @@ public sealed class TipoApuestaPage : ContentPage
             {
                 new Label { Text = PdaTexts.TipoApuestaAyuda, TextColor = Ui.Muted, FontSize = 13 },
                 combinada,
-                individual
+                individual,
+                juegoNumeros
             }
         };
         BarraMenuVendedor.Asegurar(this, "vender");
@@ -71,6 +74,23 @@ public sealed class TipoApuestaPage : ContentPage
             _sesion.Borrador = TicketDraft.Crear(tipo, max);
             await Navigation.PushAsync(_services.GetRequiredService<ConstruirApuestaPage>());
         };
+        return boton;
+    }
+
+    private Button JuegoNumeros()
+    {
+        var boton = new Button
+        {
+            Text = $"{JuegoNumerosManualTexts.BotonTipo}\n{JuegoNumerosManualTexts.BotonTipoAyuda}",
+            BackgroundColor = Colors.White,
+            TextColor = Ui.Ink,
+            BorderColor = Ui.Line,
+            BorderWidth = 2,
+            CornerRadius = 14,
+            HeightRequest = 90
+        };
+        boton.Clicked += async (_, _) =>
+            await Navigation.PushAsync(_services.GetRequiredService<JuegoNumerosManualPage>());
         return boton;
     }
 }

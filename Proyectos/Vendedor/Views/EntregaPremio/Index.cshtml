@@ -1,0 +1,60 @@
+@model NewRich.Vendedor.Models.EntregaPremioViewModel
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.EntregaPremio</div>
+        <h1>@UiTexts.EntregaPremio</h1>
+    </div>
+</div>
+<div class="panel">
+    <form class="toolbar" method="get">
+        <div class="field">
+            <label for="pageSize">@UiTexts.FilasPorPagina</label>
+            <select id="pageSize" name="pageSize">
+                @foreach (var size in Paginas.Tamanos)
+                {
+                    if (Model.PageSize == size)
+                    {
+                        <option value="@size" selected>@size</option>
+                    }
+                    else
+                    {
+                        <option value="@size">@size</option>
+                    }
+                }
+            </select>
+        </div>
+        <button class="primary" type="submit">@UiTexts.Buscar</button>
+    </form>
+</div>
+@if (Model.Items.Count == 0)
+{
+    <div class="panel"><div class="empty">@UiTexts.Vacio</div></div>
+}
+else
+{
+    @foreach (var caso in Model.Items)
+    {
+        <article class="panel">
+            <p><strong>@caso.Ticket</strong> · @caso.Estado</p>
+            <p>@UiTexts.ValorJugado: @Montos.De(caso.TotalApostado ?? 0)</p>
+            <p>@UiTexts.ValorGanado: @Montos.De(caso.ValorTotalGanado ?? 0)</p>
+            <p>@UiTexts.FechaSorteo: @caso.FechaJuego?.ToString("dd-MM-yyyy")</p>
+            <p>@UiTexts.FechaEntrega: @(caso.FechaEntrega?.ToString("dd-MM-yyyy HH:mm:ss") ?? UiTexts.Pendiente)</p>
+            <p>@UiTexts.QuienEntrega: @(string.IsNullOrWhiteSpace(caso.PersonaQueEntrega) ? UiTexts.Pendiente : caso.PersonaQueEntrega)</p>
+            @if (caso.FechaEntrega is null && caso.Estado != "Rechazado" && caso.Estado != "Premio entregado")
+            {
+                <form asp-action="Registrar" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@caso.CasoId" />
+                    <div class="field">
+                        <label for="valor-@caso.CasoId">@UiTexts.ValorGanado</label>
+                        <input id="valor-@caso.CasoId" name="valorGanado" type="number" min="1" step="1" required />
+                    </div>
+                    <button class="primary" type="submit">@UiTexts.RegistrarEntrega</button>
+                </form>
+            }
+        </article>
+    }
+    var paginacion = new PaginacionViewModel { Page = Model.Page, PageSize = Model.PageSize, Total = Model.Total, Accion = "Index", Controlador = "EntregaPremio" };
+    <partial name="_Pager" model="paginacion" />
+}

@@ -1,0 +1,113 @@
+@using NewRich.Admin.Constants
+@model NewRich.Admin.Models.ConfiguracionGastosViewModel
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.UtilidadesKicker</div>
+        <h1>@UiTexts.NavUtilidadesConfiguracion</h1>
+        <p>@UiTexts.ConfiguracionGastosSub</p>
+    </div>
+</div>
+<div class="panel">
+    <h2>@UiTexts.NuevoTipo</h2>
+    <form class="toolbar" method="post" asp-action="CrearTipo">
+        @Html.AntiForgeryToken()
+        @if (!string.IsNullOrWhiteSpace(Model.Error))
+        {
+            <p class="notice error" role="alert">@Model.Error</p>
+        }
+        <div class="field">
+            <label for="Nombre">@UiTexts.NombreTipo</label>
+            <input id="Nombre" name="Nombre" maxlength="80" value="@Model.Nombre" required />
+        </div>
+        <div class="field">
+            <label for="Descripcion">@UiTexts.Descripcion</label>
+            <input id="Descripcion" name="Descripcion" maxlength="300" value="@Model.Descripcion" />
+        </div>
+        <div class="field">
+            <input type="hidden" name="RequiereObservacion" value="false" />
+            <label for="RequiereObservacion">
+                <input id="RequiereObservacion" name="RequiereObservacion" type="checkbox" value="true" checked="@Model.RequiereObservacion" />
+                @UiTexts.ObservacionObligatoria
+            </label>
+        </div>
+        <button class="primary" type="submit">@UiTexts.GuardarTipo</button>
+    </form>
+</div>
+<div class="panel">
+    @if (Model.Tipos.Count == 0)
+    {
+        <div class="empty">@UiTexts.UtilidadesSinGastos</div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                <tr>
+                    <th>@UiTexts.NombreTipo</th>
+                    <th>@UiTexts.Descripcion</th>
+                    <th>@UiTexts.Estado</th>
+                    <th>@UiTexts.GastosDelTipo</th>
+                    <th><span class="visually-hidden">@UiTexts.Editar</span></th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var tipo in Model.Tipos)
+                {
+                    <tr>
+                        <td>@tipo.Nombre</td>
+                        <td>@(string.IsNullOrWhiteSpace(tipo.Descripcion) ? "-" : tipo.Descripcion)</td>
+                        <td>@(tipo.Activo ? UiTexts.EstadoActivo : UiTexts.EstadoInactivo)</td>
+                        <td>@tipo.Gastos</td>
+                        <td>
+                            <button class="fila-editar" type="button" data-editar-tipo
+                                    data-id="@tipo.Id"
+                                    data-nombre="@tipo.Nombre"
+                                    data-descripcion="@tipo.Descripcion"
+                                    data-requiere="@(tipo.RequiereObservacion ? "true" : "false")"
+                                    data-activo="@(tipo.Activo ? "true" : "false")"
+                                    aria-label="@UiTexts.Editar @tipo.Nombre">
+                                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-4-4L4 16v4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+                            </button>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+<div id="tipoDialog" class="dialog-back hidden" role="dialog" aria-modal="true" aria-labelledby="tipoDialogTitle" data-tipo-dialog data-url="@Url.Action("ActualizarTipo")" hidden>
+    <div class="dialog dialog-gasto">
+        <h2 id="tipoDialogTitle">@UiTexts.Editar</h2>
+        <form method="post" data-tipo-form>
+            @Html.AntiForgeryToken()
+            <div class="field">
+                <label for="nombreTipo">@UiTexts.NombreTipo</label>
+                <input id="nombreTipo" name="nombre" maxlength="80" required />
+            </div>
+            <div class="field">
+                <label for="descripcionTipo">@UiTexts.Descripcion</label>
+                <input id="descripcionTipo" name="descripcion" maxlength="300" />
+            </div>
+            <div class="field">
+                <input type="hidden" name="requiereObservacion" value="false" />
+                <label for="requiereTipo">
+                    <input id="requiereTipo" name="requiereObservacion" type="checkbox" value="true" />
+                    @UiTexts.ObservacionObligatoria
+                </label>
+            </div>
+            <div class="field">
+                <label for="activoTipo">@UiTexts.Estado</label>
+                <select id="activoTipo" name="activo">
+                    <option value="true">@UiTexts.EstadoActivo</option>
+                    <option value="false">@UiTexts.EstadoInactivo</option>
+                </select>
+            </div>
+            <div class="dialog-actions">
+                <button class="secondary" type="button" data-close-tipo>@UiTexts.Cancelar</button>
+                <button class="primary" type="submit">@UiTexts.Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>

@@ -35,4 +35,7 @@ public static class AccionesProtegidas
     public const string ConfiguracionVersionAplicacion = "configuracion.version-aplicacion";
     public const string SoporteCerrar = "soporte.cerrar";
     public const string LlaveRegistrar = "llave.registrar";
+    public const string RevisadaMarcar = "revisada.marcar";
+    public const string RevisadaCubrir = "revisada.cubrir";
+    public const string RevisadaDescuento = "revisada.descuento";
 }

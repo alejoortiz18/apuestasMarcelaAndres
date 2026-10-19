@@ -1,0 +1,173 @@
+@using NewRich.Admin.Constants
+@model NewRich.Admin.Models.MovimientosUtilidadesViewModel
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.UtilidadesKicker</div>
+        <h1>@UiTexts.NavUtilidadesMovimientos</h1>
+        <p>@UiTexts.UtilidadesMovimientosSub</p>
+    </div>
+</div>
+<div class="panel">
+    <form class="toolbar" method="get">
+        <div class="field">
+            <label for="periodo">@UiTexts.Periodo</label>
+            <select id="periodo" name="periodo" class="searchable">
+                <option value="hoy" selected="@(Model.Periodo == "hoy")">@UiTexts.PeriodoHoy</option>
+                <option value="ayer" selected="@(Model.Periodo == "ayer")">@UiTexts.PeriodoAyer</option>
+                <option value="ultimos-7" selected="@(Model.Periodo == "ultimos-7")">@UiTexts.Periodo7</option>
+                <option value="ultimos-30" selected="@(Model.Periodo == "ultimos-30")">@UiTexts.Periodo30</option>
+                <option value="mes" selected="@(Model.Periodo == "mes")">@UiTexts.PeriodoMes</option>
+                <option value="mes-anterior" selected="@(Model.Periodo == "mes-anterior")">@UiTexts.PeriodoMesAnterior</option>
+                <option value="rango" selected="@(Model.Periodo == "rango")">@UiTexts.PeriodoRango</option>
+            </select>
+        </div>
+        <div class="field">
+            <label for="desde">@UiTexts.Desde</label>
+            <input id="desde" name="desde" type="date" value="@Model.Desde?.ToString("yyyy-MM-dd")" />
+        </div>
+        <div class="field">
+            <label for="hasta">@UiTexts.Hasta</label>
+            <input id="hasta" name="hasta" type="date" value="@Model.Hasta?.ToString("yyyy-MM-dd")" />
+        </div>
+        <div class="field">
+            <label for="usuarioId">@UiTexts.Usuario</label>
+            <select id="usuarioId" name="usuarioId" class="searchable">
+                <option value="">@UiTexts.TodosLosUsuarios</option>
+                @foreach (var usuario in Model.Usuarios.OrderBy(u => u.NombreCompleto))
+                {
+                    <option value="@usuario.UsuarioId" selected="@(Model.UsuarioId == usuario.UsuarioId)">@usuario.NombreCompleto</option>
+                }
+            </select>
+        </div>
+        <div class="field">
+            <label for="tipoGastoId">@UiTexts.TipoGasto</label>
+            <select id="tipoGastoId" name="tipoGastoId" class="searchable">
+                <option value="">@UiTexts.TodosLosTipos</option>
+                @foreach (var tipo in Model.Tipos)
+                {
+                    <option value="@tipo.Id" selected="@(Model.TipoGastoId == tipo.Id)">@(tipo.Activo ? tipo.Nombre : tipo.Nombre + " (" + UiTexts.EstadoInactivo + ")")</option>
+                }
+            </select>
+        </div>
+        <div class="field">
+            <label for="estado">@UiTexts.Estado</label>
+            <select id="estado" name="estado" class="searchable">
+                <option value="">@UiTexts.TodosLosEstados</option>
+                <option value="Activo" selected="@(Model.Estado == "Activo")">@UiTexts.EstadoActivo</option>
+                <option value="Anulado" selected="@(Model.Estado == "Anulado")">@UiTexts.EstadoAnulado</option>
+            </select>
+        </div>
+        <div class="field">
+            <label for="pageSize">@UiTexts.FilasPorPagina</label>
+            <select id="pageSize" name="pageSize" class="searchable">
+                @foreach (var size in PagingHelper.PageSizes)
+                {
+                    <option value="@size" selected="@(Model.Pagina.PageSize == size)">@size</option>
+                }
+            </select>
+        </div>
+        <button class="primary" type="submit">@UiTexts.Consultar</button>
+        <a class="secondary" asp-action="Movimientos">@UiTexts.Limpiar</a>
+    </form>
+    @if (!string.IsNullOrWhiteSpace(Model.PeriodoTexto))
+    {
+        <p class="panel-sub">@Model.PeriodoTexto · @UiTexts.UtilidadesTotalFiltrado @Model.Total</p>
+    }
+</div>
+<div class="panel">
+    @if (!Model.Pagina.Items.Any())
+    {
+        <div class="empty">@UiTexts.UtilidadesSinGastos</div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table data-table-select="gastos">
+                <thead>
+                <tr>
+                    <th class="col-check"><span class="visually-hidden">@UiTexts.SeleccionarFila</span></th>
+                    <th>@UiTexts.FechaGasto</th>
+                    <th>@UiTexts.TipoGasto</th>
+                    <th>@UiTexts.Observacion</th>
+                    <th>@UiTexts.Valor</th>
+                    <th>@UiTexts.Usuario</th>
+                    <th>@UiTexts.Estado</th>
+                    <th>@UiTexts.ModificadoPor</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var fila in Model.Pagina.Items)
+                {
+                    var activo = fila.Estado == "Activo";
+                    <tr tabindex="0" data-row-id="@fila.Id" data-flags="@(activo ? "activo" : "anulado")" data-valor="@fila.Valor.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-fecha="@fila.FechaGasto.ToString("yyyy-MM-dd")" data-tipo="@fila.TipoGastoId">
+                        <td class="col-check">
+                            <input class="row-check" type="checkbox" value="@fila.Id" aria-label="@UiTexts.SeleccionarFila @fila.Tipo @fila.FechaGasto.ToString("dd-MM-yyyy")" />
+                        </td>
+                        <td>@fila.FechaGasto.ToString("dd-MM-yyyy")</td>
+                        <td>@fila.Tipo</td>
+                        <td>@(string.IsNullOrWhiteSpace(fila.Observacion) ? "-" : fila.Observacion)</td>
+                        <td>@FormatoPesos.De(fila.Valor)</td>
+                        <td>@(string.IsNullOrWhiteSpace(fila.Usuario) ? "-" : fila.Usuario)</td>
+                        <td>@(activo ? UiTexts.EstadoActivo : UiTexts.EstadoAnulado)</td>
+                        <td>@(string.IsNullOrWhiteSpace(fila.ModificadoPor) ? "-" : fila.ModificadoPor)</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        <partial name="_Pager" model="Model.Pagina" />
+        <div class="table-actions" data-table-panel="gastos">
+            <h2>@UiTexts.AccionesGasto</h2>
+            <p class="panel-sub">@UiTexts.SeleccionaGasto</p>
+            <form method="post" asp-action="Corregir" data-needs-selection data-show-when="activo" data-url-template="@Url.Action("Corregir")/{id}" hidden>
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="periodo" value="@Model.Periodo" />
+                <input type="hidden" name="desde" value="@Model.Desde?.ToString("yyyy-MM-dd")" />
+                <input type="hidden" name="hasta" value="@Model.Hasta?.ToString("yyyy-MM-dd")" />
+                <input type="hidden" name="usuarioId" value="@Model.UsuarioId" />
+                <input type="hidden" name="filtroTipo" value="@Model.TipoGastoId" />
+                <input type="hidden" name="estado" value="@Model.Estado" />
+                <input type="hidden" name="page" value="@Model.Pagina.Page" />
+                <input type="hidden" name="pageSize" value="@Model.Pagina.PageSize" />
+                <div class="field">
+                    <label for="fechaGasto">@UiTexts.FechaGasto</label>
+                    <input id="fechaGasto" name="fechaGasto" type="date" data-from-attr="data-fecha" required disabled />
+                </div>
+                <div class="field">
+                    <label for="tipoCorregir">@UiTexts.TipoGasto</label>
+                    <select id="tipoCorregir" name="tipoGastoId" data-from-attr="data-tipo" required disabled>
+                        @foreach (var tipo in Model.Tipos)
+                        {
+                            <option value="@tipo.Id">@(tipo.Activo ? tipo.Nombre : tipo.Nombre + " (" + UiTexts.EstadoInactivo + ")")</option>
+                        }
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="valorCorregir">@UiTexts.Valor</label>
+                    <input id="valorCorregir" name="valor" type="number" min="1" step="1" data-from-attr="data-valor" required disabled />
+                </div>
+                <div class="field">
+                    <label for="motivoCorregir">@UiTexts.Motivo</label>
+                    <input id="motivoCorregir" name="motivo" maxlength="300" required disabled />
+                </div>
+                <button class="primary" type="submit" disabled>@UiTexts.CorregirGasto</button>
+            </form>
+            <form method="post" asp-action="Anular" data-needs-selection data-show-when="activo" data-url-template="@Url.Action("Anular")/{id}" hidden>
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="periodo" value="@Model.Periodo" />
+                <input type="hidden" name="desde" value="@Model.Desde?.ToString("yyyy-MM-dd")" />
+                <input type="hidden" name="hasta" value="@Model.Hasta?.ToString("yyyy-MM-dd")" />
+                <input type="hidden" name="usuarioId" value="@Model.UsuarioId" />
+                <input type="hidden" name="tipoGastoId" value="@Model.TipoGastoId" />
+                <input type="hidden" name="estado" value="@Model.Estado" />
+                <input type="hidden" name="page" value="@Model.Pagina.Page" />
+                <input type="hidden" name="pageSize" value="@Model.Pagina.PageSize" />
+                <div class="field">
+                    <label for="motivoAnular">@UiTexts.Motivo</label>
+                    <input id="motivoAnular" name="motivo" maxlength="300" required disabled />
+                </div>
+                <button class="danger" type="submit" disabled>@UiTexts.AnularGasto</button>
+            </form>
+        </div>
+    }
+</div>

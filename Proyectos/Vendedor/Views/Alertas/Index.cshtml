@@ -1,0 +1,50 @@
+@model NewRich.Vendedor.Models.AlertasViewModel
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.Alertas</div>
+        <h1>@UiTexts.Alertas</h1>
+    </div>
+</div>
+@if (Model.HorarioCerrado)
+{
+    <div class="panel"><p>@UiTexts.JuegosCerrados</p></div>
+}
+<div class="panel">
+    <h2>@UiTexts.NumerosRestringidos</h2>
+    @if (Model.NumerosRestringidos.Count == 0)
+    {
+        <p>@UiTexts.SinNumerosRestringidos</p>
+    }
+    else
+    {
+        <p>@string.Join(", ", Model.NumerosRestringidos)</p>
+    }
+</div>
+<div class="panel">
+    @if (Model.Items.Count == 0)
+    {
+        <div class="empty">@UiTexts.Vacio</div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                <tr>
+                    <th>@UiTexts.Fecha</th>
+                    <th>@UiTexts.Mensaje</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var item in Model.Items)
+                {
+                    <tr>
+                        <td>@item.FechaCreacion.ToString("dd-MM-yyyy HH:mm:ss")</td>
+                        <td>@item.Mensaje</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

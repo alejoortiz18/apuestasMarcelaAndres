@@ -1,0 +1,95 @@
+@model NewRich.Vendedor.Models.HistoricoViewModel
+@using NewRich.Vendedor.Services
+@{
+    string UrlOrden(string columna) => Url.Action("Index", new
+    {
+        desde = Model.Desde.ToString("yyyy-MM-dd"),
+        hasta = Model.Hasta.ToString("yyyy-MM-dd"),
+        pageSize = Model.PageSize,
+        orden = columna,
+        dir = HistoricoOrden.Siguiente(columna, Model.Orden, Model.Direccion),
+        page = 1
+    }) ?? "#";
+    string Marca(string columna) => HistoricoOrden.Marca(columna, Model.Orden, Model.Direccion);
+    string Etiqueta(string columna, string nombre) => string.Format(
+        HistoricoOrden.Siguiente(columna, Model.Orden, Model.Direccion) == "asc" ? UiTexts.OrdenarAscendente : UiTexts.OrdenarDescendente,
+        nombre);
+}
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.Historico</div>
+        <h1>@UiTexts.Historico</h1>
+    </div>
+</div>
+<div class="panel">
+    <form class="toolbar" method="get">
+        <input type="hidden" name="orden" value="@Model.Orden" />
+        <input type="hidden" name="dir" value="@Model.Direccion" />
+        <div class="field">
+            <label for="desde">@UiTexts.Desde</label>
+            <input id="desde" name="desde" type="date" value="@Model.Desde.ToString("yyyy-MM-dd")" />
+        </div>
+        <div class="field">
+            <label for="hasta">@UiTexts.Hasta</label>
+            <input id="hasta" name="hasta" type="date" value="@Model.Hasta.ToString("yyyy-MM-dd")" />
+        </div>
+        <div class="field">
+            <label for="pageSize">@UiTexts.FilasPorPagina</label>
+            <select id="pageSize" name="pageSize">
+                @foreach (var size in Paginas.Tamanos)
+                {
+                    if (Model.PageSize == size)
+                    {
+                        <option value="@size" selected>@size</option>
+                    }
+                    else
+                    {
+                        <option value="@size">@size</option>
+                    }
+                }
+            </select>
+        </div>
+        <button class="primary" type="submit">@UiTexts.Buscar</button>
+        <a class="secondary" asp-action="Index">@UiTexts.Limpiar</a>
+    </form>
+</div>
+<div class="panel">
+    <div class="table-wrap">
+        <table>
+            <thead>
+            <tr>
+                <th><a class="table-sort" href="@UrlOrden("fecha")" aria-label="@Etiqueta("fecha", UiTexts.Fecha)">@UiTexts.Fecha <span aria-hidden="true">@Marca("fecha")</span></a></th>
+                <th><a class="table-sort" href="@UrlOrden("codigo")" aria-label="@Etiqueta("codigo", UiTexts.Codigo)">@UiTexts.Codigo <span aria-hidden="true">@Marca("codigo")</span></a></th>
+                <th><a class="table-sort" href="@UrlOrden("loteria")" aria-label="@Etiqueta("loteria", UiTexts.Loteria)">@UiTexts.Loteria <span aria-hidden="true">@Marca("loteria")</span></a></th>
+                <th><a class="table-sort" href="@UrlOrden("numero")" aria-label="@Etiqueta("numero", UiTexts.Numero)">@UiTexts.Numero <span aria-hidden="true">@Marca("numero")</span></a></th>
+                <th><a class="table-sort" href="@UrlOrden("valor")" aria-label="@Etiqueta("valor", UiTexts.Valor)">@UiTexts.Valor <span aria-hidden="true">@Marca("valor")</span></a></th>
+            </tr>
+            </thead>
+            <tbody>
+            @if (Model.Items.Count == 0)
+            {
+                <tr>
+                    <td colspan="5">@UiTexts.Vacio</td>
+                </tr>
+            }
+            else
+            {
+                foreach (var fila in Model.Items)
+                {
+                    <tr>
+                        <td>@fila.Fecha.ToString("dd-MM-yyyy HH:mm:ss")</td>
+                        <td>@fila.Codigo</td>
+                        <td>@fila.Loteria</td>
+                        <td>@fila.Numero</td>
+                        <td>@Montos.De(fila.Valor)</td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+    @{
+        var paginacion = new PaginacionViewModel { Page = Model.Page, PageSize = Model.PageSize, Total = Model.Total, Accion = "Index", Controlador = "Historico" };
+    }
+    <partial name="_Pager" model="paginacion" />
+</div>

@@ -1,0 +1,73 @@
+@model NewRich.Vendedor.Models.SoporteViewModel
+<div class="heading">
+    <div>
+        <h1>@(Model.Tecnico ? UiTexts.SoporteTecnico : UiTexts.Atencion)</h1>
+    </div>
+</div>
+<div class="panel">
+    @if (Model.Tecnico)
+    {
+        <form asp-action="Reportar" method="post">
+            @Html.AntiForgeryToken()
+            <div class="field">
+                <label for="codigoTicket">@UiTexts.CodigoTicket</label>
+                <input id="codigoTicket" name="codigoTicket" value="@Model.CodigoTicket" />
+            </div>
+            <div class="field">
+                <label for="observacion">@UiTexts.Observacion</label>
+                <textarea id="observacion" name="observacion" rows="3">@Model.Texto</textarea>
+            </div>
+            <button class="primary" type="submit">@UiTexts.Reportar</button>
+        </form>
+    }
+    else
+    {
+        <form asp-action="Iniciar" method="post">
+            @Html.AntiForgeryToken()
+            <div class="field">
+                <label for="texto">@UiTexts.Mensaje</label>
+                <textarea id="texto" name="texto" rows="3"></textarea>
+            </div>
+            <button class="primary" type="submit">@UiTexts.IniciarConversacion</button>
+        </form>
+    }
+</div>
+<div class="panel">
+    @if (Model.Conversaciones.Count == 0)
+    {
+        <div class="empty">@UiTexts.Vacio</div>
+    }
+    else
+    {
+        <ul>
+            @foreach (var item in Model.Conversaciones)
+            {
+                <li>
+                    <a asp-action="@(Model.Tecnico ? "Tecnico" : "Index")" asp-route-id="@item.ConversacionId">
+                        @item.UltimoTexto
+                    </a>
+                    <small>@item.FechaUltimoMensaje?.ToString("dd-MM-yyyy HH:mm:ss")</small>
+                </li>
+            }
+        </ul>
+    }
+</div>
+@if (Model.Hilo is not null)
+{
+    <div class="panel">
+        @foreach (var mensaje in Model.Hilo.Mensajes)
+        {
+            <p><strong>@mensaje.NombreEmisor</strong> @mensaje.FechaEnvio.ToString("dd-MM-yyyy HH:mm:ss")<br />@mensaje.Texto</p>
+        }
+        <form asp-action="Enviar" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Hilo.Conversacion.ConversacionId" />
+            <input type="hidden" name="tecnico" value="@Model.Tecnico.ToString().ToLowerInvariant()" />
+            <div class="field">
+                <label for="respuesta">@UiTexts.Mensaje</label>
+                <textarea id="respuesta" name="texto" rows="3"></textarea>
+            </div>
+            <button class="primary" type="submit">@UiTexts.Enviar</button>
+        </form>
+    </div>
+}

@@ -55,6 +55,83 @@ public sealed class PremioService : IPremioService
         return Result<IReadOnlyList<CasoGanadorResponse>>.Ok(await MapearListaAsync(casos, cancellationToken), SuccessMessages.OperacionExitosa);
     }
 
+    public async Task<Result<IReadOnlyList<CasoGanadorResponse>>> ListarDelVendedorAsync(Guid vendedorId, CancellationToken cancellationToken)
+    {
+        var casos = await Query()
+            .Where(c => c.VendedorQueReporto == vendedorId
+                || (c.Boleto != null && c.Boleto.Venta != null && c.Boleto.Venta.UsuarioId == vendedorId))
+            .OrderByDescending(c => c.FechaReporte)
+            .ToListAsync(cancellationToken);
+        var lista = new List<CasoGanadorResponse>();
+        foreach (var caso in casos)
+        {
+            var detalle = Map(caso);
+            await AgregarDetalleApuestaAsync(caso, detalle, cancellationToken);
+            AgregarDetalleEntrega(caso, detalle);
+            lista.Add(detalle);
+        }
+
+        return Result<IReadOnlyList<CasoGanadorResponse>>.Ok(lista, SuccessMessages.OperacionExitosa);
+    }
+
+    public async Task<Result<CasoGanadorResponse>> RegistrarEntregaSitioWebAsync(
+        Guid casoId,
+        Guid vendedorId,
+        decimal valorGanado,
+        CancellationToken cancellationToken)
+    {
+        if (valorGanado <= 0)
+        {
+            return Result<CasoGanadorResponse>.Fail(PremioMessages.DatosEntregaIncompletos);
+        }
+
+        var caso = await Query().FirstOrDefaultAsync(c => c.CasoId == casoId, cancellationToken);
+        var esDelVendedor = caso is not null
+            && (caso.VendedorQueReporto == vendedorId || caso.Boleto?.Venta?.UsuarioId == vendedorId);
+        if (!esDelVendedor)
+        {
+            return Result<CasoGanadorResponse>.Fail(PremioMessages.CasoNoEncontrado, 404);
+        }
+
+        if (caso!.Estado == EstadoCasoGanador.Rechazado
+            || caso.Estado == EstadoCasoGanador.Registrado
+            || caso.EntregaGanador is not null)
+        {
+            return Result<CasoGanadorResponse>.Fail(PremioMessages.TransicionInvalida);
+        }
+
+        var ahora = _clock.LocalNow;
+        var vendedor = caso.VendedorQueReportoNavigation?.NombreCompleto
+            ?? caso.Boleto?.Venta?.Usuario?.NombreCompleto
+            ?? string.Empty;
+        var entrega = new EntregaGanador
+        {
+            EntregaId = Guid.NewGuid(),
+            CasoId = caso.CasoId,
+            NombreGanador = "Pendiente",
+            ApellidoGanador = "Pendiente",
+            NumeroContacto = "Pendiente",
+            LugarGano = "Pendiente",
+            NombreVendedor = vendedor,
+            ValorTotalGanado = valorGanado,
+            PersonaQueEntrega = vendedorId,
+            FechaEntrega = ahora
+        };
+        _db.EntregasGanadores.Add(entrega);
+        caso.Estado = EstadoCasoGanador.Registrado;
+        caso.FechaRegistro = ahora;
+        caso.EntregaGanador = entrega;
+        if (caso.Boleto is not null)
+        {
+            caso.Boleto.EstadoBoleto = EstadoBoleto.PremioEntregado;
+            caso.Boleto.EstadoDelPremio = EstadoDelPremio.PremioEntregado;
+            caso.Boleto.FechaEntregaPremio = ahora;
+        }
+
+        await _db.SaveChangesAsync(cancellationToken);
+        return await ObtenerAsync(caso.CasoId, cancellationToken);
+    }
+
     public async Task<Result<CasoGanadorResponse>> ObtenerAsync(Guid casoId, CancellationToken cancellationToken)
     {
         var caso = await Query()

@@ -18,6 +18,7 @@ public interface INewRichDbContext
     DbSet<Jornada> Jornadas { get; }
     DbSet<LoteriaDiaSemana> LoteriasDiasSemana { get; }
     DbSet<Venta> Ventas { get; }
+    DbSet<VentaManual> VentasManual { get; }
     DbSet<Boleto> Boletos { get; }
     DbSet<Juego> Juegos { get; }
     DbSet<JuegoLoteria> JuegoLoterias { get; }
@@ -44,12 +45,26 @@ public interface INewRichDbContext
     DbSet<ObligacionRecaudo> ObligacionesRecaudo { get; }
     DbSet<PagoRegistradoRecaudo> PagosRecaudo { get; }
     DbSet<TirillaCobroRecaudo> TirillasCobroRecaudo { get; }
+    DbSet<OperacionRevisadaManual> OperacionesRevisadaManual { get; }
+    DbSet<ParametroRevisadaManual> ParametrosRevisadaManual { get; }
+    DbSet<LineaRevisadaManual> LineasRevisadaManual { get; }
+    DbSet<RegistroJuegoManual> RegistrosJuegoManual { get; }
+    DbSet<RegistroJuegoNumerosWebManual> RegistrosJuegoNumerosWebManual { get; }
+    DbSet<TipoGasto> TiposGasto { get; }
+    DbSet<Gasto> Gastos { get; }
+    DbSet<AuditoriaCambioGasto> AuditoriaCambiosGasto { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     Task ExecuteInTransactionAsync(Func<CancellationToken, Task> action, CancellationToken cancellationToken = default);
     Task AsegurarEsquemaRetencionAsync(CancellationToken cancellationToken = default);
     Task AsegurarEsquemaCapacidadOfflineAsync(CancellationToken cancellationToken = default);
     Task AsegurarEsquemaJornadasAsync(CancellationToken cancellationToken = default);
+    Task AsegurarEsquemaManualAsync(CancellationToken cancellationToken = default);
+    Task AsegurarEsquemaRegistroJuegoAsync(CancellationToken cancellationToken = default);
+    Task AsegurarEsquemaRegistroJuegoNumerosWebAsync(CancellationToken cancellationToken = default);
+    Task AsegurarEsquemaRevisadaManualAsync(CancellationToken cancellationToken = default);
+    Task AsegurarEsquemaParametrosRevisadaManualAsync(CancellationToken cancellationToken = default);
+    Task AsegurarEsquemaUtilidadesAsync(CancellationToken cancellationToken = default);
     Task<bool> IntentarBloquearRetencionAsync(CancellationToken cancellationToken = default);
     void DescartarCambios();
 }

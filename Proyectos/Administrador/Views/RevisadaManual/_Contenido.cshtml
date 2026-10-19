@@ -1,0 +1,430 @@
+@using System.Globalization
+@using NewRich.Admin.Constants
+@using NewRich.Admin.Controllers
+@using NewRich.Constants
+@using NewRich.Domain.Services
+@model NewRich.Admin.Models.RevisadaPaginaViewModel
+@{
+    var cultura = CultureInfo.GetCultureInfo("es-CO");
+    string Pesos(decimal valor) => valor.ToString("N0", cultura);
+    string Boletas(int cantidad) => cantidad == 1 ? UiTexts.UnaBoleta : string.Format(cultura, UiTexts.CantidadBoletas, cantidad);
+    decimal porcentaje = 0;
+    var tienePorcentaje = RevisadaManualController.Porcentaje(Model.Porcentaje, out porcentaje);
+    string Titulo() => Model.Modo switch
+    {
+        "porcubrir" => UiTexts.NavRevisadaPorCubrir,
+        "cubierto" => UiTexts.NavRevisadaCubierto,
+        _ => UiTexts.NavRevisadaResumen
+    };
+    string Sub() => Model.Modo switch
+    {
+        "porcubrir" => UiTexts.RevisadaPorCubrirSub,
+        "cubierto" => UiTexts.RevisadaCubiertoSub,
+        _ => UiTexts.RevisadaResumenSub
+    };
+    string Accion() => Model.Modo switch
+    {
+        "porcubrir" => "PorCubrir",
+        "cubierto" => "Cubierto",
+        _ => "Resumen"
+    };
+    string EnlaceOrden(string orden)
+    {
+        var valores = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        foreach (var item in Context.Request.Query)
+        {
+            if (item.Key is "orden" or "page")
+            {
+                continue;
+            }
+
+            valores[item.Key] = item.Value.ToString();
+        }
+
+        valores["orden"] = orden;
+        valores["page"] = "1";
+        return Url.Action(Accion(), valores) ?? "#";
+    }
+}
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.RevisadaKicker</div>
+        <h1>@Titulo()</h1>
+        <p>@Sub()</p>
+    </div>
+</div>
+<div id="revisada-datos">
+<div class="stats">
+    <article class="stat"><small>@UiTexts.JugadasVisibles</small><strong>@Model.Jugadas.ToString("N0", cultura)</strong></article>
+    <article class="stat"><small>@UiTexts.LoteriasVisibles</small><strong>@Model.Loterias.ToString("N0", cultura)</strong></article>
+    <article class="stat"><small>@UiTexts.TotalAgrupado</small><strong>@Pesos(Model.Total)</strong></article>
+</div>
+<div class="panel">
+    <form class="toolbar" method="get" asp-action="@Accion()">
+        <div class="field">
+            <label for="desde">@UiTexts.Desde</label>
+            <input id="desde" name="desde" type="date" value="@Model.Desde.ToString("yyyy-MM-dd")" />
+        </div>
+        <div class="field">
+            <label for="hasta">@UiTexts.Hasta</label>
+            <input id="hasta" name="hasta" type="date" value="@Model.Hasta.ToString("yyyy-MM-dd")" />
+        </div>
+        @if (Model.Modo == "resumen")
+        {
+            <div class="field">
+                <label for="valorMinimo">@UiTexts.ValorMinimoVisualizar</label>
+                <input id="valorMinimo" name="valorMinimo" inputmode="numeric" value="@Model.ValorMinimo" />
+            </div>
+        }
+        else
+        {
+            <div class="field">
+                <label for="porcentaje">@(Model.Modo == "cubierto" ? UiTexts.Descuento : UiTexts.Comision)</label>
+                @if (Model.Modo == "porcubrir")
+                {
+                    <input id="porcentaje" name="comision" type="number" inputmode="numeric" min="0" max="99" step="1" maxlength="2" value="@Model.Porcentaje" data-dos-digitos autocomplete="off" />
+                }
+                else
+                {
+                    <input id="porcentaje" name="descuento" type="number" inputmode="numeric" min="0" max="99" step="1" maxlength="2" value="@Model.Porcentaje" data-dos-digitos autocomplete="off" />
+                }
+            </div>
+        }
+        <div class="field">
+            <label for="pageSize">@UiTexts.FilasPorPagina</label>
+            <select id="pageSize" name="pageSize">
+                @foreach (var size in PagingHelper.PageSizes)
+                {
+                    <option value="@size" @(Model.Pagina.PageSize == size ? "selected" : null)>@size</option>
+                }
+            </select>
+        </div>
+        <input type="hidden" name="orden" value="@Model.Orden" />
+        <button class="primary" type="submit">@UiTexts.Buscar</button>
+        <a class="secondary" asp-action="@Accion()">@UiTexts.Limpiar</a>
+    </form>
+</div>
+@if (Model.Pagina.TotalCount == 0)
+{
+    <div class="panel"><p>@UiTexts.SinJugadasRevisada</p></div>
+}
+else
+{
+    <section class="panel revisada-previa @(Model.Modo == "resumen" ? "revisada-modo-resumen" : null)" data-revisada-filtro>
+        <div class="revisada-previa-head">
+            <div>
+                <h2>@UiTexts.LoteriasEnEstaPagina</h2>
+                <p class="panel-sub">@UiTexts.AyudaFiltrarLoteria</p>
+            </div>
+            <div class="revisada-orden" role="group" aria-label="@UiTexts.OrdenarPorSubtotal">
+                <a class="@(Model.Orden == "asc" ? "primary" : "secondary")" href="@EnlaceOrden("asc")" aria-pressed="@(Model.Orden == "asc" ? "true" : "false")">@UiTexts.MenorAMayor</a>
+                <a class="@(Model.Orden == "desc" ? "primary" : "secondary")" href="@EnlaceOrden("desc")" aria-pressed="@(Model.Orden == "desc" ? "true" : "false")">@UiTexts.MayorAMenor</a>
+            </div>
+        </div>
+        <ul>
+            @foreach (var loteria in Model.Pagina.Items)
+            {
+                var boletas = loteria.Grupos.Sum(g => g.Lineas.Count);
+                var subtotal = loteria.Grupos.Sum(g => g.Subtotal);
+                <li>
+                    @if (Model.Modo == "resumen")
+                    {
+                        <button type="button" class="revisada-nombre" data-loteria="@loteria.Nombre" aria-pressed="false" aria-label="@($"{UiTexts.FiltrarLoteria} {loteria.Nombre}")">
+                            <span>@loteria.Nombre</span>
+                            <small>@Boletas(boletas)</small>
+                            <strong>@Pesos(subtotal)</strong>
+                        </button>
+                    }
+                    else
+                    {
+                        <button type="button" class="revisada-nombre" data-loteria="@loteria.Nombre" aria-pressed="false" aria-label="@($"{UiTexts.FiltrarLoteria} {loteria.Nombre}")">@loteria.Nombre</button>
+                        <strong>@Pesos(subtotal)</strong>
+                    }
+                </li>
+            }
+        </ul>
+    </section>
+    <div class="revisada-columnas">
+    @foreach (var loteria in Model.Pagina.Items)
+    {
+        <section class="panel revisada-loteria" data-loteria="@loteria.Nombre">
+            <h2>
+                <button type="button" class="table-sort revisada-orden-grupos" data-orden="" data-asc="@string.Format(UiTexts.OrdenarColumnaAsc, UiTexts.Subtotal)" data-desc="@string.Format(UiTexts.OrdenarColumnaDesc, UiTexts.Subtotal)" aria-label="@string.Format(UiTexts.OrdenarColumnaAsc, UiTexts.Subtotal)">
+                    @UiTexts.Loteria: @loteria.Nombre
+                    <span aria-hidden="true">↕</span>
+                </button>
+            </h2>
+            <div class="revisada-grupos">
+                @foreach (var grupo in loteria.Grupos)
+                {
+                    var comisionValor = grupo.ComisionValor ?? (tienePorcentaje && Model.Modo == "porcubrir" ? RevisadaManualCalculo.Parte(grupo.Subtotal, porcentaje) : (decimal?)null);
+                    var totalComision = grupo.TotalConComision ?? (comisionValor is null ? (decimal?)null : grupo.Subtotal + comisionValor);
+                    var baseDescuento = grupo.TotalConComision ?? 0;
+                    var descuentoValor = grupo.DescuentoValor ?? (tienePorcentaje && Model.Modo == "cubierto" && grupo.TotalConComision is not null ? RevisadaManualCalculo.Parte(baseDescuento, porcentaje) : (decimal?)null);
+                    var totalPagar = grupo.TotalPagar ?? (descuentoValor is null || grupo.TotalConComision is null ? (decimal?)null : grupo.TotalConComision - descuentoValor);
+                    <article class="revisada-grupo" data-subtotal="@grupo.Subtotal.ToString(CultureInfo.InvariantCulture)">
+                        <h3>@UiTexts.NumeroJugado: @grupo.Numero</h3>
+                        @if (Model.Modo == "resumen")
+                        {
+                            <div class="revisada-lineas">
+                                <p class="revisada-lineas-titulo">@UiTexts.ValorApostado</p>
+                                <ul>
+                                    @foreach (var linea in grupo.Lineas)
+                                    {
+                                        <li>
+                                            <span>@Pesos(linea.Valor)</span>
+                                            <time datetime="@linea.Fecha.ToString("yyyy-MM-ddTHH:mm")">@linea.Fecha.ToString("h:mm tt", cultura)</time>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        }
+                        <p><strong>@UiTexts.Subtotal:</strong> @Pesos(grupo.Subtotal)</p>
+                        @if (Model.Modo != "resumen" && totalComision is not null)
+                        {
+                            <p>@UiTexts.Comision: @((grupo.ComisionPorcentaje ?? porcentaje).ToString("0.##", cultura)) %</p>
+                            <p>@UiTexts.ValorComision: @Pesos(comisionValor ?? 0)</p>
+                            <p><strong>@UiTexts.TotalConComision:</strong> @Pesos(totalComision.Value)</p>
+                        }
+                        @if (Model.Modo == "cubierto" && totalPagar is not null)
+                        {
+                            <p>@UiTexts.Descuento: @((grupo.DescuentoPorcentaje ?? porcentaje).ToString("0.##", cultura)) %</p>
+                            <p>@UiTexts.ValorDescuento: @Pesos(descuentoValor ?? 0)</p>
+                            <p><strong>@UiTexts.TotalAPagar:</strong> @Pesos(totalPagar.Value)</p>
+                        }
+                        @if (Model.Modo == "resumen")
+                        {
+                            <form method="post" asp-action="PorCubrir">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="desde" value="@Model.Desde.ToString("yyyy-MM-dd")" />
+                                <input type="hidden" name="hasta" value="@Model.Hasta.ToString("yyyy-MM-dd")" />
+                                <input type="hidden" name="valorMinimo" value="@Model.ValorMinimo" />
+                                <input type="hidden" name="page" value="@Model.Pagina.Page" />
+                                <input type="hidden" name="pageSize" value="@Model.Pagina.PageSize" />
+                                <input type="hidden" name="orden" value="@Model.Orden" />
+                                @foreach (var linea in grupo.Lineas)
+                                {
+                                    <input type="hidden" name="claves" value="@linea.Clave" />
+                                }
+                                <button class="primary" type="submit" aria-label="@($"{UiTexts.BotonPorCubrir} {loteria.Nombre} {grupo.Numero}")">@UiTexts.BotonPorCubrir</button>
+                            </form>
+                        }
+                        else if (Model.Modo == "porcubrir")
+                        {
+                            <form method="post" asp-action="Cubrir" data-protected-action="@AccionesProtegidas.RevisadaCubrir" data-copiar-porcentaje data-exige-comision data-msg-comision="@UiTexts.ComisionRequerida">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="operacionId" value="@grupo.OperacionId" />
+                                <input type="hidden" name="comision" value="@Model.Porcentaje" />
+                                <input type="hidden" name="desde" value="@Model.Desde.ToString("yyyy-MM-dd")" />
+                                <input type="hidden" name="hasta" value="@Model.Hasta.ToString("yyyy-MM-dd")" />
+                                <input type="hidden" name="page" value="@Model.Pagina.Page" />
+                                <input type="hidden" name="pageSize" value="@Model.Pagina.PageSize" />
+                                <input type="hidden" name="orden" value="@Model.Orden" />
+                                <button class="primary" type="submit" aria-label="@($"{UiTexts.BotonCubrir} {loteria.Nombre} {grupo.Numero}")">@UiTexts.BotonCubrir</button>
+                            </form>
+                        }
+                        else if (grupo.DescuentoPorcentaje is null && grupo.TotalConComision is not null)
+                        {
+                            <form method="post" asp-action="Descuento" data-protected-action="@AccionesProtegidas.RevisadaDescuento" data-copiar-porcentaje data-exige-comision data-msg-comision="@UiTexts.DescuentoRequerido">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="operacionId" value="@grupo.OperacionId" />
+                                <input type="hidden" name="descuento" value="@Model.Porcentaje" />
+                                <input type="hidden" name="desde" value="@Model.Desde.ToString("yyyy-MM-dd")" />
+                                <input type="hidden" name="hasta" value="@Model.Hasta.ToString("yyyy-MM-dd")" />
+                                <input type="hidden" name="page" value="@Model.Pagina.Page" />
+                                <input type="hidden" name="pageSize" value="@Model.Pagina.PageSize" />
+                                <input type="hidden" name="orden" value="@Model.Orden" />
+                                <button class="primary" type="submit" aria-label="@($"{UiTexts.RegistrarDescuento} {loteria.Nombre} {grupo.Numero}")">@UiTexts.RegistrarDescuento</button>
+                            </form>
+                        }
+                    </article>
+                }
+            </div>
+        </section>
+    }
+    </div>
+    @await Html.PartialAsync("_Pager", Model.Pagina)
+}
+</div>
+<script>
+    window.iniciarRevisada = function () {
+        var raiz = document.querySelector("[data-revisada-filtro]");
+        if (raiz) {
+        var clave = "nr.revisada.loteria." + location.pathname;
+        var botones = raiz.querySelectorAll(".revisada-nombre");
+        var tarjetas = document.querySelectorAll(".revisada-loteria");
+        function leer() {
+            try {
+                var guardadas = JSON.parse(sessionStorage.getItem(clave) || "[]");
+                return Array.isArray(guardadas) ? guardadas : [];
+            } catch (error) {
+                return [];
+            }
+        }
+        function aplicar(nombres) {
+            var vigentes = [];
+            botones.forEach(function (boton) {
+                var nombre = boton.getAttribute("data-loteria");
+                var activo = nombres.indexOf(nombre) >= 0;
+                if (activo) {
+                    vigentes.push(nombre);
+                }
+                boton.setAttribute("aria-pressed", activo ? "true" : "false");
+                boton.classList.toggle("is-selected", activo);
+            });
+            tarjetas.forEach(function (tarjeta) {
+                tarjeta.hidden = vigentes.length > 0 && vigentes.indexOf(tarjeta.getAttribute("data-loteria")) < 0;
+            });
+            if (vigentes.length) {
+                sessionStorage.setItem(clave, JSON.stringify(vigentes));
+            } else {
+                sessionStorage.removeItem(clave);
+            }
+        }
+        botones.forEach(function (boton) {
+            boton.addEventListener("click", function () {
+                var nombres = leer();
+                var nombre = boton.getAttribute("data-loteria");
+                var indice = nombres.indexOf(nombre);
+                if (indice >= 0) {
+                    nombres.splice(indice, 1);
+                } else {
+                    nombres.push(nombre);
+                }
+                aplicar(nombres);
+            });
+        });
+        aplicar(leer());
+        }
+    document.querySelectorAll(".revisada-orden-grupos").forEach(function (boton) {
+        var seccion = boton.closest(".revisada-loteria");
+        var lista = seccion.querySelector(".revisada-grupos");
+        var marca = boton.querySelector("span");
+        var clave = "nr.revisada.grupos." + location.pathname + "." + (seccion.getAttribute("data-loteria") || "");
+        function ordenar(direccion) {
+            var grupos = Array.prototype.slice.call(lista.querySelectorAll(".revisada-grupo"));
+            grupos.sort(function (a, b) {
+                var va = parseFloat(a.getAttribute("data-subtotal")) || 0;
+                var vb = parseFloat(b.getAttribute("data-subtotal")) || 0;
+                if (va === vb) {
+                    return 0;
+                }
+                return direccion === "desc" ? vb - va : va - vb;
+            });
+            grupos.forEach(function (grupo) {
+                lista.appendChild(grupo);
+            });
+            boton.setAttribute("data-orden", direccion);
+            boton.setAttribute("aria-label", direccion === "desc" ? boton.getAttribute("data-desc") : boton.getAttribute("data-asc"));
+            if (marca) {
+                marca.textContent = direccion === "desc" ? "↓" : "↑";
+            }
+            sessionStorage.setItem(clave, direccion);
+        }
+        boton.addEventListener("click", function () {
+            ordenar(boton.getAttribute("data-orden") === "asc" ? "desc" : "asc");
+        });
+        var guardado = sessionStorage.getItem(clave);
+        if (guardado === "asc" || guardado === "desc") {
+            ordenar(guardado);
+        }
+    });
+    };
+    window.iniciarRevisada();
+    document.querySelectorAll("[data-dos-digitos]").forEach(function (campo) {
+        function limitar() {
+            var digitos = String(campo.value || "").replace(/\D/g, "").slice(0, 2);
+            if (campo.value !== digitos) {
+                campo.value = digitos;
+            }
+        }
+        campo.addEventListener("input", limitar);
+        campo.addEventListener("keydown", function (evento) {
+            if (evento.key === "e" || evento.key === "E" || evento.key === "+" || evento.key === "-" || evento.key === "." || evento.key === ",") {
+                evento.preventDefault();
+            }
+        });
+        limitar();
+    });
+    document.querySelectorAll("form[data-exige-comision]").forEach(function (formulario) {
+        formulario.addEventListener("submit", function (evento) {
+            var origen = document.getElementById("porcentaje");
+            if (origen && origen.value.trim()) {
+                origen.removeAttribute("aria-invalid");
+                return;
+            }
+            evento.preventDefault();
+            evento.stopImmediatePropagation();
+            if (origen) {
+                origen.setAttribute("aria-invalid", "true");
+                origen.focus();
+            }
+            if (window.openAviso) {
+                window.openAviso(formulario.getAttribute("data-msg-comision") || "");
+            }
+        }, true);
+    });
+    document.querySelectorAll("form[data-copiar-porcentaje]").forEach(function (formulario) {
+        formulario.addEventListener("submit", function () {
+            var origen = document.getElementById("porcentaje");
+            var destino = formulario.querySelector('input[name="comision"], input[name="descuento"]');
+            if (origen && destino) {
+                destino.value = origen.value;
+            }
+        });
+    });
+</script>
+@if (Model.Modo == "resumen")
+{
+    <script>
+        (function () {
+            var ocupado = false;
+            async function refrescar() {
+                if (ocupado || document.hidden) {
+                    return;
+                }
+                var actual = document.getElementById("revisada-datos");
+                var panel = document.querySelector("main");
+                if (!actual) {
+                    return;
+                }
+                ocupado = true;
+                var scrollPanel = panel ? panel.scrollTop : window.scrollY;
+                var scrolls = {};
+                actual.querySelectorAll(".revisada-loteria").forEach(function (tarjeta) {
+                    scrolls[tarjeta.getAttribute("data-loteria") || ""] = tarjeta.scrollTop;
+                });
+                try {
+                    var respuesta = await fetch(location.href, { credentials: "same-origin", headers: { "X-Requested-With": "fetch" } });
+                    if (!respuesta.ok) {
+                        return;
+                    }
+                    var documento = new DOMParser().parseFromString(await respuesta.text(), "text/html");
+                    var nuevo = documento.getElementById("revisada-datos");
+                    if (!nuevo || nuevo.innerHTML === actual.innerHTML) {
+                        return;
+                    }
+                    actual.replaceWith(nuevo);
+                    if (panel) {
+                        panel.scrollTop = scrollPanel;
+                    } else {
+                        window.scrollTo(0, scrollPanel);
+                    }
+                    document.querySelectorAll(".revisada-loteria").forEach(function (tarjeta) {
+                        var nombre = tarjeta.getAttribute("data-loteria") || "";
+                        if (Object.prototype.hasOwnProperty.call(scrolls, nombre)) {
+                            tarjeta.scrollTop = scrolls[nombre];
+                        }
+                    });
+                    if (window.iniciarRevisada) {
+                        window.iniciarRevisada();
+                    }
+                } catch (error) {
+                } finally {
+                    ocupado = false;
+                }
+            }
+            setInterval(refrescar, 60000);
+        })();
+    </script>
+}

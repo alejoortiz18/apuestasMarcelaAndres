@@ -569,6 +569,46 @@ public sealed class AuthServiceTests
     }
 
     [Fact]
+    public async Task LoginManualAsync_vendedor_entra_sin_pda()
+    {
+        var (_, db, usuario) = await CreateSutSinDispositivoAsync(RolUsuario.Vendedor);
+        var hasher = new Pbkdf2PasswordHasher();
+        var sut = new AuthManualService(db, hasher, new JwtFalso(), new RelojFijo(new DateTime(2026, 9, 29, 20, 0, 0, DateTimeKind.Utc)));
+
+        var result = await sut.LoginAsync(new LoginRequest
+        {
+            Usuario = usuario.NombreUsuario,
+            Password = "Obs12345!"
+        }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue(result.Message);
+        result.Data!.Rol.Should().Be(RolUsuario.Vendedor);
+        result.Data.DispositivoId.Should().BeNull();
+        (await db.Dispositivos.CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task LoginManualAsync_vendedor_entra_con_el_horario_del_sistema_cerrado()
+    {
+        var (_, db, usuario) = await CreateSutSinDispositivoAsync(RolUsuario.Vendedor);
+        db.Configuraciones.AddRange(
+            new Configuracion { ConfiguracionId = Guid.NewGuid(), Clave = "HoraApertura", Valor = "08:00", FechaActualizacion = DateTime.UtcNow },
+            new Configuracion { ConfiguracionId = Guid.NewGuid(), Clave = "HoraCierre", Valor = "09:00", FechaActualizacion = DateTime.UtcNow });
+        await db.SaveChangesAsync();
+        var hasher = new Pbkdf2PasswordHasher();
+        var sut = new AuthManualService(db, hasher, new JwtFalso(), new RelojFijo(new DateTime(2026, 9, 29, 20, 0, 0, DateTimeKind.Utc)));
+
+        var result = await sut.LoginAsync(new LoginRequest
+        {
+            Usuario = usuario.NombreUsuario,
+            Password = "Obs12345!"
+        }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue(result.Message);
+        result.Data!.Rol.Should().Be(RolUsuario.Vendedor);
+    }
+
+    [Fact]
     public async Task LoginAsync_vendedor_sin_pda_registrado_sigue_sin_poder_entrar()
     {
         var (sut, db, usuario) = await CreateSutSinDispositivoAsync(RolUsuario.Vendedor);

@@ -1,0 +1,30 @@
+@using NewRich.Admin.Constants
+@model NewRich.Admin.Models.PeriodoUtilidades
+<form class="toolbar" method="get">
+    <div class="field">
+        <label for="periodo">@UiTexts.Periodo</label>
+        <select id="periodo" name="periodo" class="searchable">
+            <option value="hoy" selected="@(Model.Periodo == "hoy")">@UiTexts.PeriodoHoy</option>
+            <option value="ayer" selected="@(Model.Periodo == "ayer")">@UiTexts.PeriodoAyer</option>
+            <option value="ultimos-7" selected="@(Model.Periodo == "ultimos-7")">@UiTexts.Periodo7</option>
+            <option value="ultimos-30" selected="@(Model.Periodo == "ultimos-30")">@UiTexts.Periodo30</option>
+            <option value="mes" selected="@(Model.Periodo == "mes")">@UiTexts.PeriodoMes</option>
+            <option value="mes-anterior" selected="@(Model.Periodo == "mes-anterior")">@UiTexts.PeriodoMesAnterior</option>
+            <option value="rango" selected="@(Model.Periodo == "rango")">@UiTexts.PeriodoRango</option>
+        </select>
+    </div>
+    <div class="field">
+        <label for="desde">@UiTexts.Desde</label>
+        <input id="desde" name="desde" type="date" value="@Model.Desde?.ToString("yyyy-MM-dd")" />
+    </div>
+    <div class="field">
+        <label for="hasta">@UiTexts.Hasta</label>
+        <input id="hasta" name="hasta" type="date" value="@Model.Hasta?.ToString("yyyy-MM-dd")" />
+    </div>
+    <button class="primary" type="submit">@UiTexts.Consultar</button>
+    <a class="secondary" asp-action="@ViewContext.RouteData.Values["action"]">@UiTexts.Limpiar</a>
+</form>
+@if (!string.IsNullOrWhiteSpace(Model.PeriodoTexto))
+{
+    <p class="panel-sub">@Model.PeriodoTexto</p>
+}

@@ -1,0 +1,98 @@
+@using NewRich.Admin.Constants
+@model NewRich.Admin.Models.ResumenUtilidadesViewModel
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.UtilidadesKicker</div>
+        <h1>@UiTexts.NavUtilidadesResumen</h1>
+        <p>@UiTexts.UtilidadesResumenSub</p>
+    </div>
+    <div class="heading-actions">
+        <a class="secondary" asp-action="Movimientos" asp-route-periodo="@Model.Periodo" asp-route-desde="@Model.Desde?.ToString("yyyy-MM-dd")" asp-route-hasta="@Model.Hasta?.ToString("yyyy-MM-dd")">@UiTexts.NavUtilidadesMovimientos</a>
+        <button class="primary" type="button" data-open-gasto>@UiTexts.NavUtilidadesRegistrar</button>
+    </div>
+</div>
+<div class="panel">
+    <partial name="_Periodo" model="Model" />
+</div>
+<div class="metric-grid">
+    <article class="metric">
+        <small>@UiTexts.UtilidadesIngresos</small>
+        <strong>@Model.Ingresos</strong>
+        <em>@UiTexts.UtilidadesIngresosAyuda</em>
+    </article>
+    <article class="metric">
+        <small>@UiTexts.UtilidadesGastos</small>
+        <strong>@Model.Gastos</strong>
+        <em>@Model.Cantidad</em>
+    </article>
+    <article class="metric">
+        <small>@UiTexts.UtilidadesGanancia</small>
+        <strong>@Model.Ganancia</strong>
+        <em>@UiTexts.UtilidadesGananciaAyuda</em>
+    </article>
+</div>
+<section class="panel">
+    <h2>@UiTexts.UtilidadesGastosPorTipo</h2>
+    @if (Model.Tipos.Count == 0)
+    {
+        <div class="empty">@UiTexts.UtilidadesSinGastos</div>
+    }
+    else
+    {
+        <div class="kpi-bars">
+            @foreach (var tipo in Model.Tipos)
+            {
+                <div>
+                    <div class="kpi-bar-head">
+                        <span>@tipo.Etiqueta</span>
+                        <span>@tipo.Valor · @tipo.Porcentaje % · @tipo.Cantidad</span>
+                    </div>
+                    <div class="kpi-bar gold" role="img" aria-label="@tipo.Etiqueta @tipo.Valor">
+                        <i style="width: @(tipo.Porcentaje)%"></i>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</section>
+<div id="gastoDialog" class="dialog-back@(Model.AbrirModal ? "" : " hidden")" role="dialog" aria-modal="true" aria-labelledby="gastoDialogTitle" data-gasto-dialog @(Model.AbrirModal ? null : "hidden")>
+    <div class="dialog dialog-gasto">
+        <h2 id="gastoDialogTitle">@UiTexts.NavUtilidadesRegistrar</h2>
+        <p>@UiTexts.RegistrarGastoSub</p>
+        <form method="post" asp-action="Registrar" data-gasto-form>
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="periodo" value="@Model.Periodo" />
+            <input type="hidden" name="desde" value="@Model.Desde?.ToString("yyyy-MM-dd")" />
+            <input type="hidden" name="hasta" value="@Model.Hasta?.ToString("yyyy-MM-dd")" />
+            @if (!string.IsNullOrWhiteSpace(Model.Formulario.Error))
+            {
+                <p class="notice error" role="alert">@Model.Formulario.Error</p>
+            }
+            <div class="field">
+                <label for="TipoGastoId">@UiTexts.TipoGasto</label>
+                <select id="TipoGastoId" name="TipoGastoId" required>
+                    @foreach (var tipo in Model.Formulario.Tipos)
+                    {
+                        <option value="@tipo.Id" selected="@(Model.Formulario.TipoGastoId == tipo.Id)" data-requiere="@(tipo.RequiereObservacion ? "1" : "0")">@tipo.Nombre</option>
+                    }
+                </select>
+            </div>
+            <div class="field">
+                <label for="FechaGasto">@UiTexts.FechaGasto</label>
+                <input id="FechaGasto" name="FechaGasto" type="date" value="@Model.Formulario.FechaGasto.ToString("yyyy-MM-dd")" required />
+            </div>
+            <div class="field">
+                <label for="Valor">@UiTexts.Valor</label>
+                <input id="Valor" name="Valor" data-gasto-valor inputmode="numeric" value="@Model.Formulario.Valor" required />
+            </div>
+            <div class="field">
+                <label for="Observacion">@UiTexts.Observacion <span data-exige-marca hidden>*</span></label>
+                <textarea id="Observacion" name="Observacion" maxlength="500">@Model.Formulario.Observacion</textarea>
+            </div>
+            <div class="dialog-actions">
+                <button class="secondary" type="button" data-close-gasto>@UiTexts.Cancelar</button>
+                <button class="primary" type="submit">@UiTexts.GuardarGasto</button>
+            </div>
+        </form>
+    </div>
+</div>

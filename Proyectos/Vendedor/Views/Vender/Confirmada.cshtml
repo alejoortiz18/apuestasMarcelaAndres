@@ -1,0 +1,36 @@
+@model NewRich.Vendedor.Models.VentaConfirmadaViewModel
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.Vender</div>
+        <h1>@UiTexts.RegistrarJugada</h1>
+        <p>@UiTexts.SinTirilla</p>
+    </div>
+    <a class="primary" asp-action="Index">@UiTexts.JuegoNuevo</a>
+</div>
+<div class="panel">
+    <p><strong>@UiTexts.Codigo:</strong> @Model.Codigo</p>
+    <p><strong>@UiTexts.Fecha:</strong> @Model.Fecha</p>
+</div>
+<div class="panel">
+    <div class="table-wrap">
+        <table>
+            <thead>
+            <tr>
+                <th>@UiTexts.Loteria</th>
+                <th>@UiTexts.Numero</th>
+                <th>@UiTexts.Valor</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var juego in Model.Juegos)
+            {
+                <tr>
+                    <td>@string.Join(", ", juego.Loterias)</td>
+                    <td>@juego.Numero</td>
+                    <td>@Montos.De(juego.Total)</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
