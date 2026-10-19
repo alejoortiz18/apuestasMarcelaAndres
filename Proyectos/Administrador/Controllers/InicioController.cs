@@ -39,7 +39,7 @@ public sealed class InicioController : AdminControllerBase
 
         var ventas = ventasTask.Result.Data ?? [];
         var usuarios = usuariosTask.Result.Data ?? [];
-        var vendedores = usuarios.Where(u => u.Rol == RolUsuario.Vendedor).ToList();
+        var vendedores = usuarios.Where(u => RolConsola.EsVendedor(u.Rol)).ToList();
         var model = new ResumenViewModel
         {
             VentasDelDia = ventas.Sum(v => v.Total),

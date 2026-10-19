@@ -4,7 +4,7 @@ using NewRich.Application.Services;
 
 namespace NewRich.Api.Controllers;
 
-[Authorize(Roles = "Vendedor,Administrador")]
+[Authorize(Roles = "Vendedor,VendedorWeb,Administrador")]
 [Route("api/utilidades")]
 public sealed class TiposGastoUtilidadesController : ApiControllerBase
 {

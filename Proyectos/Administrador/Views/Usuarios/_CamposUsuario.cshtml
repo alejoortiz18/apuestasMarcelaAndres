@@ -1,4 +1,5 @@
 @using NewRich.Admin.Constants
+@using NewRich.Admin.Services
 @using NewRich.Domain.Enums
 @model NewRich.Admin.Models.UsuarioFormViewModel
 <div class="field">
@@ -32,7 +33,7 @@
     <select asp-for="Rol" class="searchable" data-usuario-rol>
         @foreach (var rol in RolConsola.Asignables)
         {
-            <option value="@((int)rol)" selected="@(Model.Rol == rol)">@rol</option>
+            <option value="@((int)rol)" selected="@(Model.Rol == rol)">@RolUi.Nombre(rol)</option>
         }
     </select>
 </div>
@@ -57,7 +58,8 @@
         <select asp-for="Estado" class="searchable" asp-items="Html.GetEnumSelectList<EstadoUsuario>()"></select>
     </div>
 }
-<div class="field">
+<p class="hint" role="note" data-usuario-aviso-web="@((int)RolUsuario.VendedorWeb)" hidden="@(!RolConsola.SoloSitioVendedor(Model.Rol))">@UiTexts.VendedorWebSoloSitio</p>
+<div class="field" data-usuario-sin-dispositivo="@((int)RolUsuario.VendedorWeb)" hidden="@(RolConsola.SoloSitioVendedor(Model.Rol))">
     <label asp-for="DispositivoId"></label>
     <select asp-for="DispositivoId" class="searchable">
         <option value="">@UiTexts.SinAsociar</option>

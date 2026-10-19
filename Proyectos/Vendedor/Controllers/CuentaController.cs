@@ -61,7 +61,7 @@ public sealed class CuentaController : Controller
             return View(model);
         }
 
-        if (result.Data.Rol != RolUsuario.Vendedor)
+        if (!RolConsola.EsVendedor(result.Data.Rol))
         {
             model.Error = UiTexts.SoloVendedor;
             return View(model);
@@ -74,7 +74,7 @@ public sealed class CuentaController : Controller
     }
 
     [HttpGet]
-    [Authorize(AuthenticationSchemes = AuthCookieNames.Scheme, Roles = "Vendedor")]
+    [Authorize(AuthenticationSchemes = AuthCookieNames.Scheme, Roles = VendedorRoles.Sitio)]
     public IActionResult CambiarPassword()
     {
         ViewData["Title"] = UiTexts.CambiarContrasena;
@@ -82,7 +82,7 @@ public sealed class CuentaController : Controller
     }
 
     [HttpPost]
-    [Authorize(AuthenticationSchemes = AuthCookieNames.Scheme, Roles = "Vendedor")]
+    [Authorize(AuthenticationSchemes = AuthCookieNames.Scheme, Roles = VendedorRoles.Sitio)]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CambiarPassword(CambiarPasswordViewModel model, CancellationToken cancellationToken)
     {

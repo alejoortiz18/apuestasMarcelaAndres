@@ -25,13 +25,15 @@ public sealed class PdaConexionTests
     }
 
     [Fact]
-    public void La_aplicacion_habla_con_el_api_de_test()
+    public void La_aplicacion_habla_con_el_api_local_de_test_por_usb_y_wifi()
     {
-        PdaConexion.UrlTest.Should().Be("https://apirichtest-gkgkguhyc6hdbtdb.westus3-01.azurewebsites.net/");
-        PdaConexion.UrlsPara(emulador: false).Should().Equal(PdaConexion.UrlTest);
-        PdaConexion.UrlsPara(emulador: true).Should().Equal(PdaConexion.UrlTest);
-        PdaConexion.BaseUrl(emulador: false).Should().Be(PdaConexion.UrlTest);
-        PdaConexion.BaseUrl(emulador: true).Should().Be(PdaConexion.UrlTest);
+        PdaConexion.UrlLocalUsb.Should().Be("http://localhost:3002/");
+        PdaConexion.UrlLocal.Should().Be("http://192.168.20.35:3002/");
+        PdaConexion.UrlsPara(emulador: false).Should().Equal(PdaConexion.UrlLocalUsb, PdaConexion.UrlLocal);
+        PdaConexion.UrlsPara(emulador: true).Should().Equal(PdaConexion.UrlEmulador, PdaConexion.UrlLocal);
+        PdaConexion.BaseUrl(emulador: false).Should().Be(PdaConexion.UrlLocalUsb);
+        PdaConexion.UrlsPara(emulador: false).Should().NotContain(PdaConexion.UrlTest);
+        PdaConexion.UrlsPara(emulador: false).Should().NotContain(PdaConexion.UrlProduccion);
     }
 
     [Fact]

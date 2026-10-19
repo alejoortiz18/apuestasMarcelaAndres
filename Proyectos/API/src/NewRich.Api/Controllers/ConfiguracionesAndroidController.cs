@@ -4,7 +4,7 @@ using NewRich.Application.Services;
 
 namespace NewRich.Api.Controllers;
 
-[Authorize(Roles = "Vendedor,Observador")]
+[Authorize(Roles = "Vendedor,VendedorWeb,Observador")]
 public sealed class ConfiguracionesAndroidController : ApiControllerBase
 {
     private readonly IAndroidPdaService _pda;

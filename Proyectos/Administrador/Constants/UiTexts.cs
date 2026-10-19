@@ -518,6 +518,8 @@ public static class UiTexts
     public const string VentasSub = "Consulta ventas, boletos, estados y tirillas.";
     public const string CodigoBoleto = "Código del boleto";
     public const string Vendedor = "Vendedor";
+    public const string RolVendedorWeb = "Vendedor web";
+    public const string VendedorWebSoloSitio = "El vendedor web solo ingresa al sitio web del vendedor. No usa PDA ni pertenece a grupos.";
     public const string FechaYHora = "Fecha y hora";
     public const string Total = "Total";
     public const string VerTicket = "Ver ticket";

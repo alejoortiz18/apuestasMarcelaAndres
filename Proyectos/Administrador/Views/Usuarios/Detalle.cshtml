@@ -13,7 +13,7 @@
 </div>
 <div class="panel">
     <div class="notice"><strong>@Model.NombreCompleto</strong><br />@UiTexts.Identificador: @Model.Usuario</div>
-    <p><strong>@UiTexts.Rol:</strong> @Model.Rol</p>
+    <p><strong>@UiTexts.Rol:</strong> @RolUi.Nombre(Model.Rol)</p>
     <p><strong>@UiTexts.Grupo:</strong> @(Model.GrupoNombre ?? UiTexts.SinGrupo)</p>
     <p><strong>@UiTexts.Estado:</strong> <span class="pill @EstadoUi.Pill(estado)">@estado</span></p>
     <p><strong>@UiTexts.PdaAsociado:</strong> @(Model.CodigoDispositivo ?? UiTexts.SinAsociar)</p>

@@ -34,7 +34,7 @@ public sealed class KpiService : IKpiService
             .ThenInclude(g => g.Grupo)
             .ToListAsync(cancellationToken);
         var grupos = await _db.Grupos.ToListAsync(cancellationToken);
-        var vendedores = usuarios.Where(u => u.Rol == RolUsuario.Vendedor).ToList();
+        var vendedores = usuarios.Where(u => RolConsola.EsVendedor(u.Rol)).ToList();
         var miembrosGrupo = request.GrupoId.HasValue
             ? vendedores.Where(v => v.UsuarioGrupos.Any(g => g.GrupoId == request.GrupoId)).Select(v => v.UsuarioId).ToHashSet()
             : vendedores.Select(v => v.UsuarioId).ToHashSet();

@@ -167,6 +167,11 @@ public sealed class DispositivoService : IDispositivoService
             return Result.Fail(UsuarioMessages.UsuarioNoEncontrado, 404);
         }
 
+        if (RolConsola.SoloSitioVendedor(usuario.Rol))
+        {
+            return Result.Fail(UsuarioMessages.VendedorWebSinDispositivo);
+        }
+
         var activasDispositivo = await _db.DispositivosUsuarios
             .Where(x => x.DispositivoId == dispositivoId && x.Activo)
             .ToListAsync(cancellationToken);

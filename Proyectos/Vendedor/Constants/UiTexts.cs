@@ -169,3 +169,8 @@ public static class AuthCookieNames
     public const string Scheme = "VendedorCookie";
     public const string AccessToken = "nr.vendedor.token";
 }
+
+public static class VendedorRoles
+{
+    public const string Sitio = "Vendedor,VendedorWeb";
+}

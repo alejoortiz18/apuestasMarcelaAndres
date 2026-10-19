@@ -313,7 +313,7 @@ public sealed class PremioService : IPremioService
                     : consulta.Data.Mensaje);
         }
 
-        if (solicitante.Rol == RolUsuario.Vendedor && boleto.Venta?.UsuarioId != solicitanteId)
+        if (RolConsola.EsVendedor(solicitante.Rol) && boleto.Venta?.UsuarioId != solicitanteId)
         {
             return Result<CasoGanadorResponse>.Fail(PremioMessages.TicketNoEsDelVendedor, 403);
         }

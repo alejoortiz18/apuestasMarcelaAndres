@@ -42,7 +42,7 @@ public sealed class AuthManualService : IAuthManualService
             return Result<LoginResponse>.Fail(AuthMessages.CredencialesInvalidas, 401);
         }
 
-        if (usuario.Rol != RolUsuario.Vendedor)
+        if (!RolConsola.EsVendedor(usuario.Rol))
         {
             return Result<LoginResponse>.Fail(AuthMessages.CredencialesInvalidas, 403);
         }

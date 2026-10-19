@@ -72,5 +72,5 @@ public static class ClaimsPrincipalExtensions
     }
 
     public static bool EsVendedor(this ClaimsPrincipal user) =>
-        user.IsInRole(nameof(RolUsuario.Vendedor));
+        user.IsInRole(nameof(RolUsuario.Vendedor)) || user.IsInRole(nameof(RolUsuario.VendedorWeb));
 }

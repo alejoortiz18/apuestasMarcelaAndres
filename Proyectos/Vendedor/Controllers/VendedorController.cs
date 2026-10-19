@@ -7,7 +7,7 @@ using NewRich.Vendedor.Services;
 
 namespace NewRich.Vendedor.Controllers;
 
-[Authorize(AuthenticationSchemes = AuthCookieNames.Scheme, Roles = "Vendedor")]
+[Authorize(AuthenticationSchemes = AuthCookieNames.Scheme, Roles = VendedorRoles.Sitio)]
 public abstract class VendedorController : Controller
 {
     protected void Nav(string clave, string titulo)

@@ -342,7 +342,7 @@ public sealed class UsuariosController : AdminControllerBase
             : redirect;
     }
 
-    /// <summary>Un vendedor siempre pertenece a un grupo; los demás perfiles no se agrupan.</summary>
+    /// <summary>Un vendedor siempre pertenece a un grupo; los demás perfiles no se agrupan y el vendedor web no lleva PDA.</summary>
     private void ValidarGrupo(UsuarioFormViewModel model)
     {
         if (model.Rol == RolUsuario.Vendedor && !model.GrupoId.HasValue)
@@ -354,6 +354,11 @@ public sealed class UsuariosController : AdminControllerBase
         if (model.Rol != RolUsuario.Vendedor && model.GrupoId.HasValue)
         {
             model.GrupoId = null;
+        }
+
+        if (RolConsola.SoloSitioVendedor(model.Rol))
+        {
+            model.DispositivoId = null;
         }
     }
 

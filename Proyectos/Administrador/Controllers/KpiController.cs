@@ -93,7 +93,7 @@ public sealed class KpiController : AdminControllerBase
         }
 
         var vendedores = (usuariosTask.Result.Data ?? [])
-            .Where(u => u.Rol == RolUsuario.Vendedor)
+            .Where(u => RolConsola.EsVendedor(u.Rol))
             .Where(u => !grupoId.HasValue || u.GrupoId == grupoId)
             .ToList();
         if (vendedorId.HasValue && vendedores.All(v => v.UsuarioId != vendedorId))

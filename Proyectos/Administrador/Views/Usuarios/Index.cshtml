@@ -25,7 +25,7 @@
                 <option value="">@UiTexts.TodosLosRoles</option>
                 @foreach (var rol in RolConsola.Asignables)
                 {
-                    <option value="@((int)rol)" selected="@(Model.Rol == (int)rol)">@rol</option>
+                    <option value="@((int)rol)" selected="@(Model.Rol == (int)rol)">@RolUi.Nombre(rol)</option>
                 }
             </select>
         </div>
@@ -80,7 +80,7 @@
                         </td>
                         <td><strong>@u.Usuario</strong></td>
                         <td>@u.NombreCompleto</td>
-                        <td>@u.Rol</td>
+                        <td>@RolUi.Nombre(u.Rol)</td>
                         <td>@(u.GrupoNombre ?? UiTexts.SinGrupo)</td>
                         <td>@(u.CodigoDispositivo ?? UiTexts.SinAsociar)</td>
                         <td><span class="pill @EstadoUi.Pill(estado)">@estado</span></td>

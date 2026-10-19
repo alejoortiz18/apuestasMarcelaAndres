@@ -295,6 +295,7 @@ a { color: inherit; }
 .login .primary { width: 100%; margin-top: 8px; }
 
 .hint { font-size: 11px; color: var(--muted); margin-top: 18px; padding: 10px; background: var(--paper); border-radius: 7px; }
+.hint[hidden] { display: none; }
 
 .app { display: grid; grid-template-columns: 248px 1fr; height: 100vh; min-height: 100vh; overflow: hidden; background: var(--paper); }
 .side {

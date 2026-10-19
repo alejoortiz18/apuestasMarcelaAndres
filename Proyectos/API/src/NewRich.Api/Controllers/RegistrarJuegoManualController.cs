@@ -5,7 +5,7 @@ using NewRich.Application.Services;
 
 namespace NewRich.Api.Controllers;
 
-[Authorize(Roles = "Vendedor")]
+[Authorize(Roles = "Vendedor,VendedorWeb")]
 public sealed class RegistrarJuegoManualController : ApiControllerBase
 {
     private readonly IRegistrarJuegoManualService _juegos;

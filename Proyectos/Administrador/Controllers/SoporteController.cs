@@ -45,7 +45,7 @@ public sealed class SoporteController : AdminControllerBase
         }
 
         var destinatarios = (usuariosTask.Result.Data ?? [])
-            .Where(u => u.Rol is RolUsuario.Vendedor or RolUsuario.Observador)
+            .Where(u => RolConsola.EsVendedor(u.Rol) || u.Rol == RolUsuario.Observador)
             .ToList();
 
         return View(new SoporteIndexViewModel

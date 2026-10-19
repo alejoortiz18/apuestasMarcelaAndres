@@ -625,6 +625,49 @@ public sealed class AuthServiceTests
         (await db.Dispositivos.CountAsync()).Should().Be(0);
     }
 
+    [Fact]
+    public async Task LoginManualAsync_vendedor_web_entra_al_sitio_del_vendedor()
+    {
+        var (_, db, usuario) = await CreateSutSinDispositivoAsync(RolUsuario.VendedorWeb);
+        var sut = new AuthManualService(db, new Pbkdf2PasswordHasher(), new JwtFalso(), new RelojFijo(new DateTime(2026, 9, 29, 20, 0, 0, DateTimeKind.Utc)));
+
+        var result = await sut.LoginAsync(new LoginRequest
+        {
+            Usuario = usuario.NombreUsuario,
+            Password = "Obs12345!"
+        }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue(result.Message);
+        result.Data!.Rol.Should().Be(RolUsuario.VendedorWeb);
+        result.Data.DispositivoId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task LoginAsync_vendedor_web_no_entra_por_el_pda_ni_por_el_administrador()
+    {
+        var (sut, db, usuario) = await CreateSutSinDispositivoAsync(RolUsuario.VendedorWeb);
+
+        var desdePda = await sut.LoginAsync(new LoginRequest
+        {
+            Usuario = usuario.NombreUsuario,
+            Password = "Obs12345!",
+            CodigoDispositivo = "CEL-RMX3710"
+        }, CancellationToken.None);
+        var desdeAdministrador = await sut.LoginAsync(new LoginRequest
+        {
+            Usuario = usuario.NombreUsuario,
+            Password = "Obs12345!"
+        }, CancellationToken.None);
+
+        desdePda.IsSuccess.Should().BeFalse();
+        desdePda.StatusCode.Should().Be(403);
+        desdePda.Message.Should().Be(AuthMessages.VendedorWebSoloSitioWeb);
+        desdeAdministrador.IsSuccess.Should().BeFalse();
+        desdeAdministrador.Message.Should().Be(AuthMessages.VendedorWebSoloSitioWeb);
+        (await db.Sesiones.CountAsync()).Should().Be(0);
+        (await db.Dispositivos.CountAsync()).Should().Be(0);
+    }
+
     private static async Task<(AuthService Sut, NewRichDbContext Db, Usuario Usuario)> CreateSutSinDispositivoAsync(RolUsuario rol)
     {
         var options = new DbContextOptionsBuilder<NewRichDbContext>()

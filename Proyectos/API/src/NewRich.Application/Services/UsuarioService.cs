@@ -77,6 +77,11 @@ public sealed class UsuarioService : IUsuarioService
             return Result<UsuarioResponse>.Fail(UsuarioMessages.SoloVendedoresPertenecenGrupos);
         }
 
+        if (RolConsola.SoloSitioVendedor(request.Rol) && request.DispositivoId.HasValue)
+        {
+            return Result<UsuarioResponse>.Fail(UsuarioMessages.VendedorWebSinDispositivo);
+        }
+
         if (request.GrupoId.HasValue &&
             !await _db.Grupos.AnyAsync(g => g.GrupoId == request.GrupoId.Value, cancellationToken))
         {
@@ -152,6 +157,11 @@ public sealed class UsuarioService : IUsuarioService
             await _db.Usuarios.AnyAsync(u => u.Documento == request.Documento && u.UsuarioId != usuarioId, cancellationToken))
         {
             return Result<UsuarioResponse>.Fail(UsuarioMessages.DocumentoDuplicado, 409);
+        }
+
+        if (RolConsola.SoloSitioVendedor(usuario.Rol) && request.DispositivoId.HasValue)
+        {
+            return Result<UsuarioResponse>.Fail(UsuarioMessages.VendedorWebSinDispositivo);
         }
 
         usuario.NombreCompleto = request.NombreCompleto.Trim();
@@ -342,7 +352,7 @@ public sealed class UsuarioService : IUsuarioService
             return Result<RestablecerPasswordResponse>.Fail(UsuarioMessages.UsuarioNoEncontrado, 404);
         }
 
-        if (rolSolicitante == RolUsuario.Observador && usuario.Rol != RolUsuario.Vendedor)
+        if (rolSolicitante == RolUsuario.Observador && !RolConsola.EsVendedor(usuario.Rol))
         {
             return Result<RestablecerPasswordResponse>.Fail(UsuarioMessages.ObservadorSoloVendedores);
         }
@@ -382,7 +392,7 @@ public sealed class UsuarioService : IUsuarioService
             return Result.Fail(UsuarioMessages.UsuarioNoEncontrado, 404);
         }
 
-        if (rolSolicitante == RolUsuario.Observador && usuario.Rol != RolUsuario.Vendedor)
+        if (rolSolicitante == RolUsuario.Observador && !RolConsola.EsVendedor(usuario.Rol))
         {
             return Result.Fail(UsuarioMessages.ObservadorSoloVendedores);
         }

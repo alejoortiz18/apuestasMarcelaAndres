@@ -42,7 +42,7 @@ public sealed class ChatService : IChatService
         }
 
         Guid destinoId;
-        if (iniciador.Rol == RolUsuario.Vendedor)
+        if (RolConsola.EsVendedor(iniciador.Rol))
         {
             var admin = await _db.Usuarios
                 .Where(u => (u.Rol == RolUsuario.Administrador || u.Rol == RolUsuario.Super) && u.Estado == EstadoUsuario.Activo)
@@ -73,7 +73,7 @@ public sealed class ChatService : IChatService
             else
             {
                 var destino = await _db.Usuarios.FirstOrDefaultAsync(u => u.UsuarioId == request.DestinoId, cancellationToken);
-                if (destino is null || destino.Rol == RolUsuario.Vendedor)
+                if (destino is null || RolConsola.EsVendedor(destino.Rol))
                 {
                     return Result<ConversacionResponse>.Fail(ChatMessages.ObservadorNoHablaConVendedor);
                 }
@@ -255,7 +255,7 @@ public sealed class ChatService : IChatService
             return Result<MensajeResponse>.Fail(UsuarioMessages.UsuarioNoEncontrado, 404);
         }
 
-        if (vendedor.Rol != RolUsuario.Vendedor)
+        if (!RolConsola.EsVendedor(vendedor.Rol))
         {
             return Result<MensajeResponse>.Fail(ChatMessages.SoporteTecnicoSoloLectura, 403);
         }

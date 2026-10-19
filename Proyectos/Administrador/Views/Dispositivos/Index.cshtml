@@ -93,7 +93,7 @@
                         <label for="usuarioIdAsociar">@UiTexts.UsuarioParaAsociar</label>
                         <select id="usuarioIdAsociar" name="usuarioId" class="searchable" disabled>
                             <option value="">@UiTexts.Seleccionar</option>
-                            @foreach (var u in Model.Usuarios.Where(x => x.Rol != RolUsuario.Administrador))
+                            @foreach (var u in Model.Usuarios.Where(x => x.Rol != RolUsuario.Administrador && !RolConsola.SoloSitioVendedor(x.Rol)))
                             {
                                 <option value="@u.UsuarioId">@u.NombreCompleto</option>
                             }

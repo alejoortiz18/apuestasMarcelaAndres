@@ -79,6 +79,11 @@ public sealed class AuthService : IAuthService
             return Result<LoginResponse>.Fail(AuthMessages.CredencialesInvalidas, 401);
         }
 
+        if (RolConsola.SoloSitioVendedor(usuario.Rol))
+        {
+            return Result<LoginResponse>.Fail(AuthMessages.VendedorWebSoloSitioWeb, 403);
+        }
+
         Guid? dispositivoId = null;
         if (usuario.Rol is RolUsuario.Vendedor or RolUsuario.Observador or RolUsuario.Recaudador)
         {

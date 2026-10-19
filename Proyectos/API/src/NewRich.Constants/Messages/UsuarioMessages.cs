@@ -15,6 +15,7 @@ public static class UsuarioMessages
     public const string NoPuedeEliminarseASiMismo = "Un usuario no puede eliminar su propia cuenta.";
     public const string SoloVendedoresPertenecenGrupos = "Solo los usuarios con perfil Vendedor pueden pertenecer a un grupo.";
     public const string GrupoRequeridoParaVendedor = "Selecciona el grupo al que pertenece el vendedor.";
+    public const string VendedorWebSinDispositivo = "El vendedor web solo usa el sitio web del vendedor y no se puede asociar a un PDA.";
 
     public const string GrupoNoEncontrado = "El grupo no existe.";
     public const string GrupoNombreDuplicado = "Ya existe un grupo con ese nombre.";

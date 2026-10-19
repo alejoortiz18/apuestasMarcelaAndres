@@ -6,13 +6,24 @@ public enum RolUsuario
     Vendedor = 2,
     Observador = 3,
     Super = 4,
-    Recaudador = 5
+    Recaudador = 5,
+    VendedorWeb = 6
 }
 
 public static class RolConsola
 {
     public static bool EsEquipoAdministrativo(RolUsuario rol) =>
         rol is RolUsuario.Administrador or RolUsuario.Super;
+
+    public static bool EsVendedor(RolUsuario rol) =>
+        rol is RolUsuario.Vendedor or RolUsuario.VendedorWeb;
+
+    /// <summary>
+    /// El vendedor web solo opera desde el sitio web del vendedor: no usa PDA, no pertenece
+    /// a grupos de recaudo y no entra al administrador.
+    /// </summary>
+    public static bool SoloSitioVendedor(RolUsuario rol) =>
+        rol is RolUsuario.VendedorWeb;
 
     /// <summary>
     /// Perfiles que se ofrecen al crear o editar usuarios. Super es la cuenta interna de
@@ -22,6 +33,7 @@ public static class RolConsola
     [
         RolUsuario.Administrador,
         RolUsuario.Vendedor,
+        RolUsuario.VendedorWeb,
         RolUsuario.Observador,
         RolUsuario.Recaudador
     ];

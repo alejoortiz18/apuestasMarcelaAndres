@@ -9,7 +9,7 @@
 <div class="receipt">
     <div class="receipt-row"><span>@UiTexts.Identificador</span><strong>@Model.Usuario</strong></div>
     <div class="receipt-row"><span>@UiTexts.Alias</span><strong>@(Model.Alias ?? UiTexts.NoAplica)</strong></div>
-    <div class="receipt-row"><span>@UiTexts.Rol</span><strong>@Model.Rol</strong></div>
+    <div class="receipt-row"><span>@UiTexts.Rol</span><strong>@RolUi.Nombre(Model.Rol)</strong></div>
     <div class="receipt-row"><span>@UiTexts.Grupo</span><strong>@(Model.GrupoNombre ?? UiTexts.SinGrupo)</strong></div>
     <div class="receipt-row"><span>@UiTexts.Estado</span><strong><span class="pill @EstadoUi.Pill(estado)">@estado</span></strong></div>
     <div class="receipt-row"><span>@UiTexts.PdaAsociado</span><strong>@(Model.CodigoDispositivo ?? UiTexts.SinAsociar)</strong></div>

@@ -97,7 +97,86 @@ public sealed class UsuarioCreacionTests
     [Fact]
     public void Los_roles_asignables_no_incluyen_super()
     {
-        RolConsola.Asignables.Should().Equal(RolUsuario.Administrador, RolUsuario.Vendedor, RolUsuario.Observador, RolUsuario.Recaudador);
+        RolConsola.Asignables.Should().Equal(
+            RolUsuario.Administrador, RolUsuario.Vendedor, RolUsuario.VendedorWeb, RolUsuario.Observador, RolUsuario.Recaudador);
+    }
+
+    [Fact]
+    public void El_vendedor_web_se_guarda_y_se_lee_con_su_nombre()
+    {
+        Enum.Parse<RolUsuario>("VendedorWeb").Should().Be((RolUsuario)6);
+    }
+
+    [Fact]
+    public void El_vendedor_web_vende_pero_solo_por_el_sitio_web()
+    {
+        RolConsola.EsVendedor(RolUsuario.VendedorWeb).Should().BeTrue();
+        RolConsola.EsVendedor(RolUsuario.Vendedor).Should().BeTrue();
+        RolConsola.EsVendedor(RolUsuario.Observador).Should().BeFalse();
+        RolConsola.SoloSitioVendedor(RolUsuario.VendedorWeb).Should().BeTrue();
+        RolConsola.SoloSitioVendedor(RolUsuario.Vendedor).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task CrearAsync_crea_el_vendedor_web_sin_grupo_ni_dispositivo()
+    {
+        var (sut, db) = CreateSut();
+
+        var result = await sut.CrearAsync(Solicitud(RolUsuario.VendedorWeb), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue(result.Message);
+        result.Data!.Rol.Should().Be(RolUsuario.VendedorWeb);
+        result.Data.GrupoId.Should().BeNull();
+        result.Data.DispositivoId.Should().BeNull();
+        (await db.Usuarios.SingleAsync()).Rol.Should().Be(RolUsuario.VendedorWeb);
+    }
+
+    [Fact]
+    public async Task CrearAsync_no_asocia_un_dispositivo_al_vendedor_web()
+    {
+        var (sut, db) = CreateSut();
+        var dispositivo = await AgregarDispositivoAsync(db);
+
+        var solicitud = Solicitud(RolUsuario.VendedorWeb);
+        solicitud.DispositivoId = dispositivo.DispositivoId;
+        var result = await sut.CrearAsync(solicitud, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Message.Should().Be(UsuarioMessages.VendedorWebSinDispositivo);
+        (await db.Usuarios.CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task CrearAsync_no_pone_en_grupo_al_vendedor_web()
+    {
+        var (sut, db) = CreateSut();
+        var grupo = await AgregarGrupoAsync(db, "Grupo Centro");
+
+        var solicitud = Solicitud(RolUsuario.VendedorWeb);
+        solicitud.GrupoId = grupo.GrupoId;
+        var result = await sut.CrearAsync(solicitud, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Message.Should().Be(UsuarioMessages.SoloVendedoresPertenecenGrupos);
+    }
+
+    [Fact]
+    public async Task ActualizarAsync_no_asocia_un_dispositivo_al_vendedor_web()
+    {
+        var (sut, db) = CreateSut();
+        var dispositivo = await AgregarDispositivoAsync(db);
+        var creado = await sut.CrearAsync(Solicitud(RolUsuario.VendedorWeb), CancellationToken.None);
+
+        var result = await sut.ActualizarAsync(creado.Data!.UsuarioId, new ActualizarUsuarioRequest
+        {
+            NombreCompleto = "Ana Vendedora",
+            Estado = EstadoUsuario.Activo,
+            DispositivoId = dispositivo.DispositivoId
+        }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Message.Should().Be(UsuarioMessages.VendedorWebSinDispositivo);
+        (await db.DispositivosUsuarios.CountAsync()).Should().Be(0);
     }
 
     [Fact]
@@ -187,6 +266,21 @@ public sealed class UsuarioCreacionTests
         db.Grupos.Add(grupo);
         await db.SaveChangesAsync();
         return grupo;
+    }
+
+    private static async Task<Dispositivo> AgregarDispositivoAsync(NewRichDbContext db)
+    {
+        var dispositivo = new Dispositivo
+        {
+            DispositivoId = Guid.NewGuid(),
+            CodigoDispositivo = "PDA-0001AAAA",
+            Tipo = TipoDispositivo.Vendedor,
+            Estado = EstadoGeneral.Activo,
+            FechaRegistro = DateTime.UtcNow
+        };
+        db.Dispositivos.Add(dispositivo);
+        await db.SaveChangesAsync();
+        return dispositivo;
     }
 
     private sealed class HasherFalso : IPasswordHasher

@@ -647,6 +647,7 @@
       return;
     }
     bindUsuarioGrupo(form);
+    bindUsuarioDispositivo(form);
     form.addEventListener("submit", function (event) {
       event.preventDefault();
       enviarUsuario(form).catch(function () {
@@ -688,7 +689,43 @@
     sincronizar();
   }
 
-  document.querySelectorAll("[data-usuario-form]").forEach(bindUsuarioGrupo);
+  // El vendedor web solo usa el sitio web del vendedor: no se le asocia PDA.
+  function bindUsuarioDispositivo(form) {
+    const rol = form.querySelector("[data-usuario-rol]");
+    const campo = form.querySelector("[data-usuario-sin-dispositivo]");
+    if (!rol || !campo) {
+      return;
+    }
+    const rolSinDispositivo = campo.getAttribute("data-usuario-sin-dispositivo");
+    const aviso = form.querySelector("[data-usuario-aviso-web]");
+    function sincronizarDispositivo() {
+      const sinDispositivo = rol.value === rolSinDispositivo;
+      campo.hidden = sinDispositivo;
+      if (aviso) {
+        aviso.hidden = !sinDispositivo;
+      }
+      const select = campo.querySelector("select");
+      if (!select) {
+        return;
+      }
+      select.disabled = sinDispositivo;
+      if (sinDispositivo) {
+        select.value = "";
+      }
+      const input = campo.querySelector(".search-select-input");
+      if (input) {
+        const option = select.options[select.selectedIndex];
+        input.value = option ? option.text : "";
+      }
+    }
+    rol.addEventListener("change", sincronizarDispositivo);
+    sincronizarDispositivo();
+  }
+
+  document.querySelectorAll("[data-usuario-form]").forEach(function (form) {
+    bindUsuarioGrupo(form);
+    bindUsuarioDispositivo(form);
+  });
 
   async function enviarUsuario(form) {
     const boton = form.querySelector("button[type=submit]");

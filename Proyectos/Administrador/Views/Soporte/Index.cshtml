@@ -19,7 +19,7 @@
             <select id="destinoId" name="destinoId" class="searchable">
                 @foreach (var u in Model.Destinatarios)
                 {
-                    <option value="@u.UsuarioId">@u.NombreCompleto (@u.Rol)</option>
+                    <option value="@u.UsuarioId">@u.NombreCompleto (@RolUi.Nombre(u.Rol))</option>
                 }
             </select>
         </div>
