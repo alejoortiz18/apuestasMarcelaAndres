@@ -1615,6 +1615,8 @@ a[data-offline-associate][hidden] { display: none; }
 .chat-compose-closed { color: var(--muted); font-size: 12px; }
 
 .metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.metric-grid.indicadores-utilidades { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.indicadores-utilidades .metric small { font-size: 20px; line-height: 1.2; }
 .metric { background: #f7faf8; border: 1px solid #e7efea; border-radius: 9px; padding: 13px; }
 .metric small { color: var(--muted); font-size: 10px; display: block; }
 .metric strong { display: block; font-size: 21px; margin: 7px 0 3px; }
@@ -1999,6 +2001,7 @@ button.jornada-filtro-opcion {
   .kpi-filter, .kpi-filter-extra { grid-template-columns: 1fr 1fr; }
   .kpi-filter button, .kpi-filter .secondary, .kpi-filter-extra .secondary { width: 100%; }
   .metric-grid { grid-template-columns: 1fr 1fr; }
+  .metric-grid.indicadores-utilidades { grid-template-columns: 1fr; }
   .cards { grid-template-columns: 1fr; }
   .panel { padding: 14px; }
   .toolbar { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }

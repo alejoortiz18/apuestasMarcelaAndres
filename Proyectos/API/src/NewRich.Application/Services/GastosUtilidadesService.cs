@@ -209,6 +209,9 @@ public sealed class GastosUtilidadesService : IGastosUtilidadesService
             .Select(g => new GastoPorDiaResponse(g.Key, g.Sum(f => f.Valor)))
             .OrderBy(d => d.Fecha)
             .ToList();
+        var ingresos = usuarioId is null
+            ? await SumarIngresosAsync(inicio, fin, cancellationToken)
+            : 0m;
 
         return Result<InformeGastosPropiosResponse>.Ok(
             new InformeGastosPropiosResponse(
@@ -223,7 +226,9 @@ public sealed class GastosUtilidadesService : IGastosUtilidadesService
                 anuladosValor,
                 anuladosCantidad,
                 porTipo,
-                porDia),
+                porDia,
+                ingresos,
+                usuarioId is null ? ingresos - total : 0m),
             UtilidadesMessages.Consultado);
     }
 
@@ -547,6 +552,67 @@ public sealed class GastosUtilidadesService : IGastosUtilidadesService
             UsuarioId = administradorId,
             Fecha = DateTime.UtcNow
         });
+    }
+
+    private async Task<decimal> SumarIngresosAsync(DateOnly inicio, DateOnly fin, CancellationToken cancellationToken)
+    {
+        var margenInicio = inicio.AddDays(-1).ToDateTime(TimeOnly.MinValue);
+        var margenFin = fin.AddDays(2).ToDateTime(TimeOnly.MinValue);
+        var vistos = new HashSet<Guid>();
+        decimal total = 0;
+
+        void Sumar(Guid id, DateTime fecha, decimal valor)
+        {
+            if (EnPeriodo(fecha, inicio, fin) && vistos.Add(id))
+            {
+                total += valor;
+            }
+        }
+
+        var ventas = await _db.Ventas.AsNoTracking()
+            .Where(v => v.FechaVenta >= margenInicio && v.FechaVenta < margenFin)
+            .Select(v => new { v.VentaId, v.FechaVenta, v.Total })
+            .ToListAsync(cancellationToken);
+        foreach (var venta in ventas)
+        {
+            Sumar(venta.VentaId, venta.FechaVenta, venta.Total);
+        }
+
+        var manuales = await _db.VentasManual.AsNoTracking()
+            .Where(v => v.FechaVenta >= margenInicio && v.FechaVenta < margenFin)
+            .Select(v => new { v.VentaId, v.FechaVenta, v.Total })
+            .ToListAsync(cancellationToken);
+        foreach (var venta in manuales)
+        {
+            Sumar(venta.VentaId, venta.FechaVenta, venta.Total);
+        }
+
+        var porFila = await _db.RegistrosJuegoManual.AsNoTracking()
+            .Where(r => r.FechaRegistro >= margenInicio && r.FechaRegistro < margenFin)
+            .Select(r => new { r.RegistroId, r.FechaRegistro, Valor = r.Filas.Sum(f => (decimal?)f.Valor) ?? 0m })
+            .ToListAsync(cancellationToken);
+        foreach (var registro in porFila)
+        {
+            Sumar(registro.RegistroId, registro.FechaRegistro, registro.Valor);
+        }
+
+        var numeros = await _db.RegistrosJuegoNumerosWebManual.AsNoTracking()
+            .Where(r => r.FechaRegistro >= margenInicio && r.FechaRegistro < margenFin)
+            .Select(r => new { r.RegistroId, r.FechaRegistro, r.ValorJugado })
+            .ToListAsync(cancellationToken);
+        foreach (var registro in numeros)
+        {
+            Sumar(registro.RegistroId, registro.FechaRegistro, registro.ValorJugado);
+        }
+
+        return total;
+    }
+
+    private static bool EnPeriodo(DateTime fecha, DateOnly inicio, DateOnly fin)
+    {
+        var local = fecha.Kind == DateTimeKind.Utc ? ZonaHorariaColombia.ALocal(fecha) : fecha;
+        var dia = DateOnly.FromDateTime(local);
+        return dia >= inicio && dia <= fin;
     }
 
     private async Task<bool> NombreOcupadoAsync(string nombre, Guid? excepto, CancellationToken cancellationToken)

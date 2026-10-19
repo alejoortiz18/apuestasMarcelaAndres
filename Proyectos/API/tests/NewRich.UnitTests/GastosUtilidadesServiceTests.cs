@@ -207,6 +207,60 @@ public sealed class GastosUtilidadesServiceTests
     }
 
     [Fact]
+    public async Task Informe_del_administrador_suma_cada_venta_una_vez_y_resta_los_gastos()
+    {
+        await using var db = Nueva();
+        var sut = new GastosUtilidadesService(db);
+        var usuario = Guid.NewGuid();
+        var repetida = Guid.NewGuid();
+        var dia = Hoy.ToDateTime(TimeOnly.Parse("10:00"));
+        var transporte = await TipoTransporte(sut);
+        await sut.RegistrarAsync(usuario, new RegistrarGastoRequest(transporte, Hoy, 20_000, "Mercado", "gasto-1"), CancellationToken.None);
+
+        db.Ventas.Add(new Venta { VentaId = repetida, UsuarioId = usuario, FechaVenta = dia, Total = 100_000 });
+        db.Juegos.Add(new Juego { JuegoId = Guid.NewGuid(), Valor = 100_000 });
+        db.VentasManual.Add(new VentaManual { VentaId = repetida, UsuarioId = usuario, FechaVenta = dia, Total = 80_000, IdempotencyKey = "rep" });
+        db.VentasManual.Add(new VentaManual { VentaId = Guid.NewGuid(), UsuarioId = usuario, FechaVenta = dia, Total = 50_000, IdempotencyKey = "man" });
+        db.Ventas.Add(new Venta { VentaId = Guid.NewGuid(), UsuarioId = usuario, FechaVenta = dia.AddDays(-2), Total = 9_000 });
+        var porFila = Guid.NewGuid();
+        db.RegistrosJuegoManual.Add(new RegistroJuegoManual
+        {
+            RegistroId = porFila,
+            UsuarioId = usuario,
+            FechaRegistro = dia,
+            CodigoPublico = "1",
+            IdempotencyKey = "fila",
+            Filas =
+            [
+                new FilaRegistroJuegoManual { FilaId = Guid.NewGuid(), RegistroId = porFila, Valor = 10_000, Numero = "1111" },
+                new FilaRegistroJuegoManual { FilaId = Guid.NewGuid(), RegistroId = porFila, Valor = 10_000, Numero = "2222" }
+            ]
+        });
+        var numeros = Guid.NewGuid();
+        db.RegistrosJuegoNumerosWebManual.Add(new RegistroJuegoNumerosWebManual
+        {
+            RegistroId = numeros,
+            UsuarioId = usuario,
+            FechaRegistro = dia,
+            CodigoPublico = "2",
+            ValorJugado = 30_000,
+            Apuestas =
+            [
+                new ApuestaRegistroJuegoNumerosWebManual { ApuestaId = Guid.NewGuid(), RegistroId = numeros, Numero = "3333", Valor = 15_000 },
+                new ApuestaRegistroJuegoNumerosWebManual { ApuestaId = Guid.NewGuid(), RegistroId = numeros, Numero = "4444", Valor = 15_000 }
+            ]
+        });
+        await db.SaveChangesAsync();
+
+        var informe = await sut.ConsultarInformeAsync("hoy", null, null, Hoy, CancellationToken.None);
+
+        informe.IsSuccess.Should().BeTrue(informe.Message);
+        informe.Data!.TotalIngresos.Should().Be(200_000);
+        informe.Data.TotalValor.Should().Be(20_000);
+        informe.Data.Ganancia.Should().Be(180_000);
+    }
+
+    [Fact]
     public async Task Catalogo_rechaza_un_nombre_que_ya_existe()
     {
         await using var db = Nueva();

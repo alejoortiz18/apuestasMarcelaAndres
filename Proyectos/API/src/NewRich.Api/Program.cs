@@ -21,6 +21,7 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddJuegoNumerosManual();
 builder.Services.AddHostedService<RetencionHistoricaWorker>();
+builder.Services.AddHostedService<RetencionJugadaManualWorker>();
 builder.Services.AddScoped<INotificacionTiempoReal, SignalRNotificacionTiempoReal>();
 builder.Services.AddScoped<IChatTiempoReal, SignalRChatTiempoReal>();
 builder.Services.AddScoped<ICodigosOfflineTiempoReal, SignalRCodigosOfflineTiempoReal>();

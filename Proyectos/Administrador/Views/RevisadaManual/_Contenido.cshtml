@@ -53,6 +53,7 @@
         <p>@Sub()</p>
     </div>
 </div>
+<div id="revisada-datos">
 <div class="stats">
     <article class="stat"><small>@UiTexts.JugadasVisibles</small><strong>@Model.Jugadas.ToString("N0", cultura)</strong></article>
     <article class="stat"><small>@UiTexts.LoteriasVisibles</small><strong>@Model.Loterias.ToString("N0", cultura)</strong></article>
@@ -244,12 +245,11 @@ else
     </div>
     @await Html.PartialAsync("_Pager", Model.Pagina)
 }
+</div>
 <script>
-    (function () {
+    window.iniciarRevisada = function () {
         var raiz = document.querySelector("[data-revisada-filtro]");
-        if (!raiz) {
-            return;
-        }
+        if (raiz) {
         var clave = "nr.revisada.loteria." + location.pathname;
         var botones = raiz.querySelectorAll(".revisada-nombre");
         var tarjetas = document.querySelectorAll(".revisada-loteria");
@@ -295,7 +295,7 @@ else
             });
         });
         aplicar(leer());
-    })();
+        }
     document.querySelectorAll(".revisada-orden-grupos").forEach(function (boton) {
         var seccion = boton.closest(".revisada-loteria");
         var lista = seccion.querySelector(".revisada-grupos");
@@ -329,6 +329,8 @@ else
             ordenar(guardado);
         }
     });
+    };
+    window.iniciarRevisada();
     document.querySelectorAll("[data-dos-digitos]").forEach(function (campo) {
         function limitar() {
             var digitos = String(campo.value || "").replace(/\D/g, "").slice(0, 2);
@@ -375,6 +377,54 @@ else
 @if (Model.Modo == "resumen")
 {
     <script>
-        setTimeout(function () { window.location.reload(); }, 60000);
+        (function () {
+            var ocupado = false;
+            async function refrescar() {
+                if (ocupado || document.hidden) {
+                    return;
+                }
+                var actual = document.getElementById("revisada-datos");
+                var panel = document.querySelector("main");
+                if (!actual) {
+                    return;
+                }
+                ocupado = true;
+                var scrollPanel = panel ? panel.scrollTop : window.scrollY;
+                var scrolls = {};
+                actual.querySelectorAll(".revisada-loteria").forEach(function (tarjeta) {
+                    scrolls[tarjeta.getAttribute("data-loteria") || ""] = tarjeta.scrollTop;
+                });
+                try {
+                    var respuesta = await fetch(location.href, { credentials: "same-origin", headers: { "X-Requested-With": "fetch" } });
+                    if (!respuesta.ok) {
+                        return;
+                    }
+                    var documento = new DOMParser().parseFromString(await respuesta.text(), "text/html");
+                    var nuevo = documento.getElementById("revisada-datos");
+                    if (!nuevo || nuevo.innerHTML === actual.innerHTML) {
+                        return;
+                    }
+                    actual.replaceWith(nuevo);
+                    if (panel) {
+                        panel.scrollTop = scrollPanel;
+                    } else {
+                        window.scrollTo(0, scrollPanel);
+                    }
+                    document.querySelectorAll(".revisada-loteria").forEach(function (tarjeta) {
+                        var nombre = tarjeta.getAttribute("data-loteria") || "";
+                        if (Object.prototype.hasOwnProperty.call(scrolls, nombre)) {
+                            tarjeta.scrollTop = scrolls[nombre];
+                        }
+                    });
+                    if (window.iniciarRevisada) {
+                        window.iniciarRevisada();
+                    }
+                } catch (error) {
+                } finally {
+                    ocupado = false;
+                }
+            }
+            setInterval(refrescar, 60000);
+        })();
     </script>
 }

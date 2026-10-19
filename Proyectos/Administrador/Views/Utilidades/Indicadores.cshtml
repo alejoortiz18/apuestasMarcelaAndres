@@ -10,7 +10,15 @@
 <div class="panel">
     <partial name="_Periodo" model="Model" />
 </div>
-<div class="metric-grid">
+<div class="metric-grid indicadores-utilidades">
+    <article class="metric">
+        <small>@UiTexts.TotalIngresos</small>
+        <strong>@Model.Ingresos</strong>
+    </article>
+    <article class="metric">
+        <small>@UiTexts.Ganancias</small>
+        <strong>@Model.Ganancia</strong>
+    </article>
     <article class="metric">
         <small>@UiTexts.TotalGastos</small>
         <strong>@Model.Total</strong>

@@ -23,6 +23,7 @@ public static class DependencyInjection
         services.AddScoped<IRegistrarJuegoManualService, RegistrarJuegoManualService>();
         services.AddScoped<IRegistrarJuegoNumerosWebManualService, RegistrarJuegoNumerosWebManualService>();
         services.AddScoped<IRevisadaManualService, RevisadaManualService>();
+        services.AddScoped<IRetencionJugadaManualService, RetencionJugadaManualService>();
         services.AddScoped<IParametrosRevisadaManualService, ParametrosRevisadaManualService>();
         services.AddScoped<IAuthManualService, AuthManualService>();
         services.AddScoped<IResultadoService, ResultadoService>();

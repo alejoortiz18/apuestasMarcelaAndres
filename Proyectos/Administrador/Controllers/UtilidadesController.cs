@@ -60,6 +60,8 @@ public sealed class UtilidadesController : AdminControllerBase
             Desde = desde,
             Hasta = hasta,
             PeriodoTexto = PeriodoTexto(datos.Desde, datos.Hasta),
+            Ingresos = FormatoPesos.De(datos.TotalIngresos),
+            Ganancia = FormatoPesos.De(datos.Ganancia),
             Total = FormatoPesos.De(datos.TotalValor),
             Cantidad = datos.Cantidad,
             Promedio = FormatoPesos.De(datos.Promedio),

@@ -18,6 +18,7 @@ public interface INewRichDbContext
     DbSet<Jornada> Jornadas { get; }
     DbSet<LoteriaDiaSemana> LoteriasDiasSemana { get; }
     DbSet<Venta> Ventas { get; }
+    DbSet<VentaManual> VentasManual { get; }
     DbSet<Boleto> Boletos { get; }
     DbSet<Juego> Juegos { get; }
     DbSet<JuegoLoteria> JuegoLoterias { get; }

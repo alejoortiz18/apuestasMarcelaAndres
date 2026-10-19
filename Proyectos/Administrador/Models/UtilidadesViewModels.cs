@@ -5,6 +5,8 @@ namespace NewRich.Admin.Models;
 
 public sealed class IndicadoresUtilidadesViewModel : PeriodoUtilidades
 {
+    public string Ingresos { get; init; } = FormatoPesos.De(0);
+    public string Ganancia { get; init; } = FormatoPesos.De(0);
     public string Total { get; init; } = FormatoPesos.De(0);
     public int Cantidad { get; init; }
     public string Promedio { get; init; } = FormatoPesos.De(0);

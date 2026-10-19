@@ -87,7 +87,9 @@ public sealed record InformeGastosPropiosResponse(
     decimal AnuladosValor,
     int AnuladosCantidad,
     IReadOnlyList<GastoPorTipoResponse> PorTipo,
-    IReadOnlyList<GastoPorDiaResponse> PorDia);
+    IReadOnlyList<GastoPorDiaResponse> PorDia,
+    decimal TotalIngresos,
+    decimal Ganancia);
 
 public sealed record MisGastosResponse(
     DateOnly Desde,

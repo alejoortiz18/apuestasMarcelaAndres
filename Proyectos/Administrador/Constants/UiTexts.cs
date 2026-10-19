@@ -878,7 +878,9 @@ public static class UiTexts
 
     public const string MenuUtilidades = "Utilidades";
     public const string NavUtilidadesIndicadores = "Indicadores";
-    public const string IndicadoresAyuda = "Informe de los gastos de todos los usuarios. No incluye ventas ni ganancia.";
+    public const string IndicadoresAyuda = "Informe de ingresos, ganancias y gastos de todos los usuarios.";
+    public const string TotalIngresos = "Total ingresos";
+    public const string Ganancias = "Ganancias";
     public const string TotalGastos = "Total de gastos";
     public const string CantidadGastos = "Cantidad";
     public const string GastoPromedio = "Gasto promedio";
