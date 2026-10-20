@@ -75,19 +75,9 @@ public sealed class DispositivosController : AdminControllerBase
 
     /// <summary>Asistente guiado. El administrador no escribe ni conoce el codigo del dispositivo.</summary>
     [HttpGet]
-    public IActionResult Crear(string? desde)
+    public IActionResult Crear()
     {
-        if (string.Equals(desde, "instalaciones", StringComparison.OrdinalIgnoreCase))
-        {
-            SetNav("instalaciones", UiTexts.RegistroPdaTitulo);
-            ViewData["CancelarController"] = "Instalaciones";
-            ViewData["CancelarAction"] = "Index";
-        }
-        else
-        {
-            SetNav("pda", UiTexts.RegistrarPda);
-        }
-
+        SetNav("pda", UiTexts.RegistrarPda);
         return View();
     }
 

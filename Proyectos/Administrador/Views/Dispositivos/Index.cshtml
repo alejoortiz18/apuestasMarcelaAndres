@@ -8,7 +8,10 @@
         <h1>@UiTexts.PdaTitulo</h1>
         <p>@UiTexts.PdaSub</p>
     </div>
-    <a class="primary" asp-action="Crear">@UiTexts.RegistrarPda</a>
+    <div class="heading-actions">
+        <a class="primary" asp-action="Crear">@UiTexts.RegistrarPda</a>
+        <a class="primary" asp-controller="Instalaciones" asp-action="Llave">@UiTexts.LlaveAdminGenerar</a>
+    </div>
 </div>
 <div class="panel">
     <form class="toolbar pda-toolbar" method="get">

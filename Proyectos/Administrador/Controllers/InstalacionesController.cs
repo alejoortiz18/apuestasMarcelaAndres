@@ -24,21 +24,10 @@ public sealed class InstalacionesController : AdminControllerBase
         _preparador = preparador;
     }
 
-    public IActionResult Index()
-    {
-        SetNav("instalaciones", UiTexts.NavInstalaciones);
-        return View();
-    }
-
-    public IActionResult Instalar()
-    {
-        return RedirectToAction("Crear", "Dispositivos", new { desde = "instalaciones" });
-    }
-
     [HttpGet]
     public async Task<IActionResult> Llave(CancellationToken cancellationToken)
     {
-        SetNav("instalaciones", UiTexts.LlaveAdminTitulo);
+        SetNav("pda", UiTexts.LlaveAdminTitulo);
         var modelo = await ArmarModeloAsync(new LlaveUsbViewModel(), cancellationToken);
         return View(modelo);
     }
@@ -47,7 +36,7 @@ public sealed class InstalacionesController : AdminControllerBase
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Llave(LlaveUsbViewModel modelo, CancellationToken cancellationToken)
     {
-        SetNav("instalaciones", UiTexts.LlaveAdminTitulo);
+        SetNav("pda", UiTexts.LlaveAdminTitulo);
         modelo = await ArmarModeloAsync(modelo, cancellationToken);
         if (modelo.UsuarioId == Guid.Empty)
         {
@@ -139,7 +128,7 @@ public sealed class InstalacionesController : AdminControllerBase
         }
 
         SetFlash(SuccessMessages.LlaveGenerada);
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction("Index", "Dispositivos");
     }
 
     private async Task<LlaveUsbViewModel> ArmarModeloAsync(LlaveUsbViewModel modelo, CancellationToken cancellationToken)

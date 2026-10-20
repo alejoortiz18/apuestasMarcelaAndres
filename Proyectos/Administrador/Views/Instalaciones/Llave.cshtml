@@ -15,7 +15,7 @@
         <h1>@UiTexts.LlaveAdminTitulo</h1>
         <p>@UiTexts.LlaveAdminSub</p>
     </div>
-    <a class="secondary" asp-action="Index">@UiTexts.Cancelar</a>
+    <a class="secondary" asp-controller="Dispositivos" asp-action="Index">@UiTexts.Cancelar</a>
 </div>
 @if (Model.Administradores.Count == 0)
 {

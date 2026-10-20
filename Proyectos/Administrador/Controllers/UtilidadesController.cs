@@ -100,7 +100,28 @@ public sealed class UtilidadesController : AdminControllerBase
     [HttpGet]
     public async Task<IActionResult> Movimientos(string? periodo, DateOnly? desde, DateOnly? hasta, Guid? usuarioId, Guid? tipoGastoId, string? estado, int page = 1, int pageSize = 10, CancellationToken cancellationToken = default)
     {
+        var formulario = await FormularioAsync(new RegistrarGastoAdminViewModel
+        {
+            FechaGasto = DateOnly.FromDateTime(ZonaHorariaColombia.ALocal(DateTime.UtcNow))
+        }, cancellationToken);
+        return await VistaMovimientosAsync(periodo, desde, hasta, usuarioId, tipoGastoId, estado, page, pageSize, formulario, false, cancellationToken);
+    }
+
+    private async Task<IActionResult> VistaMovimientosAsync(
+        string? periodo,
+        DateOnly? desde,
+        DateOnly? hasta,
+        Guid? usuarioId,
+        Guid? tipoGastoId,
+        string? estado,
+        int page,
+        int pageSize,
+        RegistrarGastoAdminViewModel formulario,
+        bool abrir,
+        CancellationToken cancellationToken)
+    {
         SetNav("utilidades-movimientos", UiTexts.NavUtilidadesMovimientos);
+        abrir = abrir || !string.IsNullOrWhiteSpace(formulario.Error);
         periodo = Normalizar(periodo);
         pageSize = PagingHelper.NormalizePageSize(pageSize);
         var consulta = await _api.UtilidadesMovimientosAsync(periodo, desde, hasta, usuarioId, tipoGastoId, estado, page, pageSize, cancellationToken);
@@ -115,7 +136,7 @@ public sealed class UtilidadesController : AdminControllerBase
         if (!consulta.Success || consulta.Data is null)
         {
             SetAvisoModal(consulta.Message);
-            return View(new MovimientosUtilidadesViewModel
+            return View("Movimientos", new MovimientosUtilidadesViewModel
             {
                 Periodo = periodo,
                 Desde = desde,
@@ -124,12 +145,14 @@ public sealed class UtilidadesController : AdminControllerBase
                 TipoGastoId = tipoGastoId,
                 Estado = estado ?? string.Empty,
                 Usuarios = usuarios.Data ?? [],
-                Tipos = tipos.Data ?? []
+                Tipos = tipos.Data ?? [],
+                Formulario = formulario,
+                AbrirModal = abrir
             });
         }
 
         var datos = consulta.Data;
-        return View(new MovimientosUtilidadesViewModel
+        return View("Movimientos", new MovimientosUtilidadesViewModel
         {
             Periodo = periodo,
             Desde = desde,
@@ -148,7 +171,9 @@ public sealed class UtilidadesController : AdminControllerBase
                 Page = page,
                 PageSize = pageSize,
                 TotalCount = datos.TotalFilas
-            }
+            },
+            Formulario = formulario,
+            AbrirModal = abrir
         });
     }
 
@@ -157,27 +182,43 @@ public sealed class UtilidadesController : AdminControllerBase
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Registrar(RegistrarGastoAdminViewModel model, string? periodo, DateOnly? desde, DateOnly? hasta, CancellationToken cancellationToken)
+    public async Task<IActionResult> Registrar(
+        RegistrarGastoAdminViewModel model,
+        string? periodo,
+        DateOnly? desde,
+        DateOnly? hasta,
+        string? volver,
+        Guid? usuarioId,
+        Guid? filtroTipo,
+        string? estado,
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken cancellationToken = default)
     {
+        var aMovimientos = string.Equals(volver, "movimientos", StringComparison.OrdinalIgnoreCase);
+        Task<IActionResult> Reabrir() => aMovimientos
+            ? VistaMovimientosAsync(periodo, desde, hasta, usuarioId, filtroTipo, estado, page, pageSize, model, true, cancellationToken)
+            : VistaResumenAsync(periodo, desde, hasta, model, true, cancellationToken);
+
         SetNav("utilidades-resumen", UiTexts.NavUtilidadesResumen);
         model = await FormularioAsync(model, cancellationToken);
         if (!Pesos(model.Valor, out var valor))
         {
             model.Error = UiTexts.ValorInvalido;
-            return await VistaResumenAsync(periodo, desde, hasta, model, true, cancellationToken);
+            return await Reabrir();
         }
 
         var tipo = model.Tipos.FirstOrDefault(t => t.Id == model.TipoGastoId);
         if (tipo is null)
         {
             model.Error = UiTexts.TipoGasto;
-            return await VistaResumenAsync(periodo, desde, hasta, model, true, cancellationToken);
+            return await Reabrir();
         }
 
         if (tipo.RequiereObservacion && string.IsNullOrWhiteSpace(model.Observacion))
         {
             model.Error = UiTexts.ObservacionObligatoria;
-            return await VistaResumenAsync(periodo, desde, hasta, model, true, cancellationToken);
+            return await Reabrir();
         }
 
         var guardado = await _api.UtilidadesRegistrarAsync(
@@ -192,11 +233,13 @@ public sealed class UtilidadesController : AdminControllerBase
         if (!guardado.Success || guardado.Data is null)
         {
             model.Error = guardado.Message;
-            return await VistaResumenAsync(periodo, desde, hasta, model, true, cancellationToken);
+            return await Reabrir();
         }
 
         SetAvisoModal(string.Format(Colombia, "{0} {1}, {2}, {3:dd-MM-yyyy}.", UiTexts.GuardarGasto, guardado.Data.Tipo, FormatoPesos.De(guardado.Data.Valor), guardado.Data.FechaGasto));
-        return RedirectToAction(nameof(Resumen), new { periodo, desde, hasta });
+        return aMovimientos
+            ? RedirectToAction(nameof(Movimientos), new { periodo, desde, hasta, usuarioId, tipoGastoId = filtroTipo, estado, page, pageSize })
+            : RedirectToAction(nameof(Resumen), new { periodo, desde, hasta });
     }
 
     [HttpPost]

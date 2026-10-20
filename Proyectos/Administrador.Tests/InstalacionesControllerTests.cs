@@ -1,8 +1,8 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
-using NewRich.Admin.Constants;
 using NewRich.Admin.Controllers;
+using NewRich.Admin.Models;
 using NewRich.Admin.Services;
 using NewRich.Admin.Services.Usb;
 
@@ -11,32 +11,16 @@ namespace NewRich.Admin.Tests;
 public sealed class InstalacionesControllerTests
 {
     [Fact]
-    public void Index_marca_el_menu_de_instalaciones()
+    public async Task Llave_marca_el_subitem_instalaciones_del_menu()
     {
-        var sut = Crear();
+        var api = new Mock<IAdminApiClient>();
+        api.Setup(a => a.ListarAdministradoresLlaveAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ApiCallResult<List<NewRich.Application.Services.UsuarioResponseMini>>.Ok([], "Listo."));
+        var sut = new InstalacionesController(api.Object, Mock.Of<IInventarioUsb>(), Mock.Of<IPreparadorLlaveUsb>());
 
-        var result = sut.Index();
+        var result = await sut.Llave(CancellationToken.None);
 
         result.Should().BeOfType<ViewResult>();
-        sut.ViewData["Nav"].Should().Be("instalaciones");
-        sut.ViewData["Crumb"].Should().Be(UiTexts.NavInstalaciones);
+        sut.ViewData["Nav"].Should().Be("pda");
     }
-
-    [Fact]
-    public void Instalar_envia_al_asistente_de_registrar_pda()
-    {
-        var sut = Crear();
-
-        var result = sut.Instalar().Should().BeOfType<RedirectToActionResult>().Subject;
-
-        result.ActionName.Should().Be("Crear");
-        result.ControllerName.Should().Be("Dispositivos");
-        result.RouteValues!["desde"].Should().Be("instalaciones");
-    }
-
-    private static InstalacionesController Crear() =>
-        new(
-            Mock.Of<IAdminApiClient>(),
-            Mock.Of<IInventarioUsb>(),
-            Mock.Of<IPreparadorLlaveUsb>());
 }

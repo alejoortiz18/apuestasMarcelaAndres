@@ -6,6 +6,10 @@
         <h1>@UiTexts.NavUtilidadesMovimientos</h1>
         <p>@UiTexts.UtilidadesMovimientosSub</p>
     </div>
+    <div class="heading-actions">
+        <button class="primary" type="button" data-open-gasto>@UiTexts.NavUtilidadesRegistrar</button>
+        <a class="primary" asp-action="Configuracion">@UiTexts.ConfigGastos</a>
+    </div>
 </div>
 <div class="panel">
     <form class="toolbar" method="get">
@@ -171,3 +175,23 @@
         </div>
     }
 </div>
+@{
+    var dialogo = new NewRich.Admin.Models.RegistrarGastoDialogoViewModel
+    {
+        Formulario = Model.Formulario,
+        Abrir = Model.AbrirModal,
+        Retorno = new Dictionary<string, string?>
+        {
+            ["periodo"] = Model.Periodo,
+            ["desde"] = Model.Desde?.ToString("yyyy-MM-dd"),
+            ["hasta"] = Model.Hasta?.ToString("yyyy-MM-dd"),
+            ["volver"] = "movimientos",
+            ["usuarioId"] = Model.UsuarioId?.ToString(),
+            ["filtroTipo"] = Model.TipoGastoId?.ToString(),
+            ["estado"] = Model.Estado,
+            ["page"] = Model.Pagina.Page.ToString(),
+            ["pageSize"] = Model.Pagina.PageSize.ToString()
+        }
+    };
+}
+<partial name="_RegistrarGasto" model="dialogo" />

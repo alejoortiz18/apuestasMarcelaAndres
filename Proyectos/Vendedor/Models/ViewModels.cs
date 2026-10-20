@@ -205,32 +205,6 @@ public static class Paginas
     }
 }
 
-public sealed class IndicadoresGastosViewModel
-{
-    public string Periodo { get; init; } = "mes";
-    public DateOnly? Desde { get; init; }
-    public DateOnly? Hasta { get; init; }
-    public string PeriodoTexto { get; init; } = string.Empty;
-    public string Total { get; init; } = "0";
-    public int Cantidad { get; init; }
-    public string Promedio { get; init; } = "0";
-    public string Mayor { get; init; } = "-";
-    public string MayorValor { get; init; } = "-";
-    public string? AnuladosTexto { get; init; }
-    public string SerieTitulo { get; init; } = string.Empty;
-    public IReadOnlyList<BarraIndicador> Tipos { get; init; } = [];
-    public IReadOnlyList<BarraIndicador> Serie { get; init; } = [];
-    public string? Aviso { get; init; }
-}
-
-public sealed class BarraIndicador
-{
-    public string Etiqueta { get; init; } = string.Empty;
-    public string Valor { get; init; } = string.Empty;
-    public string Detalle { get; init; } = string.Empty;
-    public int Porcentaje { get; init; }
-}
-
 public sealed class MisGastosViewModel
 {
     public string Periodo { get; init; } = "mes";

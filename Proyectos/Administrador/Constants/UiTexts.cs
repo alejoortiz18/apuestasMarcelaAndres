@@ -4,14 +4,17 @@ namespace NewRich.Admin.Constants;
 public static class UiTexts
 {
     public const string MenuVentas = "Ventas";
+    public const string MenuDirectorio = "Directorio";
+    public const string MenuConsultas = "Consultas";
+    public const string MenuInformacion = "Información";
     public const string MenuRecaudo = "Recaudo";
-    public const string NavConfigRecaudo = "Resumen";
-    public const string NavPanelRecaudo = "Panel";
+    public const string NavConfigRecaudo = "Panel";
+    public const string NavPanelRecaudo = "Resumen";
     public const string NavHistorialRecaudo = "Historial";
     public const string NavMetricasRecaudo = "Métricas";
     public const string NavDetalleRecaudo = "Detalle";
     public const string RecaudoKicker = "Recaudo";
-    public const string PanelRecaudoTitulo = "Panel de recaudo";
+    public const string PanelRecaudoTitulo = "Resumen";
     public const string PanelRecaudoSub = "Totales de cada recaudador en el periodo elegido.";
     public const string ConfigRecaudoTitulo = "Configuración de recaudo";
     public const string ConfigRecaudoSub = "Asigna grupos y vendedores, y define el porcentaje que deben entregar.";
@@ -292,6 +295,7 @@ public static class UiTexts
     public const string NavOffline = "Ventas offline";
     public const string NavPremios = "Casos de premios";
     public const string NavKpi = "KPI";
+    public const string NavInformes = "Informes";
     public const string NavNotificaciones = "Notificaciones";
     public const string NavSoporte = "Soporte";
     public const string NavAtencionCliente = "Atención al cliente";
@@ -363,13 +367,6 @@ public static class UiTexts
     public const string PdaAvisoOrden = "Orden recomendado: registra primero el PDA sin asociarlo. Luego crea el usuario y asocia un PDA disponible.";
     public const string RegistrarPda = "Registrar PDA";
     public const string InstalacionesKicker = "Equipos";
-    public const string InstalacionesTitulo = "Instalaciones";
-    public const string InstalacionesSub = "Instale la aplicación en un PDA o prepare una memoria USB como llave de administrador.";
-    public const string RegistroPdaTarjeta = "Registro PDA";
-    public const string RegistroPdaTarjetaAyuda = "El botón Instalar abre el mismo asistente de Registrar PDA: detecta el equipo por USB, instala la aplicación y lo deja asociado al sistema.";
-    public const string Instalar = "Instalar";
-    public const string LlaveAdminTarjeta = "Registrar llave de administrador";
-    public const string LlaveAdminTarjetaAyuda = "Prepare una memoria USB NTFS, asóciela a un administrador y úsela para ingresar a este computador.";
     public const string LlaveAdminTitulo = "Registrar llave de administrador";
     public const string LlaveAdminSub = "Seleccione el administrador, conecte una USB externa y genere la llave. Los datos de la memoria se eliminan al prepararla.";
     public const string LlaveAdminUsuario = "Usuario administrador";
@@ -878,8 +875,8 @@ public static class UiTexts
     public const string FechaValidacion = "Fecha de validación";
     public const string FechaAsignacion = "Fecha de asignación";
 
-    public const string MenuUtilidades = "Utilidades";
-    public const string NavUtilidadesIndicadores = "Indicadores";
+    public const string MenuUtilidades = "Contabilidad";
+    public const string NavUtilidadesIndicadores = "Utilidades";
     public const string IndicadoresAyuda = "Informe de ingresos, ganancias y gastos de todos los usuarios.";
     public const string TotalIngresos = "Total ingresos";
     public const string Ganancias = "Ganancias";
@@ -898,7 +895,8 @@ public static class UiTexts
     public const string NavUtilidadesMovimientos = "Movimientos";
     public const string NavUtilidadesRegistrar = "Registrar gasto";
     public const string NavUtilidadesConfiguracion = "Configuración de gastos";
-    public const string UtilidadesKicker = "Utilidades";
+    public const string ConfigGastos = "Config Gastos";
+    public const string UtilidadesKicker = "Contabilidad";
     public const string UtilidadesResumenSub = "Ingresos, gastos y ganancia del periodo. El ingreso todavía no se calcula.";
     public const string UtilidadesIngresos = "Ingresos";
     public const string UtilidadesGastos = "Gastos";

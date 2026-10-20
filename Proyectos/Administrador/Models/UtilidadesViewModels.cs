@@ -55,6 +55,15 @@ public sealed class MovimientosUtilidadesViewModel : PeriodoUtilidades
     public PagedViewModel<MovimientoGastoResponse> Pagina { get; init; } = new();
     public IReadOnlyList<UsuarioResponse> Usuarios { get; init; } = [];
     public IReadOnlyList<TipoGastoCatalogoResponse> Tipos { get; init; } = [];
+    public RegistrarGastoAdminViewModel Formulario { get; init; } = new();
+    public bool AbrirModal { get; init; }
+}
+
+public sealed class RegistrarGastoDialogoViewModel
+{
+    public RegistrarGastoAdminViewModel Formulario { get; init; } = new();
+    public bool Abrir { get; init; }
+    public IReadOnlyDictionary<string, string?> Retorno { get; init; } = new Dictionary<string, string?>();
 }
 
 public sealed class RegistrarGastoAdminViewModel

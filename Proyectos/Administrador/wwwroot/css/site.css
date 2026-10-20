@@ -440,6 +440,14 @@ a { color: inherit; }
   border-color: var(--gold2);
   box-shadow: inset 3px 0 0 var(--gold2);
 }
+.nav a.nav-parent { background: #102820; border: 1px solid var(--gold); border-radius: 12px; }
+.nav a.nav-parent:hover, .nav a.nav-parent:focus-visible { background: #1c3d34; color: #fff; }
+.nav a.nav-parent.active {
+  background: #1e463c;
+  color: #fff;
+  border-color: var(--gold2);
+  box-shadow: inset 3px 0 0 var(--gold2);
+}
 .nav-chevron { margin-left: auto; transition: transform 0.15s ease; }
 .nav-parent.abierto .nav-chevron { transform: rotate(180deg); }
 .nav-sub { display: grid; gap: 2px; padding: 2px 0 6px 14px; }
@@ -906,12 +914,6 @@ button.table-ver { font: inherit; }
 .module-card { padding: 18px; background: #fff; border: 1px solid var(--line); border-radius: 11px; }
 .module-card h3 { font-size: 15px; margin: 0 0 7px; }
 .module-card p { font-size: 12px; color: var(--muted); line-height: 1.5; margin: 0 0 15px; }
-.instalaciones-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 16px;
-  max-width: 860px;
-}
 .bar { height: 8px; background: #e8efeb; border-radius: 5px; overflow: hidden; }
 .bar span { display: block; height: 100%; background: var(--green); border-radius: 5px; }
 .empty { text-align: center; color: var(--muted); padding: 35px 15px; font-size: 13px; }

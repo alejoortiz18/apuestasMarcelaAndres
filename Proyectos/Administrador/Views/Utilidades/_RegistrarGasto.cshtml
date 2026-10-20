@@ -1,0 +1,44 @@
+@using NewRich.Admin.Constants
+@model NewRich.Admin.Models.RegistrarGastoDialogoViewModel
+<div id="gastoDialog" class="dialog-back@(Model.Abrir ? "" : " hidden")" role="dialog" aria-modal="true" aria-labelledby="gastoDialogTitle" data-gasto-dialog @(Model.Abrir ? null : "hidden")>
+    <div class="dialog dialog-gasto">
+        <h2 id="gastoDialogTitle">@UiTexts.NavUtilidadesRegistrar</h2>
+        <p>@UiTexts.RegistrarGastoSub</p>
+        <form method="post" asp-action="Registrar" data-gasto-form>
+            @Html.AntiForgeryToken()
+            @foreach (var campo in Model.Retorno)
+            {
+                <input type="hidden" name="@campo.Key" value="@campo.Value" />
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.Formulario.Error))
+            {
+                <p class="notice error" role="alert">@Model.Formulario.Error</p>
+            }
+            <div class="field">
+                <label for="TipoGastoId">@UiTexts.TipoGasto</label>
+                <select id="TipoGastoId" name="TipoGastoId" required>
+                    @foreach (var tipo in Model.Formulario.Tipos)
+                    {
+                        <option value="@tipo.Id" selected="@(Model.Formulario.TipoGastoId == tipo.Id)" data-requiere="@(tipo.RequiereObservacion ? "1" : "0")">@tipo.Nombre</option>
+                    }
+                </select>
+            </div>
+            <div class="field">
+                <label for="FechaGasto">@UiTexts.FechaGasto</label>
+                <input id="FechaGasto" name="FechaGasto" type="date" value="@Model.Formulario.FechaGasto.ToString("yyyy-MM-dd")" required />
+            </div>
+            <div class="field">
+                <label for="Valor">@UiTexts.Valor</label>
+                <input id="Valor" name="Valor" data-gasto-valor inputmode="numeric" value="@Model.Formulario.Valor" required />
+            </div>
+            <div class="field">
+                <label for="Observacion">@UiTexts.Observacion <span data-exige-marca hidden>*</span></label>
+                <textarea id="Observacion" name="Observacion" maxlength="500">@Model.Formulario.Observacion</textarea>
+            </div>
+            <div class="dialog-actions">
+                <button class="secondary" type="button" data-close-gasto>@UiTexts.Cancelar</button>
+                <button class="primary" type="submit">@UiTexts.GuardarGasto</button>
+            </div>
+        </form>
+    </div>
+</div>

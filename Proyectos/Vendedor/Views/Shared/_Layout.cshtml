@@ -4,8 +4,6 @@
     var nav = ViewData["Nav"] as string ?? "";
     var avisoModal = AvisoPagina.Texto(ViewData, TempData);
     string NavClass(string key) => nav == key ? "active" : "";
-    var menuVentasAbierto = nav is "inicio" or "vender" or "historico" or "alertas" or "validar" or "resultados" or "soporte" or "soporte-tecnico" or "entrega";
-    var menuUtilidadesAbierto = nav is "mis-gastos" or "indicadores" or "registrar-gasto";
     var inactividadMs = MinutosInactividadSesion.De(Context) * 60 * 1000;
 }
 <!DOCTYPE html>
@@ -32,32 +30,17 @@
             </span>
         </a>
         <nav class="nav" aria-label="Menu del vendedor">
-            <div class="nav-group" data-nav-group="ventas">
-                <button type="button" class="nav-parent@(menuVentasAbierto ? " abierto" : "")" aria-expanded="@(menuVentasAbierto ? "true" : "false")" aria-controls="submenu-ventas">
-                    <span>@UiTexts.MenuVentas</span>
-                    <svg class="nav-chevron" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                </button>
-                <div class="nav-sub" id="submenu-ventas" @(menuVentasAbierto ? null : "hidden")>
-                    <a class="@NavClass("inicio")" asp-controller="Inicio" asp-action="Index"><span>@UiTexts.Inicio</span></a>
-                    <a class="@NavClass("vender")" asp-controller="Vender" asp-action="Index"><span>@UiTexts.Vender</span></a>
-                    <a class="@NavClass("historico")" asp-controller="Historico" asp-action="Index"><span>@UiTexts.Historico</span></a>
-                    <a class="@NavClass("alertas")" asp-controller="Alertas" asp-action="Index"><span>@UiTexts.Alertas</span></a>
-                    <a class="@NavClass("validar")" asp-controller="Validar" asp-action="Index"><span>@UiTexts.ValidarTicket</span></a>
-                    <a class="@NavClass("resultados")" asp-controller="Resultados" asp-action="Index"><span>@UiTexts.Resultados</span></a>
-                    <a class="@NavClass("soporte")" asp-controller="Soporte" asp-action="Index"><span>@UiTexts.Atencion</span></a>
-                    <a class="@NavClass("soporte-tecnico")" asp-controller="Soporte" asp-action="Tecnico"><span>@UiTexts.SoporteTecnico</span></a>
-                    <a class="@NavClass("entrega")" asp-controller="EntregaPremio" asp-action="Index"><span>@UiTexts.EntregaPremio</span></a>
-                </div>
-            </div>
-            <div class="nav-group" data-nav-group="utilidades">
-                <button type="button" class="nav-parent@(menuUtilidadesAbierto ? " abierto" : "")" aria-expanded="@(menuUtilidadesAbierto ? "true" : "false")" aria-controls="submenu-utilidades">
-                    <span>@UiTexts.MenuUtilidades</span>
-                    <svg class="nav-chevron" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                </button>
-                <div class="nav-sub" id="submenu-utilidades" @(menuUtilidadesAbierto ? null : "hidden")>
-                    <a class="@NavClass("indicadores")" asp-controller="Gastos" asp-action="Indicadores"><span>@UiTexts.Indicadores</span></a>
-                    <a class="@NavClass("mis-gastos")" asp-controller="Gastos" asp-action="Index"><span>@UiTexts.MisGastos</span></a>
-                </div>
+            <div class="nav-group">
+                <a class="@NavClass("inicio")" asp-controller="Inicio" asp-action="Index"><span>@UiTexts.Inicio</span></a>
+                <a class="@NavClass("vender")" asp-controller="Vender" asp-action="Index"><span>@UiTexts.Vender</span></a>
+                <a class="@NavClass("historico")" asp-controller="Historico" asp-action="Index"><span>@UiTexts.Historico</span></a>
+                <a class="@NavClass("alertas")" asp-controller="Alertas" asp-action="Index"><span>@UiTexts.Alertas</span></a>
+                <a class="@NavClass("validar")" asp-controller="Validar" asp-action="Index"><span>@UiTexts.ValidarTicket</span></a>
+                <a class="@NavClass("resultados")" asp-controller="Resultados" asp-action="Index"><span>@UiTexts.Resultados</span></a>
+                <a class="@NavClass("soporte")" asp-controller="Soporte" asp-action="Index"><span>@UiTexts.Atencion</span></a>
+                <a class="@NavClass("soporte-tecnico")" asp-controller="Soporte" asp-action="Tecnico"><span>@UiTexts.SoporteTecnico</span></a>
+                <a class="@NavClass("entrega")" asp-controller="EntregaPremio" asp-action="Index"><span>@UiTexts.EntregaPremio</span></a>
+                <a class="@NavClass("mis-gastos")" asp-controller="Gastos" asp-action="Index"><span>@UiTexts.MisGastos</span></a>
             </div>
         </nav>
     </aside>

@@ -1966,26 +1966,6 @@ iniciarDiasVenta();
   });
 })();
 
-(function () {
-  document.querySelectorAll("[data-nav-group]").forEach(function (grupo) {
-    var boton = grupo.querySelector(".nav-parent");
-    var submenu = grupo.querySelector(".nav-sub");
-    if (!boton || !submenu) {
-      return;
-    }
-    boton.addEventListener("click", function () {
-      var abierto = boton.getAttribute("aria-expanded") === "true";
-      boton.setAttribute("aria-expanded", abierto ? "false" : "true");
-      boton.classList.toggle("abierto", !abierto);
-      if (abierto) {
-        submenu.setAttribute("hidden", "");
-      } else {
-        submenu.removeAttribute("hidden");
-      }
-    });
-  });
-})();
-
 (function filtrarTopesPorJornada() {
   var raiz = document.querySelector("[data-topes-jornadas]");
   if (!raiz) {
@@ -2272,6 +2252,9 @@ iniciarDiasVenta();
   const numeros = form.querySelector("[data-numeros]");
   const registrar = form.querySelector("[data-registrar]");
   const aviso = form.querySelector("[data-aviso]");
+  const valorMaximo = 999000;
+  const digitosValor = 6;
+  const valorMaximoTexto = "El valor máximo es 999.000.";
   let restringidos = [];
   try {
     restringidos = JSON.parse(form.getAttribute("data-restringidos") || "[]");
@@ -2294,7 +2277,7 @@ iniciarDiasVenta();
   }
 
   function aplicarPesos(input) {
-    const formateado = miles(input.value);
+    const formateado = miles(digitos(input.value).slice(0, digitosValor));
     if (input.value !== formateado) {
       input.value = formateado;
     }
@@ -2345,6 +2328,13 @@ iniciarDiasVenta();
     if (usadas.length === 0) {
       return "vacia";
     }
+    const excede = items.some(function (fila) {
+      const valor = fila.querySelector("[data-pesos]");
+      return Number(digitos(valor && valor.value)) > valorMaximo;
+    });
+    if (excede) {
+      return "excede";
+    }
     const completas = items.every(function (fila) {
       const loteria = fila.querySelector("[data-loteria]");
       const valor = fila.querySelector("[data-pesos]");
@@ -2372,6 +2362,9 @@ iniciarDiasVenta();
     }
     if (!valor || Number(valor) <= 0) {
       return { parte: "parcial", motivo: "Ingrese el valor jugado." };
+    }
+    if (Number(valor) > valorMaximo) {
+      return { parte: "parcial", motivo: valorMaximoTexto };
     }
     if (escritos.length === 0) {
       return { parte: "parcial", motivo: "Ingrese al menos un número a jugar." };
@@ -2437,6 +2430,8 @@ iniciarDiasVenta();
     registrar.disabled = !puede;
     if (!filasOn && !numerosOn) {
       aviso.textContent = "Marque un tipo de juego y complete los campos obligatorios.";
+    } else if (filasEstado === "excede" || numerosEstado.motivo === valorMaximoTexto) {
+      aviso.textContent = valorMaximoTexto;
     } else if (faltaFilas && faltaNumeros) {
       aviso.textContent = "Complete las filas y el juego números antes de registrar.";
     } else if (faltaFilas) {
