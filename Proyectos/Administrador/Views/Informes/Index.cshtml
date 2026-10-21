@@ -1,6 +1,299 @@
-@using NewRich.Admin.Constants
+﻿@using NewRich.Admin.Constants
+@using NewRich.Admin.Models
+@using NewRich.Constants
+@model InformesViewModel
+@{
+    var vendedores = Model.Vendedores;
+    var filtros = vendedores.Filtros;
+    var campos = new[]
+    {
+        new CampoFiltroInforme
+        {
+            Id = "informeGrupos", Modo = "modoGrupos", Nombre = "grupos", Titulo = UiTexts.InformeFiltrarGrupo,
+            TextoTodos = UiTexts.InformeTodosGrupos, TextoElegidos = UiTexts.InformeGruposEspecificos, Error = UiTexts.InformeEligeGrupo,
+            Opciones = vendedores.Grupos, Elegidos = filtros.Grupos?.ToHashSet(StringComparer.OrdinalIgnoreCase)
+        },
+        new CampoFiltroInforme
+        {
+            Id = "informeUsuarios", Modo = "modoUsuarios", Nombre = "usuarios", Titulo = UiTexts.InformeFiltrarUsuarios,
+            TextoTodos = UiTexts.InformeTodosUsuarios, TextoElegidos = UiTexts.InformeUsuariosEspecificos, Error = UiTexts.InformeEligeUsuario,
+            Opciones = vendedores.Usuarios, Elegidos = filtros.Usuarios?.Select(u => u.ToString()).ToHashSet(StringComparer.OrdinalIgnoreCase)
+        },
+        new CampoFiltroInforme
+        {
+            Id = "informeTipos", Modo = "modoTipos", Nombre = "tipos", Titulo = UiTexts.InformeFiltrarTipo,
+            TextoTodos = UiTexts.InformeTodosTipos, TextoElegidos = UiTexts.InformeTiposEspecificos, Error = UiTexts.InformeEligeTipo,
+            Opciones = vendedores.Tipos, Elegidos = filtros.Tipos?.Select(t => ((int)t).ToString()).ToHashSet()
+        }
+    };
+    var resumen = vendedores.Resumen;
+    var ventas = Model.Ventas;
+    var filtrosVentas = ventas.Filtros;
+    var camposVentas = new[]
+    {
+        new CampoFiltroInforme
+        {
+            Id = "informeVentasGrupos", Modo = "modoGrupos", Nombre = "grupos", Titulo = UiTexts.InformeFiltrarGrupo,
+            TextoTodos = UiTexts.InformeTodosGrupos, TextoElegidos = UiTexts.InformeGruposEspecificos, Error = UiTexts.InformeEligeGrupo,
+            Opciones = ventas.Grupos, Elegidos = filtrosVentas.Grupos?.Select(g => g.ToString()).ToHashSet(StringComparer.OrdinalIgnoreCase)
+        },
+        new CampoFiltroInforme
+        {
+            Id = "informeVentasSecciones", Modo = "modoSecciones", Nombre = "secciones", Titulo = UiTexts.InformeFiltrarSecciones,
+            TextoTodos = UiTexts.InformeTodasSecciones, TextoElegidos = UiTexts.InformeSeccionesEspecificas, Error = UiTexts.InformeEligeSeccion,
+            Opciones = ventas.Secciones, Elegidos = filtrosVentas.Secciones?.ToHashSet(StringComparer.OrdinalIgnoreCase)
+        }
+    };
+    var periodoVentas = string.IsNullOrWhiteSpace(filtrosVentas.Periodo) ? NewRich.Admin.Services.VentasInforme.Periodo7 : filtrosVentas.Periodo;
+    var esRango = periodoVentas == NewRich.Admin.Services.VentasInforme.PeriodoRango;
+}
+<link rel="stylesheet" href="~/css/informes.css" asp-append-version="true" />
+
 <div class="heading">
     <div>
         <h1>@UiTexts.NavInformes</h1>
+        <p>@UiTexts.InformesSub</p>
     </div>
 </div>
+
+<section class="panel informe-seccion" aria-labelledby="informeOpcionesTitulo">
+    <h2 id="informeOpcionesTitulo">@UiTexts.InformeOpcionesTitulo</h2>
+    <p class="panel-sub">@UiTexts.InformeOpcionesAyuda</p>
+    <div class="informe-tarjetas">
+        @foreach (var tarjeta in Model.Tarjetas)
+        {
+            <button type="button"
+                    class="informe-tarjeta@(tarjeta.Configurada ? " is-selected" : "")"
+                    disabled="@(!tarjeta.Habilitada)"
+                    aria-label="@string.Format(UiTexts.InformeConfigurar, tarjeta.Nombre)"
+                    aria-describedby="informeTarjeta-@tarjeta.Clave"
+                    aria-haspopup="@(tarjeta.Habilitada ? "dialog" : null)"
+                    data-informe-abrir="@(tarjeta.Habilitada ? tarjeta.Clave : null)">
+                @if (tarjeta.Configurada)
+                {
+                    <span class="informe-insignia">@UiTexts.InformeSeleccionada</span>
+                }
+                <span class="informe-tarjeta-icono" aria-hidden="true">
+                    @switch (tarjeta.Clave)
+                    {
+                        case CategoriasInforme.Vendedores:
+                            <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2" /><path d="M3.5 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5" /><path d="M15.5 5.2a3 3 0 0 1 0 5.6" /><path d="M17 14.3c2 .5 3.2 2.1 3.5 4.7" /></svg>
+                            break;
+                        case "utilidades-kpi":
+                            <svg viewBox="0 0 24 24"><path d="M4 20h16" /><path d="M6 17v-3" /><path d="M10 17v-6" /><path d="M14 17v-4" /><path d="M18 17V8" /><path d="m5 10 4-4 4 3 6-5" /></svg>
+                            break;
+                        case "ventas":
+                            <svg viewBox="0 0 24 24"><path d="M4 7a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v3a2 2 0 0 0 0 4v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3a2 2 0 0 0 0-4Z" /><path d="M10 9.5h4" /><path d="M10 14.5h4" /></svg>
+                            break;
+                        default:
+                            <svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M8 3v4" /><path d="M16 3v4" /><path d="M4 10h16" /><path d="M8 14h.01M12 14h.01M16 14h.01M8 17h.01M12 17h.01" /></svg>
+                            break;
+                    }
+                </span>
+                <span class="informe-tarjeta-nombre">@tarjeta.Nombre</span>
+                <span class="informe-tarjeta-descripcion" id="informeTarjeta-@tarjeta.Clave">@tarjeta.Descripcion</span>
+                @if (!string.IsNullOrWhiteSpace(tarjeta.Resumen))
+                {
+                    <span class="informe-tarjeta-resumen">@tarjeta.Resumen</span>
+                }
+            </button>
+        }
+    </div>
+</section>
+
+<section class="panel informe-seccion" aria-label="@UiTexts.InformeFiltrosTitulo">
+    @if (!vendedores.Configurada && !ventas.Configurada)
+    {
+        <p class="empty">@UiTexts.InformeFiltrosVacio</p>
+    }
+    @if (vendedores.Configurada)
+    {
+        <div class="informe-categoria">
+            <h2 id="informeTituloVendedores" class="informe-titulo-categoria">@UiTexts.InformeCategoriaVendedores</h2>
+            <article class="informe-config">
+                <div class="informe-config-datos">
+                    <h3>@UiTexts.InformeCategoriaVendedores</h3>
+                    <dl>
+                        @foreach (var detalle in vendedores.Detalle)
+                        {
+                            <div>
+                                <dt>@detalle.Etiqueta</dt>
+                                <dd>@detalle.Valor</dd>
+                            </div>
+                        }
+                    </dl>
+                    <p>@vendedores.ResumenCorto</p>
+                </div>
+                <button class="secondary" type="button" data-informe-abrir="@CategoriasInforme.Vendedores" aria-haspopup="dialog">@UiTexts.InformeEditarFiltros</button>
+            </article>
+            @if (Model.Informe is not null)
+            {
+                <partial name="_InformeVendedores" model="Model.Informe" />
+            }
+        </div>
+    }
+    @if (ventas.Configurada)
+    {
+        <div class="informe-categoria">
+            <h2 id="informeTituloVentas" class="informe-titulo-categoria">@UiTexts.InformeCategoriaVentas</h2>
+            <article class="informe-config">
+                <div class="informe-config-datos">
+                    <h3>@UiTexts.InformeCategoriaVentas</h3>
+                    <dl>
+                        @foreach (var detalle in ventas.Detalle)
+                        {
+                            <div>
+                                <dt>@detalle.Etiqueta</dt>
+                                <dd>@detalle.Valor</dd>
+                            </div>
+                        }
+                    </dl>
+                    <p>@UiTexts.InformeGruposVentasAyuda</p>
+                </div>
+                <button class="secondary" type="button" data-informe-abrir="@CategoriasInforme.Ventas" aria-haspopup="dialog">@UiTexts.InformeEditarFiltros</button>
+            </article>
+            @if (Model.InformeVentas is not null)
+            {
+                <partial name="_InformeVentas" model="Model.InformeVentas" />
+            }
+        </div>
+    }
+</section>
+
+<div id="informeVendedoresDialog" class="dialog-back hidden" role="dialog" aria-modal="true" aria-labelledby="informeVendedoresTitulo" data-informe-dialog="@CategoriasInforme.Vendedores" hidden>
+    <div class="dialog dialog-informe">
+        <h2 id="informeVendedoresTitulo">@UiTexts.InformeVendedoresTitulo</h2>
+        <p>@UiTexts.InformeVendedoresAyuda</p>
+        <form method="post" asp-action="GuardarVendedores" novalidate data-informe-form>
+            @Html.AntiForgeryToken()
+            <div class="informe-modal-cuerpo">
+                <div class="informe-filtros">
+                    @foreach (var campo in campos)
+                    {
+                        <partial name="_FiltroInforme" model="campo" />
+                    }
+                </div>
+                <aside class="informe-conteos" aria-labelledby="informeConteosTitulo"
+                       data-informe-conteos
+                       data-sin-coincidencias="@UiTexts.InformeSinCoincidencias"
+                       data-sin-vendedores="@UiTexts.InformeSinVendedores"
+                       data-seleccionados="@UiTexts.InformeSeleccionados">
+                    <h3 id="informeConteosTitulo">@UiTexts.InformeCantidadPersonal</h3>
+                    <dl class="informe-totales" aria-live="polite">
+                        <div>
+                            <dt>@UiTexts.InformePersonalRegistrado</dt>
+                            <dd data-informe-total>@resumen.TotalRegistrados</dd>
+                        </div>
+                        <div class="is-destacado">
+                            <dt>@UiTexts.InformeCumplenFiltros</dt>
+                            <dd data-informe-cumplen>@resumen.Cumplen</dd>
+                        </div>
+                    </dl>
+                    <h4>@UiTexts.InformePorTipo</h4>
+                    <ul class="informe-conteo-lista" data-informe-por-tipo>
+                        @foreach (var tipo in resumen.PorTipo)
+                        {
+                            <li><span>@tipo.Texto</span><strong>@tipo.Cantidad</strong></li>
+                        }
+                    </ul>
+                    <h4>@UiTexts.InformeVendedoresPorGrupo</h4>
+                    <ul class="informe-conteo-lista" data-informe-por-grupo>
+                        @foreach (var grupo in resumen.VendedoresPorGrupo)
+                        {
+                            <li><span>@grupo.Texto</span><strong>@grupo.Cantidad</strong></li>
+                        }
+                    </ul>
+                    <p class="informe-conteo-vacio" data-informe-por-grupo-vacio @(resumen.VendedoresPorGrupo.Count > 0 ? "hidden" : null)>@UiTexts.InformeSinVendedores</p>
+                    <h4>@UiTexts.InformeUsuariosIncluidos</h4>
+                    <ul class="informe-personas" data-informe-personas>
+                        @foreach (var persona in resumen.Usuarios)
+                        {
+                            <li><strong>@persona.Nombre</strong><small>@persona.Usuario · @persona.Tipo · @persona.Grupo</small></li>
+                        }
+                    </ul>
+                    <p class="informe-conteo-vacio" data-informe-personas-vacio @(resumen.Usuarios.Count > 0 ? "hidden" : null)>@UiTexts.InformeSinCoincidencias</p>
+                </aside>
+            </div>
+            <div class="dialog-actions informe-acciones">
+                @if (vendedores.Configurada)
+                {
+                    <button class="danger" type="submit" form="informeQuitarVendedores">@UiTexts.InformeQuitar</button>
+                }
+                <button class="secondary" type="button" data-informe-cerrar>@UiTexts.Cancelar</button>
+                <button class="primary" type="submit">@UiTexts.InformeGuardarSeleccion</button>
+            </div>
+        </form>
+        @if (vendedores.Configurada)
+        {
+            <form id="informeQuitarVendedores" method="post" asp-action="Quitar" hidden>
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="categoria" value="@CategoriasInforme.Vendedores" />
+            </form>
+        }
+    </div>
+</div>
+<script type="application/json" id="informeVendedoresDatos">@Html.Raw(vendedores.DatosJson)</script>
+
+<div id="informeVentasDialog" class="dialog-back hidden" role="dialog" aria-modal="true" aria-labelledby="informeVentasTitulo" data-informe-dialog="@CategoriasInforme.Ventas" data-seleccionados="@UiTexts.InformeSeleccionados" hidden>
+    <div class="dialog dialog-informe dialog-informe-ventas">
+        <h2 id="informeVentasTitulo">@UiTexts.InformeVentasTitulo</h2>
+        <p>@UiTexts.InformeVentasAyuda</p>
+        <form method="post" asp-action="GuardarVentas" novalidate data-informe-form>
+            @Html.AntiForgeryToken()
+            <div class="informe-filtros">
+                <fieldset class="informe-filtro" data-informe-periodo
+                          data-incompleto="@UiTexts.InformeRangoIncompleto"
+                          data-invalido="@UiTexts.InformeRangoInvalido"
+                          data-maximo="@UiTexts.InformeRangoMaximo"
+                          data-dias="@NewRich.Admin.Services.VentasInforme.DiasMaximos">
+                    <legend>@UiTexts.InformeFiltrarPeriodo</legend>
+                    <div class="informe-modo informe-periodos">
+                        @foreach (var opcion in ventas.Periodos)
+                        {
+                            <label class="informe-modo-opcion">
+                                <input type="radio" name="periodo" value="@opcion.Valor" checked="@(opcion.Valor == periodoVentas)" data-informe-periodo-opcion />
+                                <span>@opcion.Texto</span>
+                            </label>
+                        }
+                    </div>
+                    <div class="informe-rango" data-informe-rango hidden="@(!esRango)">
+                        <label class="field" for="informeVentasDesde">
+                            <span>@UiTexts.FechaInicial</span>
+                            <input id="informeVentasDesde" type="date" name="desde" value="@filtrosVentas.Desde?.ToString("yyyy-MM-dd")" max="@ventas.Hoy.ToString("yyyy-MM-dd")" data-informe-desde />
+                        </label>
+                        <label class="field" for="informeVentasHasta">
+                            <span>@UiTexts.FechaFinal</span>
+                            <input id="informeVentasHasta" type="date" name="hasta" value="@filtrosVentas.Hasta?.ToString("yyyy-MM-dd")" max="@ventas.Hoy.ToString("yyyy-MM-dd")" data-informe-hasta />
+                        </label>
+                        <p class="informe-rango-ayuda">@UiTexts.InformeRangoMaximo</p>
+                    </div>
+                    <p class="informe-error" role="alert" data-informe-error hidden></p>
+                </fieldset>
+                <div class="informe-filtro-grupo">
+                    <partial name="_FiltroInforme" model="camposVentas[0]" />
+                    <p class="informe-filtro-nota">@UiTexts.InformeGruposVentasAyuda</p>
+                </div>
+                <partial name="_FiltroInforme" model="camposVentas[1]" />
+            </div>
+            <div class="dialog-actions informe-acciones">
+                @if (ventas.Configurada)
+                {
+                    <button class="danger" type="submit" form="informeQuitarVentas">@UiTexts.InformeQuitar</button>
+                }
+                <button class="secondary" type="button" data-informe-cerrar>@UiTexts.Cancelar</button>
+                <button class="primary" type="submit">@UiTexts.InformeGuardarSeleccion</button>
+            </div>
+        </form>
+        @if (ventas.Configurada)
+        {
+            <form id="informeQuitarVentas" method="post" asp-action="Quitar" hidden>
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="categoria" value="@CategoriasInforme.Ventas" />
+            </form>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/informes.js" asp-append-version="true"></script>
+}

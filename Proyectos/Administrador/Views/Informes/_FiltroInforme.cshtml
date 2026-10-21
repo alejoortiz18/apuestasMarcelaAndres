@@ -1,0 +1,42 @@
+@using NewRich.Admin.Constants
+@model NewRich.Admin.Models.CampoFiltroInforme
+@{
+    var todos = Model.Elegidos is null;
+}
+<fieldset class="informe-filtro" data-informe-filtro="@Model.Nombre" data-error="@Model.Error">
+    <legend>@Model.Titulo</legend>
+    <div class="informe-modo">
+        <label class="informe-modo-opcion">
+            <input type="radio" name="@Model.Modo" value="todos" checked="@todos" data-informe-modo />
+            <span>@Model.TextoTodos</span>
+        </label>
+        <label class="informe-modo-opcion">
+            <input type="radio" name="@Model.Modo" value="elegidos" checked="@(!todos)" data-informe-modo />
+            <span>@Model.TextoElegidos</span>
+        </label>
+    </div>
+    <div class="informe-lista" id="@(Model.Id)Lista" data-informe-lista @(todos ? "hidden" : null)>
+        <label class="sr-only" for="@(Model.Id)Buscar">@UiTexts.BuscarOpcion</label>
+        <input id="@(Model.Id)Buscar" type="search" placeholder="@UiTexts.BuscarOpcion" autocomplete="off" data-informe-buscar />
+        <ul class="informe-opciones">
+            @foreach (var opcion in Model.Opciones)
+            {
+                <li data-informe-opcion data-texto="@opcion.Texto @opcion.Detalle">
+                    <label>
+                        <input type="checkbox" name="@Model.Nombre" value="@opcion.Valor" checked="@(Model.Elegidos?.Contains(opcion.Valor) == true)" />
+                        <span>
+                            <strong>@opcion.Texto</strong>
+                            @if (!string.IsNullOrWhiteSpace(opcion.Detalle))
+                            {
+                                <small>@opcion.Detalle</small>
+                            }
+                        </span>
+                    </label>
+                </li>
+            }
+        </ul>
+        <p class="informe-sin-opciones" data-informe-sin-opciones hidden>@UiTexts.SinResultadosOpcion</p>
+        <p class="informe-contador" data-informe-contador></p>
+    </div>
+    <p class="informe-error" role="alert" data-informe-error hidden></p>
+</fieldset>

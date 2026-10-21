@@ -66,6 +66,7 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
     public DbSet<TipoGasto> TiposGasto => Set<TipoGasto>();
     public DbSet<Gasto> Gastos => Set<Gasto>();
     public DbSet<AuditoriaCambioGasto> AuditoriaCambiosGasto => Set<AuditoriaCambioGasto>();
+    public DbSet<ConfiguracionInforme> ConfiguracionesInforme => Set<ConfiguracionInforme>();
 
     public async Task AsegurarEsquemaRetencionAsync(CancellationToken cancellationToken = default)
     {
@@ -172,6 +173,16 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
         }
 
         await Database.ExecuteSqlRawAsync(EsquemaParametrosRevisadaManual.Tablas, cancellationToken);
+    }
+
+    public async Task AsegurarEsquemaInformesAsync(CancellationToken cancellationToken = default)
+    {
+        if (!Database.IsRelational())
+        {
+            return;
+        }
+
+        await Database.ExecuteSqlRawAsync(EsquemaInformes.Tablas, cancellationToken);
     }
 
     public async Task<bool> IntentarBloquearRetencionAsync(CancellationToken cancellationToken = default)
@@ -450,6 +461,15 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
             e.Property(x => x.Numero).HasMaxLength(4);
             e.Property(x => x.Valor).HasColumnType("decimal(18,2)");
             e.HasOne(x => x.Registro).WithMany(x => x.Apuestas).HasForeignKey(x => x.RegistroId);
+        });
+
+        modelBuilder.Entity<ConfiguracionInforme>(e =>
+        {
+            e.ToTable("ConfiguracionesInforme", "informes");
+            e.HasKey(x => x.ConfiguracionId);
+            e.Property(x => x.Categoria).HasMaxLength(40);
+            e.Property(x => x.Filtros).HasColumnType("nvarchar(max)");
+            e.HasIndex(x => new { x.UsuarioId, x.Categoria }).IsUnique();
         });
 
         modelBuilder.Entity<ParametroRevisadaManual>(e =>

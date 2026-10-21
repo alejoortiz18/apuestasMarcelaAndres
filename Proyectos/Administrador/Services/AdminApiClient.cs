@@ -11,6 +11,7 @@ using NewRich.Application.Contracts.Configuracion;
 using NewRich.Application.Contracts.Consultas;
 using NewRich.Application.Contracts.Dispositivos;
 using NewRich.Application.Contracts.Grupos;
+using NewRich.Application.Contracts.Informes;
 using NewRich.Application.Contracts.Jornadas;
 using NewRich.Application.Contracts.Kpi;
 using NewRich.Application.Contracts.Loterias;
@@ -67,6 +68,9 @@ public interface IAdminApiClient
     Task<ApiCallResult<GrupoResponse>> CrearGrupoAsync(CrearGrupoRequest request, CancellationToken cancellationToken);
     Task<ApiCallResult<GrupoResponse>> ActualizarGrupoAsync(Guid id, ActualizarGrupoRequest request, CancellationToken cancellationToken);
     Task<ApiCallResult<object>> EliminarGrupoAsync(Guid id, CancellationToken cancellationToken);
+    Task<ApiCallResult<List<ConfiguracionInformeResponse>>> ListarConfiguracionesInformeAsync(CancellationToken cancellationToken);
+    Task<ApiCallResult<ConfiguracionInformeResponse>> GuardarConfiguracionInformeAsync(string categoria, string filtros, CancellationToken cancellationToken);
+    Task<ApiCallResult<object>> QuitarConfiguracionInformeAsync(string categoria, CancellationToken cancellationToken);
     Task<ApiCallResult<object>> AsignarVendedorGrupoAsync(Guid grupoId, Guid usuarioId, CancellationToken cancellationToken);
     Task<ApiCallResult<object>> DesasignarVendedorGrupoAsync(Guid usuarioId, CancellationToken cancellationToken);
 
@@ -255,6 +259,20 @@ public sealed class AdminApiClient : IAdminApiClient
 
     public Task<ApiCallResult<List<GrupoResponse>>> ListarGruposAsync(CancellationToken cancellationToken) =>
         SendAsync<List<GrupoResponse>>(HttpMethod.Get, "api/Grupos", null, true, cancellationToken);
+
+    public Task<ApiCallResult<List<ConfiguracionInformeResponse>>> ListarConfiguracionesInformeAsync(CancellationToken cancellationToken) =>
+        SendAsync<List<ConfiguracionInformeResponse>>(HttpMethod.Get, "api/Informes/configuraciones", null, true, cancellationToken);
+
+    public Task<ApiCallResult<ConfiguracionInformeResponse>> GuardarConfiguracionInformeAsync(string categoria, string filtros, CancellationToken cancellationToken) =>
+        SendAsync<ConfiguracionInformeResponse>(
+            HttpMethod.Put,
+            $"api/Informes/configuraciones/{Uri.EscapeDataString(categoria)}",
+            new GuardarConfiguracionInformeRequest { Filtros = filtros },
+            true,
+            cancellationToken);
+
+    public Task<ApiCallResult<object>> QuitarConfiguracionInformeAsync(string categoria, CancellationToken cancellationToken) =>
+        SendAsync<object>(HttpMethod.Delete, $"api/Informes/configuraciones/{Uri.EscapeDataString(categoria)}", null, true, cancellationToken);
 
     public Task<ApiCallResult<GrupoResponse>> ObtenerGrupoAsync(Guid id, CancellationToken cancellationToken) =>
         SendAsync<GrupoResponse>(HttpMethod.Get, $"api/Grupos/{id}", null, true, cancellationToken);

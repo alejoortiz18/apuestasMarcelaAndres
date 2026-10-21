@@ -21,7 +21,6 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddJuegoNumerosManual();
 builder.Services.AddHostedService<RetencionHistoricaWorker>();
-builder.Services.AddHostedService<RetencionJugadaManualWorker>();
 builder.Services.AddScoped<INotificacionTiempoReal, SignalRNotificacionTiempoReal>();
 builder.Services.AddScoped<IChatTiempoReal, SignalRChatTiempoReal>();
 builder.Services.AddScoped<ICodigosOfflineTiempoReal, SignalRCodigosOfflineTiempoReal>();
@@ -137,6 +136,7 @@ using (var alcance = app.Services.CreateScope())
     await db.AsegurarEsquemaRevisadaManualAsync(CancellationToken.None);
     await db.AsegurarEsquemaParametrosRevisadaManualAsync(CancellationToken.None);
     await db.AsegurarEsquemaUtilidadesAsync(CancellationToken.None);
+    await db.AsegurarEsquemaInformesAsync(CancellationToken.None);
     var super = alcance.ServiceProvider.GetRequiredService<NewRich.Application.Services.ISuperUsuarioAsegurador>();
     await super.AsegurarAsync(CancellationToken.None);
 }

@@ -53,6 +53,7 @@ public interface INewRichDbContext
     DbSet<TipoGasto> TiposGasto { get; }
     DbSet<Gasto> Gastos { get; }
     DbSet<AuditoriaCambioGasto> AuditoriaCambiosGasto { get; }
+    DbSet<ConfiguracionInforme> ConfiguracionesInforme { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     Task ExecuteInTransactionAsync(Func<CancellationToken, Task> action, CancellationToken cancellationToken = default);
@@ -65,6 +66,7 @@ public interface INewRichDbContext
     Task AsegurarEsquemaRevisadaManualAsync(CancellationToken cancellationToken = default);
     Task AsegurarEsquemaParametrosRevisadaManualAsync(CancellationToken cancellationToken = default);
     Task AsegurarEsquemaUtilidadesAsync(CancellationToken cancellationToken = default);
+    Task AsegurarEsquemaInformesAsync(CancellationToken cancellationToken = default);
     Task<bool> IntentarBloquearRetencionAsync(CancellationToken cancellationToken = default);
     void DescartarCambios();
 }

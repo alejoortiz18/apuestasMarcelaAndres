@@ -1,0 +1,204 @@
+@using System.Globalization
+@using NewRich.Admin.Constants
+@using NewRich.Admin.Models
+@using NewRich.Admin.Services
+@model InformeVendedoresViewModel
+@{
+    var cultura = CultureInfo.GetCultureInfo("es-CO");
+    string Numero(int valor) => valor.ToString("N0", cultura);
+    string Porc(decimal valor) => valor.ToString("0.#", cultura);
+    string Css(decimal valor) => valor.ToString("0.##", CultureInfo.InvariantCulture);
+    string Segmento(SegmentoInforme s) => string.Format(UiTexts.InformeSegmento, s.Texto, Numero(s.Cantidad), Porc(s.Porcentaje));
+
+    var partes = new List<string>();
+    var acumulado = 0m;
+    for (var i = 0; i < Model.PorTipo.Count; i++)
+    {
+        var fin = i == Model.PorTipo.Count - 1 ? 100m : Math.Min(100m, acumulado + Model.PorTipo[i].Porcentaje);
+        partes.Add($"var(--informe-tono-{i % 6 + 1}) {Css(acumulado)}% {Css(fin)}%");
+        acumulado = fin;
+    }
+    var dona = partes.Count == 0 ? "var(--line) 0 100%" : string.Join(", ", partes);
+    var porcInactivos = Model.Incluidos == 0 ? 0 : 100 - Model.PorcentajeActivos;
+    var sinGrupo = Model.VendedoresSinGrupo == 1
+        ? UiTexts.InformeMetricaUnSinGrupo
+        : string.Format(UiTexts.InformeMetricaVariosSinGrupo, Numero(Model.VendedoresSinGrupo));
+    var columnas = new (string Clave, string Texto)[]
+    {
+        (InformeVendedoresOrden.Nombre, UiTexts.InformeColumnaNombre),
+        (InformeVendedoresOrden.Usuario, UiTexts.Usuario),
+        (InformeVendedoresOrden.Documento, UiTexts.Documento),
+        (InformeVendedoresOrden.Tipo, UiTexts.Tipo),
+        (InformeVendedoresOrden.Grupo, UiTexts.Grupo),
+        (InformeVendedoresOrden.Estado, UiTexts.Estado)
+    };
+    string Etiqueta(string columna, string texto) => string.Format(
+        InformeVendedoresOrden.SiguienteDireccion(columna, Model.Orden, Model.Direccion) == "asc" ? UiTexts.OrdenarColumnaAsc : UiTexts.OrdenarColumnaDesc,
+        texto);
+}
+<div class="informe-reporte" aria-labelledby="informeReporteTitulo">
+    <header class="informe-reporte-head">
+        <div>
+            <h3 id="informeReporteTitulo">@UiTexts.InformeVendedoresNombre</h3>
+            <p>@string.Format(UiTexts.InformeCorte, Model.Corte.ToString("dd/MM/yyyy hh:mm tt", cultura))</p>
+        </div>
+    </header>
+
+    <div class="informe-metricas">
+        <div class="informe-metrica is-principal">
+            <small>@UiTexts.InformeMetricaIncluidos</small>
+            <strong>@Numero(Model.Incluidos)</strong>
+            <em>@string.Format(UiTexts.InformeMetricaIncluidosNota, Porc(Model.PorcentajeIncluidos), Numero(Model.TotalRegistrados))</em>
+        </div>
+        <div class="informe-metrica">
+            <small>@UiTexts.InformeMetricaVendedores</small>
+            <strong>@Numero(Model.Vendedores)</strong>
+            <em>@string.Format(UiTexts.InformeMetricaVendedoresNota, Porc(Model.PorcentajeVendedores))</em>
+        </div>
+        <div class="informe-metrica">
+            <small>@UiTexts.InformeMetricaGrupos</small>
+            <strong>@Numero(Model.GruposConVendedores)</strong>
+            <em>@sinGrupo</em>
+        </div>
+        <div class="informe-metrica@(Model.Inactivos > 0 ? " is-alerta" : "")">
+            <small>@UiTexts.InformeMetricaActivos</small>
+            <strong>@Numero(Model.Activos)</strong>
+            <em>@string.Format(UiTexts.InformeMetricaActivosNota, Porc(Model.PorcentajeActivos), Numero(Model.Inactivos))</em>
+        </div>
+    </div>
+
+    <div class="informe-graficos">
+        <section class="informe-grafico" aria-labelledby="informeGraficoTipos">
+            <h4 id="informeGraficoTipos">@UiTexts.InformeGraficoTipos</h4>
+            <p>@UiTexts.InformeGraficoTiposAyuda</p>
+            @if (Model.PorTipo.Count == 0)
+            {
+                <p class="empty">@UiTexts.InformeSinCoincidencias</p>
+            }
+            else
+            {
+                <div class="informe-dona-bloque">
+                    <div class="informe-dona" style="background: conic-gradient(@dona)" role="img" aria-label="@string.Join(". ", Model.PorTipo.Select(Segmento))">
+                        <span><strong>@Numero(Model.Incluidos)</strong><small>@UiTexts.InformeGraficoTiposCentro</small></span>
+                    </div>
+                    <ul class="informe-leyenda">
+                        @for (var i = 0; i < Model.PorTipo.Count; i++)
+                        {
+                            var tipo = Model.PorTipo[i];
+                            <li>
+                                <i class="informe-tono-@(i % 6 + 1)" aria-hidden="true"></i>
+                                <span>@tipo.Texto</span>
+                                <strong>@Numero(tipo.Cantidad)</strong>
+                                <small>@Porc(tipo.Porcentaje) %</small>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            }
+        </section>
+
+        <section class="informe-grafico" aria-labelledby="informeGraficoGrupos">
+            <h4 id="informeGraficoGrupos">@UiTexts.InformeGraficoGrupos</h4>
+            <p>@UiTexts.InformeGraficoGruposAyuda</p>
+            @if (Model.PorGrupo.Count == 0)
+            {
+                <p class="empty">@UiTexts.InformeSinVendedores</p>
+            }
+            else
+            {
+                <ul class="informe-barras">
+                    @foreach (var grupo in Model.PorGrupo)
+                    {
+                        <li>
+                            <div class="informe-barra-head">
+                                <span>@grupo.Texto</span>
+                                <strong>@Numero(grupo.Cantidad) <small>@Porc(grupo.Porcentaje) %</small></strong>
+                            </div>
+                            <div class="informe-barra" aria-hidden="true"><i style="width: @Css(grupo.Ancho)%"></i></div>
+                        </li>
+                    }
+                </ul>
+            }
+        </section>
+
+        <section class="informe-grafico informe-grafico-ancho" aria-labelledby="informeGraficoEstado">
+            <h4 id="informeGraficoEstado">@UiTexts.InformeGraficoEstado</h4>
+            <p>@UiTexts.InformeGraficoEstadoAyuda</p>
+            <div class="informe-estado" role="img"
+                 aria-label="@string.Format(UiTexts.InformeSegmento, UiTexts.InformeActivos, Numero(Model.Activos), Porc(Model.PorcentajeActivos)). @string.Format(UiTexts.InformeSegmento, UiTexts.InformeInactivos, Numero(Model.Inactivos), Porc(porcInactivos))">
+                @if (Model.Activos > 0)
+                {
+                    <i class="is-activo" style="width: @Css(Model.PorcentajeActivos)%"></i>
+                }
+                @if (Model.Inactivos > 0)
+                {
+                    <i class="is-inactivo" style="width: @Css(porcInactivos)%"></i>
+                }
+            </div>
+            <ul class="informe-leyenda informe-leyenda-linea">
+                <li><i class="is-activo" aria-hidden="true"></i><span>@UiTexts.InformeActivos</span><strong>@Numero(Model.Activos)</strong><small>@Porc(Model.PorcentajeActivos) %</small></li>
+                <li><i class="is-inactivo" aria-hidden="true"></i><span>@UiTexts.InformeInactivos</span><strong>@Numero(Model.Inactivos)</strong><small>@Porc(porcInactivos) %</small></li>
+            </ul>
+        </section>
+    </div>
+
+    <section class="informe-tabla" aria-labelledby="informeTablaTitulo">
+        <div class="informe-tabla-head">
+            <div>
+                <h4 id="informeTablaTitulo">@UiTexts.InformeTablaTitulo</h4>
+                <p>@UiTexts.InformeTablaAyuda</p>
+            </div>
+            <form method="get" asp-action="Index" class="informe-filas" data-submit-on-change>
+                <input type="hidden" name="orden" value="@Model.Orden" />
+                <input type="hidden" name="dir" value="@Model.Direccion" />
+                <label for="informePageSize">@UiTexts.FilasPorPagina</label>
+                <select id="informePageSize" name="pageSize">
+                    @foreach (var size in PagingHelper.PageSizes)
+                    {
+                        <option value="@size" selected="@(Model.Personal.PageSize == size)">@size</option>
+                    }
+                </select>
+            </form>
+        </div>
+        @if (Model.Personal.TotalCount == 0)
+        {
+            <p class="empty">@UiTexts.InformeSinCoincidencias</p>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table class="informe-table">
+                    <thead>
+                    <tr>
+                        @foreach (var columna in columnas)
+                        {
+                            var activa = Model.Orden == columna.Clave;
+                            <th aria-sort="@(activa ? (Model.Direccion == "asc" ? "ascending" : "descending") : null)">
+                                <a class="table-sort"
+                                   href="@Url.Action("Index", new { orden = columna.Clave, dir = InformeVendedoresOrden.SiguienteDireccion(columna.Clave, Model.Orden, Model.Direccion), pageSize = Model.Personal.PageSize })"
+                                   aria-label="@Etiqueta(columna.Clave, columna.Texto)">
+                                    @columna.Texto <span aria-hidden="true">@InformeVendedoresOrden.Marca(columna.Clave, Model.Orden, Model.Direccion)</span>
+                                </a>
+                            </th>
+                        }
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var persona in Model.Personal.Items)
+                    {
+                        <tr>
+                            <td><strong>@persona.Nombre</strong></td>
+                            <td>@persona.Usuario</td>
+                            <td>@(string.IsNullOrWhiteSpace(persona.Documento) ? "-" : persona.Documento)</td>
+                            <td>@persona.Tipo</td>
+                            <td>@persona.Grupo</td>
+                            <td><span class="pill @EstadoUi.Pill(persona.Estado)">@persona.Estado</span></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            <partial name="_Pager" model="Model.Personal" />
+        }
+    </section>
+</div>
