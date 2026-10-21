@@ -10,6 +10,8 @@ using NewRich.Admin.Models;
 using NewRich.Admin.Services;
 using NewRich.Application.Contracts.Grupos;
 using NewRich.Application.Contracts.Informes;
+using NewRich.Application.Contracts.Kpi;
+using NewRich.Application.Contracts.Recaudo;
 using NewRich.Application.Contracts.Usuarios;
 using NewRich.Constants;
 using NewRich.Domain.Enums;
@@ -33,7 +35,8 @@ public sealed class InformesControllerTests
         sut.ViewData["Title"].Should().Be(UiTexts.NavInformes);
         var modelo = result.Should().BeOfType<ViewResult>().Subject.Model.Should().BeOfType<InformesViewModel>().Subject;
         modelo.Tarjetas.Select(t => (t.Clave, t.Habilitada)).Should().Equal(
-            (CategoriasInforme.Vendedores, true), ("utilidades-kpi", false), (CategoriasInforme.Ventas, true), ("mas-categorias", false));
+            (CategoriasInforme.Vendedores, true), (CategoriasInforme.Ventas, true),
+            (CategoriasInforme.Egresos, true), (CategoriasInforme.Recaudo, true));
         modelo.Tarjetas[0].Configurada.Should().BeTrue();
         modelo.Vendedores.Filtros.Tipos.Should().Equal(RolUsuario.Vendedor);
         modelo.Vendedores.Resumen.Cumplen.Should().Be(1);
@@ -84,35 +87,71 @@ public sealed class InformesControllerTests
         sut.TempData["AvisoModal"].Should().Be(UiTexts.InformeEligeGrupo);
     }
 
-    [Fact]
-    public async Task Guardar_ventas_envia_periodo_grupos_y_secciones()
+    [Theory]
+    [InlineData(CategoriasInforme.Ventas)]
+    [InlineData(CategoriasInforme.Egresos)]
+    [InlineData(CategoriasInforme.Recaudo)]
+    public async Task Guardar_periodo_envia_periodo_y_grupos_a_su_categoria(string categoria)
     {
         string? enviado = null;
         var grupo = Guid.NewGuid();
         var api = Api();
-        api.Setup(a => a.GuardarConfiguracionInformeAsync(CategoriasInforme.Ventas, It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        api.Setup(a => a.GuardarConfiguracionInformeAsync(categoria, It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Callback<string, string, CancellationToken>((_, filtros, _) => enviado = filtros)
             .ReturnsAsync(ApiCallResult<ConfiguracionInformeResponse>.Ok(new(), "Guardado."));
         var sut = Crear(api.Object);
 
-        await sut.GuardarVentas("15", null, null, "elegidos", [grupo], "elegidos", ["egresos", "otra"], CancellationToken.None);
+        await sut.GuardarPeriodo(categoria, "15", null, null, "elegidos", [grupo], CancellationToken.None);
 
-        var filtros = JsonSerializer.Deserialize<FiltrosVentasInforme>(enviado!, new JsonSerializerOptions(JsonSerializerDefaults.Web))!;
+        var filtros = JsonSerializer.Deserialize<FiltrosPeriodoInforme>(enviado!, new JsonSerializerOptions(JsonSerializerDefaults.Web))!;
         filtros.Periodo.Should().Be("15");
         filtros.Grupos.Should().Equal(grupo);
-        filtros.Secciones.Should().Equal("egresos");
+        sut.TempData["AvisoModal"].Should().Be("Guardado.");
     }
 
     [Fact]
-    public async Task Guardar_ventas_con_rango_mayor_a_31_dias_no_llama_la_api()
+    public async Task Guardar_periodo_con_rango_mayor_a_31_dias_no_llama_la_api()
     {
         var api = Api();
         var sut = Crear(api.Object);
 
-        await sut.GuardarVentas("rango", new DateOnly(2026, 8, 1), new DateOnly(2026, 10, 1), "todos", null, "todos", null, CancellationToken.None);
+        await sut.GuardarPeriodo(CategoriasInforme.Egresos, "rango", new DateOnly(2026, 8, 1), new DateOnly(2026, 10, 1), "todos", null, CancellationToken.None);
 
         api.Verify(a => a.GuardarConfiguracionInformeAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
         sut.TempData["AvisoModal"].Should().Be(UiTexts.InformeRangoMaximo);
+    }
+
+    [Fact]
+    public async Task Guardar_periodo_rechaza_una_categoria_sin_periodo()
+    {
+        var api = Api();
+        var sut = Crear(api.Object);
+
+        await sut.GuardarPeriodo(CategoriasInforme.Vendedores, "7", null, null, "todos", null, CancellationToken.None);
+
+        api.Verify(a => a.GuardarConfiguracionInformeAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        sut.TempData["AvisoModal"].Should().Be(UiTexts.InformeCategoriaInvalida);
+    }
+
+    [Fact]
+    public async Task Index_con_recaudo_guardado_arma_solo_el_informe_de_recaudo()
+    {
+        var api = Api();
+        api.Setup(a => a.ListarConfiguracionesInformeAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ApiCallResult<List<ConfiguracionInformeResponse>>.Ok(
+                [new() { Categoria = CategoriasInforme.Recaudo, Filtros = """{"periodo":"hoy"}""" }], "Listo."));
+        api.Setup(a => a.TableroRecaudoAsync(It.IsAny<DateOnly>(), It.IsAny<DateOnly>(), null, null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ApiCallResult<TableroRecaudoResponse>.Ok(new() { TotalRecaudado = 80m, TotalPendiente = 20m }, "Listo."));
+        var sut = Crear(api.Object);
+
+        var result = await sut.Index(null, null, cancellationToken: CancellationToken.None);
+
+        var modelo = result.Should().BeOfType<ViewResult>().Subject.Model.Should().BeOfType<InformesViewModel>().Subject;
+        modelo.InformeRecaudo!.Recaudo!.Recaudado.Should().Be(80m);
+        modelo.InformeVentas.Should().BeNull();
+        modelo.InformeEgresos.Should().BeNull();
+        modelo.Tarjetas.Single(t => t.Clave == CategoriasInforme.Recaudo).Configurada.Should().BeTrue();
+        api.Verify(a => a.ConsultarKpiAsync(It.IsAny<KpiRequest>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

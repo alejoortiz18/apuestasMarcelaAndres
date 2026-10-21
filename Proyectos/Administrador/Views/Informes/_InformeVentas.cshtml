@@ -1,4 +1,4 @@
-@using System.Globalization
+﻿@using System.Globalization
 @using NewRich.Admin.Constants
 @using NewRich.Admin.Models
 @using NewRich.Admin.Services
@@ -15,26 +15,10 @@
         : Math.Abs(valor) >= 1_000m
             ? string.Format(UiTexts.InformeMiles, Math.Round(valor / 1_000m, 0, MidpointRounding.AwayFromZero).ToString("0", cultura))
             : valor.ToString("0", cultura);
-    string Segmento(SegmentoValorInforme s) => string.Format(UiTexts.InformeSegmento, s.Texto, Pesos(s.Valor), Porc(s.Porcentaje));
     string Fecha(DateOnly fecha) => fecha.ToString("dd/MM/yyyy", cultura);
     string Periodo() => Model.Desde == Model.Hasta ? Fecha(Model.Desde) : string.Format(UiTexts.InformeRangoTexto, Fecha(Model.Desde), Fecha(Model.Hasta));
 
-    string Dona(IReadOnlyList<SegmentoValorInforme> segmentos)
-    {
-        var partes = new List<string>();
-        var acumulado = 0m;
-        var conValor = segmentos.Where(s => s.Valor > 0).ToList();
-        for (var i = 0; i < conValor.Count; i++)
-        {
-            var fin = i == conValor.Count - 1 ? 100m : Math.Min(100m, acumulado + conValor[i].Porcentaje);
-            partes.Add($"var(--informe-tono-{i % 6 + 1}) {Css(acumulado)}% {Css(fin)}%");
-            acumulado = fin;
-        }
-        return partes.Count == 0 ? "var(--line) 0 100%" : string.Join(", ", partes);
-    }
-
     var ganancia = r.Ganancias > 0 ? " is-positivo" : r.Ganancias < 0 ? " is-negativo" : "";
-    var conceptos = Model.Egresos.Conceptos.Where(c => c.Valor > 0).ToList();
     var mayorDia = Model.Ingresos.Dias.Count == 0 ? 0m : Model.Ingresos.Dias.Max(d => d.Total);
     var conservar = (string[] quitar) => Context.Request.Query.Where(q => !quitar.Contains(q.Key, StringComparer.OrdinalIgnoreCase));
 }
@@ -78,423 +62,151 @@
         </div>
     </div>
 
-    @if (Model.VerIngresos)
-    {
-        <section class="informe-bloque" aria-labelledby="informeVentasIngresos">
-            <header class="informe-bloque-head">
-                <h4 id="informeVentasIngresos">@UiTexts.InformeSeccionIngresos</h4>
-                <p>@UiTexts.InformeSeccionIngresosAyuda</p>
-            </header>
-            <div class="informe-graficos">
-                <section class="informe-grafico informe-grafico-ancho" aria-labelledby="informeVentasPorDia">
-                    <h5 id="informeVentasPorDia">@UiTexts.InformeIngresosPorDia</h5>
-                    <p>@UiTexts.InformeIngresosPorDiaAyuda</p>
-                    <dl class="informe-datos">
-                        <div>
-                            <dt>@UiTexts.InformeIngresosPromedio</dt>
-                            <dd>@Pesos(Model.Ingresos.PromedioDiario)</dd>
-                        </div>
-                        <div>
-                            <dt>@UiTexts.InformeIngresosTicket</dt>
-                            <dd>@Pesos(Model.Ingresos.TicketPromedio)</dd>
-                        </div>
-                        <div>
-                            <dt>@UiTexts.InformeIngresosMejorDia</dt>
-                            <dd>
-                                @if (Model.Ingresos.MejorDia is { } mejor)
-                                {
-                                    @Pesos(mejor.Total) <small>@Fecha(mejor.Fecha)</small>
-                                }
-                                else
-                                {
-                                    @("-")
-                                }
-                            </dd>
-                        </div>
-                        <div>
-                            <dt>@UiTexts.InformeIngresosDiasVenta</dt>
-                            <dd>@string.Format(UiTexts.InformeDiasDe, Numero(Model.Ingresos.DiasConVentas), Numero(Model.Ingresos.Dias.Count))</dd>
-                        </div>
-                    </dl>
-                    @if (mayorDia <= 0)
-                    {
-                        <p class="empty">@UiTexts.InformeSinIngresos</p>
-                    }
-                    else
-                    {
-                        <div class="informe-dias informe-ventas-dias" role="img"
-                             aria-label="@UiTexts.InformeIngresosPorDia: @string.Join(". ", Model.Ingresos.Dias.Select(d => $"{Fecha(d.Fecha)} {Pesos(d.Total)}"))">
-                            @foreach (var dia in Model.Ingresos.Dias)
-                            {
-                                <div class="informe-dia" title="@Fecha(dia.Fecha) · @Pesos(dia.Total) · @string.Format(UiTexts.InformeIngresosVentas, Numero(dia.Ventas))">
-                                    <span class="informe-dia-valor">@Corto(dia.Total)</span>
-                                    <div class="informe-dia-pista">
-                                        <i style="height: @Css(dia.Alto == 0 ? 0 : Math.Max(dia.Alto, 8))%"></i>
-                                    </div>
-                                    <span class="informe-dia-fecha">@dia.Fecha.ToString("dd/MM", cultura)</span>
-                                </div>
-                            }
-                        </div>
-                    }
-                </section>
-
-                <section class="informe-grafico informe-grafico-ancho" aria-labelledby="informeVentasPorGrupo">
-                    <h5 id="informeVentasPorGrupo">@UiTexts.InformeIngresosPorGrupo</h5>
-                    <p>@UiTexts.InformeIngresosPorGrupoAyuda</p>
-                    @if (Model.Ingresos.PorGrupo.Count == 0)
-                    {
-                        <p class="empty">@UiTexts.InformeSinIngresos</p>
-                    }
-                    else
-                    {
-                        <ul class="informe-barras">
-                            @foreach (var grupo in Model.Ingresos.PorGrupo)
-                            {
-                                <li>
-                                    <div class="informe-barra-head">
-                                        <span>@grupo.Texto</span>
-                                        <strong>@Pesos(grupo.Valor) <small>@Porc(grupo.Porcentaje) %</small></strong>
-                                    </div>
-                                    <div class="informe-barra" aria-hidden="true"><i style="width: @Css(grupo.Ancho)%"></i></div>
-                                </li>
-                            }
-                        </ul>
-                    }
-                </section>
-            </div>
-
-            <section class="informe-tabla" aria-labelledby="informeVentasRanking">
-                <div class="informe-tabla-head">
+    <section class="informe-bloque" aria-labelledby="informeVentasIngresos">
+        <header class="informe-bloque-head">
+            <h4 id="informeVentasIngresos">@UiTexts.InformeSeccionIngresos</h4>
+            <p>@UiTexts.InformeSeccionIngresosAyuda</p>
+        </header>
+        <div class="informe-graficos">
+            <section class="informe-grafico informe-grafico-ancho" aria-labelledby="informeVentasPorDia">
+                <h5 id="informeVentasPorDia">@UiTexts.InformeIngresosPorDia</h5>
+                <p>@UiTexts.InformeIngresosPorDiaAyuda</p>
+                <dl class="informe-datos">
                     <div>
-                        <h5 id="informeVentasRanking">@UiTexts.InformeRankingVendedores</h5>
-                        <p>@UiTexts.InformeRankingVendedoresAyuda</p>
+                        <dt>@UiTexts.InformeIngresosPromedio</dt>
+                        <dd>@Pesos(Model.Ingresos.PromedioDiario)</dd>
                     </div>
-                    <form method="get" asp-action="Index" class="informe-filas" data-submit-on-change>
-                        @foreach (var q in conservar(["pageV", "pageSizeV"]))
-                        {
-                            <input type="hidden" name="@q.Key" value="@q.Value" />
-                        }
-                        <label for="informeVentasPageSizeV">@UiTexts.FilasPorPagina</label>
-                        <select id="informeVentasPageSizeV" name="pageSizeV">
-                            @foreach (var size in PagingHelper.PageSizes)
+                    <div>
+                        <dt>@UiTexts.InformeIngresosTicket</dt>
+                        <dd>@Pesos(Model.Ingresos.TicketPromedio)</dd>
+                    </div>
+                    <div>
+                        <dt>@UiTexts.InformeIngresosMejorDia</dt>
+                        <dd>
+                            @if (Model.Ingresos.MejorDia is { } mejor)
                             {
-                                <option value="@size" selected="@(Model.Ingresos.Vendedores.PageSize == size)">@size</option>
+                                @Pesos(mejor.Total) <small>@Fecha(mejor.Fecha)</small>
                             }
-                        </select>
-                    </form>
-                </div>
-                @if (Model.Ingresos.Vendedores.TotalCount == 0)
+                            else
+                            {
+                                @("-")
+                            }
+                        </dd>
+                    </div>
+                    <div>
+                        <dt>@UiTexts.InformeIngresosDiasVenta</dt>
+                        <dd>@string.Format(UiTexts.InformeDiasDe, Numero(Model.Ingresos.DiasConVentas), Numero(Model.Ingresos.Dias.Count))</dd>
+                    </div>
+                </dl>
+                @if (mayorDia <= 0)
                 {
                     <p class="empty">@UiTexts.InformeSinIngresos</p>
                 }
                 else
                 {
-                    <div class="table-wrap">
-                        <table class="informe-table">
-                            <thead>
-                            <tr>
-                                <th scope="col">@UiTexts.InformeColumnaPosicion</th>
-                                <th scope="col">@UiTexts.Vendedor</th>
-                                <th scope="col">@UiTexts.Grupo</th>
-                                <th scope="col" class="num">@UiTexts.Ventas</th>
-                                <th scope="col" class="num">@UiTexts.Total</th>
-                                <th scope="col">@UiTexts.InformeColumnaParticipacion</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            @foreach (var v in Model.Ingresos.Vendedores.Items)
-                            {
-                                <tr>
-                                    <td><span class="informe-puesto@(v.Posicion <= 3 ? " is-podio" : "")">@v.Posicion</span></td>
-                                    <td><strong>@v.Vendedor</strong></td>
-                                    <td>@v.Grupo</td>
-                                    <td class="num">@Numero(v.Ventas)</td>
-                                    <td class="num"><strong>@Pesos(v.Total)</strong></td>
-                                    <td>
-                                        <div class="informe-participacion">
-                                            <div class="informe-barra" aria-hidden="true"><i style="width: @Css(v.Participacion)%"></i></div>
-                                            <small>@Porc(v.Participacion) %</small>
-                                        </div>
-                                    </td>
-                                </tr>
-                            }
-                            </tbody>
-                        </table>
+                    <div class="informe-dias informe-ventas-dias" role="img"
+                         aria-label="@UiTexts.InformeIngresosPorDia: @string.Join(". ", Model.Ingresos.Dias.Select(d => $"{Fecha(d.Fecha)} {Pesos(d.Total)}"))">
+                        @foreach (var dia in Model.Ingresos.Dias)
+                        {
+                            <div class="informe-dia" title="@Fecha(dia.Fecha) · @Pesos(dia.Total) · @string.Format(UiTexts.InformeIngresosVentas, Numero(dia.Ventas))">
+                                <span class="informe-dia-valor">@Corto(dia.Total)</span>
+                                <div class="informe-dia-pista">
+                                    <i style="height: @Css(dia.Alto == 0 ? 0 : Math.Max(dia.Alto, 8))%"></i>
+                                </div>
+                                <span class="informe-dia-fecha">@dia.Fecha.ToString("dd/MM", cultura)</span>
+                            </div>
+                        }
                     </div>
-                    ViewData["PagerPageKey"] = "pageV";
-                    ViewData["PagerPageSizeKey"] = "pageSizeV";
-                    <partial name="_Pager" model="Model.Ingresos.Vendedores" />
                 }
             </section>
-        </section>
-    }
 
-    @if (Model.VerEgresos)
-    {
-        <section class="informe-bloque" aria-labelledby="informeVentasEgresos">
-            <header class="informe-bloque-head">
-                <h4 id="informeVentasEgresos">@UiTexts.InformeSeccionEgresos</h4>
-                <p>@UiTexts.InformeSeccionEgresosAyuda</p>
-            </header>
-            <div class="informe-graficos">
-                <section class="informe-grafico" aria-labelledby="informeVentasConceptos">
-                    <h5 id="informeVentasConceptos">@UiTexts.InformeEgresosPorConcepto</h5>
-                    <p>@UiTexts.InformeEgresosPorConceptoAyuda</p>
-                    @if (conceptos.Count == 0)
-                    {
-                        <p class="empty">@UiTexts.InformeSinEgresos</p>
-                    }
-                    else
-                    {
-                        <div class="informe-dona-bloque">
-                            <div class="informe-dona" style="background: conic-gradient(@Dona(conceptos))" role="img" aria-label="@string.Join(". ", conceptos.Select(Segmento))">
-                                <span><strong>@Corto(r.TotalEgresos)</strong><small>@UiTexts.InformeEgresosCentro</small></span>
-                            </div>
-                            <ul class="informe-leyenda informe-leyenda-valor">
-                                @for (var i = 0; i < conceptos.Count; i++)
-                                {
-                                    var concepto = conceptos[i];
-                                    <li>
-                                        <i class="informe-tono-@(i % 6 + 1)" aria-hidden="true"></i>
-                                        <span>@concepto.Texto</span>
-                                        <strong>@Pesos(concepto.Valor)</strong>
-                                        <small>@Porc(concepto.Porcentaje) %</small>
-                                    </li>
-                                }
-                            </ul>
-                        </div>
-                    }
-                </section>
-
-                <section class="informe-grafico" aria-labelledby="informeVentasTiposGasto">
-                    <h5 id="informeVentasTiposGasto">@UiTexts.InformeGastosPorTipo</h5>
-                    <p>@UiTexts.InformeGastosPorTipoAyuda</p>
-                    @if (Model.Egresos.GastosPorTipo.Count == 0)
-                    {
-                        <p class="empty">@UiTexts.InformeSinGastos</p>
-                    }
-                    else
-                    {
-                        <ul class="informe-barras">
-                            @foreach (var tipo in Model.Egresos.GastosPorTipo)
-                            {
-                                <li>
-                                    <div class="informe-barra-head">
-                                        <span>@tipo.Texto</span>
-                                        <strong>@Pesos(tipo.Valor) <small>@Porc(tipo.Porcentaje) %</small></strong>
-                                    </div>
-                                    <div class="informe-barra is-gasto" aria-hidden="true"><i style="width: @Css(tipo.Ancho)%"></i></div>
-                                </li>
-                            }
-                        </ul>
-                    }
-                </section>
-            </div>
-
-            <section class="informe-tabla" aria-labelledby="informeVentasGastosPersona">
-                <div class="informe-tabla-head">
-                    <div>
-                        <h5 id="informeVentasGastosPersona">@UiTexts.InformeGastosPorPersona</h5>
-                        <p>@UiTexts.InformeGastosPorPersonaAyuda</p>
-                    </div>
-                    <form method="get" asp-action="Index" class="informe-filas" data-submit-on-change>
-                        @foreach (var q in conservar(["pageG", "pageSizeG"]))
-                        {
-                            <input type="hidden" name="@q.Key" value="@q.Value" />
-                        }
-                        <label for="informeVentasPageSizeG">@UiTexts.FilasPorPagina</label>
-                        <select id="informeVentasPageSizeG" name="pageSizeG">
-                            @foreach (var size in PagingHelper.PageSizes)
-                            {
-                                <option value="@size" selected="@(Model.Egresos.GastosPorPersona.PageSize == size)">@size</option>
-                            }
-                        </select>
-                    </form>
-                </div>
-                @if (Model.Egresos.GastosPorPersona.TotalCount == 0)
+            <section class="informe-grafico informe-grafico-ancho" aria-labelledby="informeVentasPorGrupo">
+                <h5 id="informeVentasPorGrupo">@UiTexts.InformeIngresosPorGrupo</h5>
+                <p>@UiTexts.InformeIngresosPorGrupoAyuda</p>
+                @if (Model.Ingresos.PorGrupo.Count == 0)
                 {
-                    <p class="empty">@UiTexts.InformeSinGastos</p>
+                    <p class="empty">@UiTexts.InformeSinIngresos</p>
                 }
                 else
                 {
-                    <div class="table-wrap">
-                        <table class="informe-table">
-                            <thead>
-                            <tr>
-                                <th scope="col">@UiTexts.InformeColumnaPersona</th>
-                                <th scope="col" class="num">@UiTexts.InformeColumnaGastos</th>
-                                <th scope="col">@UiTexts.InformeColumnaTipoPrincipal</th>
-                                <th scope="col" class="num">@UiTexts.Total</th>
-                                <th scope="col">@UiTexts.InformeColumnaParticipacion</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            @foreach (var p in Model.Egresos.GastosPorPersona.Items)
-                            {
-                                <tr>
-                                    <td><strong>@p.Persona</strong></td>
-                                    <td class="num">@Numero(p.Cantidad)</td>
-                                    <td>@p.TipoPrincipal</td>
-                                    <td class="num"><strong>@Pesos(p.Total)</strong></td>
-                                    <td>
-                                        <div class="informe-participacion">
-                                            <div class="informe-barra is-gasto" aria-hidden="true"><i style="width: @Css(p.Participacion)%"></i></div>
-                                            <small>@Porc(p.Participacion) %</small>
-                                        </div>
-                                    </td>
-                                </tr>
-                            }
-                            </tbody>
-                        </table>
-                    </div>
-                    ViewData["PagerPageKey"] = "pageG";
-                    ViewData["PagerPageSizeKey"] = "pageSizeG";
-                    <partial name="_Pager" model="Model.Egresos.GastosPorPersona" />
-                }
-                @if (Model.Egresos.AnuladosCantidad > 0)
-                {
-                    <p class="informe-nota">@string.Format(UiTexts.InformeGastosAnulados, Numero(Model.Egresos.AnuladosCantidad), Pesos(Model.Egresos.AnuladosValor))</p>
+                    <ul class="informe-barras">
+                        @foreach (var grupo in Model.Ingresos.PorGrupo)
+                        {
+                            <li>
+                                <div class="informe-barra-head">
+                                    <span>@grupo.Texto</span>
+                                    <strong>@Pesos(grupo.Valor) <small>@Porc(grupo.Porcentaje) %</small></strong>
+                                </div>
+                                <div class="informe-barra" aria-hidden="true"><i style="width: @Css(grupo.Ancho)%"></i></div>
+                            </li>
+                        }
+                    </ul>
                 }
             </section>
-        </section>
-    }
+        </div>
 
-    @if (Model.VerRecaudo)
-    {
-        <section class="informe-bloque" aria-labelledby="informeVentasRecaudo">
-            <header class="informe-bloque-head">
-                <h4 id="informeVentasRecaudo">@UiTexts.InformeSeccionRecaudo</h4>
-                <p>@UiTexts.InformeSeccionRecaudoAyuda</p>
-            </header>
-            @if (Model.Recaudo is not { } recaudo)
+        <section class="informe-tabla" aria-labelledby="informeVentasRanking">
+            <div class="informe-tabla-head">
+                <div>
+                    <h5 id="informeVentasRanking">@UiTexts.InformeRankingVendedores</h5>
+                    <p>@UiTexts.InformeRankingVendedoresAyuda</p>
+                </div>
+                <form method="get" asp-action="Index" class="informe-filas" data-submit-on-change>
+                    @foreach (var q in conservar(["pageV", "pageSizeV"]))
+                    {
+                        <input type="hidden" name="@q.Key" value="@q.Value" />
+                    }
+                    <label for="informeVentasPageSizeV">@UiTexts.FilasPorPagina</label>
+                    <select id="informeVentasPageSizeV" name="pageSizeV">
+                        @foreach (var size in PagingHelper.PageSizes)
+                        {
+                            <option value="@size" selected="@(Model.Ingresos.Vendedores.PageSize == size)">@size</option>
+                        }
+                    </select>
+                </form>
+            </div>
+            @if (Model.Ingresos.Vendedores.TotalCount == 0)
             {
-                <p class="empty">@UiTexts.InformeSinRecaudo</p>
+                <p class="empty">@UiTexts.InformeSinIngresos</p>
             }
             else
             {
-                <div class="informe-metricas">
-                    <div class="informe-metrica">
-                        <small>@UiTexts.InformeRecaudoPorRecaudar</small>
-                        <strong>@Pesos(recaudo.PorRecaudar)</strong>
-                    </div>
-                    <div class="informe-metrica is-principal">
-                        <small>@UiTexts.InformeRecaudoRecaudado</small>
-                        <strong>@Pesos(recaudo.Recaudado)</strong>
-                    </div>
-                    <div class="informe-metrica@(recaudo.Pendiente > 0 ? " is-alerta" : "")">
-                        <small>@UiTexts.InformeRecaudoPendiente</small>
-                        <strong>@Pesos(recaudo.Pendiente)</strong>
-                        <em>@string.Format(UiTexts.InformeRecaudoPendienteNota, Pesos(recaudo.DeudaAnterior), Pesos(recaudo.PendienteDelDia))</em>
-                    </div>
-                    <div class="informe-metrica">
-                        <small>@UiTexts.InformeRecaudoAvance</small>
-                        <strong>@recaudo.Avance %</strong>
-                        <div class="informe-barra" role="img" aria-label="@UiTexts.InformeRecaudoAvance @recaudo.Avance %"><i style="width: @recaudo.Avance%"></i></div>
-                        <em>@string.Format(UiTexts.InformeRecaudoAvanceNota, Numero(recaudo.VendedoresAlDia), Numero(recaudo.VendedoresPorCobrar), Numero(recaudo.VendedoresEnDeuda))</em>
-                    </div>
+                <div class="table-wrap">
+                    <table class="informe-table">
+                        <thead>
+                        <tr>
+                            <th scope="col">@UiTexts.InformeColumnaPosicion</th>
+                            <th scope="col">@UiTexts.Vendedor</th>
+                            <th scope="col">@UiTexts.Grupo</th>
+                            <th scope="col" class="num">@UiTexts.Ventas</th>
+                            <th scope="col" class="num">@UiTexts.Total</th>
+                            <th scope="col">@UiTexts.InformeColumnaParticipacion</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var v in Model.Ingresos.Vendedores.Items)
+                        {
+                            <tr>
+                                <td><span class="informe-puesto@(v.Posicion <= 3 ? " is-podio" : "")">@v.Posicion</span></td>
+                                <td><strong>@v.Vendedor</strong></td>
+                                <td>@v.Grupo</td>
+                                <td class="num">@Numero(v.Ventas)</td>
+                                <td class="num"><strong>@Pesos(v.Total)</strong></td>
+                                <td>
+                                    <div class="informe-participacion">
+                                        <div class="informe-barra" aria-hidden="true"><i style="width: @Css(v.Participacion)%"></i></div>
+                                        <small>@Porc(v.Participacion) %</small>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
                 </div>
-
-                <div class="informe-graficos">
-                    <section class="informe-grafico informe-grafico-ancho" aria-labelledby="informeVentasLinea">
-                        <h5 id="informeVentasLinea">@UiTexts.InformeRecaudoLinea</h5>
-                        <p>@UiTexts.InformeRecaudoLineaAyuda</p>
-                        @if (recaudo.Grafico.Puntos.Count == 0 || recaudo.Grafico.SinMovimiento)
-                        {
-                            <p class="empty">@UiTexts.InformeSinRecaudo</p>
-                        }
-                        else
-                        {
-                            <partial name="_GraficoLineaRecaudo" model="new GraficoLineaRecaudoVista(recaudo.Grafico, UiTexts.InformeRecaudoLinea)" />
-                        }
-                    </section>
-
-                    <section class="informe-grafico informe-grafico-ancho" aria-labelledby="informeVentasRecaudadores">
-                        <h5 id="informeVentasRecaudadores">@UiTexts.InformeRecaudadores</h5>
-                        <p>@UiTexts.InformeRecaudadoresAyuda</p>
-                        @if (recaudo.Recaudadores.Count == 0)
-                        {
-                            <p class="empty">@UiTexts.InformeSinRecaudo</p>
-                        }
-                        else
-                        {
-                            <ul class="informe-leyenda informe-leyenda-linea informe-leyenda-recaudo">
-                                <li><i class="is-recaudado" aria-hidden="true"></i><span>@UiTexts.InformeRecaudoRecaudado</span></li>
-                                <li><i class="is-pendiente" aria-hidden="true"></i><span>@UiTexts.InformeRecaudoPendiente</span></li>
-                            </ul>
-                            <ul class="informe-barras informe-recaudadores">
-                                @foreach (var rec in recaudo.Recaudadores)
-                                {
-                                    var dato = string.Format(UiTexts.InformeRecaudadorDato, Pesos(rec.Recaudado), Pesos(rec.Pendiente), Numero(rec.Vendedores));
-                                    <li>
-                                        <div class="informe-barra-head">
-                                            <span><strong>@rec.Nombre</strong>@if (!string.IsNullOrWhiteSpace(rec.Detalle)) {<small>@rec.Detalle</small>}</span>
-                                            <strong>@rec.Avance %</strong>
-                                        </div>
-                                        <div class="informe-apilada" role="img" aria-label="@rec.Nombre: @dato">
-                                            @if (rec.Recaudado > 0)
-                                            {
-                                                <i class="is-recaudado" style="width: @Css(rec.AnchoRecaudado)%"></i>
-                                            }
-                                            @if (rec.Pendiente > 0)
-                                            {
-                                                <i class="is-pendiente" style="width: @Css(rec.AnchoPendiente)%"></i>
-                                            }
-                                        </div>
-                                        <p class="informe-recaudador-dato">@dato</p>
-                                    </li>
-                                }
-                            </ul>
-                        }
-                    </section>
-                </div>
-
-                <section class="informe-tabla" aria-labelledby="informeVentasAtrasos">
-                    <div class="informe-tabla-head">
-                        <div>
-                            <h5 id="informeVentasAtrasos">@UiTexts.InformeRecaudoAtrasos</h5>
-                            <p>@UiTexts.InformeRecaudoAtrasosAyuda</p>
-                        </div>
-                    </div>
-                    @if (recaudo.Atrasos.Count == 0)
-                    {
-                        <p class="empty">@UiTexts.InformeSinAtrasos</p>
-                    }
-                    else
-                    {
-                        <div class="table-wrap">
-                            <table class="informe-table">
-                                <thead>
-                                <tr>
-                                    <th scope="col">@UiTexts.Vendedor</th>
-                                    <th scope="col">@UiTexts.Grupo</th>
-                                    <th scope="col">@UiTexts.Recaudador</th>
-                                    <th scope="col" class="num">@UiTexts.InformeColumnaDeudaAnterior</th>
-                                    <th scope="col" class="num">@UiTexts.InformeColumnaPendienteDia</th>
-                                    <th scope="col" class="num">@UiTexts.InformeColumnaTotalPendiente</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                @foreach (var a in recaudo.Atrasos)
-                                {
-                                    <tr>
-                                        <td><strong>@a.Vendedor</strong></td>
-                                        <td>@(string.IsNullOrWhiteSpace(a.Grupo) ? UiTexts.SinGrupo : a.Grupo)</td>
-                                        <td>@(string.IsNullOrWhiteSpace(a.Recaudador) ? "-" : a.Recaudador)</td>
-                                        <td class="num">@Pesos(a.DeudaAnterior)</td>
-                                        <td class="num">@Pesos(a.PendienteDelDia)</td>
-                                        <td class="num"><strong class="informe-deuda">@Pesos(a.TotalPendiente)</strong></td>
-                                    </tr>
-                                }
-                                </tbody>
-                            </table>
-                        </div>
-                    }
-                    @if (recaudo.Recortado)
-                    {
-                        <p class="informe-nota">@UiTexts.InformeRecaudoRecortado</p>
-                    }
-                </section>
+                ViewData["PagerPageKey"] = "pageV";
+                ViewData["PagerPageSizeKey"] = "pageSizeV";
+                <partial name="_Pager" model="Model.Ingresos.Vendedores" />
             }
         </section>
-    }
+    </section>
 </div>

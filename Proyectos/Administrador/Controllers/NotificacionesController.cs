@@ -69,6 +69,17 @@ public sealed class NotificacionesController : AdminControllerBase
         return RedirectToAction(nameof(Index));
     }
 
+    [HttpGet]
+    public IActionResult AvisosChat() => ViewComponent("ChatAvisos");
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ChatLeido(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _api.MarcarAvisosChatLeidosAsync(id, cancellationToken);
+        return result.Success ? NoContent() : StatusCode(result.StatusCode >= 400 ? result.StatusCode : 500);
+    }
+
     public async Task<IActionResult> Ver(Guid id, CancellationToken cancellationToken)
     {
         SetNav("notificaciones", UiTexts.DetalleNotificacion);
@@ -87,12 +98,12 @@ public sealed class NotificacionesController : AdminControllerBase
 
         if (string.Equals(result.Data.Tipo, ChatMessages.TipoAvisoSoporte, StringComparison.Ordinal))
         {
-            return RedirectToAction("Index", "Soporte");
+            return RedirectToAction("Index", "Soporte", new { id = result.Data.ConversacionId });
         }
 
         if (string.Equals(result.Data.Tipo, ChatMessages.TipoAvisoSoporteTecnico, StringComparison.Ordinal))
         {
-            return RedirectToAction("Index", "SoporteTecnico");
+            return RedirectToAction("Index", "SoporteTecnico", new { id = result.Data.ConversacionId });
         }
 
         return View(result.Data);

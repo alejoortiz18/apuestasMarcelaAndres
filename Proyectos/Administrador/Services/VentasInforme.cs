@@ -7,6 +7,7 @@ using NewRich.Application.Contracts.Kpi;
 using NewRich.Application.Contracts.Recaudo;
 using NewRich.Application.Contracts.RevisadaManual;
 using NewRich.Application.Contracts.Utilidades;
+using NewRich.Constants;
 
 namespace NewRich.Admin.Services;
 
@@ -26,19 +27,19 @@ public static class VentasInforme
     public const string Periodo15 = "15";
     public const string Periodo30 = "30";
     public const string PeriodoRango = "rango";
-    public const string SeccionIngresos = "ingresos";
-    public const string SeccionEgresos = "egresos";
-    public const string SeccionRecaudo = "recaudo";
     public const int DiasMaximos = 31;
+
+    public static readonly IReadOnlyList<string> CategoriasPorPeriodo =
+        [CategoriasInforme.Ventas, CategoriasInforme.Egresos, CategoriasInforme.Recaudo];
 
     private static readonly CultureInfo Cultura = CultureInfo.GetCultureInfo("es-CO");
 
-    public static FiltrosVentasInforme LeerFiltros(string? json)
+    public static FiltrosPeriodoInforme LeerFiltros(string? json)
     {
         if (string.IsNullOrWhiteSpace(json)) return Predeterminados();
         try
         {
-            var filtros = JsonSerializer.Deserialize<FiltrosVentasInforme>(json, PersonalInforme.Json);
+            var filtros = JsonSerializer.Deserialize<FiltrosPeriodoInforme>(json, PersonalInforme.Json);
             return filtros is null || string.IsNullOrWhiteSpace(filtros.Periodo) ? Predeterminados() : filtros;
         }
         catch (JsonException)
@@ -47,9 +48,9 @@ public static class VentasInforme
         }
     }
 
-    public static FiltrosVentasInforme Predeterminados() => new() { Periodo = Periodo7 };
+    public static FiltrosPeriodoInforme Predeterminados() => new() { Periodo = Periodo7 };
 
-    public static string? Validar(FiltrosVentasInforme filtros, DateOnly hoy)
+    public static string? Validar(FiltrosPeriodoInforme filtros)
     {
         if (filtros.Periodo is not (PeriodoHoy or Periodo7 or Periodo15 or Periodo30 or PeriodoRango))
             return UiTexts.InformePeriodoInvalido;
@@ -60,11 +61,10 @@ public static class VentasInforme
             if (filtros.Hasta.Value.DayNumber - filtros.Desde.Value.DayNumber + 1 > DiasMaximos) return UiTexts.InformeRangoMaximo;
         }
         if (filtros.Grupos is { Count: 0 }) return UiTexts.InformeEligeGrupo;
-        if (filtros.Secciones is { Count: 0 }) return UiTexts.InformeEligeSeccion;
         return null;
     }
 
-    public static (DateOnly Desde, DateOnly Hasta) Rango(FiltrosVentasInforme filtros, DateOnly hoy) => filtros.Periodo switch
+    public static (DateOnly Desde, DateOnly Hasta) Rango(FiltrosPeriodoInforme filtros, DateOnly hoy) => filtros.Periodo switch
     {
         PeriodoHoy => (hoy, hoy),
         Periodo15 => (hoy.AddDays(-14), hoy),
@@ -73,9 +73,6 @@ public static class VentasInforme
             && hasta.DayNumber - desde.DayNumber + 1 <= DiasMaximos => (desde, hasta),
         _ => (hoy.AddDays(-6), hoy)
     };
-
-    public static bool VeSeccion(FiltrosVentasInforme filtros, string seccion) =>
-        filtros.Secciones is null || filtros.Secciones.Contains(seccion, StringComparer.OrdinalIgnoreCase);
 
     public static IReadOnlyList<OpcionInforme> OpcionesPeriodo() =>
     [
@@ -86,42 +83,32 @@ public static class VentasInforme
         new() { Valor = PeriodoRango, Texto = UiTexts.InformeRangoFechas }
     ];
 
-    public static IReadOnlyList<OpcionInforme> OpcionesSeccion() =>
-    [
-        new() { Valor = SeccionIngresos, Texto = UiTexts.InformeSeccionIngresos, Detalle = UiTexts.InformeSeccionIngresosAyuda },
-        new() { Valor = SeccionEgresos, Texto = UiTexts.InformeSeccionEgresos, Detalle = UiTexts.InformeSeccionEgresosAyuda },
-        new() { Valor = SeccionRecaudo, Texto = UiTexts.InformeSeccionRecaudo, Detalle = UiTexts.InformeSeccionRecaudoAyuda }
-    ];
-
     public static IReadOnlyList<OpcionInforme> OpcionesGrupo(IEnumerable<GrupoResponse> grupos) => grupos
         .OrderBy(g => g.Nombre, StringComparer.CurrentCultureIgnoreCase)
         .Select(g => new OpcionInforme { Valor = g.GrupoId.ToString(), Texto = g.Nombre })
         .ToList();
 
-    public static VentasInformeViewModel Construir(IReadOnlyList<GrupoResponse> grupos, FiltrosVentasInforme filtros, bool configurada, DateOnly hoy)
+    public static PeriodoInformeViewModel Construir(string clave, IReadOnlyList<GrupoResponse> grupos, FiltrosPeriodoInforme filtros, bool configurada, DateOnly hoy)
     {
         var periodos = OpcionesPeriodo();
-        var secciones = OpcionesSeccion();
         var (desde, hasta) = Rango(filtros, hoy);
         var periodo = $"{periodos.First(p => p.Valor == (filtros.Periodo is PeriodoHoy or Periodo15 or Periodo30 or PeriodoRango ? filtros.Periodo : Periodo7)).Texto} ({Fechas(desde, hasta)})";
-        var nombresGrupo = filtros.Grupos?.Select(id => grupos.FirstOrDefault(g => g.GrupoId == id)?.Nombre ?? id.ToString()).ToList();
-        var nombresSeccion = filtros.Secciones?.Select(s => secciones.FirstOrDefault(o => o.Valor == s)?.Texto ?? s).ToList();
+        var alcance = Alcance(filtros, grupos);
 
-        return new VentasInformeViewModel
+        return new PeriodoInformeViewModel
         {
+            Clave = clave,
             Configurada = configurada,
             Filtros = filtros,
             Periodos = periodos,
             Grupos = OpcionesGrupo(grupos),
-            Secciones = secciones,
             Hoy = hoy,
             Detalle =
             [
                 new() { Etiqueta = UiTexts.InformeEtiquetaPeriodo, Valor = periodo },
-                new() { Etiqueta = UiTexts.InformeEtiquetaGrupos, Valor = Nombres(nombresGrupo, UiTexts.InformeTodosGrupos) },
-                new() { Etiqueta = UiTexts.InformeEtiquetaSecciones, Valor = Nombres(nombresSeccion, UiTexts.InformeTodasSecciones) }
+                new() { Etiqueta = UiTexts.InformeEtiquetaGrupos, Valor = alcance }
             ],
-            ResumenCorto = $"{periodo} · {Nombres(nombresGrupo, UiTexts.InformeTodosGrupos)} · {Nombres(nombresSeccion, UiTexts.InformeTodasSecciones)}"
+            ResumenCorto = $"{periodo} · {alcance}"
         };
     }
 
@@ -207,48 +194,78 @@ public static class VentasInforme
 
     public static InformeVentasViewModel Informe(
         FuenteInformeVentas fuente,
-        FiltrosVentasInforme filtros,
+        FiltrosPeriodoInforme filtros,
         IReadOnlyList<GrupoResponse> grupos,
         DateOnly desde,
         DateOnly hasta,
         DateTime corte,
         int paginaVendedores,
-        int filasVendedores,
+        int filasVendedores) => new()
+    {
+        Corte = corte,
+        Desde = desde,
+        Hasta = hasta,
+        Alcance = Alcance(filtros, grupos),
+        Resumen = Resumen(fuente),
+        Ingresos = Ingresos(fuente.Kpi, desde, hasta, paginaVendedores, filasVendedores)
+    };
+
+    public static InformeEgresosViewModel InformeEgresos(
+        FuenteInformeVentas fuente,
+        FiltrosPeriodoInforme filtros,
+        IReadOnlyList<GrupoResponse> grupos,
+        DateOnly desde,
+        DateOnly hasta,
+        DateTime corte,
         int paginaGastos,
         int filasGastos)
     {
-        var kpi = fuente.Kpi;
-        var resumen = new ResumenFinancieroInforme
-        {
-            IngresosPda = kpi?.Ingresos ?? 0m,
-            // Las ventas y los premios del vendedor web aún no tienen registro propio; se suman aquí cuando existan.
-            IngresosWeb = 0m,
-            PremiosWeb = 0m,
-            VentasConfirmadas = kpi?.VentasConfirmadas ?? 0,
-            PremiosObservador = kpi?.ValorPremiosEntregados ?? 0m,
-            EntregasPremio = kpi?.EntregasPremio ?? 0,
-            TotalGastos = fuente.Gastos?.TotalValor ?? 0m,
-            CantidadGastos = fuente.Gastos?.Cantidad ?? 0,
-            TotalCubierto = fuente.Cubierto?.Total ?? 0m,
-            JugadasCubiertas = fuente.Cubierto?.Jugadas ?? 0
-        };
-        var nombresGrupo = filtros.Grupos?.Select(id => grupos.FirstOrDefault(g => g.GrupoId == id)?.Nombre ?? id.ToString()).ToList();
-
-        return new InformeVentasViewModel
+        var resumen = Resumen(fuente);
+        return new InformeEgresosViewModel
         {
             Corte = corte,
             Desde = desde,
             Hasta = hasta,
-            Alcance = Nombres(nombresGrupo, UiTexts.InformeTodosGrupos),
-            VerIngresos = VeSeccion(filtros, SeccionIngresos),
-            VerEgresos = VeSeccion(filtros, SeccionEgresos),
-            VerRecaudo = VeSeccion(filtros, SeccionRecaudo),
+            Alcance = Alcance(filtros, grupos),
             Resumen = resumen,
-            Ingresos = Ingresos(kpi, desde, hasta, paginaVendedores, filasVendedores),
-            Egresos = Egresos(resumen, fuente, paginaGastos, filasGastos),
-            Recaudo = fuente.Recaudo is null ? null : Recaudo(fuente.Recaudo)
+            Egresos = Egresos(resumen, fuente, paginaGastos, filasGastos)
         };
     }
+
+    public static InformeRecaudoViewModel InformeRecaudo(
+        FuenteInformeVentas fuente,
+        FiltrosPeriodoInforme filtros,
+        IReadOnlyList<GrupoResponse> grupos,
+        DateOnly desde,
+        DateOnly hasta,
+        DateTime corte) => new()
+    {
+        Corte = corte,
+        Desde = desde,
+        Hasta = hasta,
+        Alcance = Alcance(filtros, grupos),
+        Recaudo = fuente.Recaudo is null ? null : Recaudo(fuente.Recaudo)
+    };
+
+    private static ResumenFinancieroInforme Resumen(FuenteInformeVentas fuente) => new()
+    {
+        IngresosPda = fuente.Kpi?.Ingresos ?? 0m,
+        // Las ventas y los premios del vendedor web aún no tienen registro propio; se suman aquí cuando existan.
+        IngresosWeb = 0m,
+        PremiosWeb = 0m,
+        VentasConfirmadas = fuente.Kpi?.VentasConfirmadas ?? 0,
+        PremiosObservador = fuente.Kpi?.ValorPremiosEntregados ?? 0m,
+        EntregasPremio = fuente.Kpi?.EntregasPremio ?? 0,
+        TotalGastos = fuente.Gastos?.TotalValor ?? 0m,
+        CantidadGastos = fuente.Gastos?.Cantidad ?? 0,
+        TotalCubierto = fuente.Cubierto?.Total ?? 0m,
+        JugadasCubiertas = fuente.Cubierto?.Jugadas ?? 0
+    };
+
+    private static string Alcance(FiltrosPeriodoInforme filtros, IReadOnlyList<GrupoResponse> grupos) =>
+        Nombres(
+            filtros.Grupos?.Select(id => grupos.FirstOrDefault(g => g.GrupoId == id)?.Nombre ?? id.ToString()).ToList(),
+            UiTexts.InformeTodosGrupos);
 
     private static IngresosInforme Ingresos(KpiResponse? kpi, DateOnly desde, DateOnly hasta, int pagina, int filas)
     {

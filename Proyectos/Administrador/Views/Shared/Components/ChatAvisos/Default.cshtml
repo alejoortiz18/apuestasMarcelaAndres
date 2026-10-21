@@ -1,0 +1,45 @@
+@using NewRich.Admin.Constants
+@using NewRich.Admin.Services
+@using NewRich.Domain.Enums
+@model NewRich.Application.Contracts.Notificaciones.AvisosChatResponse
+@{
+    var badge = Model.Pendientes > 99 ? "99+" : Model.Pendientes.ToString();
+}
+<details class="bell-menu chat-avisos" data-chat-avisos data-url="@Url.Action("AvisosChat", "Notificaciones")">
+    <summary class="bell" aria-label="@string.Format(UiTexts.ChatAvisosAria, Model.Pendientes)" title="@UiTexts.ChatAvisosTitulo">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+            <path d="M5 4h14a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 19 16h-8.5L6 20v-4H5a1.5 1.5 0 0 1-1.5-1.5v-9A1.5 1.5 0 0 1 5 4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+            <path d="M8 8.5h8M8 12h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+        </svg>
+        <span class="bell-count@(Model.Pendientes > 0 ? null : " hidden")">@badge</span>
+    </summary>
+    <div class="bell-panel">
+        <p class="bell-head">@UiTexts.ChatAvisosTitulo</p>
+        @if (Model.Items.Count == 0)
+        {
+            <p class="bell-empty">@UiTexts.ChatAvisosVacio</p>
+        }
+        else
+        {
+            <ul class="chat-avisos-lista">
+                @foreach (var aviso in Model.Items)
+                {
+                    var tecnico = string.Equals(aviso.Tipo, "SoporteTecnico", StringComparison.Ordinal);
+                    var rol = Enum.TryParse<RolUsuario>(aviso.Rol, out var r) ? RolUi.Nombre(r) : aviso.Rol;
+                    <li>
+                        <a asp-controller="@(tecnico ? "SoporteTecnico" : "Soporte")" asp-action="Index" asp-route-id="@aviso.ConversacionId">
+                            <span class="chat-avatar @ChatVista.Tono(aviso.Nombre)" aria-hidden="true">@ChatVista.Iniciales(aviso.Nombre)</span>
+                            <span class="chat-avisos-copia">
+                                <strong>@aviso.Nombre</strong>
+                                <small>@rol · @(tecnico ? UiTexts.NavSoporteTecnico : UiTexts.NavAtencionCliente)</small>
+                                <span class="chat-avisos-cantidad">@(aviso.Cantidad == 1 ? UiTexts.ChatAvisosUnMensaje : string.Format(UiTexts.ChatAvisosVariosMensajes, aviso.Cantidad))</span>
+                            </span>
+                            <time datetime="@aviso.UltimaFecha.ToString("o")">@aviso.UltimaFecha.ToString("dd/MM HH:mm")</time>
+                        </a>
+                    </li>
+                }
+            </ul>
+        }
+        <a class="bell-all" asp-controller="Soporte" asp-action="Index">@UiTexts.ChatAvisosIrAtencion</a>
+    </div>
+</details>

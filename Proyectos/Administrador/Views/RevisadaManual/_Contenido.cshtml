@@ -10,24 +10,10 @@
     string Boletas(int cantidad) => cantidad == 1 ? UiTexts.UnaBoleta : string.Format(cultura, UiTexts.CantidadBoletas, cantidad);
     decimal porcentaje = 0;
     var tienePorcentaje = RevisadaManualController.Porcentaje(Model.Porcentaje, out porcentaje);
-    string Titulo() => Model.Modo switch
-    {
-        "porcubrir" => UiTexts.NavRevisadaPorCubrir,
-        "cubierto" => UiTexts.NavRevisadaCubierto,
-        _ => UiTexts.NavRevisadaResumen
-    };
-    string Sub() => Model.Modo switch
-    {
-        "porcubrir" => UiTexts.RevisadaPorCubrirSub,
-        "cubierto" => UiTexts.RevisadaCubiertoSub,
-        _ => UiTexts.RevisadaResumenSub
-    };
-    string Accion() => Model.Modo switch
-    {
-        "porcubrir" => "PorCubrir",
-        "cubierto" => "Cubierto",
-        _ => "Resumen"
-    };
+    var esCubierto = Model.Modo == "cubierto";
+    string Titulo() => esCubierto ? UiTexts.NavRevisadaCubierto : UiTexts.NavRevisadaResumen;
+    string Sub() => esCubierto ? UiTexts.RevisadaCubiertoSub : UiTexts.RevisadaResumenSub;
+    string Accion() => esCubierto ? "Cubierto" : "Resumen";
     string EnlaceOrden(string orden)
     {
         var valores = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
@@ -79,15 +65,12 @@
         else
         {
             <div class="field">
-                <label for="porcentaje">@(Model.Modo == "cubierto" ? UiTexts.Descuento : UiTexts.Comision)</label>
-                @if (Model.Modo == "porcubrir")
-                {
-                    <input id="porcentaje" name="comision" type="number" inputmode="numeric" min="0" max="99" step="1" maxlength="2" value="@Model.Porcentaje" data-dos-digitos autocomplete="off" />
-                }
-                else
-                {
-                    <input id="porcentaje" name="descuento" type="number" inputmode="numeric" min="0" max="99" step="1" maxlength="2" value="@Model.Porcentaje" data-dos-digitos autocomplete="off" />
-                }
+                <label for="comision">@UiTexts.Comision</label>
+                <input id="comision" name="comision" type="number" inputmode="numeric" min="0" max="99" step="1" maxlength="2" value="@Model.Comision" data-dos-digitos autocomplete="off" />
+            </div>
+            <div class="field">
+                <label for="porcentaje">@UiTexts.Descuento</label>
+                <input id="porcentaje" name="descuento" type="number" inputmode="numeric" min="0" max="99" step="1" maxlength="2" value="@Model.Porcentaje" data-dos-digitos autocomplete="off" />
             </div>
         }
         <div class="field">
@@ -157,7 +140,7 @@ else
             <div class="revisada-grupos">
                 @foreach (var grupo in loteria.Grupos)
                 {
-                    var comisionValor = grupo.ComisionValor ?? (tienePorcentaje && Model.Modo == "porcubrir" ? RevisadaManualCalculo.Parte(grupo.Subtotal, porcentaje) : (decimal?)null);
+                    var comisionValor = grupo.ComisionValor;
                     var totalComision = grupo.TotalConComision ?? (comisionValor is null ? (decimal?)null : grupo.Subtotal + comisionValor);
                     var baseDescuento = grupo.TotalConComision ?? 0;
                     var descuentoValor = grupo.DescuentoValor ?? (tienePorcentaje && Model.Modo == "cubierto" && grupo.TotalConComision is not null ? RevisadaManualCalculo.Parte(baseDescuento, porcentaje) : (decimal?)null);
@@ -194,7 +177,7 @@ else
                         }
                         @if (Model.Modo == "resumen")
                         {
-                            <form method="post" asp-action="PorCubrir">
+                            <form method="post" asp-action="Cubrir">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="desde" value="@Model.Desde.ToString("yyyy-MM-dd")" />
                                 <input type="hidden" name="hasta" value="@Model.Hasta.ToString("yyyy-MM-dd")" />
@@ -206,20 +189,6 @@ else
                                 {
                                     <input type="hidden" name="claves" value="@linea.Clave" />
                                 }
-                                <button class="primary" type="submit" aria-label="@($"{UiTexts.BotonPorCubrir} {loteria.Nombre} {grupo.Numero}")">@UiTexts.BotonPorCubrir</button>
-                            </form>
-                        }
-                        else if (Model.Modo == "porcubrir")
-                        {
-                            <form method="post" asp-action="Cubrir" data-protected-action="@AccionesProtegidas.RevisadaCubrir" data-copiar-porcentaje data-exige-comision data-msg-comision="@UiTexts.ComisionRequerida">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="operacionId" value="@grupo.OperacionId" />
-                                <input type="hidden" name="comision" value="@Model.Porcentaje" />
-                                <input type="hidden" name="desde" value="@Model.Desde.ToString("yyyy-MM-dd")" />
-                                <input type="hidden" name="hasta" value="@Model.Hasta.ToString("yyyy-MM-dd")" />
-                                <input type="hidden" name="page" value="@Model.Pagina.Page" />
-                                <input type="hidden" name="pageSize" value="@Model.Pagina.PageSize" />
-                                <input type="hidden" name="orden" value="@Model.Orden" />
                                 <button class="primary" type="submit" aria-label="@($"{UiTexts.BotonCubrir} {loteria.Nombre} {grupo.Numero}")">@UiTexts.BotonCubrir</button>
                             </form>
                         }

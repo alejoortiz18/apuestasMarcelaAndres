@@ -1,0 +1,158 @@
+﻿@using System.Globalization
+@using NewRich.Admin.Constants
+@using NewRich.Admin.Models
+@using NewRich.Admin.Services
+@model InformeRecaudoViewModel
+@{
+    var cultura = CultureInfo.GetCultureInfo("es-CO");
+    string Numero(int valor) => valor.ToString("N0", cultura);
+    string Css(decimal valor) => valor.ToString("0.##", CultureInfo.InvariantCulture);
+    string Pesos(decimal valor) => FormatoPesos.De(valor);
+    string Fecha(DateOnly fecha) => fecha.ToString("dd/MM/yyyy", cultura);
+    string Periodo() => Model.Desde == Model.Hasta ? Fecha(Model.Desde) : string.Format(UiTexts.InformeRangoTexto, Fecha(Model.Desde), Fecha(Model.Hasta));
+}
+<div class="informe-reporte informe-recaudo" aria-labelledby="informeRecaudoReporteTitulo">
+    <header class="informe-reporte-head">
+        <div>
+            <h3 id="informeRecaudoReporteTitulo">@UiTexts.InformeRecaudoNombre</h3>
+            <p>@string.Format(UiTexts.InformeCorte, Model.Corte.ToString("dd/MM/yyyy hh:mm tt", cultura))</p>
+        </div>
+        <ul class="informe-ventas-alcance">
+            <li>@string.Format(UiTexts.InformePeriodoTexto, Periodo())</li>
+            <li>@string.Format(UiTexts.InformeAlcanceTexto, Model.Alcance)</li>
+        </ul>
+    </header>
+
+    <p class="informe-ventas-ayuda">@UiTexts.InformeSeccionRecaudoAyuda</p>
+    <section class="informe-bloque informe-bloque-primero" aria-label="@UiTexts.InformeRecaudoNombre">
+        @if (Model.Recaudo is not { } recaudo)
+        {
+            <p class="empty">@UiTexts.InformeSinRecaudo</p>
+        }
+        else
+        {
+            <div class="informe-metricas">
+                <div class="informe-metrica">
+                    <small>@UiTexts.InformeRecaudoPorRecaudar</small>
+                    <strong>@Pesos(recaudo.PorRecaudar)</strong>
+                </div>
+                <div class="informe-metrica is-principal">
+                    <small>@UiTexts.InformeRecaudoRecaudado</small>
+                    <strong>@Pesos(recaudo.Recaudado)</strong>
+                </div>
+                <div class="informe-metrica@(recaudo.Pendiente > 0 ? " is-alerta" : "")">
+                    <small>@UiTexts.InformeRecaudoPendiente</small>
+                    <strong>@Pesos(recaudo.Pendiente)</strong>
+                    <em>@string.Format(UiTexts.InformeRecaudoPendienteNota, Pesos(recaudo.DeudaAnterior), Pesos(recaudo.PendienteDelDia))</em>
+                </div>
+                <div class="informe-metrica">
+                    <small>@UiTexts.InformeRecaudoAvance</small>
+                    <strong>@recaudo.Avance %</strong>
+                    <div class="informe-barra" role="img" aria-label="@UiTexts.InformeRecaudoAvance @recaudo.Avance %"><i style="width: @recaudo.Avance%"></i></div>
+                    <em>@string.Format(UiTexts.InformeRecaudoAvanceNota, Numero(recaudo.VendedoresAlDia), Numero(recaudo.VendedoresPorCobrar), Numero(recaudo.VendedoresEnDeuda))</em>
+                </div>
+            </div>
+
+            <div class="informe-graficos">
+                <section class="informe-grafico informe-grafico-ancho" aria-labelledby="informeRecaudoLinea">
+                    <h5 id="informeRecaudoLinea">@UiTexts.InformeRecaudoLinea</h5>
+                    <p>@UiTexts.InformeRecaudoLineaAyuda</p>
+                    @if (recaudo.Grafico.Puntos.Count == 0 || recaudo.Grafico.SinMovimiento)
+                    {
+                        <p class="empty">@UiTexts.InformeSinRecaudo</p>
+                    }
+                    else
+                    {
+                        <partial name="_GraficoLineaRecaudo" model="new GraficoLineaRecaudoVista(recaudo.Grafico, UiTexts.InformeRecaudoLinea)" />
+                    }
+                </section>
+
+                <section class="informe-grafico informe-grafico-ancho" aria-labelledby="informeRecaudoRecaudadores">
+                    <h5 id="informeRecaudoRecaudadores">@UiTexts.InformeRecaudadores</h5>
+                    <p>@UiTexts.InformeRecaudadoresAyuda</p>
+                    @if (recaudo.Recaudadores.Count == 0)
+                    {
+                        <p class="empty">@UiTexts.InformeSinRecaudo</p>
+                    }
+                    else
+                    {
+                        <ul class="informe-leyenda informe-leyenda-linea informe-leyenda-recaudo">
+                            <li><i class="is-recaudado" aria-hidden="true"></i><span>@UiTexts.InformeRecaudoRecaudado</span></li>
+                            <li><i class="is-pendiente" aria-hidden="true"></i><span>@UiTexts.InformeRecaudoPendiente</span></li>
+                        </ul>
+                        <ul class="informe-barras informe-recaudadores">
+                            @foreach (var rec in recaudo.Recaudadores)
+                            {
+                                var dato = string.Format(UiTexts.InformeRecaudadorDato, Pesos(rec.Recaudado), Pesos(rec.Pendiente), Numero(rec.Vendedores));
+                                <li>
+                                    <div class="informe-barra-head">
+                                        <span><strong>@rec.Nombre</strong>@if (!string.IsNullOrWhiteSpace(rec.Detalle)) {<small>@rec.Detalle</small>}</span>
+                                        <strong>@rec.Avance %</strong>
+                                    </div>
+                                    <div class="informe-apilada" role="img" aria-label="@rec.Nombre: @dato">
+                                        @if (rec.Recaudado > 0)
+                                        {
+                                            <i class="is-recaudado" style="width: @Css(rec.AnchoRecaudado)%"></i>
+                                        }
+                                        @if (rec.Pendiente > 0)
+                                        {
+                                            <i class="is-pendiente" style="width: @Css(rec.AnchoPendiente)%"></i>
+                                        }
+                                    </div>
+                                    <p class="informe-recaudador-dato">@dato</p>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </section>
+            </div>
+
+            <section class="informe-tabla" aria-labelledby="informeRecaudoAtrasos">
+                <div class="informe-tabla-head">
+                    <div>
+                        <h5 id="informeRecaudoAtrasos">@UiTexts.InformeRecaudoAtrasos</h5>
+                        <p>@UiTexts.InformeRecaudoAtrasosAyuda</p>
+                    </div>
+                </div>
+                @if (recaudo.Atrasos.Count == 0)
+                {
+                    <p class="empty">@UiTexts.InformeSinAtrasos</p>
+                }
+                else
+                {
+                    <div class="table-wrap">
+                        <table class="informe-table">
+                            <thead>
+                            <tr>
+                                <th scope="col">@UiTexts.Vendedor</th>
+                                <th scope="col">@UiTexts.Grupo</th>
+                                <th scope="col">@UiTexts.Recaudador</th>
+                                <th scope="col" class="num">@UiTexts.InformeColumnaDeudaAnterior</th>
+                                <th scope="col" class="num">@UiTexts.InformeColumnaPendienteDia</th>
+                                <th scope="col" class="num">@UiTexts.InformeColumnaTotalPendiente</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            @foreach (var a in recaudo.Atrasos)
+                            {
+                                <tr>
+                                    <td><strong>@a.Vendedor</strong></td>
+                                    <td>@(string.IsNullOrWhiteSpace(a.Grupo) ? UiTexts.SinGrupo : a.Grupo)</td>
+                                    <td>@(string.IsNullOrWhiteSpace(a.Recaudador) ? "-" : a.Recaudador)</td>
+                                    <td class="num">@Pesos(a.DeudaAnterior)</td>
+                                    <td class="num">@Pesos(a.PendienteDelDia)</td>
+                                    <td class="num"><strong class="informe-deuda">@Pesos(a.TotalPendiente)</strong></td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                @if (recaudo.Recortado)
+                {
+                    <p class="informe-nota">@UiTexts.InformeRecaudoRecortado</p>
+                }
+            </section>
+        }
+    </section>
+</div>

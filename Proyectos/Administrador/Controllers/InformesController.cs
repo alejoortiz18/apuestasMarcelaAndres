@@ -34,13 +34,27 @@ public sealed class InformesController : AdminControllerBase
         CancellationToken cancellationToken = default)
     {
         SetNav("informes", UiTexts.NavInformes);
+        var (modelo, salida) = await ConstruirAsync(orden, dir, page, pageSize, pageV, pageSizeV, pageG, pageSizeG, cancellationToken);
+        return salida ?? View(modelo);
+    }
 
+    private async Task<(InformesViewModel? Modelo, IActionResult? Salida)> ConstruirAsync(
+        string? orden,
+        string? dir,
+        int page,
+        int pageSize,
+        int pageV,
+        int pageSizeV,
+        int pageG,
+        int pageSizeG,
+        CancellationToken cancellationToken)
+    {
         var configuraciones = await _api.ListarConfiguracionesInformeAsync(cancellationToken);
-        if (RedirectIfUnauthorized(configuraciones) is { } negado) return negado;
+        if (RedirectIfUnauthorized(configuraciones) is { } negado) return (null, negado);
         var usuarios = await _api.ListarUsuariosAsync(cancellationToken);
-        if (RedirectIfUnauthorized(usuarios) is { } negadoUsuarios) return negadoUsuarios;
+        if (RedirectIfUnauthorized(usuarios) is { } negadoUsuarios) return (null, negadoUsuarios);
         var grupos = await _api.ListarGruposAsync(cancellationToken);
-        if (RedirectIfUnauthorized(grupos) is { } negadoGrupos) return negadoGrupos;
+        if (RedirectIfUnauthorized(grupos) is { } negadoGrupos) return (null, negadoGrupos);
 
         var fallo = new[] { (configuraciones.Success, configuraciones.Message), (usuarios.Success, usuarios.Message), (grupos.Success, grupos.Message) }
             .FirstOrDefault(r => !r.Success);
@@ -54,27 +68,55 @@ public sealed class InformesController : AdminControllerBase
         var ahora = ZonaHorariaColombia.ALocal(DateTime.UtcNow);
         var hoy = DateOnly.FromDateTime(ahora);
 
-        var guardadaVentas = configuraciones.Data?.FirstOrDefault(c => c.Categoria == CategoriasInforme.Ventas);
-        var filtrosVentas = VentasInforme.LeerFiltros(guardadaVentas?.Filtros);
-        var ventas = VentasInforme.Construir(listaGrupos, filtrosVentas, guardadaVentas is not null, hoy);
-        InformeVentasViewModel? informeVentas = null;
-        if (ventas.Configurada)
+        var avisado = fallo.Message is not null;
+        PeriodoInformeViewModel Configuracion(string categoria)
         {
-            var (desde, hasta) = VentasInforme.Rango(filtrosVentas, hoy);
-            var carga = await InformeVentasCarga.CargarAsync(_api, filtrosVentas, listaGrupos, desde, hasta, cancellationToken);
-            if (carga.Unauthorized) return RedirectToAction("Ingresar", "Cuenta", new { expired = true });
-            if (fallo.Message is null && carga.Error is not null) SetAvisoModal(carga.Error);
-            informeVentas = VentasInforme.Informe(carga.Fuente, filtrosVentas, listaGrupos, desde, hasta, ahora, pageV, pageSizeV, pageG, pageSizeG);
+            var guardadaPeriodo = configuraciones.Data?.FirstOrDefault(c => c.Categoria == categoria);
+            return VentasInforme.Construir(categoria, listaGrupos, VentasInforme.LeerFiltros(guardadaPeriodo?.Filtros), guardadaPeriodo is not null, hoy);
         }
 
-        return View(new InformesViewModel
+        async Task<(CargaInformeVentas? Carga, DateOnly Desde, DateOnly Hasta)> Cargar(PeriodoInformeViewModel config, DatosInforme datos)
         {
+            var (desde, hasta) = VentasInforme.Rango(config.Filtros, hoy);
+            if (!config.Configurada) return (null, desde, hasta);
+            var carga = await InformeVentasCarga.CargarAsync(_api, datos, config.Filtros, listaGrupos, desde, hasta, cancellationToken);
+            if (!avisado && carga.Error is not null)
+            {
+                SetAvisoModal(carga.Error);
+                avisado = true;
+            }
+            return (carga, desde, hasta);
+        }
+
+        var ventas = Configuracion(CategoriasInforme.Ventas);
+        var egresos = Configuracion(CategoriasInforme.Egresos);
+        var recaudo = Configuracion(CategoriasInforme.Recaudo);
+
+        var cargaVentas = await Cargar(ventas, DatosInforme.Ventas);
+        var cargaEgresos = await Cargar(egresos, DatosInforme.Egresos);
+        var cargaRecaudo = await Cargar(recaudo, DatosInforme.Recaudo);
+        if (new[] { cargaVentas.Carga, cargaEgresos.Carga, cargaRecaudo.Carga }.Any(c => c?.Unauthorized == true))
+            return (null, RedirectToAction("Ingresar", "Cuenta", new { expired = true }));
+
+        return (new InformesViewModel
+        {
+            Corte = ahora,
             Vendedores = vendedores,
             Informe = vendedores.Configurada
                 ? PersonalInforme.Informe(personal, listaGrupos, filtros, ahora, orden, dir, page, pageSize)
                 : null,
             Ventas = ventas,
-            InformeVentas = informeVentas,
+            InformeVentas = cargaVentas.Carga is { } fuenteVentas
+                ? VentasInforme.Informe(fuenteVentas.Fuente, ventas.Filtros, listaGrupos, cargaVentas.Desde, cargaVentas.Hasta, ahora, pageV, pageSizeV)
+                : null,
+            Egresos = egresos,
+            InformeEgresos = cargaEgresos.Carga is { } fuenteEgresos
+                ? VentasInforme.InformeEgresos(fuenteEgresos.Fuente, egresos.Filtros, listaGrupos, cargaEgresos.Desde, cargaEgresos.Hasta, ahora, pageG, pageSizeG)
+                : null,
+            Recaudo = recaudo,
+            InformeRecaudo = cargaRecaudo.Carga is { } fuenteRecaudo
+                ? VentasInforme.InformeRecaudo(fuenteRecaudo.Fuente, recaudo.Filtros, listaGrupos, cargaRecaudo.Desde, cargaRecaudo.Hasta, ahora)
+                : null,
             Tarjetas =
             [
                 new()
@@ -86,7 +128,6 @@ public sealed class InformesController : AdminControllerBase
                     Configurada = vendedores.Configurada,
                     Resumen = vendedores.Configurada ? vendedores.ResumenCorto : null
                 },
-                new() { Clave = "utilidades-kpi", Nombre = UiTexts.InformeCategoriaUtilidadesKpi, Descripcion = UiTexts.InformeCategoriaUtilidadesKpiAyuda },
                 new()
                 {
                     Clave = CategoriasInforme.Ventas,
@@ -96,9 +137,26 @@ public sealed class InformesController : AdminControllerBase
                     Configurada = ventas.Configurada,
                     Resumen = ventas.Configurada ? ventas.ResumenCorto : null
                 },
-                new() { Clave = "mas-categorias", Nombre = UiTexts.InformeCategoriaMas, Descripcion = UiTexts.InformeCategoriaMasAyuda }
+                new()
+                {
+                    Clave = CategoriasInforme.Egresos,
+                    Nombre = UiTexts.InformeCategoriaEgresos,
+                    Descripcion = UiTexts.InformeCategoriaEgresosAyuda,
+                    Habilitada = true,
+                    Configurada = egresos.Configurada,
+                    Resumen = egresos.Configurada ? egresos.ResumenCorto : null
+                },
+                new()
+                {
+                    Clave = CategoriasInforme.Recaudo,
+                    Nombre = UiTexts.InformeCategoriaRecaudo,
+                    Descripcion = UiTexts.InformeCategoriaRecaudoAyuda,
+                    Habilitada = true,
+                    Configurada = recaudo.Configurada,
+                    Resumen = recaudo.Configurada ? recaudo.ResumenCorto : null
+                }
             ]
-        });
+        }, null);
     }
 
     [HttpPost]
@@ -144,27 +202,26 @@ public sealed class InformesController : AdminControllerBase
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> GuardarVentas(
+    public async Task<IActionResult> GuardarPeriodo(
+        string? categoria,
         string? periodo,
         DateOnly? desde,
         DateOnly? hasta,
         string? modoGrupos,
         List<Guid>? grupos,
-        string? modoSecciones,
-        List<string>? secciones,
         CancellationToken cancellationToken)
     {
+        var clave = VentasInforme.CategoriasPorPeriodo.FirstOrDefault(c => c == categoria);
         var rango = periodo == VentasInforme.PeriodoRango;
-        var filtros = new FiltrosVentasInforme
+        var filtros = new FiltrosPeriodoInforme
         {
             Periodo = periodo?.Trim() ?? string.Empty,
             Desde = rango ? desde : null,
             Hasta = rango ? hasta : null,
-            Grupos = Elegidos(modoGrupos, grupos?.Where(g => g != Guid.Empty)),
-            Secciones = Elegidos(modoSecciones, secciones?.Where(s => VentasInforme.OpcionesSeccion().Any(o => o.Valor == s)))
+            Grupos = Elegidos(modoGrupos, grupos?.Where(g => g != Guid.Empty))
         };
 
-        var aviso = VentasInforme.Validar(filtros, DateOnly.FromDateTime(ZonaHorariaColombia.ALocal(DateTime.UtcNow)));
+        var aviso = clave is null ? UiTexts.InformeCategoriaInvalida : VentasInforme.Validar(filtros);
         if (aviso is not null)
         {
             SetAvisoModal(aviso);
@@ -172,7 +229,7 @@ public sealed class InformesController : AdminControllerBase
         }
 
         var result = await _api.GuardarConfiguracionInformeAsync(
-            CategoriasInforme.Ventas,
+            clave!,
             JsonSerializer.Serialize(filtros, PersonalInforme.Json),
             cancellationToken);
         if (RedirectIfUnauthorized(result) is { } negado) return negado;

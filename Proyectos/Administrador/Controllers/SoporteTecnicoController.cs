@@ -42,6 +42,10 @@ public sealed class SoporteTecnicoController : AdminControllerBase
             }
 
             detalle = det.Data;
+            if (detalle is not null)
+            {
+                await _api.MarcarAvisosChatLeidosAsync(selected.Value, cancellationToken);
+            }
         }
 
         return View("~/Views/Soporte/Index.cshtml", new SoporteIndexViewModel

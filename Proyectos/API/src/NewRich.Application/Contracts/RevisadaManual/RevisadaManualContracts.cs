@@ -11,6 +11,12 @@ public sealed class CubrirRevisadaManualRequest
     public decimal ComisionPorcentaje { get; set; }
 }
 
+public sealed class CubrirDesdeResumenRevisadaManualRequest
+{
+    public List<string> Claves { get; set; } = [];
+    public decimal ComisionPorcentaje { get; set; }
+}
+
 public sealed class DescuentoRevisadaManualRequest
 {
     public Guid OperacionId { get; set; }

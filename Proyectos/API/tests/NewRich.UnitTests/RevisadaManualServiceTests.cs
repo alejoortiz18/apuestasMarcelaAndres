@@ -49,6 +49,44 @@ public sealed class RevisadaManualServiceTests
         (await db.Ventas.CountAsync()).Should().Be(0);
     }
 
+    [Fact]
+    public async Task Cubrir_desde_resumen_aplica_la_comision_sin_pasar_por_por_cubrir()
+    {
+        var (sut, db, admin) = await CreateSutAsync();
+        var desde = new DateTime(2026, 10, 18);
+        var hasta = desde.AddDays(1).AddTicks(-1);
+        var grupo = (await sut.ResumenAsync(desde, hasta, null, CancellationToken.None)).Data!.Grupos.Single(g => g.Numero == "1234");
+
+        var cubierto = await sut.CubrirDesdeResumenAsync(admin, grupo.Lineas.Select(l => l.Clave).ToList(), 50, CancellationToken.None);
+
+        cubierto.IsSuccess.Should().BeTrue(cubierto.Message);
+        cubierto.Message.Should().Be(RevisadaManualMessages.Cubierto);
+        cubierto.Data!.Subtotal.Should().Be(11_000);
+        cubierto.Data.ComisionValor.Should().Be(5_500);
+        cubierto.Data.TotalConComision.Should().Be(16_500);
+        (await sut.PorCubrirAsync(desde, hasta, CancellationToken.None)).Data!.Grupos.Should().BeEmpty();
+        (await sut.CubiertoAsync(desde, hasta, CancellationToken.None)).Data!.Grupos.Should().ContainSingle(g => g.Numero == "1234");
+        (await sut.ResumenAsync(desde, hasta, null, CancellationToken.None)).Data!.Grupos.Should().NotContain(g => g.Numero == "1234");
+        var descuento = await sut.RegistrarDescuentoAsync(admin, cubierto.Data.OperacionId!.Value, 10, CancellationToken.None);
+        descuento.Data!.TotalPagar.Should().Be(14_850);
+        (await sut.CubrirDesdeResumenAsync(admin, grupo.Lineas.Select(l => l.Clave).ToList(), 50, CancellationToken.None)).Message
+            .Should().Be(RevisadaManualMessages.YaProcesado);
+    }
+
+    [Fact]
+    public async Task Cubrir_desde_resumen_con_porcentaje_invalido_no_toma_los_registros()
+    {
+        var (sut, db, admin) = await CreateSutAsync();
+        var desde = new DateTime(2026, 10, 18);
+        var hasta = desde.AddDays(1).AddTicks(-1);
+        var grupo = (await sut.ResumenAsync(desde, hasta, null, CancellationToken.None)).Data!.Grupos.Single(g => g.Numero == "1234");
+
+        var result = await sut.CubrirDesdeResumenAsync(admin, grupo.Lineas.Select(l => l.Clave).ToList(), 101, CancellationToken.None);
+
+        result.Message.Should().Be(RevisadaManualMessages.PorcentajeInvalido);
+        (await db.OperacionesRevisadaManual.CountAsync()).Should().Be(0);
+    }
+
     private static async Task<(RevisadaManualService Sut, NewRichDbContext Db, Guid Admin)> CreateSutAsync()
     {
         var options = new DbContextOptionsBuilder<NewRichDbContext>()

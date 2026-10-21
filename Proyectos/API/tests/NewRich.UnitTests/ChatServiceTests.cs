@@ -208,6 +208,92 @@ public sealed class ChatServiceTests
     }
 
     [Fact]
+    public async Task IniciarAsync_recaudador_escribe_al_administrador_sin_elegir_destino()
+    {
+        var (sut, db) = CreateSut();
+        var ana = await AgregarUsuarioAsync(db, "Ana Admin", RolUsuario.Administrador);
+        var hugo = await AgregarUsuarioAsync(db, "Hugo Cobros", RolUsuario.Recaudador);
+
+        var result = await sut.IniciarAsync(hugo.UsuarioId, new IniciarChatRequest { Texto = "Hola" }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        var conversacion = db.Conversaciones.Should().ContainSingle().Subject;
+        conversacion.UsuarioIniciadorId.Should().Be(hugo.UsuarioId);
+        conversacion.UsuarioDestinoId.Should().Be(ana.UsuarioId);
+    }
+
+    [Theory]
+    [InlineData(RolUsuario.Vendedor)]
+    [InlineData(RolUsuario.Recaudador)]
+    [InlineData(RolUsuario.Observador)]
+    public async Task IniciarAsync_varios_mensajes_del_mismo_usuario_quedan_en_su_unico_chat(RolUsuario rol)
+    {
+        var (sut, db) = CreateSut();
+        await AgregarUsuarioAsync(db, "Ana Admin", RolUsuario.Administrador);
+        var usuario = await AgregarUsuarioAsync(db, "Usuario Campo", rol);
+
+        var primero = await sut.IniciarAsync(usuario.UsuarioId, new IniciarChatRequest { Texto = "Primero" }, CancellationToken.None);
+        var segundo = await sut.IniciarAsync(usuario.UsuarioId, new IniciarChatRequest { Texto = "Segundo" }, CancellationToken.None);
+
+        primero.IsSuccess.Should().BeTrue();
+        segundo.IsSuccess.Should().BeTrue();
+        segundo.Data!.ConversacionId.Should().Be(primero.Data!.ConversacionId);
+        db.Conversaciones.Should().ContainSingle();
+        db.Mensajes.Select(m => m.Texto).Should().BeEquivalentTo("Primero", "Segundo");
+    }
+
+    [Fact]
+    public async Task IniciarAsync_chat_atendido_se_vuelve_a_abrir_con_el_mensaje_nuevo()
+    {
+        var chatVivo = new ChatVivoFake();
+        var (sut, db) = CreateSut(chatVivo);
+        var ana = await AgregarUsuarioAsync(db, "Ana Admin", RolUsuario.Administrador);
+        var hugo = await AgregarUsuarioAsync(db, "Hugo Cobros", RolUsuario.Recaudador);
+        var conv = await AgregarConversacionAsync(db, hugo, ana, "Primero");
+        await sut.CerrarAsync(conv.ConversacionId, ana.UsuarioId, CancellationToken.None);
+
+        var result = await sut.IniciarAsync(hugo.UsuarioId, new IniciarChatRequest { Texto = "Otra duda" }, CancellationToken.None);
+
+        result.Data!.ConversacionId.Should().Be(conv.ConversacionId);
+        var guardada = db.Conversaciones.Should().ContainSingle().Subject;
+        guardada.Estado.Should().Be(EstadoConversacion.Abierta);
+        guardada.FechaCierre.Should().BeNull();
+        chatVivo.Avisos.Should().ContainSingle(a => a.Aviso.ConversacionId == conv.ConversacionId && a.Aviso.Mensaje.Texto == "Otra duda");
+    }
+
+    [Fact]
+    public async Task IniciarAsync_administrador_escribe_en_el_chat_que_ya_tiene_el_usuario()
+    {
+        var (sut, db) = CreateSut();
+        var ana = await AgregarUsuarioAsync(db, "Ana Admin", RolUsuario.Administrador);
+        var luis = await AgregarUsuarioAsync(db, "Luis Admin", RolUsuario.Administrador);
+        var camila = await AgregarUsuarioAsync(db, "Camila Rojas", RolUsuario.Vendedor);
+        var conv = await AgregarConversacionAsync(db, camila, luis, "Hola");
+
+        var result = await sut.IniciarAsync(ana.UsuarioId, new IniciarChatRequest { DestinoId = camila.UsuarioId, Texto = "Te escribo yo" }, CancellationToken.None);
+
+        result.Data!.ConversacionId.Should().Be(conv.ConversacionId);
+        db.Conversaciones.Should().ContainSingle();
+        db.Mensajes.Should().Contain(m => m.Texto == "Te escribo yo" && m.UsuarioEmisorId == ana.UsuarioId);
+    }
+
+    [Fact]
+    public async Task EnviarAsync_en_chat_atendido_lo_vuelve_a_abrir()
+    {
+        var (sut, db) = CreateSut();
+        var ana = await AgregarUsuarioAsync(db, "Ana Admin", RolUsuario.Administrador);
+        var hugo = await AgregarUsuarioAsync(db, "Hugo Cobros", RolUsuario.Recaudador);
+        var conv = await AgregarConversacionAsync(db, hugo, ana, "Primero");
+        await sut.CerrarAsync(conv.ConversacionId, ana.UsuarioId, CancellationToken.None);
+
+        var result = await sut.EnviarAsync(conv.ConversacionId, hugo.UsuarioId, new EnviarMensajeRequest { Texto = "Sigo aquí" }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        db.Conversaciones.Single().Estado.Should().Be(EstadoConversacion.Abierta);
+        db.Conversaciones.Single().FechaCierre.Should().BeNull();
+    }
+
+    [Fact]
     public async Task IniciarAsync_guarda_png_aunque_no_haya_texto()
     {
         var (sut, db) = CreateSut();

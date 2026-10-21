@@ -42,10 +42,14 @@ public sealed class SoporteController : AdminControllerBase
             }
 
             detalle = det.Data;
+            if (detalle is not null)
+            {
+                await _api.MarcarAvisosChatLeidosAsync(selected.Value, cancellationToken);
+            }
         }
 
         var destinatarios = (usuariosTask.Result.Data ?? [])
-            .Where(u => RolConsola.EsVendedor(u.Rol) || u.Rol == RolUsuario.Observador)
+            .Where(u => RolConsola.EsVendedor(u.Rol) || u.Rol is RolUsuario.Observador or RolUsuario.Recaudador)
             .ToList();
 
         return View(new SoporteIndexViewModel
@@ -151,7 +155,7 @@ public sealed class SoporteController : AdminControllerBase
             return RedirectToAction(nameof(Index));
         }
 
-        SetFlash(SuccessMessages.ConversacionIniciada);
+        SetFlash(string.IsNullOrWhiteSpace(result.Message) ? SuccessMessages.ConversacionIniciada : result.Message);
         return RedirectToAction(nameof(Index), new { id = result.Data.ConversacionId });
     }
 

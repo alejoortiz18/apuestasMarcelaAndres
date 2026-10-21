@@ -67,6 +67,7 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
     public DbSet<Gasto> Gastos => Set<Gasto>();
     public DbSet<AuditoriaCambioGasto> AuditoriaCambiosGasto => Set<AuditoriaCambioGasto>();
     public DbSet<ConfiguracionInforme> ConfiguracionesInforme => Set<ConfiguracionInforme>();
+    public DbSet<AvisoChat> AvisosChat => Set<AvisoChat>();
 
     public async Task AsegurarEsquemaRetencionAsync(CancellationToken cancellationToken = default)
     {
@@ -183,6 +184,16 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
         }
 
         await Database.ExecuteSqlRawAsync(EsquemaInformes.Tablas, cancellationToken);
+    }
+
+    public async Task AsegurarEsquemaAvisosChatAsync(CancellationToken cancellationToken = default)
+    {
+        if (!Database.IsRelational())
+        {
+            return;
+        }
+
+        await Database.ExecuteSqlRawAsync(EsquemaAvisosChat.Tablas, cancellationToken);
     }
 
     public async Task<bool> IntentarBloquearRetencionAsync(CancellationToken cancellationToken = default)
@@ -470,6 +481,13 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
             e.Property(x => x.Categoria).HasMaxLength(40);
             e.Property(x => x.Filtros).HasColumnType("nvarchar(max)");
             e.HasIndex(x => new { x.UsuarioId, x.Categoria }).IsUnique();
+        });
+
+        modelBuilder.Entity<AvisoChat>(e =>
+        {
+            e.ToTable("AvisosChat", "chat");
+            e.HasKey(x => x.NotificacionId);
+            e.HasIndex(x => x.ConversacionId);
         });
 
         modelBuilder.Entity<ParametroRevisadaManual>(e =>

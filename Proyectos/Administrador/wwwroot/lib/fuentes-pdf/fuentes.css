@@ -1,0 +1,12 @@
+@font-face {
+  font-family: 'Cinzel';
+  font-style: normal;
+  font-weight: 600 700;
+  src: url(cinzel-latin.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 400 800;
+  src: url(manrope-latin.woff2) format('woff2');
+}

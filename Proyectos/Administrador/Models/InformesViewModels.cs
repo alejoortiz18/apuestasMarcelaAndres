@@ -4,11 +4,16 @@ namespace NewRich.Admin.Models;
 
 public sealed class InformesViewModel
 {
+    public DateTime Corte { get; init; }
     public IReadOnlyList<TarjetaInforme> Tarjetas { get; init; } = [];
     public VendedoresInformeViewModel Vendedores { get; init; } = new();
     public InformeVendedoresViewModel? Informe { get; init; }
-    public VentasInformeViewModel Ventas { get; init; } = new();
+    public PeriodoInformeViewModel Ventas { get; init; } = new();
     public InformeVentasViewModel? InformeVentas { get; init; }
+    public PeriodoInformeViewModel Egresos { get; init; } = new();
+    public InformeEgresosViewModel? InformeEgresos { get; init; }
+    public PeriodoInformeViewModel Recaudo { get; init; } = new();
+    public InformeRecaudoViewModel? InformeRecaudo { get; init; }
 }
 
 public sealed class TarjetaInforme

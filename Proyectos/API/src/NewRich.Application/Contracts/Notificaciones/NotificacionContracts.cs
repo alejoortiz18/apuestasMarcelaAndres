@@ -27,6 +27,25 @@ public sealed class NotificacionDetalleResponse
     public IReadOnlyList<ApuestaNumeroResponse> Apuestas { get; set; } = [];
     public decimal TotalApostado { get; set; }
     public DetalleVentaAltoResponse? DetalleVenta { get; set; }
+    public Guid? ConversacionId { get; set; }
+}
+
+/// <summary>Chat con mensajes nuevos para el administrador: una fila por persona.</summary>
+public sealed class AvisoChatResponse
+{
+    public Guid ConversacionId { get; set; }
+    public string Tipo { get; set; } = string.Empty;
+    public Guid UsuarioId { get; set; }
+    public string Nombre { get; set; } = string.Empty;
+    public string Rol { get; set; } = string.Empty;
+    public int Cantidad { get; set; }
+    public DateTime UltimaFecha { get; set; }
+}
+
+public sealed class AvisosChatResponse
+{
+    public int Pendientes { get; set; }
+    public IReadOnlyList<AvisoChatResponse> Items { get; set; } = [];
 }
 
 /// <summary>Apuesta de un número a una lotería concreta.</summary>

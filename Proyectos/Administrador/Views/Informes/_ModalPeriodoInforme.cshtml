@@ -1,0 +1,76 @@
+@using NewRich.Admin.Constants
+@using NewRich.Admin.Models
+@using NewRich.Admin.Services
+@model ModalPeriodoInforme
+@{
+    var config = Model.Config;
+    var filtros = config.Filtros;
+    var p = Model.Prefijo;
+    var periodo = string.IsNullOrWhiteSpace(filtros.Periodo) ? VentasInforme.Periodo7 : filtros.Periodo;
+    var esRango = periodo == VentasInforme.PeriodoRango;
+    var grupos = new CampoFiltroInforme
+    {
+        Id = $"{p}Grupos", Modo = "modoGrupos", Nombre = "grupos", Titulo = UiTexts.InformeFiltrarGrupo,
+        TextoTodos = UiTexts.InformeTodosGrupos, TextoElegidos = UiTexts.InformeGruposEspecificos, Error = UiTexts.InformeEligeGrupo,
+        Opciones = config.Grupos, Elegidos = filtros.Grupos?.Select(g => g.ToString()).ToHashSet(StringComparer.OrdinalIgnoreCase)
+    };
+}
+<div id="@(p)Dialog" class="dialog-back hidden" role="dialog" aria-modal="true" aria-labelledby="@(p)Titulo" data-informe-dialog="@config.Clave" data-seleccionados="@UiTexts.InformeSeleccionados" hidden>
+    <div class="dialog dialog-informe dialog-informe-periodo">
+        <h2 id="@(p)Titulo">@Model.Titulo</h2>
+        <p>@Model.Ayuda</p>
+        <form method="post" asp-action="GuardarPeriodo" novalidate data-informe-form>
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="categoria" value="@config.Clave" />
+            <div class="informe-filtros">
+                <fieldset class="informe-filtro" data-informe-periodo
+                          data-incompleto="@UiTexts.InformeRangoIncompleto"
+                          data-invalido="@UiTexts.InformeRangoInvalido"
+                          data-maximo="@UiTexts.InformeRangoMaximo"
+                          data-dias="@VentasInforme.DiasMaximos">
+                    <legend>@UiTexts.InformeFiltrarPeriodo</legend>
+                    <div class="informe-modo informe-periodos">
+                        @foreach (var opcion in config.Periodos)
+                        {
+                            <label class="informe-modo-opcion">
+                                <input type="radio" name="periodo" value="@opcion.Valor" checked="@(opcion.Valor == periodo)" data-informe-periodo-opcion />
+                                <span>@opcion.Texto</span>
+                            </label>
+                        }
+                    </div>
+                    <div class="informe-rango" data-informe-rango hidden="@(!esRango)">
+                        <label class="field" for="@(p)Desde">
+                            <span>@UiTexts.FechaInicial</span>
+                            <input id="@(p)Desde" type="date" name="desde" value="@filtros.Desde?.ToString("yyyy-MM-dd")" max="@config.Hoy.ToString("yyyy-MM-dd")" data-informe-desde />
+                        </label>
+                        <label class="field" for="@(p)Hasta">
+                            <span>@UiTexts.FechaFinal</span>
+                            <input id="@(p)Hasta" type="date" name="hasta" value="@filtros.Hasta?.ToString("yyyy-MM-dd")" max="@config.Hoy.ToString("yyyy-MM-dd")" data-informe-hasta />
+                        </label>
+                        <p class="informe-rango-ayuda">@UiTexts.InformeRangoMaximo</p>
+                    </div>
+                    <p class="informe-error" role="alert" data-informe-error hidden></p>
+                </fieldset>
+                <div class="informe-filtro-grupo">
+                    <partial name="_FiltroInforme" model="grupos" />
+                    <p class="informe-filtro-nota">@Model.NotaGrupos</p>
+                </div>
+            </div>
+            <div class="dialog-actions informe-acciones">
+                @if (config.Configurada)
+                {
+                    <button class="danger" type="submit" form="@(p)Quitar">@UiTexts.InformeQuitar</button>
+                }
+                <button class="secondary" type="button" data-informe-cerrar>@UiTexts.Cancelar</button>
+                <button class="primary" type="submit">@UiTexts.InformeGuardarSeleccion</button>
+            </div>
+        </form>
+        @if (config.Configurada)
+        {
+            <form id="@(p)Quitar" method="post" asp-action="Quitar" hidden>
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="categoria" value="@config.Clave" />
+            </form>
+        }
+    </div>
+</div>

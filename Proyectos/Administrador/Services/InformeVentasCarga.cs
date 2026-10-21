@@ -2,6 +2,7 @@ using NewRich.Admin.Models;
 using NewRich.Application.Contracts.Grupos;
 using NewRich.Application.Contracts.Kpi;
 using NewRich.Application.Contracts.Recaudo;
+using NewRich.Application.Contracts.RevisadaManual;
 using NewRich.Application.Contracts.Utilidades;
 
 namespace NewRich.Admin.Services;
@@ -13,6 +14,19 @@ public sealed class CargaInformeVentas
     public bool Unauthorized { get; init; }
 }
 
+[Flags]
+public enum DatosInforme
+{
+    Ninguno = 0,
+    Kpi = 1,
+    Gastos = 2,
+    Movimientos = 4,
+    Cubierto = 8,
+    Recaudo = 16,
+    Ventas = Kpi | Gastos | Cubierto,
+    Egresos = Kpi | Gastos | Movimientos | Cubierto
+}
+
 public static class InformeVentasCarga
 {
     private const int FilasPorConsulta = 15;
@@ -20,7 +34,8 @@ public static class InformeVentasCarga
 
     public static async Task<CargaInformeVentas> CargarAsync(
         IAdminApiClient api,
-        FiltrosVentasInforme filtros,
+        DatosInforme datos,
+        FiltrosPeriodoInforme filtros,
         IReadOnlyList<GrupoResponse> grupos,
         DateOnly desde,
         DateOnly hasta,
@@ -37,24 +52,31 @@ public static class InformeVentasCarga
         }
 
         var kpis = new List<KpiResponse>();
-        foreach (var grupoId in filtros.Grupos?.Cast<Guid?>() ?? [null])
+        if (datos.HasFlag(DatosInforme.Kpi))
         {
-            var kpi = await api.ConsultarKpiAsync(new KpiRequest
+            foreach (var grupoId in filtros.Grupos?.Cast<Guid?>() ?? [null])
             {
-                GrupoId = grupoId,
-                FechaInicial = desde.ToDateTime(TimeOnly.MinValue),
-                FechaFinal = hasta.ToDateTime(TimeOnly.MinValue),
-                CompararAnterior = false
-            }, cancellationToken);
-            if (Revisar(kpi)) kpis.Add(kpi.Data!);
-            if (unauthorized) return new CargaInformeVentas { Unauthorized = true };
+                var kpi = await api.ConsultarKpiAsync(new KpiRequest
+                {
+                    GrupoId = grupoId,
+                    FechaInicial = desde.ToDateTime(TimeOnly.MinValue),
+                    FechaFinal = hasta.ToDateTime(TimeOnly.MinValue),
+                    CompararAnterior = false
+                }, cancellationToken);
+                if (Revisar(kpi)) kpis.Add(kpi.Data!);
+                if (unauthorized) return new CargaInformeVentas { Unauthorized = true };
+            }
         }
 
-        var gastos = await api.UtilidadesIndicadoresAsync(VentasInforme.PeriodoRango, desde, hasta, cancellationToken);
-        Revisar(gastos);
+        InformeGastosPropiosResponse? gastos = null;
+        if (datos.HasFlag(DatosInforme.Gastos))
+        {
+            var respuesta = await api.UtilidadesIndicadoresAsync(VentasInforme.PeriodoRango, desde, hasta, cancellationToken);
+            if (Revisar(respuesta)) gastos = respuesta.Data;
+        }
 
         var movimientos = new List<MovimientoGastoResponse>();
-        if (VentasInforme.VeSeccion(filtros, VentasInforme.SeccionEgresos))
+        if (datos.HasFlag(DatosInforme.Movimientos))
         {
             for (var pagina = 1; pagina <= PaginasMaximas; pagina++)
             {
@@ -65,14 +87,18 @@ public static class InformeVentasCarga
             }
         }
 
-        var cubierto = await api.RevisadaCubiertoAsync(
-            desde.ToDateTime(TimeOnly.MinValue),
-            hasta.ToDateTime(TimeOnly.MinValue).AddDays(1).AddTicks(-1),
-            cancellationToken);
-        Revisar(cubierto);
+        VistaRevisadaManualResponse? cubierto = null;
+        if (datos.HasFlag(DatosInforme.Cubierto))
+        {
+            var respuesta = await api.RevisadaCubiertoAsync(
+                desde.ToDateTime(TimeOnly.MinValue),
+                hasta.ToDateTime(TimeOnly.MinValue).AddDays(1).AddTicks(-1),
+                cancellationToken);
+            if (Revisar(respuesta)) cubierto = respuesta.Data;
+        }
 
         var tableros = new List<TableroRecaudoResponse>();
-        if (VentasInforme.VeSeccion(filtros, VentasInforme.SeccionRecaudo))
+        if (datos.HasFlag(DatosInforme.Recaudo))
         {
             var nombres = filtros.Grupos?
                 .Select(id => grupos.FirstOrDefault(g => g.GrupoId == id)?.Nombre)
@@ -94,9 +120,9 @@ public static class InformeVentasCarga
             Fuente = new FuenteInformeVentas
             {
                 Kpi = VentasInforme.FusionarKpi(kpis),
-                Gastos = gastos.Data,
+                Gastos = gastos,
                 Movimientos = movimientos,
-                Cubierto = cubierto.Data,
+                Cubierto = cubierto,
                 Recaudo = VentasInforme.FusionarTablero(tableros)
             }
         };

@@ -39,6 +39,12 @@ public sealed class RevisadaManualController : ApiControllerBase
         return From(await _revisada.CubrirAsync(UsuarioId, request.OperacionId, request.ComisionPorcentaje, cancellationToken));
     }
 
+    [HttpPost("CubrirDesdeResumen")]
+    public async Task<IActionResult> CubrirDesdeResumen([FromBody] CubrirDesdeResumenRevisadaManualRequest request, CancellationToken cancellationToken)
+    {
+        return From(await _revisada.CubrirDesdeResumenAsync(UsuarioId, request.Claves, request.ComisionPorcentaje, cancellationToken));
+    }
+
     [HttpGet("Cubierto")]
     public async Task<IActionResult> Cubierto([FromQuery] DateTime desde, [FromQuery] DateTime hasta, CancellationToken cancellationToken)
     {

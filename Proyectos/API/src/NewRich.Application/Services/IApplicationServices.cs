@@ -125,6 +125,14 @@ public interface INotificacionService
     Task CrearParaAsync(IReadOnlyCollection<Guid> usuarioIds, string tipo, string mensaje, CancellationToken cancellationToken, Guid? ventaId, Guid? juegoId) =>
         CrearParaAsync(usuarioIds, tipo, mensaje, cancellationToken);
     Task<Result> MarcarLeidasAsync(Guid usuarioId, CancellationToken cancellationToken);
+    Task CrearAvisoChatAsync(IReadOnlyCollection<Guid> usuarioIds, string tipo, string mensaje, Guid conversacionId, Guid emisorId, CancellationToken cancellationToken) =>
+        CrearParaAsync(usuarioIds, tipo, mensaje, cancellationToken);
+}
+
+public interface IAvisoChatService
+{
+    Task<Result<AvisosChatResponse>> ListarAsync(Guid usuarioId, CancellationToken cancellationToken);
+    Task<Result> MarcarLeidosAsync(Guid usuarioId, Guid conversacionId, CancellationToken cancellationToken);
 }
 
 public interface IKpiService

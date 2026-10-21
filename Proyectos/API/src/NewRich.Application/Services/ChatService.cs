@@ -42,7 +42,7 @@ public sealed class ChatService : IChatService
         }
 
         Guid destinoId;
-        if (RolConsola.EsVendedor(iniciador.Rol))
+        if (RolConsola.EsVendedor(iniciador.Rol) || iniciador.Rol == RolUsuario.Recaudador)
         {
             var admin = await _db.Usuarios
                 .Where(u => (u.Rol == RolUsuario.Administrador || u.Rol == RolUsuario.Super) && u.Estado == EstadoUsuario.Activo)
@@ -97,6 +97,20 @@ public sealed class ChatService : IChatService
             destinoId = destino.UsuarioId;
         }
 
+        var contenido = cuerpo.Data!;
+        var existente = await ChatExistenteAsync(iniciador, destinoId, cancellationToken);
+        if (existente is not null)
+        {
+            Reabrir(existente);
+            var siguiente = NuevoMensaje(existente.ConversacionId, iniciadorId, contenido);
+            await AdjuntarSiHayAsync(siguiente, contenido, cancellationToken);
+            _db.Mensajes.Add(siguiente);
+            await _db.SaveChangesAsync(cancellationToken);
+            siguiente.UsuarioEmisor = iniciador;
+            await PublicarAsync(existente, siguiente, cancellationToken);
+            return Result<ConversacionResponse>.Ok(Map(existente), SuccessMessages.MensajeEnviado);
+        }
+
         var conversacion = new Conversacion
         {
             ConversacionId = Guid.NewGuid(),
@@ -106,15 +120,7 @@ public sealed class ChatService : IChatService
             Estado = EstadoConversacion.Abierta,
             Tipo = TipoConversacion.AtencionCliente
         };
-        var contenido = cuerpo.Data!;
-        var mensaje = new Mensaje
-        {
-            MensajeId = Guid.NewGuid(),
-            ConversacionId = conversacion.ConversacionId,
-            UsuarioEmisorId = iniciadorId,
-            Texto = contenido.Texto,
-            FechaEnvio = _clock.LocalNow
-        };
+        var mensaje = NuevoMensaje(conversacion.ConversacionId, iniciadorId, contenido);
         await AdjuntarSiHayAsync(mensaje, contenido, cancellationToken);
         conversacion.Mensajes.Add(mensaje);
         _db.Conversaciones.Add(conversacion);
@@ -188,7 +194,7 @@ public sealed class ChatService : IChatService
             return Result<MensajeResponse>.Fail(ChatMessages.ConversacionNoEncontrada, 404);
         }
 
-        if (conversacion.Estado == EstadoConversacion.Cerrada)
+        if (conversacion.Estado == EstadoConversacion.Cerrada && conversacion.Tipo != TipoConversacion.AtencionCliente)
         {
             return Result<MensajeResponse>.Fail(ChatMessages.ConversacionCerrada);
         }
@@ -216,16 +222,10 @@ public sealed class ChatService : IChatService
         }
 
         var contenido = cuerpo.Data!;
-        var mensaje = new Mensaje
-        {
-            MensajeId = Guid.NewGuid(),
-            ConversacionId = conversacionId,
-            UsuarioEmisorId = emisorId,
-            Texto = contenido.Texto,
-            FechaEnvio = _clock.LocalNow
-        };
+        var mensaje = NuevoMensaje(conversacionId, emisorId, contenido);
         await AdjuntarSiHayAsync(mensaje, contenido, cancellationToken);
 
+        Reabrir(conversacion);
         _db.Mensajes.Add(mensaje);
         await _db.SaveChangesAsync(cancellationToken);
         mensaje.UsuarioEmisor = emisor;
@@ -417,6 +417,58 @@ public sealed class ChatService : IChatService
             SuccessMessages.OperacionExitosa);
     }
 
+    private Mensaje NuevoMensaje(Guid conversacionId, Guid emisorId, CuerpoMensaje contenido) => new()
+    {
+        MensajeId = Guid.NewGuid(),
+        ConversacionId = conversacionId,
+        UsuarioEmisorId = emisorId,
+        Texto = contenido.Texto,
+        FechaEnvio = _clock.LocalNow
+    };
+
+    private static void Reabrir(Conversacion conversacion)
+    {
+        if (conversacion.Tipo != TipoConversacion.AtencionCliente || conversacion.Estado != EstadoConversacion.Cerrada)
+        {
+            return;
+        }
+
+        conversacion.Estado = EstadoConversacion.Abierta;
+        conversacion.FechaCierre = null;
+    }
+
+    /// <summary>
+    /// Cada usuario tiene un único chat de atención al cliente: con la administración si la otra
+    /// parte es del equipo administrativo, o con esa persona si no lo es.
+    /// </summary>
+    private async Task<Conversacion?> ChatExistenteAsync(Usuario iniciador, Guid destinoId, CancellationToken cancellationToken)
+    {
+        var desdeAdministracion = RolConsola.EsEquipoAdministrativo(iniciador.Rol);
+        var cliente = desdeAdministracion ? destinoId : iniciador.UsuarioId;
+        var otro = desdeAdministracion ? iniciador.UsuarioId : destinoId;
+        var otroEsAdministracion = desdeAdministracion || await _db.Usuarios.AnyAsync(
+            u => u.UsuarioId == otro && (u.Rol == RolUsuario.Administrador || u.Rol == RolUsuario.Super),
+            cancellationToken);
+
+        var consulta = _db.Conversaciones
+            .Include(c => c.UsuarioIniciador)
+            .Include(c => c.UsuarioDestino)
+            .Include(c => c.Mensajes)
+            .ThenInclude(m => m.Adjuntos)
+            .Where(c => c.Tipo == TipoConversacion.AtencionCliente
+                        && (c.UsuarioIniciadorId == cliente || c.UsuarioDestinoId == cliente));
+        consulta = otroEsAdministracion
+            ? consulta.Where(c =>
+                c.UsuarioIniciador!.Rol == RolUsuario.Administrador || c.UsuarioIniciador!.Rol == RolUsuario.Super
+                || c.UsuarioDestino!.Rol == RolUsuario.Administrador || c.UsuarioDestino!.Rol == RolUsuario.Super)
+            : consulta.Where(c => c.UsuarioIniciadorId == otro || c.UsuarioDestinoId == otro);
+
+        var candidatas = await consulta.ToListAsync(cancellationToken);
+        return candidatas
+            .OrderByDescending(c => c.Mensajes.Count == 0 ? c.FechaInicio : c.Mensajes.Max(m => m.FechaEnvio))
+            .FirstOrDefault();
+    }
+
     private async Task AdjuntarSiHayAsync(Mensaje mensaje, CuerpoMensaje cuerpo, CancellationToken cancellationToken)
     {
         if (cuerpo.Bytes is null || string.IsNullOrWhiteSpace(cuerpo.NombreArchivo))
@@ -474,10 +526,12 @@ public sealed class ChatService : IChatService
             ? ChatMessages.AvisoMensajeSoporteTecnico
             : ChatMessages.AvisoMensajeSoporte);
 
-        await _notificaciones.CrearParaAsync(
+        await _notificaciones.CrearAvisoChatAsync(
             administradores.Where(id => id != emisor.UsuarioId).ToList(),
             tipo,
             string.Format(plantilla, emisor.NombreCompleto),
+            conversacion.ConversacionId,
+            emisor.UsuarioId,
             cancellationToken);
     }
 

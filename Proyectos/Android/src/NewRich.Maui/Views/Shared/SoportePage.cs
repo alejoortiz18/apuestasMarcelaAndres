@@ -1,5 +1,7 @@
 using System.Collections.ObjectModel;
 using Microsoft.Maui.Controls.Shapes;
+using AjusteAndroid = Microsoft.Maui.Controls.PlatformConfiguration.AndroidSpecific.Application;
+using WindowSoftInputModeAdjust = Microsoft.Maui.Controls.PlatformConfiguration.AndroidSpecific.WindowSoftInputModeAdjust;
 using NewRich.Application.Chat;
 using NewRich.Application.Contracts.Chat;
 using NewRich.Maui.Services;
@@ -25,6 +27,8 @@ public sealed class SoportePage : ContentPage
     private readonly HashSet<Guid> _vistos = [];
     private string? _archivoNombre;
     private byte[]? _archivoBytes;
+    private WindowSoftInputModeAdjust? _ajusteTeclado;
+    private double _altoChat;
 
     public SoportePage(
         NewRichApiClient api,
@@ -40,6 +44,8 @@ public sealed class SoportePage : ContentPage
         _vivo = vivo;
         Title = PdaTexts.Soporte;
         BackgroundColor = Color.FromArgb("#DCE8E2");
+        HideSoftInputOnTapped = true;
+        SafeAreaEdges = new SafeAreaEdges(SafeAreaRegions.Default, SafeAreaRegions.Default, SafeAreaRegions.Default, SafeAreaRegions.All);
 
         _texto = new Entry
         {
@@ -52,6 +58,8 @@ public sealed class SoportePage : ContentPage
             ReturnType = ReturnType.Send
         };
         _texto.Completed += async (_, _) => await EnviarAsync();
+        _texto.Focused += (_, _) => MostrarMenuInferior(false);
+        _texto.Unfocused += (_, _) => MostrarMenuInferior(true);
 
         _pendiente = new Label
         {
@@ -223,12 +231,49 @@ public sealed class SoportePage : ContentPage
         raiz.Add(_lista);
         raiz.Add(compositor);
         Grid.SetRow(compositor, 1);
+        raiz.SizeChanged += (_, _) => AlCambiarTeclado(raiz.Height);
         Content = raiz;
+    }
+
+    // Abrir o cerrar el teclado cambia el alto mucho más que mostrar u ocultar el menú inferior.
+    private const double CambioTeclado = 150;
+
+    private void AlCambiarTeclado(double alto)
+    {
+        var anterior = _altoChat;
+        _altoChat = alto;
+        if (anterior <= 0 || alto <= 0)
+        {
+            return;
+        }
+
+        if (alto < anterior - CambioTeclado)
+        {
+            DesplazarAlFinal();
+        }
+        else if (alto > anterior + CambioTeclado && _texto.IsFocused)
+        {
+            _texto.Unfocus();
+        }
+    }
+
+    private void MostrarMenuInferior(bool visible)
+    {
+        if (Content is not Grid capa)
+        {
+            return;
+        }
+
+        foreach (var menu in capa.Children.OfType<BarraMenuPda>())
+        {
+            menu.IsVisible = visible;
+        }
     }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        FijarParteSuperior();
         _vivo.Recibido -= EnVivo;
         _vivo.Recibido += EnVivo;
         try
@@ -244,7 +289,36 @@ public sealed class SoportePage : ContentPage
     protected override void OnDisappearing()
     {
         _vivo.Recibido -= EnVivo;
+        _texto.Unfocus();
+        MostrarMenuInferior(true);
+        _altoChat = 0;
+        RestaurarTeclado();
         base.OnDisappearing();
+    }
+
+    // Con el teclado abierto la pantalla se achica en vez de desplazarse, así la parte superior no se mueve.
+    // Solo aplica en esta pantalla: al salir se devuelve el ajuste que tenía la aplicación.
+    private void FijarParteSuperior()
+    {
+        if (Microsoft.Maui.Controls.Application.Current is not { } app)
+        {
+            return;
+        }
+
+        var android = app.On<Microsoft.Maui.Controls.PlatformConfiguration.Android>();
+        _ajusteTeclado ??= AjusteAndroid.GetWindowSoftInputModeAdjust(android);
+        AjusteAndroid.UseWindowSoftInputModeAdjust(android, WindowSoftInputModeAdjust.Resize);
+    }
+
+    private void RestaurarTeclado()
+    {
+        if (_ajusteTeclado is not { } anterior || Microsoft.Maui.Controls.Application.Current is not { } app)
+        {
+            return;
+        }
+
+        AjusteAndroid.UseWindowSoftInputModeAdjust(app.On<Microsoft.Maui.Controls.PlatformConfiguration.Android>(), anterior);
+        _ajusteTeclado = null;
     }
 
     private async Task ConectarVivoAsync()

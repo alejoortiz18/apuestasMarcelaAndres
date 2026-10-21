@@ -7,6 +7,7 @@
     _ = Guid.TryParse(yoTexto, out var yo);
     var abierta = string.Equals(Model.Detalle?.Conversacion.Estado, "Abierta", StringComparison.Ordinal);
     var esTecnico = string.Equals(ViewData["Canal"] as string, "tecnico", StringComparison.Ordinal);
+    var puedeEscribir = abierta || !esTecnico;
     var controladorChat = esTecnico ? "SoporteTecnico" : "Soporte";
 }
 <div class="page-soporte">
@@ -50,7 +51,8 @@
     </form>
 </div>
 }
-<div class="chat-shell" data-chat-vivo data-yo="@yo" data-conversacion="@(Model.ConversacionId?.ToString() ?? "")" data-evento="mensajeChat" data-adjunto-plantilla="@Url.Action("Adjunto", controladorChat, new { id = Guid.Empty })">
+<div class="chat-shell" data-chat-vivo data-yo="@yo" data-conversacion="@(Model.ConversacionId?.ToString() ?? "")" data-evento="mensajeChat" data-adjunto-plantilla="@Url.Action("Adjunto", controladorChat, new { id = Guid.Empty })" data-leido-url="@Url.Action("ChatLeido", "Notificaciones", new { id = Guid.Empty })">
+    @Html.AntiForgeryToken()
     <aside class="chat-list">
         <div class="chat-list-head">
             <h2>@UiTexts.Conversaciones</h2>
@@ -171,7 +173,7 @@
                     }
                 }
             </div>
-            @if (abierta)
+            @if (puedeEscribir)
             {
                 <form class="chat-compose" asp-controller="@controladorChat" asp-action="Enviar" asp-route-id="@conv.ConversacionId" method="post" enctype="multipart/form-data">
                     <div class="chat-attach" data-chat-adjunto>

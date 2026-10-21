@@ -8,6 +8,7 @@ public sealed class RevisadaPaginaViewModel
     public DateTime Desde { get; set; }
     public DateTime Hasta { get; set; }
     public string ValorMinimo { get; set; } = string.Empty;
+    public string Comision { get; set; } = string.Empty;
     public string Porcentaje { get; set; } = string.Empty;
     public string Orden { get; set; } = string.Empty;
     public int Jugadas { get; set; }

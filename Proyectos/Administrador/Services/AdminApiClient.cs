@@ -89,6 +89,8 @@ public interface IAdminApiClient
     Task<ApiCallResult<NotificacionesResponse>> ListarNotificacionesAsync(CancellationToken cancellationToken);
     Task<ApiCallResult<NotificacionDetalleResponse>> ObtenerNotificacionAsync(Guid id, CancellationToken cancellationToken);
     Task<ApiCallResult<object>> MarcarNotificacionesLeidasAsync(CancellationToken cancellationToken);
+    Task<ApiCallResult<AvisosChatResponse>> ListarAvisosChatAsync(CancellationToken cancellationToken);
+    Task<ApiCallResult<object>> MarcarAvisosChatLeidosAsync(Guid conversacionId, CancellationToken cancellationToken);
 
     Task<ApiCallResult<List<ConversacionResponse>>> ListarConversacionesAsync(CancellationToken cancellationToken, string? tipo = null);
     Task<ApiCallResult<ConversacionDetalleResponse>> ObtenerConversacionAsync(Guid id, CancellationToken cancellationToken);
@@ -145,9 +147,7 @@ public interface IAdminApiClient
     Task<ApiCallResult<DetalleRecaudadorResponse>> DetalleRecaudoAsync(Guid recaudadorId, DateOnly desde, DateOnly hasta, CancellationToken cancellationToken);
 
     Task<ApiCallResult<VistaRevisadaManualResponse>> RevisadaResumenAsync(DateTime desde, DateTime hasta, decimal? valorMinimo, CancellationToken cancellationToken);
-    Task<ApiCallResult<GrupoRevisadaManualResponse>> RevisadaMarcarPorCubrirAsync(MarcarPorCubrirRevisadaManualRequest request, CancellationToken cancellationToken);
-    Task<ApiCallResult<VistaRevisadaManualResponse>> RevisadaPorCubrirAsync(DateTime desde, DateTime hasta, CancellationToken cancellationToken);
-    Task<ApiCallResult<GrupoRevisadaManualResponse>> RevisadaCubrirAsync(CubrirRevisadaManualRequest request, CancellationToken cancellationToken);
+    Task<ApiCallResult<GrupoRevisadaManualResponse>> RevisadaCubrirDesdeResumenAsync(CubrirDesdeResumenRevisadaManualRequest request, CancellationToken cancellationToken);
     Task<ApiCallResult<VistaRevisadaManualResponse>> RevisadaCubiertoAsync(DateTime desde, DateTime hasta, CancellationToken cancellationToken);
     Task<ApiCallResult<GrupoRevisadaManualResponse>> RevisadaDescuentoAsync(DescuentoRevisadaManualRequest request, CancellationToken cancellationToken);
     Task<ApiCallResult<ParametrosRevisadaManualResponse>> ParametrosRevisadaManualAsync(CancellationToken cancellationToken);
@@ -384,6 +384,12 @@ public sealed class AdminApiClient : IAdminApiClient
 
     public Task<ApiCallResult<object>> MarcarNotificacionesLeidasAsync(CancellationToken cancellationToken) =>
         SendAsync<object>(HttpMethod.Post, "api/Notificaciones/marcar-leidas", null, true, cancellationToken);
+
+    public Task<ApiCallResult<AvisosChatResponse>> ListarAvisosChatAsync(CancellationToken cancellationToken) =>
+        SendAsync<AvisosChatResponse>(HttpMethod.Get, "api/Notificaciones/chats", null, true, cancellationToken);
+
+    public Task<ApiCallResult<object>> MarcarAvisosChatLeidosAsync(Guid conversacionId, CancellationToken cancellationToken) =>
+        SendAsync<object>(HttpMethod.Post, $"api/Notificaciones/chats/{conversacionId}/leidos", null, true, cancellationToken);
 
     public Task<ApiCallResult<List<ConversacionResponse>>> ListarConversacionesAsync(CancellationToken cancellationToken, string? tipo = null)
     {
@@ -645,16 +651,8 @@ public sealed class AdminApiClient : IAdminApiClient
             ("hasta", hasta.ToString("o")),
             ("valorMinimo", valorMinimo?.ToString(System.Globalization.CultureInfo.InvariantCulture))), null, true, cancellationToken);
 
-    public Task<ApiCallResult<GrupoRevisadaManualResponse>> RevisadaMarcarPorCubrirAsync(MarcarPorCubrirRevisadaManualRequest request, CancellationToken cancellationToken) =>
-        SendAsync<GrupoRevisadaManualResponse>(HttpMethod.Post, "api/RevisadaManual/PorCubrir", request, true, cancellationToken);
-
-    public Task<ApiCallResult<VistaRevisadaManualResponse>> RevisadaPorCubrirAsync(DateTime desde, DateTime hasta, CancellationToken cancellationToken) =>
-        SendAsync<VistaRevisadaManualResponse>(HttpMethod.Get, "api/RevisadaManual/PorCubrir" + BuildQuery(
-            ("desde", desde.ToString("o")),
-            ("hasta", hasta.ToString("o"))), null, true, cancellationToken);
-
-    public Task<ApiCallResult<GrupoRevisadaManualResponse>> RevisadaCubrirAsync(CubrirRevisadaManualRequest request, CancellationToken cancellationToken) =>
-        SendAsync<GrupoRevisadaManualResponse>(HttpMethod.Post, "api/RevisadaManual/Cubrir", request, true, cancellationToken);
+    public Task<ApiCallResult<GrupoRevisadaManualResponse>> RevisadaCubrirDesdeResumenAsync(CubrirDesdeResumenRevisadaManualRequest request, CancellationToken cancellationToken) =>
+        SendAsync<GrupoRevisadaManualResponse>(HttpMethod.Post, "api/RevisadaManual/CubrirDesdeResumen", request, true, cancellationToken);
 
     public Task<ApiCallResult<VistaRevisadaManualResponse>> RevisadaCubiertoAsync(DateTime desde, DateTime hasta, CancellationToken cancellationToken) =>
         SendAsync<VistaRevisadaManualResponse>(HttpMethod.Get, "api/RevisadaManual/Cubierto" + BuildQuery(

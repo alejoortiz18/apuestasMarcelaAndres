@@ -142,7 +142,7 @@
   function actualizarLista(conversacionId, texto) {
     const lista = document.querySelector("[data-chat-lista]");
     const item = buscarItem(conversacionId);
-    if (!lista || !item) {
+    if (!lista || !item || item.classList.contains("is-closed")) {
       window.location.reload();
       return;
     }

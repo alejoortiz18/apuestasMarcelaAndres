@@ -960,7 +960,7 @@
       closeAviso();
       return;
     }
-    document.querySelectorAll("[data-bell-menu][open], [data-cuenta-menu][open]").forEach(function (menu) {
+    document.querySelectorAll("[data-bell-menu][open], [data-chat-avisos][open], [data-cuenta-menu][open]").forEach(function (menu) {
       menu.removeAttribute("open");
     });
   });
@@ -973,7 +973,7 @@
   });
 
   document.addEventListener("click", function (event) {
-    document.querySelectorAll("[data-bell-menu][open], [data-cuenta-menu][open]").forEach(function (menu) {
+    document.querySelectorAll("[data-bell-menu][open], [data-chat-avisos][open], [data-cuenta-menu][open]").forEach(function (menu) {
       if (!menu.contains(event.target)) {
         menu.removeAttribute("open");
       }
@@ -1048,6 +1048,43 @@ function iniciarNotificacionesEnVivo() {
     }
   }
 
+  function refrescarChats() {
+    const actual = document.querySelector("[data-chat-avisos]");
+    if (!actual) {
+      return Promise.resolve();
+    }
+    return fetch(actual.getAttribute("data-url"), { credentials: "same-origin" })
+      .then(function (respuesta) { return respuesta.ok ? respuesta.text() : ""; })
+      .then(function (html) {
+        const caja = document.createElement("div");
+        caja.innerHTML = html.trim();
+        const nuevo = caja.querySelector("[data-chat-avisos]");
+        if (!nuevo) {
+          return;
+        }
+        if (actual.hasAttribute("open")) {
+          nuevo.setAttribute("open", "");
+        }
+        actual.replaceWith(nuevo);
+      })
+      .catch(function () { });
+  }
+
+  function marcarChatAbiertoLeido() {
+    const chat = document.querySelector("[data-chat-vivo]");
+    const id = chat && chat.getAttribute("data-conversacion");
+    const plantilla = chat && chat.getAttribute("data-leido-url");
+    const token = document.querySelector('input[name="__RequestVerificationToken"]');
+    if (!id || !plantilla || !token) {
+      return Promise.resolve();
+    }
+    return fetch(plantilla.replace(/00000000-0000-0000-0000-000000000000/i, id), {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "RequestVerificationToken": token.value }
+    }).catch(function () { });
+  }
+
   function mostrarToast(aviso) {
     const mensaje = aviso.mensaje || aviso.Mensaje || "";
     const id = aviso.notificacionId || aviso.NotificacionId;
@@ -1083,12 +1120,19 @@ function iniciarNotificacionesEnVivo() {
         const tipo = aviso.tipo || aviso.Tipo || "";
         const enSoporte = document.body.getAttribute("data-nav") === "soporte"
           || document.body.getAttribute("data-nav") === "soporte-tecnico";
-        if ((tipo === "ChatSoporte" || tipo === "ChatSoporteTecnico") && enSoporte) {
-          // En Soporte el toast se omite: el chat vivo va por ChatHub.
-          // Si el hub de chat falló, recargar muestra el mensaje persistido.
-          if (!document.documentElement.getAttribute("data-chat-vivo-ok")) {
-            window.location.reload();
+        if (tipo === "ChatSoporte" || tipo === "ChatSoporteTecnico") {
+          if (enSoporte) {
+            // En Soporte el toast se omite: el chat vivo va por ChatHub.
+            // Si el hub de chat falló, recargar muestra el mensaje persistido.
+            if (!document.documentElement.getAttribute("data-chat-vivo-ok")) {
+              window.location.reload();
+              return;
+            }
+            marcarChatAbiertoLeido().then(refrescarChats);
+            return;
           }
+          refrescarChats();
+          mostrarToast(aviso);
           return;
         }
         actualizarCampana(aviso);

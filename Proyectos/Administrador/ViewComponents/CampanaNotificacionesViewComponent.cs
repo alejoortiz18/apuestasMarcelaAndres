@@ -17,11 +17,11 @@ public sealed class CampanaNotificacionesViewComponent : ViewComponent
     public async Task<IViewComponentResult> InvokeAsync()
     {
         var result = await _api.ListarNotificacionesAsync(HttpContext.RequestAborted);
-        var items = result.Data?.Items ?? [];
+        var nuevas = (result.Data?.Items ?? []).Where(n => !n.Leida && !AvisosChat.EsChat(n.Tipo)).ToList();
         return View(new CampanaNotificacionesViewModel
         {
-            Pendientes = result.Data?.Pendientes ?? 0,
-            Nuevas = items.Where(n => !n.Leida).Take(MaximoEnLista).ToList()
+            Pendientes = nuevas.Count,
+            Nuevas = nuevas.Take(MaximoEnLista).ToList()
         });
     }
 }

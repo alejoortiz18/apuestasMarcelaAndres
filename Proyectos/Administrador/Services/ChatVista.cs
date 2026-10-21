@@ -48,7 +48,7 @@ public static class ChatVista
         return $"{char.ToUpperInvariant(partes[0][0])}{char.ToUpperInvariant(partes[1][0])}";
     }
 
-    private static string Tono(string nombre)
+    public static string Tono(string nombre)
     {
         if (string.IsNullOrEmpty(nombre))
         {

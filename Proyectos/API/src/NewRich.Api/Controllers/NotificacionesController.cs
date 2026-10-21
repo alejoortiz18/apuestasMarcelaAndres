@@ -8,10 +8,24 @@ namespace NewRich.Api.Controllers;
 public sealed class NotificacionesController : ApiControllerBase
 {
     private readonly INotificacionService _notificacionService;
+    private readonly IAvisoChatService _avisosChat;
 
-    public NotificacionesController(INotificacionService notificacionService)
+    public NotificacionesController(INotificacionService notificacionService, IAvisoChatService avisosChat)
     {
         _notificacionService = notificacionService;
+        _avisosChat = avisosChat;
+    }
+
+    [HttpGet("chats")]
+    public async Task<IActionResult> Chats(CancellationToken cancellationToken)
+    {
+        return From(await _avisosChat.ListarAsync(UsuarioId, cancellationToken));
+    }
+
+    [HttpPost("chats/{conversacionId:guid}/leidos")]
+    public async Task<IActionResult> MarcarChatLeido(Guid conversacionId, CancellationToken cancellationToken)
+    {
+        return From(await _avisosChat.MarcarLeidosAsync(UsuarioId, conversacionId, cancellationToken));
     }
 
     [HttpGet]

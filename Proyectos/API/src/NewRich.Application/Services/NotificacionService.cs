@@ -58,7 +58,11 @@ public sealed class NotificacionService : INotificacionService
             Tipo = item.Tipo,
             Mensaje = item.Mensaje,
             Leida = item.Leida,
-            FechaCreacion = item.FechaCreacion
+            FechaCreacion = item.FechaCreacion,
+            ConversacionId = await _db.AvisosChat
+                .Where(a => a.NotificacionId == item.NotificacionId)
+                .Select(a => (Guid?)a.ConversacionId)
+                .FirstOrDefaultAsync(cancellationToken)
         };
 
         if (item.Tipo == NotificacionMessages.TipoRepeticionNumero)
@@ -186,7 +190,25 @@ public sealed class NotificacionService : INotificacionService
     public Task CrearParaAsync(IReadOnlyCollection<Guid> usuarioIds, string tipo, string mensaje, CancellationToken cancellationToken) =>
         CrearParaAsync(usuarioIds, tipo, mensaje, cancellationToken, null, null);
 
-    public async Task CrearParaAsync(IReadOnlyCollection<Guid> usuarioIds, string tipo, string mensaje, CancellationToken cancellationToken, Guid? ventaId, Guid? juegoId)
+    public Task CrearParaAsync(IReadOnlyCollection<Guid> usuarioIds, string tipo, string mensaje, CancellationToken cancellationToken, Guid? ventaId, Guid? juegoId) =>
+        CrearAsync(usuarioIds, tipo, mensaje, ventaId, juegoId, null, cancellationToken);
+
+    public Task CrearAvisoChatAsync(IReadOnlyCollection<Guid> usuarioIds, string tipo, string mensaje, Guid conversacionId, Guid emisorId, CancellationToken cancellationToken) =>
+        CrearAsync(usuarioIds, tipo, mensaje, null, null, n => _db.AvisosChat.Add(new AvisoChat
+        {
+            NotificacionId = n.NotificacionId,
+            ConversacionId = conversacionId,
+            UsuarioEmisorId = emisorId
+        }), cancellationToken);
+
+    private async Task CrearAsync(
+        IReadOnlyCollection<Guid> usuarioIds,
+        string tipo,
+        string mensaje,
+        Guid? ventaId,
+        Guid? juegoId,
+        Action<Notificacion>? vincular,
+        CancellationToken cancellationToken)
     {
         if (usuarioIds.Count == 0)
         {
@@ -208,6 +230,7 @@ public sealed class NotificacionService : INotificacionService
                 JuegoId = juegoId
             };
             _db.Notificaciones.Add(item);
+            vincular?.Invoke(item);
             creadas.Add(item);
         }
 

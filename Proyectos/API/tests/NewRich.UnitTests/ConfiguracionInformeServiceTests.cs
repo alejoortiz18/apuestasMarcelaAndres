@@ -63,6 +63,19 @@ public sealed class ConfiguracionInformeServiceTests
         (await db.ConfiguracionesInforme.Select(c => c.UsuarioId).ToListAsync()).Should().Equal(otro);
     }
 
+    [Theory]
+    [InlineData(CategoriasInforme.Egresos)]
+    [InlineData(CategoriasInforme.Recaudo)]
+    public async Task Guardar_acepta_egresos_y_recaudo_como_categorias_propias(string categoria)
+    {
+        var (sut, _) = CreateSut();
+
+        var guardado = await sut.GuardarAsync(Admin, categoria, Pedido("""{"periodo":"7"}"""), CancellationToken.None);
+
+        guardado.IsSuccess.Should().BeTrue(guardado.Message);
+        guardado.Data!.Categoria.Should().Be(categoria);
+    }
+
     [Fact]
     public async Task Guardar_rechaza_una_categoria_que_no_esta_habilitada()
     {

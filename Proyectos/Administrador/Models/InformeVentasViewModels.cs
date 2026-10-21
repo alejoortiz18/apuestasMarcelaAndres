@@ -1,38 +1,56 @@
 namespace NewRich.Admin.Models;
 
-public sealed class FiltrosVentasInforme
+public sealed class FiltrosPeriodoInforme
 {
     public string Periodo { get; set; } = string.Empty;
     public DateOnly? Desde { get; set; }
     public DateOnly? Hasta { get; set; }
     public List<Guid>? Grupos { get; set; }
-    public List<string>? Secciones { get; set; }
 }
 
-public sealed class VentasInformeViewModel
+public sealed class PeriodoInformeViewModel
 {
+    public string Clave { get; init; } = string.Empty;
     public bool Configurada { get; init; }
-    public FiltrosVentasInforme Filtros { get; init; } = new();
+    public FiltrosPeriodoInforme Filtros { get; init; } = new();
     public IReadOnlyList<OpcionInforme> Periodos { get; init; } = [];
     public IReadOnlyList<OpcionInforme> Grupos { get; init; } = [];
-    public IReadOnlyList<OpcionInforme> Secciones { get; init; } = [];
     public IReadOnlyList<DetalleFiltroInforme> Detalle { get; init; } = [];
     public string ResumenCorto { get; init; } = string.Empty;
     public DateOnly Hoy { get; init; }
 }
 
-public sealed class InformeVentasViewModel
+public sealed class ModalPeriodoInforme
+{
+    public PeriodoInformeViewModel Config { get; init; } = new();
+    public string Prefijo { get; init; } = string.Empty;
+    public string Titulo { get; init; } = string.Empty;
+    public string Ayuda { get; init; } = string.Empty;
+    public string NotaGrupos { get; init; } = string.Empty;
+}
+
+public abstract class InformePorPeriodo
 {
     public DateTime Corte { get; init; }
     public DateOnly Desde { get; init; }
     public DateOnly Hasta { get; init; }
     public string Alcance { get; init; } = string.Empty;
-    public bool VerIngresos { get; init; }
-    public bool VerEgresos { get; init; }
-    public bool VerRecaudo { get; init; }
+}
+
+public sealed class InformeVentasViewModel : InformePorPeriodo
+{
     public ResumenFinancieroInforme Resumen { get; init; } = new();
     public IngresosInforme Ingresos { get; init; } = new();
+}
+
+public sealed class InformeEgresosViewModel : InformePorPeriodo
+{
+    public ResumenFinancieroInforme Resumen { get; init; } = new();
     public EgresosInforme Egresos { get; init; } = new();
+}
+
+public sealed class InformeRecaudoViewModel : InformePorPeriodo
+{
     public RecaudoInforme? Recaudo { get; init; }
 }
 
