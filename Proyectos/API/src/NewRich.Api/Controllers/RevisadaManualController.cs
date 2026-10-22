@@ -57,6 +57,24 @@ public sealed class RevisadaManualController : ApiControllerBase
         return From(await _revisada.RecubrirAsync(UsuarioId, request.Claves, request.ComisionPorcentaje, request.DescuentoPorcentaje, cancellationToken));
     }
 
+    [HttpGet("ResumenHistorico")]
+    public async Task<IActionResult> ResumenHistorico([FromQuery] DateTime desde, [FromQuery] DateTime hasta, [FromQuery] string? orden, [FromQuery] bool descendente = false, [FromQuery] int pagina = 1, [FromQuery] int tamano = 20, CancellationToken cancellationToken = default)
+    {
+        return From(await _revisada.ResumenHistoricoAsync(desde, hasta, orden, descendente, pagina, tamano, cancellationToken));
+    }
+
+    [HttpGet("CubiertoHoy")]
+    public async Task<IActionResult> CubiertoHoy(CancellationToken cancellationToken)
+    {
+        return From(await _revisada.CubiertoHoyAsync(cancellationToken));
+    }
+
+    [HttpGet("CubiertoHistorico")]
+    public async Task<IActionResult> CubiertoHistorico([FromQuery] DateTime desde, [FromQuery] DateTime hasta, [FromQuery] string? orden, [FromQuery] bool descendente = false, [FromQuery] int pagina = 1, [FromQuery] int tamano = 20, CancellationToken cancellationToken = default)
+    {
+        return From(await _revisada.CubiertoHistoricoAsync(desde, hasta, orden, descendente, pagina, tamano, cancellationToken));
+    }
+
     [HttpGet("Cubierto")]
     public async Task<IActionResult> Cubierto([FromQuery] DateTime desde, [FromQuery] DateTime hasta, CancellationToken cancellationToken)
     {

@@ -1,0 +1,55 @@
+@using System.Globalization
+@using NewRich.Admin.Constants
+@model NewRich.Admin.Models.CubiertoFilasViewModel
+@{
+    var cultura = CultureInfo.GetCultureInfo("es-CO");
+    string Pesos(decimal valor) => valor.ToString("N0", cultura);
+    string Porcentajes(IEnumerable<decimal> valores) => string.Join(" y ", valores.Select(v => v.ToString("0.##", cultura)));
+}
+@foreach (var fila in Model.Filas)
+{
+    var detalleId = $"historico-detalle-{fila.Cubrimientos[0].OperacionId}";
+    <tr>
+        <td>@fila.Fecha.ToString("dd/MM/yyyy", cultura)</td>
+        <td>@fila.Loteria</td>
+        <td><strong>@fila.Numero</strong></td>
+        <td class="num">@fila.Registros.ToString("N0", cultura)</td>
+        <td class="num">@Pesos(fila.Subtotal)</td>
+        <td class="num">@Porcentajes(fila.ComisionPorcentajes) %</td>
+        <td class="num">@Pesos(fila.ComisionValor)</td>
+        <td class="num">@Pesos(fila.TotalConComision)</td>
+        <td class="num">@Porcentajes(fila.DescuentoPorcentajes) %</td>
+        <td class="num">@Pesos(fila.DescuentoValor)</td>
+        <td class="num"><strong>@Pesos(fila.TotalPagar)</strong></td>
+        <td>
+            <button type="button" class="revisada-ver" data-revisada-ver="@detalleId"
+                    data-titulo="@($"{fila.Fecha.ToString("dd/MM/yyyy", cultura)} · {UiTexts.Loteria}: {fila.Loteria} · {UiTexts.NumeroJugado}: {fila.Numero}")"
+                    aria-label="@($"{UiTexts.VerDetalleCubierto} {fila.Loteria} {fila.Numero} {fila.Fecha.ToString("dd/MM/yyyy", cultura)}")" title="@UiTexts.VerDetalleCubierto">
+                <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" /><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.7" /></svg>
+            </button>
+            <template id="@detalleId">
+                @foreach (var grupo in fila.Cubrimientos)
+                {
+                    <article class="revisada-grupo">
+                        <h3>@UiTexts.NumeroJugado: @grupo.Numero</h3>
+                        @if (grupo.FechaOperacion is { } fechaCubierto)
+                        {
+                            <p class="revisada-fecha-cubierto">@UiTexts.CubiertoEl: @fechaCubierto.ToString("dd/MM/yyyy HH:mm", cultura)</p>
+                        }
+                        <p><strong>@UiTexts.Subtotal:</strong> @Pesos(grupo.Subtotal)</p>
+                        <p>@UiTexts.Comision: @((grupo.ComisionPorcentaje ?? 0).ToString("0.##", cultura)) %</p>
+                        <p>@UiTexts.ValorComision: @Pesos(grupo.ComisionValor ?? 0)</p>
+                        <p><strong>@UiTexts.TotalConComision:</strong> @Pesos(grupo.TotalConComision ?? 0)</p>
+                        @if (grupo.TotalPagar is not null)
+                        {
+                            <p>@UiTexts.Descuento: @((grupo.DescuentoPorcentaje ?? 0).ToString("0.##", cultura)) %</p>
+                            <p>@UiTexts.ValorDescuento: @Pesos(grupo.DescuentoValor ?? 0)</p>
+                            <p><strong>@UiTexts.TotalAPagar:</strong> @Pesos(grupo.TotalPagar.Value)</p>
+                        }
+                    </article>
+                }
+            </template>
+        </td>
+    </tr>
+}
+<tr hidden data-historico-fin data-hay-mas="@(Model.HayMas ? "true" : "false")" data-siguiente="@Model.Siguiente"></tr>

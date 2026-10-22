@@ -66,14 +66,100 @@ public sealed class RevisadaManualCubrirTests
     public async Task Abrir_cubierto_muestra_los_porcentajes_guardados_sin_volver_a_guardarlos()
     {
         var api = Api(comision: 25m);
-        api.Setup(a => a.RevisadaCubiertoAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ApiCallResult<VistaRevisadaManualResponse>.Ok(new(), "Listo."));
+        ConCubierto(api);
         var sut = Crear(api.Object);
 
         var result = await sut.Cubierto(null, null, null, null, cancellationToken: CancellationToken.None);
 
         result.Should().BeOfType<ViewResult>().Subject.Model.Should().BeOfType<RevisadaPaginaViewModel>().Which.Comision.Should().Be("25");
         api.Verify(a => a.GuardarComisionRevisadaManualAsync(It.IsAny<decimal>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Cubierto_con_rango_que_incluye_hoy_muestra_lo_cubierto_hoy_y_el_historico()
+    {
+        var api = Api(comision: 20m, descuento: 10m);
+        ConCubierto(api);
+        var sut = Crear(api.Object);
+
+        var result = await sut.Cubierto(DateTime.Today.AddDays(-3), DateTime.Today, null, null, cancellationToken: CancellationToken.None);
+
+        var modelo = result.Should().BeOfType<ViewResult>().Subject.Model.Should().BeOfType<RevisadaPaginaViewModel>().Subject;
+        modelo.IncluyeHoy.Should().BeTrue();
+        modelo.Historico.Should().NotBeNull();
+        api.Verify(a => a.RevisadaCubiertoHoyAsync(It.IsAny<CancellationToken>()), Times.Once);
+        api.Verify(a => a.RevisadaCubiertoHistoricoAsync(DateTime.Today.AddDays(-3), DateTime.Today, "fecha", true, 1, 20, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Cubierto_con_rango_sin_hoy_muestra_solo_el_historico()
+    {
+        var api = Api(comision: 20m, descuento: 10m);
+        ConCubierto(api);
+        var sut = Crear(api.Object);
+
+        var result = await sut.Cubierto(DateTime.Today.AddDays(-10), DateTime.Today.AddDays(-5), null, null, cancellationToken: CancellationToken.None);
+
+        result.Should().BeOfType<ViewResult>().Subject.Model.Should().BeOfType<RevisadaPaginaViewModel>().Which.IncluyeHoy.Should().BeFalse();
+        api.Verify(a => a.RevisadaCubiertoHoyAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Resumen_con_dias_anteriores_y_hoy_muestra_lo_de_hoy_y_el_historico_hasta_ayer()
+    {
+        var api = Api(comision: 20m, descuento: 10m);
+        ConResumenHistorico(api);
+        var sut = Crear(api.Object);
+
+        var result = await sut.Resumen(DateTime.Today.AddDays(-5), DateTime.Today, null, cancellationToken: CancellationToken.None);
+
+        var modelo = result.Should().BeOfType<ViewResult>().Subject.Model.Should().BeOfType<RevisadaPaginaViewModel>().Subject;
+        modelo.IncluyeHoy.Should().BeTrue();
+        modelo.HistoricoResumen.Should().NotBeNull();
+        api.Verify(a => a.RevisadaResumenAsync(DateTime.Today, DateTime.Today.AddDays(1).AddTicks(-1), null, It.IsAny<CancellationToken>()), Times.Once);
+        api.Verify(a => a.RevisadaResumenHistoricoAsync(DateTime.Today.AddDays(-5), DateTime.Today.AddDays(-1), "fecha", true, 1, 20, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Resumen_solo_de_hoy_no_muestra_historico()
+    {
+        var api = Api(comision: 20m, descuento: 10m);
+        ConResumenHistorico(api);
+        var sut = Crear(api.Object);
+
+        var result = await sut.Resumen(DateTime.Today, DateTime.Today, null, cancellationToken: CancellationToken.None);
+
+        result.Should().BeOfType<ViewResult>().Subject.Model.Should().BeOfType<RevisadaPaginaViewModel>().Which.HistoricoResumen.Should().BeNull();
+        api.Verify(a => a.RevisadaResumenHistoricoAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<bool>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Resumen_solo_de_dias_anteriores_muestra_solo_el_historico()
+    {
+        var api = Api(comision: 20m, descuento: 10m);
+        ConResumenHistorico(api);
+        var sut = Crear(api.Object);
+
+        var result = await sut.Resumen(DateTime.Today.AddDays(-7), DateTime.Today.AddDays(-2), null, cancellationToken: CancellationToken.None);
+
+        var modelo = result.Should().BeOfType<ViewResult>().Subject.Model.Should().BeOfType<RevisadaPaginaViewModel>().Subject;
+        modelo.IncluyeHoy.Should().BeFalse();
+        modelo.HistoricoResumen.Should().NotBeNull();
+        api.Verify(a => a.RevisadaResumenAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<decimal?>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    private static void ConResumenHistorico(Mock<IAdminApiClient> api)
+    {
+        api.Setup(a => a.RevisadaResumenHistoricoAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<bool>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ApiCallResult<ResumenHistoricoResponse>.Ok(new(), "Listo."));
+    }
+
+    private static void ConCubierto(Mock<IAdminApiClient> api)
+    {
+        api.Setup(a => a.RevisadaCubiertoHoyAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ApiCallResult<VistaRevisadaManualResponse>.Ok(new(), "Listo."));
+        api.Setup(a => a.RevisadaCubiertoHistoricoAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<bool>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ApiCallResult<CubiertoHistoricoResponse>.Ok(new(), "Listo."));
     }
 
     [Fact]

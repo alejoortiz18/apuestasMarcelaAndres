@@ -1,3 +1,9 @@
 @model NewRich.Admin.Models.RevisadaPaginaViewModel
 <link rel="stylesheet" href="~/css/revisada.css" asp-append-version="true" />
 @await Html.PartialAsync("_Contenido", Model)
+
+@section Scripts {
+    <script src="~/lib/html-to-image/html-to-image.js" asp-append-version="true"></script>
+    <script src="~/lib/jspdf/jspdf.umd.min.js" asp-append-version="true"></script>
+    <script src="~/js/revisada-pdf.js" asp-append-version="true"></script>
+}

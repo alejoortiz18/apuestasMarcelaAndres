@@ -12,6 +12,8 @@ namespace NewRich.Admin.Controllers;
 public sealed class RevisadaManualController : AdminControllerBase
 {
     private static readonly CultureInfo Cultura = CultureInfo.GetCultureInfo("es-CO");
+    private const int TamanoHistorico = 20;
+    private const string OrdenHistoricoInicial = "fecha";
     private readonly IAdminApiClient _api;
 
     public RevisadaManualController(IAdminApiClient api) => _api = api;
@@ -87,7 +89,12 @@ public sealed class RevisadaManualController : AdminControllerBase
             return PartialView("_RecubrirPrevia", new RecubrirPreviaViewModel { Error = UiTexts.PorcentajesSinConfigurar });
         }
 
-        var previa = await _api.RevisadaRecubrirPreviaAsync(inicio, finDia.AddDays(1).AddTicks(-1), minimo, cancellationToken);
+        if (RangoParteActual(inicio, finDia) is not { } parte)
+        {
+            return PartialView("_RecubrirPrevia", new RecubrirPreviaViewModel { Error = UiTexts.RecubrirSinPendientes });
+        }
+
+        var previa = await _api.RevisadaRecubrirPreviaAsync(parte.Inicio, parte.Fin.AddDays(1).AddTicks(-1), minimo, cancellationToken);
         negado = RedirectIfUnauthorized(previa);
         if (negado is not null)
         {
@@ -243,13 +250,48 @@ public sealed class RevisadaManualController : AdminControllerBase
             }
         }
 
-        var consulta = cubierto
-            ? await _api.RevisadaCubiertoAsync(inicio, fin, cancellationToken)
-            : await _api.RevisadaResumenAsync(inicio, fin, minimo, cancellationToken);
+        var hoy = DateTime.Today;
+        var parteActual = RangoParteActual(inicio, finDia);
+        var rangoHistorico = cubierto ? null : RangoHistoricoResumen(inicio, finDia);
+        var incluyeHoy = cubierto ? inicio <= hoy && hoy <= finDia : parteActual is not null;
+        var vacia = ApiCallResult<VistaRevisadaManualResponse>.Ok(new VistaRevisadaManualResponse(), string.Empty);
+        var consulta = !cubierto
+            ? parteActual is { } parte
+                ? await _api.RevisadaResumenAsync(parte.Inicio, parte.Fin.AddDays(1).AddTicks(-1), minimo, cancellationToken)
+                : vacia
+            : incluyeHoy
+                ? await _api.RevisadaCubiertoHoyAsync(cancellationToken)
+                : vacia;
         var negado = RedirectIfUnauthorized(consulta);
         if (negado is not null)
         {
             return negado;
+        }
+
+        ResumenHistoricoResponse? historicoResumen = null;
+        if (rangoHistorico is { } rango)
+        {
+            var respuesta = await _api.RevisadaResumenHistoricoAsync(rango.Inicio, rango.Fin, OrdenHistoricoInicial, true, 1, TamanoHistorico, cancellationToken);
+            negado = RedirectIfUnauthorized(respuesta);
+            if (negado is not null)
+            {
+                return negado;
+            }
+
+            historicoResumen = respuesta.Data ?? new ResumenHistoricoResponse();
+        }
+
+        CubiertoHistoricoResponse? historico = null;
+        if (cubierto)
+        {
+            var respuesta = await _api.RevisadaCubiertoHistoricoAsync(inicio, finDia, OrdenHistoricoInicial, true, 1, TamanoHistorico, cancellationToken);
+            negado = RedirectIfUnauthorized(respuesta);
+            if (negado is not null)
+            {
+                return negado;
+            }
+
+            historico = respuesta.Data ?? new CubiertoHistoricoResponse();
         }
 
         if (!consulta.Success)
@@ -281,7 +323,55 @@ public sealed class RevisadaManualController : AdminControllerBase
             Jugadas = consulta.Data?.Jugadas ?? 0,
             Loterias = consulta.Data?.Loterias ?? 0,
             Total = consulta.Data?.Total ?? 0,
-            Pagina = PagingHelper.Paginate(loterias, page, pageSize)
+            Pagina = PagingHelper.Paginate(loterias, page, pageSize),
+            IncluyeHoy = incluyeHoy,
+            Historico = historico,
+            HistoricoResumen = historicoResumen,
+            HistoricoDesde = rangoHistorico?.Inicio ?? inicio,
+            HistoricoHasta = rangoHistorico?.Fin ?? finDia
+        });
+    }
+
+    // En Resumen lo de hoy en adelante se puede cubrir; lo de días anteriores va al histórico.
+    private static (DateTime Inicio, DateTime Fin)? RangoParteActual(DateTime inicio, DateTime finDia) =>
+        finDia < DateTime.Today ? null : (inicio < DateTime.Today ? DateTime.Today : inicio, finDia);
+
+    private static (DateTime Inicio, DateTime Fin)? RangoHistoricoResumen(DateTime inicio, DateTime finDia) =>
+        inicio >= DateTime.Today ? null : (inicio, finDia < DateTime.Today ? finDia : DateTime.Today.AddDays(-1));
+
+    [HttpGet]
+    public async Task<IActionResult> ResumenTabla(DateTime desde, DateTime hasta, string? orden, bool descendente = false, int pagina = 1, CancellationToken cancellationToken = default)
+    {
+        var respuesta = await _api.RevisadaResumenHistoricoAsync(desde.Date, hasta.Date, orden, descendente, pagina, TamanoHistorico, cancellationToken);
+        var negado = RedirectIfUnauthorized(respuesta);
+        if (negado is not null)
+        {
+            return negado;
+        }
+
+        return PartialView("_ResumenFilas", new ResumenFilasViewModel
+        {
+            Filas = respuesta.Data?.Filas ?? [],
+            HayMas = respuesta.Data?.HayMas ?? false,
+            Siguiente = pagina + 1
+        });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> CubiertoTabla(DateTime desde, DateTime hasta, string? orden, bool descendente = false, int pagina = 1, CancellationToken cancellationToken = default)
+    {
+        var respuesta = await _api.RevisadaCubiertoHistoricoAsync(desde.Date, hasta.Date, orden, descendente, pagina, TamanoHistorico, cancellationToken);
+        var negado = RedirectIfUnauthorized(respuesta);
+        if (negado is not null)
+        {
+            return negado;
+        }
+
+        return PartialView("_CubiertoFilas", new CubiertoFilasViewModel
+        {
+            Filas = respuesta.Data?.Filas ?? [],
+            HayMas = respuesta.Data?.HayMas ?? false,
+            Siguiente = pagina + 1
         });
     }
 

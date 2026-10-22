@@ -1,0 +1,46 @@
+@using System.Globalization
+@using NewRich.Admin.Constants
+@model NewRich.Admin.Models.ResumenFilasViewModel
+@{
+    var cultura = CultureInfo.GetCultureInfo("es-CO");
+    string Pesos(decimal valor) => valor.ToString("N0", cultura);
+}
+@foreach (var fila in Model.Filas)
+{
+    var cubierto = fila.Estado == "Cubierto";
+    var detalleId = $"resumen-detalle-{fila.Lineas[0].Clave.Replace(":", "-")}";
+    <tr>
+        <td>@fila.Fecha.ToString("dd/MM/yyyy", cultura)</td>
+        <td>@fila.Loteria</td>
+        <td><strong>@fila.Numero</strong></td>
+        <td><span class="pill @(cubierto ? "ok" : "warn")">@(cubierto ? UiTexts.NavRevisadaCubierto : UiTexts.HistoricoPendiente)</span></td>
+        <td class="num">@fila.Registros.ToString("N0", cultura)</td>
+        <td class="num"><strong>@Pesos(fila.Subtotal)</strong></td>
+        <td>
+            <button type="button" class="revisada-ver" data-revisada-ver="@detalleId"
+                    data-titulo="@($"{fila.Fecha.ToString("dd/MM/yyyy", cultura)} · {UiTexts.Loteria}: {fila.Loteria} · {UiTexts.NumeroJugado}: {fila.Numero}")"
+                    aria-label="@($"{UiTexts.DetalleApuestasTitulo} {fila.Loteria} {fila.Numero} {fila.Fecha.ToString("dd/MM/yyyy", cultura)}")" title="@UiTexts.DetalleApuestasTitulo">
+                <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" /><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.7" /></svg>
+            </button>
+            <template id="@detalleId">
+                <article class="revisada-grupo">
+                    <h3>@UiTexts.NumeroJugado: @fila.Numero</h3>
+                    <div class="revisada-lineas">
+                        <p class="revisada-lineas-titulo">@UiTexts.ValorApostado</p>
+                        <ul>
+                            @foreach (var linea in fila.Lineas)
+                            {
+                                <li>
+                                    <span>@Pesos(linea.Valor)</span>
+                                    <time datetime="@linea.Fecha.ToString("yyyy-MM-ddTHH:mm")">@linea.Fecha.ToString("h:mm tt", cultura)</time>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                    <p><strong>@UiTexts.Subtotal:</strong> @Pesos(fila.Subtotal)</p>
+                </article>
+            </template>
+        </td>
+    </tr>
+}
+<tr hidden data-historico-fin data-hay-mas="@(Model.HayMas ? "true" : "false")" data-siguiente="@Model.Siguiente"></tr>

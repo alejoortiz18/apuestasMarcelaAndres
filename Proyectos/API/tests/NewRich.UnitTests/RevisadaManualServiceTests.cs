@@ -129,6 +129,80 @@ public sealed class RevisadaManualServiceTests
         result.Message.Should().Be(RevisadaManualMessages.NoCubiertoHoy);
     }
 
+    [Fact]
+    public async Task Historico_agrupa_por_fecha_de_cubrimiento_loteria_y_numero()
+    {
+        var (sut, db, admin) = await CreateSutAsync();
+        var desde = new DateTime(2026, 10, 18);
+        var hasta = desde.AddDays(1).AddTicks(-1);
+        var resumen = (await sut.ResumenAsync(desde, hasta, null, CancellationToken.None)).Data!.Grupos;
+        await sut.CubrirDesdeResumenAsync(admin, resumen.Single(g => g.Numero == "1234").Lineas.Select(l => l.Clave).ToList(), 20, 10, CancellationToken.None);
+        await sut.CubrirDesdeResumenAsync(admin, resumen.Single(g => g.Numero == "5678").Lineas.Select(l => l.Clave).ToList(), 20, 10, CancellationToken.None);
+        await AgregarFilaAsync(db, "1234", 2_000);
+        var nuevo = (await sut.RecubrirPreviaAsync(desde, hasta, null, CancellationToken.None)).Data!.Grupos.Single();
+        await sut.RecubrirAsync(admin, nuevo.Lineas.Select(l => l.Clave).ToList(), 20, 10, CancellationToken.None);
+        var ayer = await db.OperacionesRevisadaManual.FirstAsync(o => o.Numero == "5678");
+        ayer.FechaOperacion = ayer.FechaOperacion.AddDays(-1);
+        await db.SaveChangesAsync();
+
+        var historico = await sut.CubiertoHistoricoAsync(desde.AddDays(-1), desde, "subtotal", true, 1, 20, CancellationToken.None);
+
+        historico.IsSuccess.Should().BeTrue(historico.Message);
+        var datos = historico.Data!;
+        datos.TotalFilas.Should().Be(2);
+        datos.Filas.Select(f => (f.Numero, f.Subtotal, f.Registros)).Should().Equal(("1234", 13_000m, 2), ("5678", 8_000m, 1));
+        datos.Filas[0].Cubrimientos.Should().HaveCount(2);
+        datos.Filas[0].TotalPagar.Should().Be(14_040m);
+        datos.Filas[1].Fecha.Should().Be(desde.AddDays(-1));
+        datos.Subtotal.Should().Be(21_000m);
+        (await sut.CubiertoHoyAsync(CancellationToken.None)).Data!.Grupos.Should().OnlyContain(g => g.Numero == "1234");
+    }
+
+    [Fact]
+    public async Task Historico_carga_por_paginas()
+    {
+        var (sut, _, admin) = await CreateSutAsync();
+        var desde = new DateTime(2026, 10, 18);
+        var hasta = desde.AddDays(1).AddTicks(-1);
+        foreach (var grupo in (await sut.ResumenAsync(desde, hasta, null, CancellationToken.None)).Data!.Grupos)
+        {
+            await sut.CubrirDesdeResumenAsync(admin, grupo.Lineas.Select(l => l.Clave).ToList(), 20, 10, CancellationToken.None);
+        }
+
+        var primera = await sut.CubiertoHistoricoAsync(desde, desde, "numero", false, 1, 2, CancellationToken.None);
+        var segunda = await sut.CubiertoHistoricoAsync(desde, desde, "numero", false, 2, 2, CancellationToken.None);
+
+        primera.Data!.TotalFilas.Should().Be(3);
+        primera.Data.HayMas.Should().BeTrue();
+        primera.Data.Filas.Select(f => f.Numero).Should().Equal("1234", "5678");
+        segunda.Data!.HayMas.Should().BeFalse();
+        segunda.Data.Filas.Select(f => f.Numero).Should().Equal("9999");
+    }
+
+    [Fact]
+    public async Task Historico_de_resumen_muestra_pendientes_y_cubiertos_por_fecha_loteria_y_numero()
+    {
+        var (sut, db, admin) = await CreateSutAsync();
+        var desde = new DateTime(2026, 10, 18);
+        var hasta = desde.AddDays(1).AddTicks(-1);
+        var grupo = (await sut.ResumenAsync(desde, hasta, null, CancellationToken.None)).Data!.Grupos.Single(g => g.Numero == "1234");
+        await sut.CubrirDesdeResumenAsync(admin, grupo.Lineas.Select(l => l.Clave).ToList(), 20, 10, CancellationToken.None);
+        await AgregarFilaAsync(db, "1234", 2_000);
+
+        var historico = await sut.ResumenHistoricoAsync(desde, desde, "estado", false, 1, 20, CancellationToken.None);
+
+        historico.IsSuccess.Should().BeTrue(historico.Message);
+        var datos = historico.Data!;
+        datos.TotalFilas.Should().Be(4);
+        datos.Filas.Should().Contain(f => f.Numero == "1234" && f.Estado == "Cubierto" && f.Subtotal == 11_000 && f.Registros == 1);
+        datos.Filas.Should().Contain(f => f.Numero == "1234" && f.Estado == "Pendiente" && f.Subtotal == 2_000);
+        datos.Filas.Should().Contain(f => f.Numero == "5678" && f.Estado == "Pendiente");
+        datos.Filas[0].Estado.Should().Be("Cubierto");
+        datos.SubtotalCubierto.Should().Be(11_000);
+        datos.SubtotalPendiente.Should().Be(15_000);
+        datos.Subtotal.Should().Be(26_000);
+    }
+
     private static async Task AgregarFilaAsync(NewRichDbContext db, string numero, decimal valor)
     {
         var existente = await db.RegistrosJuegoManual.AsNoTracking().FirstAsync();

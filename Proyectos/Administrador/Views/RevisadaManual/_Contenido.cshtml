@@ -40,13 +40,44 @@
         <h1>@Titulo()</h1>
         <p>@Sub()</p>
     </div>
+    @if (esCubierto)
+    {
+        <button class="primary revisada-exportar" type="button" title="@UiTexts.CubiertoExportarAyuda"
+                data-revisada-exportar
+                data-fuentes="@Url.Content("~/lib/fuentes-pdf/fuentes.css")"
+                data-archivo="cubierto-@(DateTime.Now.ToString("yyyyMMdd-HHmm")).pdf"
+                data-titulo="@UiTexts.NavRevisadaCubierto"
+                data-generando="@UiTexts.InformePdfGenerando"
+                data-error="@UiTexts.InformePdfError">@UiTexts.InformeExportarPdf</button>
+    }
 </div>
+@if (esCubierto)
+{
+    <div class="revisada-pdf-resumen" aria-hidden="true" data-revisada-pdf-resumen>
+        <header class="revisada-pdf-encabezado" data-pdf-encabezado>
+            <p class="revisada-pdf-kicker">@UiTexts.InformePdfKicker</p>
+            <h2>@UiTexts.NavRevisadaCubierto</h2>
+            <p>@UiTexts.RevisadaCubiertoSub</p>
+            <p class="revisada-pdf-corte">@UiTexts.CorteDeInformacion: @DateTime.Now.ToString("dd/MM/yyyy HH:mm") · @UiTexts.FuenteSql</p>
+        </header>
+        <section class="revisada-pdf-filtros" data-pdf-filtros>
+            <h3>@UiTexts.FiltrosAplicados</h3>
+            <p>@UiTexts.Desde: @Model.Desde.ToString("dd/MM/yyyy", cultura)</p>
+            <p>@UiTexts.Hasta: @Model.Hasta.ToString("dd/MM/yyyy", cultura)</p>
+            <p>@UiTexts.Comision: @(string.IsNullOrWhiteSpace(Model.Comision) ? "-" : Model.Comision + " %")</p>
+            <p>@UiTexts.Descuento: @(string.IsNullOrWhiteSpace(Model.Porcentaje) ? "-" : Model.Porcentaje + " %")</p>
+        </section>
+    </div>
+}
 <div id="revisada-datos">
+@if (Model.IncluyeHoy)
+{
 <div class="stats">
     <article class="stat"><small>@UiTexts.JugadasVisibles</small><strong>@Model.Jugadas.ToString("N0", cultura)</strong></article>
     <article class="stat"><small>@UiTexts.LoteriasVisibles</small><strong>@Model.Loterias.ToString("N0", cultura)</strong></article>
     <article class="stat"><small>@UiTexts.TotalAgrupado</small><strong>@Pesos(Model.Total)</strong></article>
 </div>
+}
 <div class="panel">
     @if (esCubierto)
     {
@@ -100,11 +131,19 @@
         <a class="secondary" asp-action="@Accion()">@UiTexts.Limpiar</a>
     </form>
 </div>
-@if (Model.Pagina.TotalCount == 0)
+@if (esCubierto && Model.IncluyeHoy)
 {
-    <div class="panel"><p>@UiTexts.SinJugadasRevisada</p></div>
+    <h2 class="revisada-parte-titulo">@string.Format(cultura, UiTexts.CubiertoHoyTitulo, DateTime.Today.ToString("dd/MM/yyyy", cultura))</h2>
 }
-else
+else if (!esCubierto && Model.IncluyeHoy && Model.HistoricoResumen is not null)
+{
+    <h2 class="revisada-parte-titulo">@string.Format(cultura, UiTexts.PendienteHoyTitulo, DateTime.Today.ToString("dd/MM/yyyy", cultura))</h2>
+}
+@if (Model.IncluyeHoy && Model.Pagina.TotalCount == 0)
+{
+    <div class="panel"><p>@(esCubierto ? UiTexts.CubiertoHoyVacio : UiTexts.SinJugadasRevisada)</p></div>
+}
+else if (Model.IncluyeHoy)
 {
     <section class="panel revisada-previa revisada-modo-resumen" data-revisada-filtro>
         <div class="revisada-previa-head">
@@ -285,19 +324,24 @@ else
     }
     @await Html.PartialAsync("_Pager", Model.Pagina)
 }
-@if (esCubierto)
+@if (esCubierto && Model.Historico is not null)
 {
-    <div id="revisadaDetalle" class="dialog-back hidden" role="dialog" aria-modal="true" aria-labelledby="revisadaDetalleTitulo" hidden data-revisada-modal>
-        <div class="dialog dialog-revisada">
-            <h2 id="revisadaDetalleTitulo">@UiTexts.DetalleCubiertoTitulo</h2>
-            <p class="dialog-revisada-sub" data-revisada-modal-sub></p>
-            <div class="revisada-detalle-lista" data-revisada-modal-lista></div>
-            <div class="dialog-actions">
-                <button type="button" class="primary" data-revisada-modal-cerrar>@UiTexts.Cerrar</button>
-            </div>
+    @await Html.PartialAsync("_CubiertoHistorico", Model)
+}
+</div>
+@if (!esCubierto && Model.HistoricoResumen is not null)
+{
+    @await Html.PartialAsync("_ResumenHistorico", Model)
+}
+<div id="revisadaDetalle" class="dialog-back hidden" role="dialog" aria-modal="true" aria-labelledby="revisadaDetalleTitulo" hidden data-revisada-modal>
+    <div class="dialog dialog-revisada">
+        <h2 id="revisadaDetalleTitulo">@(esCubierto ? UiTexts.DetalleCubiertoTitulo : UiTexts.DetalleApuestasTitulo)</h2>
+        <p class="dialog-revisada-sub" data-revisada-modal-sub></p>
+        <div class="revisada-detalle-lista" data-revisada-modal-lista></div>
+        <div class="dialog-actions">
+            <button type="button" class="primary" data-revisada-modal-cerrar>@UiTexts.Cerrar</button>
         </div>
     </div>
-}
 </div>
 @if (!esCubierto)
 {
@@ -407,6 +451,88 @@ else
     });
     };
     window.iniciarRevisada();
+    (function () {
+        var seccion = document.querySelector("[data-historico]");
+        var cuerpo = seccion && seccion.querySelector("[data-historico-filas]");
+        var scroll = seccion && seccion.querySelector("[data-historico-scroll]");
+        var centinela = seccion && seccion.querySelector("[data-historico-centinela]");
+        if (!cuerpo || !scroll || !centinela) {
+            return;
+        }
+        var cargando = false;
+        var hayMas = false;
+        var siguiente = 2;
+        function leerFin() {
+            var fin = cuerpo.querySelector("[data-historico-fin]");
+            if (fin) {
+                hayMas = fin.getAttribute("data-hay-mas") === "true";
+                siguiente = parseInt(fin.getAttribute("data-siguiente"), 10) || siguiente;
+                fin.remove();
+            }
+            centinela.hidden = !hayMas;
+        }
+        function direccion(pagina) {
+            var datos = new URLSearchParams({
+                desde: seccion.dataset.desde,
+                hasta: seccion.dataset.hasta,
+                orden: seccion.dataset.orden,
+                descendente: seccion.dataset.descendente,
+                pagina: String(pagina)
+            });
+            return seccion.dataset.url + "?" + datos.toString();
+        }
+        function cargar(pagina, reemplazar) {
+            if (cargando) {
+                return;
+            }
+            cargando = true;
+            fetch(direccion(pagina), { credentials: "same-origin", headers: { "X-Requested-With": "fetch" } })
+                .then(function (respuesta) { return respuesta.ok ? respuesta.text() : Promise.reject(); })
+                .then(function (html) {
+                    var temporal = document.createElement("tbody");
+                    temporal.innerHTML = html;
+                    if (!temporal.querySelector("[data-historico-fin]")) {
+                        location.reload();
+                        return;
+                    }
+                    if (reemplazar) {
+                        cuerpo.replaceChildren();
+                    }
+                    while (temporal.firstChild) {
+                        cuerpo.appendChild(temporal.firstChild);
+                    }
+                    leerFin();
+                })
+                .catch(function () { })
+                .finally(function () { cargando = false; });
+        }
+        leerFin();
+        new IntersectionObserver(function (entradas) {
+            if (hayMas && !cargando && entradas.some(function (e) { return e.isIntersecting; })) {
+                cargar(siguiente, false);
+            }
+        }, { root: scroll, rootMargin: "150px" }).observe(centinela);
+        seccion.querySelectorAll("[data-historico-orden]").forEach(function (boton) {
+            boton.addEventListener("click", function () {
+                var clave = boton.getAttribute("data-historico-orden");
+                var descendente = seccion.dataset.orden === clave ? seccion.dataset.descendente !== "true" : false;
+                seccion.dataset.orden = clave;
+                seccion.dataset.descendente = descendente ? "true" : "false";
+                seccion.querySelectorAll("[data-historico-orden]").forEach(function (otro) {
+                    var activo = otro === boton;
+                    var marca = otro.querySelector("span");
+                    otro.closest("th").setAttribute("aria-sort", activo ? (descendente ? "descending" : "ascending") : "none");
+                    if (marca) {
+                        marca.textContent = activo ? (descendente ? "↓" : "↑") : "↕";
+                    }
+                    var plantilla = activo && !descendente ? seccion.dataset.desc : seccion.dataset.asc;
+                    otro.setAttribute("aria-label", plantilla.replace("{0}", otro.getAttribute("data-titulo") || ""));
+                });
+                scroll.scrollTop = 0;
+                cargar(1, true);
+            });
+        });
+    })();
     (function () {
         var modal = document.querySelector("[data-recubrir-modal]");
         if (!modal) {

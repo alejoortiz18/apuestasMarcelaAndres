@@ -18,6 +18,9 @@ public interface IRevisadaManualService
     Task<Result<VistaRevisadaManualResponse>> PorCubrirAsync(DateTime desde, DateTime hasta, CancellationToken cancellationToken);
     Task<Result<GrupoRevisadaManualResponse>> CubrirAsync(Guid administradorId, Guid operacionId, decimal comisionPorcentaje, CancellationToken cancellationToken);
     Task<Result<VistaRevisadaManualResponse>> CubiertoAsync(DateTime desde, DateTime hasta, CancellationToken cancellationToken);
+    Task<Result<VistaRevisadaManualResponse>> CubiertoHoyAsync(CancellationToken cancellationToken);
+    Task<Result<ResumenHistoricoResponse>> ResumenHistoricoAsync(DateTime desde, DateTime hasta, string? orden, bool descendente, int pagina, int tamano, CancellationToken cancellationToken);
+    Task<Result<CubiertoHistoricoResponse>> CubiertoHistoricoAsync(DateTime desde, DateTime hasta, string? orden, bool descendente, int pagina, int tamano, CancellationToken cancellationToken);
     Task<Result<GrupoRevisadaManualResponse>> RegistrarDescuentoAsync(Guid administradorId, Guid operacionId, decimal descuentoPorcentaje, CancellationToken cancellationToken);
 }
 
@@ -293,6 +296,143 @@ public sealed class RevisadaManualService : IRevisadaManualService
         var vista = await OperacionesAsync(OperacionRevisadaManual.EstadoCubierto, desde, hasta, cancellationToken);
         return Result<VistaRevisadaManualResponse>.Ok(vista, RevisadaManualMessages.Consultado);
     }
+
+    public async Task<Result<VistaRevisadaManualResponse>> CubiertoHoyAsync(CancellationToken cancellationToken)
+    {
+        var hoy = _clock.LocalNow.Date;
+        var operaciones = await CubiertasEntreAsync(hoy, hoy.AddDays(1), cancellationToken);
+        var nombres = await NombresAsync(operaciones.Select(o => o.LoteriaId), cancellationToken);
+        var grupos = operaciones
+            .Select(o => Mapear(o, nombres.GetValueOrDefault(o.LoteriaId) ?? string.Empty))
+            .OrderBy(g => g.Loteria)
+            .ThenBy(g => g.Numero)
+            .ToList();
+        return Result<VistaRevisadaManualResponse>.Ok(new VistaRevisadaManualResponse
+        {
+            Jugadas = grupos.Sum(g => g.Lineas.Count),
+            Loterias = grupos.Select(g => g.Loteria).Distinct().Count(),
+            Total = grupos.Sum(g => g.Subtotal),
+            Grupos = grupos
+        }, RevisadaManualMessages.Consultado);
+    }
+
+    public async Task<Result<CubiertoHistoricoResponse>> CubiertoHistoricoAsync(DateTime desde, DateTime hasta, string? orden, bool descendente, int pagina, int tamano, CancellationToken cancellationToken)
+    {
+        var operaciones = await CubiertasEntreAsync(desde.Date, hasta.Date.AddDays(1), cancellationToken);
+        var nombres = await NombresAsync(operaciones.Select(o => o.LoteriaId), cancellationToken);
+        var filas = operaciones
+            .GroupBy(o => (Fecha: o.FechaOperacion.Date, o.LoteriaId, o.Numero))
+            .Select(g =>
+            {
+                var cubrimientos = g.OrderBy(o => o.FechaOperacion).ToList();
+                var loteria = nombres.GetValueOrDefault(g.Key.LoteriaId) ?? string.Empty;
+                return new FilaCubiertoHistoricoResponse
+                {
+                    Fecha = g.Key.Fecha,
+                    Loteria = loteria,
+                    Numero = g.Key.Numero,
+                    Registros = cubrimientos.Sum(o => o.Lineas.Count),
+                    Subtotal = cubrimientos.Sum(o => o.Subtotal),
+                    ComisionPorcentajes = cubrimientos.Where(o => o.ComisionPorcentaje.HasValue).Select(o => o.ComisionPorcentaje!.Value).Distinct().ToList(),
+                    ComisionValor = cubrimientos.Sum(o => o.ComisionValor ?? 0),
+                    TotalConComision = cubrimientos.Sum(o => o.TotalConComision ?? 0),
+                    DescuentoPorcentajes = cubrimientos.Where(o => o.DescuentoPorcentaje.HasValue).Select(o => o.DescuentoPorcentaje!.Value).Distinct().ToList(),
+                    DescuentoValor = cubrimientos.Sum(o => o.DescuentoValor ?? 0),
+                    TotalPagar = cubrimientos.Sum(o => o.TotalPagar ?? 0),
+                    Cubrimientos = cubrimientos.Select(o => Mapear(o, loteria)).ToList()
+                };
+            })
+            .ToList();
+
+        var ordenadas = OrdenarHistorico(filas, orden, descendente);
+        var tamanoPagina = Math.Clamp(tamano, 1, 100);
+        var paginaActual = Math.Max(1, pagina);
+        var deLaPagina = ordenadas.Skip((paginaActual - 1) * tamanoPagina).Take(tamanoPagina).ToList();
+        return Result<CubiertoHistoricoResponse>.Ok(new CubiertoHistoricoResponse
+        {
+            TotalFilas = filas.Count,
+            Registros = filas.Sum(f => f.Registros),
+            Subtotal = filas.Sum(f => f.Subtotal),
+            ComisionValor = filas.Sum(f => f.ComisionValor),
+            TotalConComision = filas.Sum(f => f.TotalConComision),
+            DescuentoValor = filas.Sum(f => f.DescuentoValor),
+            TotalPagar = filas.Sum(f => f.TotalPagar),
+            HayMas = paginaActual * tamanoPagina < filas.Count,
+            Filas = deLaPagina
+        }, RevisadaManualMessages.Consultado);
+    }
+
+    public async Task<Result<ResumenHistoricoResponse>> ResumenHistoricoAsync(DateTime desde, DateTime hasta, string? orden, bool descendente, int pagina, int tamano, CancellationToken cancellationToken)
+    {
+        var tomadas = await ClavesTomadasAsync(cancellationToken);
+        var registros = await PendientesAsync(desde.Date, hasta.Date.AddDays(1).AddTicks(-1), cancellationToken);
+        var filas = registros
+            .GroupBy(p => (Fecha: p.Fecha.Date, p.LoteriaId, p.Loteria, p.Numero, Estado: tomadas.Contains(p.Clave) ? EstadoHistoricoCubierto : EstadoHistoricoPendiente))
+            .Select(g => new FilaResumenHistoricoResponse
+            {
+                Fecha = g.Key.Fecha,
+                Loteria = g.Key.Loteria,
+                Numero = g.Key.Numero,
+                Estado = g.Key.Estado,
+                Registros = g.Count(),
+                Subtotal = g.Sum(p => p.Valor),
+                Lineas = g.OrderBy(p => p.Fecha).Select(p => new LineaRevisadaManualResponse { Clave = p.Clave, Valor = p.Valor, Fecha = p.Fecha }).ToList()
+            })
+            .ToList();
+
+        Func<FilaResumenHistoricoResponse, object> clave = (orden ?? string.Empty).ToLowerInvariant() switch
+        {
+            "loteria" => f => f.Loteria,
+            "numero" => f => f.Numero,
+            "estado" => f => f.Estado,
+            "registros" => f => f.Registros,
+            "subtotal" => f => f.Subtotal,
+            _ => f => f.Fecha
+        };
+        var ordenadas = (descendente ? filas.OrderByDescending(clave) : filas.OrderBy(clave))
+            .ThenBy(f => f.Loteria).ThenBy(f => f.Numero).ThenBy(f => f.Estado).ToList();
+        var tamanoPagina = Math.Clamp(tamano, 1, 100);
+        var paginaActual = Math.Max(1, pagina);
+        return Result<ResumenHistoricoResponse>.Ok(new ResumenHistoricoResponse
+        {
+            TotalFilas = filas.Count,
+            Registros = filas.Sum(f => f.Registros),
+            Subtotal = filas.Sum(f => f.Subtotal),
+            SubtotalPendiente = filas.Where(f => f.Estado == EstadoHistoricoPendiente).Sum(f => f.Subtotal),
+            SubtotalCubierto = filas.Where(f => f.Estado == EstadoHistoricoCubierto).Sum(f => f.Subtotal),
+            HayMas = paginaActual * tamanoPagina < filas.Count,
+            Filas = ordenadas.Skip((paginaActual - 1) * tamanoPagina).Take(tamanoPagina).ToList()
+        }, RevisadaManualMessages.Consultado);
+    }
+
+    private const string EstadoHistoricoPendiente = "Pendiente";
+    private const string EstadoHistoricoCubierto = "Cubierto";
+
+    private static List<FilaCubiertoHistoricoResponse> OrdenarHistorico(List<FilaCubiertoHistoricoResponse> filas, string? orden, bool descendente)
+    {
+        Func<FilaCubiertoHistoricoResponse, object> clave = (orden ?? string.Empty).ToLowerInvariant() switch
+        {
+            "loteria" => f => f.Loteria,
+            "numero" => f => f.Numero,
+            "registros" => f => f.Registros,
+            "subtotal" => f => f.Subtotal,
+            "comision" => f => f.ComisionPorcentajes.DefaultIfEmpty().Max(),
+            "valorcomision" => f => f.ComisionValor,
+            "totalcomision" => f => f.TotalConComision,
+            "descuento" => f => f.DescuentoPorcentajes.DefaultIfEmpty().Max(),
+            "valordescuento" => f => f.DescuentoValor,
+            "totalpagar" => f => f.TotalPagar,
+            _ => f => f.Fecha
+        };
+        var ordenadas = descendente ? filas.OrderByDescending(clave) : filas.OrderBy(clave);
+        return ordenadas.ThenBy(f => f.Loteria).ThenBy(f => f.Numero).ToList();
+    }
+
+    private Task<List<OperacionRevisadaManual>> CubiertasEntreAsync(DateTime desde, DateTime hastaExclusivo, CancellationToken cancellationToken) =>
+        _db.OperacionesRevisadaManual.AsNoTracking()
+            .Include(o => o.Lineas)
+            .Where(o => o.Estado == OperacionRevisadaManual.EstadoCubierto && o.FechaOperacion >= desde && o.FechaOperacion < hastaExclusivo)
+            .ToListAsync(cancellationToken);
 
     public async Task<Result<GrupoRevisadaManualResponse>> RegistrarDescuentoAsync(Guid administradorId, Guid operacionId, decimal descuentoPorcentaje, CancellationToken cancellationToken)
     {

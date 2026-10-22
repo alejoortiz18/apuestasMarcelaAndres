@@ -150,6 +150,9 @@ public interface IAdminApiClient
     Task<ApiCallResult<GrupoRevisadaManualResponse>> RevisadaCubrirDesdeResumenAsync(CubrirDesdeResumenRevisadaManualRequest request, CancellationToken cancellationToken);
     Task<ApiCallResult<VistaRevisadaManualResponse>> RevisadaRecubrirPreviaAsync(DateTime desde, DateTime hasta, decimal? valorMinimo, CancellationToken cancellationToken);
     Task<ApiCallResult<VistaRevisadaManualResponse>> RevisadaRecubrirAsync(RecubrirRevisadaManualRequest request, CancellationToken cancellationToken);
+    Task<ApiCallResult<VistaRevisadaManualResponse>> RevisadaCubiertoHoyAsync(CancellationToken cancellationToken);
+    Task<ApiCallResult<ResumenHistoricoResponse>> RevisadaResumenHistoricoAsync(DateTime desde, DateTime hasta, string? orden, bool descendente, int pagina, int tamano, CancellationToken cancellationToken);
+    Task<ApiCallResult<CubiertoHistoricoResponse>> RevisadaCubiertoHistoricoAsync(DateTime desde, DateTime hasta, string? orden, bool descendente, int pagina, int tamano, CancellationToken cancellationToken);
     Task<ApiCallResult<VistaRevisadaManualResponse>> RevisadaCubiertoAsync(DateTime desde, DateTime hasta, CancellationToken cancellationToken);
     Task<ApiCallResult<ParametrosRevisadaManualResponse>> ParametrosRevisadaManualAsync(CancellationToken cancellationToken);
     Task<ApiCallResult<ParametrosRevisadaManualResponse>> GuardarComisionRevisadaManualAsync(decimal porcentaje, CancellationToken cancellationToken);
@@ -663,6 +666,27 @@ public sealed class AdminApiClient : IAdminApiClient
 
     public Task<ApiCallResult<VistaRevisadaManualResponse>> RevisadaRecubrirAsync(RecubrirRevisadaManualRequest request, CancellationToken cancellationToken) =>
         SendAsync<VistaRevisadaManualResponse>(HttpMethod.Post, "api/RevisadaManual/Recubrir", request, true, cancellationToken);
+
+    public Task<ApiCallResult<ResumenHistoricoResponse>> RevisadaResumenHistoricoAsync(DateTime desde, DateTime hasta, string? orden, bool descendente, int pagina, int tamano, CancellationToken cancellationToken) =>
+        SendAsync<ResumenHistoricoResponse>(HttpMethod.Get, "api/RevisadaManual/ResumenHistorico" + BuildQuery(
+            ("desde", desde.ToString("yyyy-MM-dd")),
+            ("hasta", hasta.ToString("yyyy-MM-dd")),
+            ("orden", orden),
+            ("descendente", descendente ? "true" : "false"),
+            ("pagina", pagina.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+            ("tamano", tamano.ToString(System.Globalization.CultureInfo.InvariantCulture))), null, true, cancellationToken);
+
+    public Task<ApiCallResult<VistaRevisadaManualResponse>> RevisadaCubiertoHoyAsync(CancellationToken cancellationToken) =>
+        SendAsync<VistaRevisadaManualResponse>(HttpMethod.Get, "api/RevisadaManual/CubiertoHoy", null, true, cancellationToken);
+
+    public Task<ApiCallResult<CubiertoHistoricoResponse>> RevisadaCubiertoHistoricoAsync(DateTime desde, DateTime hasta, string? orden, bool descendente, int pagina, int tamano, CancellationToken cancellationToken) =>
+        SendAsync<CubiertoHistoricoResponse>(HttpMethod.Get, "api/RevisadaManual/CubiertoHistorico" + BuildQuery(
+            ("desde", desde.ToString("yyyy-MM-dd")),
+            ("hasta", hasta.ToString("yyyy-MM-dd")),
+            ("orden", orden),
+            ("descendente", descendente ? "true" : "false"),
+            ("pagina", pagina.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+            ("tamano", tamano.ToString(System.Globalization.CultureInfo.InvariantCulture))), null, true, cancellationToken);
 
     public Task<ApiCallResult<VistaRevisadaManualResponse>> RevisadaCubiertoAsync(DateTime desde, DateTime hasta, CancellationToken cancellationToken) =>
         SendAsync<VistaRevisadaManualResponse>(HttpMethod.Get, "api/RevisadaManual/Cubierto" + BuildQuery(

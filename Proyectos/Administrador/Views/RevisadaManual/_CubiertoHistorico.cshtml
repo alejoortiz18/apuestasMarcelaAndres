@@ -1,0 +1,79 @@
+@using System.Globalization
+@using NewRich.Admin.Constants
+@using NewRich.Admin.Models
+@model RevisadaPaginaViewModel
+@{
+    var cultura = CultureInfo.GetCultureInfo("es-CO");
+    string Pesos(decimal valor) => valor.ToString("N0", cultura);
+    var historico = Model.Historico!;
+    var columnas = new (string Clave, string Titulo, bool Numerica)[]
+    {
+        ("fecha", UiTexts.Fecha, false),
+        ("loteria", UiTexts.Loteria, false),
+        ("numero", UiTexts.NumeroJugado, false),
+        ("registros", UiTexts.RecubrirRegistros, true),
+        ("subtotal", UiTexts.Subtotal, true),
+        ("comision", UiTexts.Comision, true),
+        ("valorcomision", UiTexts.ValorComision, true),
+        ("totalcomision", UiTexts.TotalConComision, true),
+        ("descuento", UiTexts.Descuento, true),
+        ("valordescuento", UiTexts.ValorDescuento, true),
+        ("totalpagar", UiTexts.TotalAPagar, true)
+    };
+}
+<section class="panel revisada-historico" aria-labelledby="revisadaHistoricoTitulo"
+         data-historico
+         data-url="@Url.Action("CubiertoTabla")"
+         data-desde="@Model.Desde.ToString("yyyy-MM-dd")"
+         data-hasta="@Model.Hasta.ToString("yyyy-MM-dd")"
+         data-orden="fecha"
+         data-descendente="true"
+         data-asc="@UiTexts.OrdenarColumnaAsc"
+         data-desc="@UiTexts.OrdenarColumnaDesc">
+    <div class="revisada-historico-head">
+        <h2 id="revisadaHistoricoTitulo">@UiTexts.HistoricoCubiertoTitulo</h2>
+        <p class="revisada-historico-rango">
+            <span>@UiTexts.Desde: <strong>@Model.Desde.ToString("dd/MM/yyyy", cultura)</strong></span>
+            <span>@UiTexts.Hasta: <strong>@Model.Hasta.ToString("dd/MM/yyyy", cultura)</strong></span>
+        </p>
+    </div>
+    <dl class="revisada-totales-lista revisada-historico-resumen">
+        <div><dt>@UiTexts.HistoricoFilas</dt><dd>@historico.TotalFilas.ToString("N0", cultura)</dd></div>
+        <div><dt>@UiTexts.RecubrirRegistros</dt><dd>@historico.Registros.ToString("N0", cultura)</dd></div>
+        <div><dt>@UiTexts.Subtotal</dt><dd>@Pesos(historico.Subtotal)</dd></div>
+        <div><dt>@UiTexts.TotalConComision</dt><dd>@Pesos(historico.TotalConComision)</dd></div>
+        <div><dt>@UiTexts.TotalValorDescuento</dt><dd>@Pesos(historico.DescuentoValor)</dd></div>
+        <div class="is-principal"><dt>@UiTexts.TotalAPagar</dt><dd>@Pesos(historico.TotalPagar)</dd></div>
+    </dl>
+    @if (historico.TotalFilas == 0)
+    {
+        <p class="empty">@UiTexts.HistoricoVacio</p>
+    }
+    else
+    {
+        <div class="revisada-historico-tabla" data-historico-scroll>
+            <table>
+                <thead>
+                    <tr>
+                        @foreach (var (clave, titulo, numerica) in columnas)
+                        {
+                            var activa = clave == "fecha";
+                            <th scope="col" class="@(numerica ? "num" : null)" aria-sort="@(activa ? "descending" : "none")">
+                                <button type="button" class="table-sort" data-historico-orden="@clave"
+                                        data-titulo="@titulo"
+                                        aria-label="@string.Format(UiTexts.OrdenarColumnaAsc, titulo)">
+                                    @titulo <span aria-hidden="true">@(activa ? "↓" : "↕")</span>
+                                </button>
+                            </th>
+                        }
+                        <th scope="col"><span class="sr-only">@UiTexts.VerDetalleCubierto</span></th>
+                    </tr>
+                </thead>
+                <tbody data-historico-filas>
+                    @await Html.PartialAsync("_CubiertoFilas", new CubiertoFilasViewModel { Filas = historico.Filas, HayMas = historico.HayMas, Siguiente = 2 })
+                </tbody>
+            </table>
+            <p class="revisada-historico-cargando" data-historico-centinela>@UiTexts.HistoricoCargando</p>
+        </div>
+    }
+</section>

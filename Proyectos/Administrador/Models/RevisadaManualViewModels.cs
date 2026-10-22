@@ -15,6 +15,25 @@ public sealed class RevisadaPaginaViewModel
     public int Loterias { get; set; }
     public decimal Total { get; set; }
     public PagedViewModel<LoteriaRevisadaViewModel> Pagina { get; set; } = new();
+    public bool IncluyeHoy { get; set; } = true;
+    public CubiertoHistoricoResponse? Historico { get; set; }
+    public ResumenHistoricoResponse? HistoricoResumen { get; set; }
+    public DateTime HistoricoDesde { get; set; }
+    public DateTime HistoricoHasta { get; set; }
+}
+
+public sealed class ResumenFilasViewModel
+{
+    public List<FilaResumenHistoricoResponse> Filas { get; init; } = [];
+    public bool HayMas { get; init; }
+    public int Siguiente { get; init; }
+}
+
+public sealed class CubiertoFilasViewModel
+{
+    public List<FilaCubiertoHistoricoResponse> Filas { get; init; } = [];
+    public bool HayMas { get; init; }
+    public int Siguiente { get; init; }
 }
 
 public sealed class RecubrirPreviaViewModel
