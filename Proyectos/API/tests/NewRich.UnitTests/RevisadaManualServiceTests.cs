@@ -57,19 +57,20 @@ public sealed class RevisadaManualServiceTests
         var hasta = desde.AddDays(1).AddTicks(-1);
         var grupo = (await sut.ResumenAsync(desde, hasta, null, CancellationToken.None)).Data!.Grupos.Single(g => g.Numero == "1234");
 
-        var cubierto = await sut.CubrirDesdeResumenAsync(admin, grupo.Lineas.Select(l => l.Clave).ToList(), 50, CancellationToken.None);
+        var cubierto = await sut.CubrirDesdeResumenAsync(admin, grupo.Lineas.Select(l => l.Clave).ToList(), 50, 10, CancellationToken.None);
 
         cubierto.IsSuccess.Should().BeTrue(cubierto.Message);
         cubierto.Message.Should().Be(RevisadaManualMessages.Cubierto);
         cubierto.Data!.Subtotal.Should().Be(11_000);
         cubierto.Data.ComisionValor.Should().Be(5_500);
         cubierto.Data.TotalConComision.Should().Be(16_500);
+        cubierto.Data.DescuentoPorcentaje.Should().Be(10);
+        cubierto.Data.DescuentoValor.Should().Be(1_650);
+        cubierto.Data.TotalPagar.Should().Be(14_850);
         (await sut.PorCubrirAsync(desde, hasta, CancellationToken.None)).Data!.Grupos.Should().BeEmpty();
-        (await sut.CubiertoAsync(desde, hasta, CancellationToken.None)).Data!.Grupos.Should().ContainSingle(g => g.Numero == "1234");
+        (await sut.CubiertoAsync(desde, hasta, CancellationToken.None)).Data!.Grupos.Should().ContainSingle(g => g.Numero == "1234" && g.TotalPagar == 14_850);
         (await sut.ResumenAsync(desde, hasta, null, CancellationToken.None)).Data!.Grupos.Should().NotContain(g => g.Numero == "1234");
-        var descuento = await sut.RegistrarDescuentoAsync(admin, cubierto.Data.OperacionId!.Value, 10, CancellationToken.None);
-        descuento.Data!.TotalPagar.Should().Be(14_850);
-        (await sut.CubrirDesdeResumenAsync(admin, grupo.Lineas.Select(l => l.Clave).ToList(), 50, CancellationToken.None)).Message
+        (await sut.CubrirDesdeResumenAsync(admin, grupo.Lineas.Select(l => l.Clave).ToList(), 50, 10, CancellationToken.None)).Message
             .Should().Be(RevisadaManualMessages.YaProcesado);
     }
 
@@ -81,10 +82,76 @@ public sealed class RevisadaManualServiceTests
         var hasta = desde.AddDays(1).AddTicks(-1);
         var grupo = (await sut.ResumenAsync(desde, hasta, null, CancellationToken.None)).Data!.Grupos.Single(g => g.Numero == "1234");
 
-        var result = await sut.CubrirDesdeResumenAsync(admin, grupo.Lineas.Select(l => l.Clave).ToList(), 101, CancellationToken.None);
+        var result = await sut.CubrirDesdeResumenAsync(admin, grupo.Lineas.Select(l => l.Clave).ToList(), 50, 101, CancellationToken.None);
 
         result.Message.Should().Be(RevisadaManualMessages.PorcentajeInvalido);
         (await db.OperacionesRevisadaManual.CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Recubrir_cubre_solo_lo_pendiente_de_numeros_y_loterias_cubiertos_hoy()
+    {
+        var (sut, db, admin) = await CreateSutAsync();
+        var desde = new DateTime(2026, 10, 18);
+        var hasta = desde.AddDays(1).AddTicks(-1);
+        var grupo = (await sut.ResumenAsync(desde, hasta, null, CancellationToken.None)).Data!.Grupos.Single(g => g.Numero == "1234");
+        await sut.CubrirDesdeResumenAsync(admin, grupo.Lineas.Select(l => l.Clave).ToList(), 20, 10, CancellationToken.None);
+        await AgregarFilaAsync(db, "1234", 2_000);
+
+        var previa = await sut.RecubrirPreviaAsync(desde, hasta, null, CancellationToken.None);
+
+        previa.IsSuccess.Should().BeTrue(previa.Message);
+        var nuevo = previa.Data!.Grupos.Should().ContainSingle().Subject;
+        nuevo.Numero.Should().Be("1234");
+        nuevo.Subtotal.Should().Be(2_000);
+
+        var recubierto = await sut.RecubrirAsync(admin, nuevo.Lineas.Select(l => l.Clave).ToList(), 20, 10, CancellationToken.None);
+
+        recubierto.IsSuccess.Should().BeTrue(recubierto.Message);
+        recubierto.Message.Should().Be(RevisadaManualMessages.Recubierto);
+        var operacion = recubierto.Data!.Grupos.Should().ContainSingle().Subject;
+        operacion.TotalConComision.Should().Be(2_400);
+        operacion.TotalPagar.Should().Be(2_160);
+        (await sut.CubiertoAsync(desde, hasta, CancellationToken.None)).Data!.Grupos.Count(g => g.Numero == "1234").Should().Be(2);
+        (await sut.RecubrirPreviaAsync(desde, hasta, null, CancellationToken.None)).Data!.Grupos.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Recubrir_rechaza_numeros_que_no_se_cubrieron_hoy()
+    {
+        var (sut, _, admin) = await CreateSutAsync();
+        var desde = new DateTime(2026, 10, 18);
+        var hasta = desde.AddDays(1).AddTicks(-1);
+        var otro = (await sut.ResumenAsync(desde, hasta, null, CancellationToken.None)).Data!.Grupos.Single(g => g.Numero == "5678");
+
+        var result = await sut.RecubrirAsync(admin, otro.Lineas.Select(l => l.Clave).ToList(), 20, 10, CancellationToken.None);
+
+        result.Message.Should().Be(RevisadaManualMessages.NoCubiertoHoy);
+    }
+
+    private static async Task AgregarFilaAsync(NewRichDbContext db, string numero, decimal valor)
+    {
+        var existente = await db.RegistrosJuegoManual.AsNoTracking().FirstAsync();
+        var loteriaId = await db.Loterias.Select(l => l.LoteriaId).FirstAsync();
+        var registro = new RegistroJuegoManual
+        {
+            RegistroId = Guid.NewGuid(),
+            UsuarioId = existente.UsuarioId,
+            NombreCompleto = existente.NombreCompleto,
+            FechaRegistro = existente.FechaRegistro.AddHours(1),
+            CodigoPublico = "1111111",
+            IdempotencyKey = Guid.NewGuid().ToString("N")
+        };
+        registro.Filas.Add(new FilaRegistroJuegoManual
+        {
+            FilaId = Guid.NewGuid(),
+            RegistroId = registro.RegistroId,
+            LoteriaId = loteriaId,
+            Numero = numero,
+            Valor = valor
+        });
+        db.RegistrosJuegoManual.Add(registro);
+        await db.SaveChangesAsync();
     }
 
     private static async Task<(RevisadaManualService Sut, NewRichDbContext Db, Guid Admin)> CreateSutAsync()

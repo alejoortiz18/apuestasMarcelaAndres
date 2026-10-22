@@ -42,7 +42,19 @@ public sealed class RevisadaManualController : ApiControllerBase
     [HttpPost("CubrirDesdeResumen")]
     public async Task<IActionResult> CubrirDesdeResumen([FromBody] CubrirDesdeResumenRevisadaManualRequest request, CancellationToken cancellationToken)
     {
-        return From(await _revisada.CubrirDesdeResumenAsync(UsuarioId, request.Claves, request.ComisionPorcentaje, cancellationToken));
+        return From(await _revisada.CubrirDesdeResumenAsync(UsuarioId, request.Claves, request.ComisionPorcentaje, request.DescuentoPorcentaje, cancellationToken));
+    }
+
+    [HttpGet("RecubrirPrevia")]
+    public async Task<IActionResult> RecubrirPrevia([FromQuery] DateTime desde, [FromQuery] DateTime hasta, [FromQuery] decimal? valorMinimo, CancellationToken cancellationToken)
+    {
+        return From(await _revisada.RecubrirPreviaAsync(desde, hasta, valorMinimo, cancellationToken));
+    }
+
+    [HttpPost("Recubrir")]
+    public async Task<IActionResult> Recubrir([FromBody] RecubrirRevisadaManualRequest request, CancellationToken cancellationToken)
+    {
+        return From(await _revisada.RecubrirAsync(UsuarioId, request.Claves, request.ComisionPorcentaje, request.DescuentoPorcentaje, cancellationToken));
     }
 
     [HttpGet("Cubierto")]

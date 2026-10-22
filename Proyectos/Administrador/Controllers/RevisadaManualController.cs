@@ -31,16 +31,17 @@ public sealed class RevisadaManualController : AdminControllerBase
             return negado;
         }
 
-        if (parametros.Data?.ComisionPorcentaje is not { } comision)
+        if (parametros.Data?.ComisionPorcentaje is not { } comision || parametros.Data.DescuentoPorcentaje is not { } descuento)
         {
-            SetAvisoModal(UiTexts.ComisionSinConfigurar);
+            SetAvisoModal(UiTexts.PorcentajesSinConfigurar);
             return await MostrarAsync("resumen", desde, hasta, valorMinimo, null, null, page, pageSize, cancellationToken);
         }
 
         var result = await _api.RevisadaCubrirDesdeResumenAsync(new CubrirDesdeResumenRevisadaManualRequest
         {
             Claves = claves ?? [],
-            ComisionPorcentaje = comision
+            ComisionPorcentaje = comision,
+            DescuentoPorcentaje = descuento
         }, cancellationToken);
         negado = RedirectIfUnauthorized(result);
         if (negado is not null)
@@ -55,41 +56,159 @@ public sealed class RevisadaManualController : AdminControllerBase
     }
 
     [HttpGet]
-    public Task<IActionResult> Cubierto(DateTime? desde, DateTime? hasta, string? comision, string? descuento, int page = 1, int pageSize = 10, CancellationToken cancellationToken = default) =>
-        MostrarAsync("cubierto", desde, hasta, null, comision, descuento, page, pageSize, cancellationToken);
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Descuento(Guid operacionId = default, string? descuento = null, DateTime desde = default, DateTime hasta = default, int page = 1, int pageSize = 10, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> RecubrirPrevia(DateTime? desde, DateTime? hasta, string? valorMinimo, int page = 1, int pageSize = 10, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(descuento))
+        var inicio = (desde ?? DateTime.Today).Date;
+        var finDia = (hasta ?? DateTime.Today).Date;
+        if (finDia < inicio)
         {
-            SetAvisoModal(UiTexts.DescuentoRequerido);
-            return await MostrarAsync("cubierto", desde, hasta, null, null, descuento, page, pageSize, cancellationToken);
+            finDia = inicio;
         }
 
-        if (!DosDigitos(descuento, out var porcentaje))
-        {
-            SetAvisoModal(UiTexts.DescuentoDosDigitos);
-            return await MostrarAsync("cubierto", desde, hasta, null, null, descuento, page, pageSize, cancellationToken);
-        }
-
-        var result = await _api.RevisadaDescuentoAsync(new DescuentoRevisadaManualRequest
-        {
-            OperacionId = operacionId,
-            DescuentoPorcentaje = porcentaje
-        }, cancellationToken);
-        var negado = RedirectIfUnauthorized(result);
+        decimal? minimo = !string.IsNullOrWhiteSpace(valorMinimo) && Pesos(valorMinimo, out var valor) ? valor : null;
+        var parametros = await _api.ParametrosRevisadaManualAsync(cancellationToken);
+        var negado = RedirectIfUnauthorized(parametros);
         if (negado is not null)
         {
             return negado;
         }
 
-        SetAvisoModal(result.Message);
-        return result.Success
-            ? RedirectToAction(nameof(Cubierto), new { desde = desde.ToString("yyyy-MM-dd"), hasta = hasta.ToString("yyyy-MM-dd"), descuento, page, pageSize, orden = OrdenActual() })
-            : await MostrarAsync("cubierto", desde, hasta, null, null, descuento, page, pageSize, cancellationToken);
+        var modelo = new RecubrirPreviaViewModel
+        {
+            Desde = inicio,
+            Hasta = finDia,
+            ValorMinimo = valorMinimo ?? string.Empty,
+            Page = page,
+            PageSize = pageSize,
+            Orden = OrdenActual() ?? string.Empty
+        };
+        if (parametros.Data?.ComisionPorcentaje is not { } comision || parametros.Data.DescuentoPorcentaje is not { } descuento)
+        {
+            return PartialView("_RecubrirPrevia", new RecubrirPreviaViewModel { Error = UiTexts.PorcentajesSinConfigurar });
+        }
+
+        var previa = await _api.RevisadaRecubrirPreviaAsync(inicio, finDia.AddDays(1).AddTicks(-1), minimo, cancellationToken);
+        negado = RedirectIfUnauthorized(previa);
+        if (negado is not null)
+        {
+            return negado;
+        }
+
+        if (!previa.Success || previa.Data is null)
+        {
+            return PartialView("_RecubrirPrevia", new RecubrirPreviaViewModel { Error = previa.Message });
+        }
+
+        return PartialView("_RecubrirPrevia", new RecubrirPreviaViewModel
+        {
+            Comision = comision,
+            Descuento = descuento,
+            Vista = previa.Data,
+            Desde = modelo.Desde,
+            Hasta = modelo.Hasta,
+            ValorMinimo = modelo.ValorMinimo,
+            Page = modelo.Page,
+            PageSize = modelo.PageSize,
+            Orden = modelo.Orden
+        });
     }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Recubrir(List<string>? claves, DateTime desde = default, DateTime hasta = default, string? valorMinimo = null, int page = 1, int pageSize = 10, CancellationToken cancellationToken = default)
+    {
+        var volver = RedirectToAction(nameof(Resumen), new { desde = desde.ToString("yyyy-MM-dd"), hasta = hasta.ToString("yyyy-MM-dd"), valorMinimo, page, pageSize, orden = OrdenActual() });
+        var parametros = await _api.ParametrosRevisadaManualAsync(cancellationToken);
+        var negado = RedirectIfUnauthorized(parametros);
+        if (negado is not null)
+        {
+            return negado;
+        }
+
+        if (parametros.Data?.ComisionPorcentaje is not { } comision || parametros.Data.DescuentoPorcentaje is not { } descuento)
+        {
+            SetAvisoModal(UiTexts.PorcentajesSinConfigurar);
+            return volver;
+        }
+
+        var result = await _api.RevisadaRecubrirAsync(new RecubrirRevisadaManualRequest
+        {
+            Claves = claves ?? [],
+            ComisionPorcentaje = comision,
+            DescuentoPorcentaje = descuento
+        }, cancellationToken);
+        negado = RedirectIfUnauthorized(result);
+        if (negado is not null)
+        {
+            return negado;
+        }
+
+        SetAvisoModal(result.Success && result.Data is not null
+            ? string.Format(Cultura, UiTexts.RecubrirResultado, result.Message, result.Data.Grupos.Count, result.Data.Jugadas)
+            : result.Message);
+        return volver;
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> GuardarPorcentajes(string? comision, string? descuento, DateTime desde = default, DateTime hasta = default, int pageSize = 10, CancellationToken cancellationToken = default)
+    {
+        var volver = RedirectToAction(nameof(Cubierto), new { desde = desde.ToString("yyyy-MM-dd"), hasta = hasta.ToString("yyyy-MM-dd"), pageSize, orden = OrdenActual() });
+        var conComision = !string.IsNullOrWhiteSpace(comision);
+        var conDescuento = !string.IsNullOrWhiteSpace(descuento);
+        if (!conComision && !conDescuento)
+        {
+            SetAvisoModal(UiTexts.PorcentajesRequeridos);
+            return volver;
+        }
+
+        decimal valorComision = 0;
+        decimal valorDescuento = 0;
+        if ((conComision && !DosDigitos(comision, out valorComision)) || (conDescuento && !DosDigitos(descuento, out valorDescuento)))
+        {
+            SetAvisoModal(conComision && !DosDigitos(comision, out _) ? UiTexts.ComisionDosDigitos : UiTexts.DescuentoDosDigitos);
+            return volver;
+        }
+
+        if (conComision)
+        {
+            var guardada = await _api.GuardarComisionRevisadaManualAsync(valorComision, cancellationToken);
+            var negado = RedirectIfUnauthorized(guardada);
+            if (negado is not null)
+            {
+                return negado;
+            }
+
+            if (!guardada.Success)
+            {
+                SetAvisoModal(guardada.Message);
+                return volver;
+            }
+        }
+
+        if (conDescuento)
+        {
+            var guardado = await _api.GuardarDescuentoRevisadaManualAsync(valorDescuento, cancellationToken);
+            var negado = RedirectIfUnauthorized(guardado);
+            if (negado is not null)
+            {
+                return negado;
+            }
+
+            if (!guardado.Success)
+            {
+                SetAvisoModal(guardado.Message);
+                return volver;
+            }
+        }
+
+        SetAvisoModal(UiTexts.PorcentajesGuardados);
+        return volver;
+    }
+
+    [HttpGet]
+    public Task<IActionResult> Cubierto(DateTime? desde, DateTime? hasta, string? comision, string? descuento, int page = 1, int pageSize = 10, CancellationToken cancellationToken = default) =>
+        MostrarAsync("cubierto", desde, hasta, null, comision, descuento, page, pageSize, cancellationToken);
 
     private async Task<IActionResult> MostrarAsync(string modo, DateTime? desde, DateTime? hasta, string? valorMinimo, string? comision, string? porcentaje, int page, int pageSize, CancellationToken cancellationToken)
     {
@@ -98,8 +217,9 @@ public sealed class RevisadaManualController : AdminControllerBase
 
         if (cubierto)
         {
-            comision = await PorcentajeConfiguradoAsync(true, comision, cancellationToken);
-            porcentaje = await PorcentajeConfiguradoAsync(false, porcentaje, cancellationToken);
+            var guardados = (await _api.ParametrosRevisadaManualAsync(cancellationToken)).Data;
+            comision = Mostrado(comision, guardados?.ComisionPorcentaje);
+            porcentaje = Mostrado(porcentaje, guardados?.DescuentoPorcentaje);
         }
 
         var inicio = (desde ?? DateTime.Today).Date;
@@ -165,28 +285,10 @@ public sealed class RevisadaManualController : AdminControllerBase
         });
     }
 
-    private async Task<string?> PorcentajeConfiguradoAsync(bool esComision, string? porcentaje, CancellationToken cancellationToken)
-    {
-        var guardados = await _api.ParametrosRevisadaManualAsync(cancellationToken);
-        var guardado = esComision ? guardados.Data?.ComisionPorcentaje : guardados.Data?.DescuentoPorcentaje;
-        if (string.IsNullOrWhiteSpace(porcentaje))
-        {
-            return guardado is null ? string.Empty : guardado.Value.ToString("0", CultureInfo.InvariantCulture);
-        }
-
-        if (DosDigitos(porcentaje, out var nuevo))
-        {
-            var guardadoResult = esComision
-                ? await _api.GuardarComisionRevisadaManualAsync(nuevo, cancellationToken)
-                : await _api.GuardarDescuentoRevisadaManualAsync(nuevo, cancellationToken);
-            if (!guardadoResult.Success)
-            {
-                SetAvisoModal(guardadoResult.Message);
-            }
-        }
-
-        return porcentaje;
-    }
+    private static string Mostrado(string? escrito, decimal? guardado) =>
+        !string.IsNullOrWhiteSpace(escrito)
+            ? escrito
+            : guardado is null ? string.Empty : guardado.Value.ToString("0", CultureInfo.InvariantCulture);
 
     private string? OrdenActual()
     {

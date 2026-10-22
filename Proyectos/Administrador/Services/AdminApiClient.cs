@@ -148,8 +148,9 @@ public interface IAdminApiClient
 
     Task<ApiCallResult<VistaRevisadaManualResponse>> RevisadaResumenAsync(DateTime desde, DateTime hasta, decimal? valorMinimo, CancellationToken cancellationToken);
     Task<ApiCallResult<GrupoRevisadaManualResponse>> RevisadaCubrirDesdeResumenAsync(CubrirDesdeResumenRevisadaManualRequest request, CancellationToken cancellationToken);
+    Task<ApiCallResult<VistaRevisadaManualResponse>> RevisadaRecubrirPreviaAsync(DateTime desde, DateTime hasta, decimal? valorMinimo, CancellationToken cancellationToken);
+    Task<ApiCallResult<VistaRevisadaManualResponse>> RevisadaRecubrirAsync(RecubrirRevisadaManualRequest request, CancellationToken cancellationToken);
     Task<ApiCallResult<VistaRevisadaManualResponse>> RevisadaCubiertoAsync(DateTime desde, DateTime hasta, CancellationToken cancellationToken);
-    Task<ApiCallResult<GrupoRevisadaManualResponse>> RevisadaDescuentoAsync(DescuentoRevisadaManualRequest request, CancellationToken cancellationToken);
     Task<ApiCallResult<ParametrosRevisadaManualResponse>> ParametrosRevisadaManualAsync(CancellationToken cancellationToken);
     Task<ApiCallResult<ParametrosRevisadaManualResponse>> GuardarComisionRevisadaManualAsync(decimal porcentaje, CancellationToken cancellationToken);
     Task<ApiCallResult<ParametrosRevisadaManualResponse>> GuardarDescuentoRevisadaManualAsync(decimal porcentaje, CancellationToken cancellationToken);
@@ -654,13 +655,19 @@ public sealed class AdminApiClient : IAdminApiClient
     public Task<ApiCallResult<GrupoRevisadaManualResponse>> RevisadaCubrirDesdeResumenAsync(CubrirDesdeResumenRevisadaManualRequest request, CancellationToken cancellationToken) =>
         SendAsync<GrupoRevisadaManualResponse>(HttpMethod.Post, "api/RevisadaManual/CubrirDesdeResumen", request, true, cancellationToken);
 
+    public Task<ApiCallResult<VistaRevisadaManualResponse>> RevisadaRecubrirPreviaAsync(DateTime desde, DateTime hasta, decimal? valorMinimo, CancellationToken cancellationToken) =>
+        SendAsync<VistaRevisadaManualResponse>(HttpMethod.Get, "api/RevisadaManual/RecubrirPrevia" + BuildQuery(
+            ("desde", desde.ToString("o")),
+            ("hasta", hasta.ToString("o")),
+            ("valorMinimo", valorMinimo?.ToString(System.Globalization.CultureInfo.InvariantCulture))), null, true, cancellationToken);
+
+    public Task<ApiCallResult<VistaRevisadaManualResponse>> RevisadaRecubrirAsync(RecubrirRevisadaManualRequest request, CancellationToken cancellationToken) =>
+        SendAsync<VistaRevisadaManualResponse>(HttpMethod.Post, "api/RevisadaManual/Recubrir", request, true, cancellationToken);
+
     public Task<ApiCallResult<VistaRevisadaManualResponse>> RevisadaCubiertoAsync(DateTime desde, DateTime hasta, CancellationToken cancellationToken) =>
         SendAsync<VistaRevisadaManualResponse>(HttpMethod.Get, "api/RevisadaManual/Cubierto" + BuildQuery(
             ("desde", desde.ToString("o")),
             ("hasta", hasta.ToString("o"))), null, true, cancellationToken);
-
-    public Task<ApiCallResult<GrupoRevisadaManualResponse>> RevisadaDescuentoAsync(DescuentoRevisadaManualRequest request, CancellationToken cancellationToken) =>
-        SendAsync<GrupoRevisadaManualResponse>(HttpMethod.Post, "api/RevisadaManual/Descuento", request, true, cancellationToken);
 
     public Task<ApiCallResult<ParametrosRevisadaManualResponse>> ParametrosRevisadaManualAsync(CancellationToken cancellationToken) =>
         SendAsync<ParametrosRevisadaManualResponse>(HttpMethod.Get, "api/ParametrosRevisadaManual", null, true, cancellationToken);

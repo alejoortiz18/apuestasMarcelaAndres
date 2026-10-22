@@ -2264,6 +2264,18 @@ iniciarDiasVenta();
     abrirGasto();
   }
 
+  document.querySelectorAll("[data-solo-digitos]").forEach(function (input) {
+    var maximo = parseInt(input.getAttribute("maxlength") || "0", 10) || undefined;
+    function aplicar() {
+      var digitos = (input.value || "").replace(/\D/g, "").slice(0, maximo);
+      if (input.value !== digitos) {
+        input.value = digitos;
+      }
+    }
+    input.addEventListener("input", aplicar);
+    aplicar();
+  });
+
   document.querySelectorAll("[data-gasto-valor]").forEach(function (input) {
     function aplicar() {
       var formateado = (input.value || "").replace(/\D/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ".");

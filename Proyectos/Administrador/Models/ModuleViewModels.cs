@@ -192,6 +192,7 @@ public sealed class ResultadoFormViewModel
 
     [Display(Name = UiTexts.NumeroGanador)]
     [Required(ErrorMessage = ValidationMessages.NumeroApuestaRequerido)]
+    [RegularExpression(@"^\d{1,4}$", ErrorMessage = UiTexts.NumeroGanadorFormato)]
     public string Numero { get; set; } = string.Empty;
 
     public IReadOnlyList<LoteriaResponse> Loterias { get; set; } = [];

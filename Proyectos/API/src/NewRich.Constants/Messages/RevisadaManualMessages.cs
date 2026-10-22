@@ -5,6 +5,8 @@ public static class RevisadaManualMessages
     public const string Consultado = "Listo.";
     public const string Marcado = "Los registros visibles pasaron a por cubrir.";
     public const string Cubierto = "El grupo quedó cubierto.";
+    public const string Recubierto = "Los números quedaron cubiertos.";
+    public const string NoCubiertoHoy = "Uno de los números no fue cubierto hoy; vuelva a abrir Recubrir.";
     public const string DescuentoRegistrado = "El descuento quedó registrado.";
     public const string SinRegistros = "No hay registros visibles para cubrir.";
     public const string RegistroNoEncontrado = "Uno de los registros ya no está pendiente.";

@@ -15,6 +15,14 @@ public sealed class CubrirDesdeResumenRevisadaManualRequest
 {
     public List<string> Claves { get; set; } = [];
     public decimal ComisionPorcentaje { get; set; }
+    public decimal DescuentoPorcentaje { get; set; }
+}
+
+public sealed class RecubrirRevisadaManualRequest
+{
+    public List<string> Claves { get; set; } = [];
+    public decimal ComisionPorcentaje { get; set; }
+    public decimal DescuentoPorcentaje { get; set; }
 }
 
 public sealed class DescuentoRevisadaManualRequest
@@ -43,6 +51,7 @@ public sealed class GrupoRevisadaManualResponse
     public decimal? DescuentoPorcentaje { get; set; }
     public decimal? DescuentoValor { get; set; }
     public decimal? TotalPagar { get; set; }
+    public DateTime? FechaOperacion { get; set; }
     public List<LineaRevisadaManualResponse> Lineas { get; set; } = [];
 }
 

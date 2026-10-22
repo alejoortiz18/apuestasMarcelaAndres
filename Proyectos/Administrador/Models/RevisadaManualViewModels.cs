@@ -17,6 +17,20 @@ public sealed class RevisadaPaginaViewModel
     public PagedViewModel<LoteriaRevisadaViewModel> Pagina { get; set; } = new();
 }
 
+public sealed class RecubrirPreviaViewModel
+{
+    public string? Error { get; init; }
+    public decimal Comision { get; init; }
+    public decimal Descuento { get; init; }
+    public VistaRevisadaManualResponse Vista { get; init; } = new();
+    public DateTime Desde { get; init; }
+    public DateTime Hasta { get; init; }
+    public string ValorMinimo { get; init; } = string.Empty;
+    public int Page { get; init; } = 1;
+    public int PageSize { get; init; } = 10;
+    public string Orden { get; init; } = string.Empty;
+}
+
 public sealed class LoteriaRevisadaViewModel
 {
     public string Nombre { get; set; } = string.Empty;

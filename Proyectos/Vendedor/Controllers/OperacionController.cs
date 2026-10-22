@@ -45,6 +45,7 @@ public sealed class InicioController : VendedorController
 
 public sealed class VenderController : VendedorController
 {
+    private const decimal ValorMaximoJuego = 999_000m;
     private readonly IVendedorApiClient _api;
 
     public VenderController(IVendedorApiClient api) => _api = api;
@@ -75,6 +76,14 @@ public sealed class VenderController : VendedorController
         var horarioCerrado = HorarioCerrado(operativo.Data);
         var usarFilas = model.UsarFilas;
         var usarNumeros = model.UsarNumeros;
+        var excedeFilas = usarFilas && filas.Any(f => Pesos(f.Valor, out var v) && v > ValorMaximoJuego);
+        var excedeNumeros = usarNumeros && valorEscrito && valorJugado > ValorMaximoJuego;
+        if (excedeFilas || excedeNumeros)
+        {
+            ModelState.AddModelError(string.Empty, UiTexts.ValorMaximoJuego);
+            return View(await ArmarAsync(model, cancellationToken));
+        }
+
         var decision = EvaluacionRegistrarJuego.Evaluar(
             usarFilas
                 ? filas.Select(f => new FilaRegistroEntrada(f.LoteriaId != Guid.Empty, Pesos(f.Valor, out _), !string.IsNullOrWhiteSpace(f.Numero))).ToList()

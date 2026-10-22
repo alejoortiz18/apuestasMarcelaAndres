@@ -12,7 +12,9 @@ public interface IRevisadaManualService
 {
     Task<Result<VistaRevisadaManualResponse>> ResumenAsync(DateTime desde, DateTime hasta, decimal? valorMinimo, CancellationToken cancellationToken);
     Task<Result<GrupoRevisadaManualResponse>> MarcarPorCubrirAsync(Guid administradorId, IReadOnlyList<string> claves, CancellationToken cancellationToken);
-    Task<Result<GrupoRevisadaManualResponse>> CubrirDesdeResumenAsync(Guid administradorId, IReadOnlyList<string> claves, decimal comisionPorcentaje, CancellationToken cancellationToken);
+    Task<Result<VistaRevisadaManualResponse>> RecubrirPreviaAsync(DateTime desde, DateTime hasta, decimal? valorMinimo, CancellationToken cancellationToken);
+    Task<Result<VistaRevisadaManualResponse>> RecubrirAsync(Guid administradorId, IReadOnlyList<string> claves, decimal comisionPorcentaje, decimal descuentoPorcentaje, CancellationToken cancellationToken);
+    Task<Result<GrupoRevisadaManualResponse>> CubrirDesdeResumenAsync(Guid administradorId, IReadOnlyList<string> claves, decimal comisionPorcentaje, decimal descuentoPorcentaje, CancellationToken cancellationToken);
     Task<Result<VistaRevisadaManualResponse>> PorCubrirAsync(DateTime desde, DateTime hasta, CancellationToken cancellationToken);
     Task<Result<GrupoRevisadaManualResponse>> CubrirAsync(Guid administradorId, Guid operacionId, decimal comisionPorcentaje, CancellationToken cancellationToken);
     Task<Result<VistaRevisadaManualResponse>> CubiertoAsync(DateTime desde, DateTime hasta, CancellationToken cancellationToken);
@@ -58,9 +60,9 @@ public sealed class RevisadaManualService : IRevisadaManualService
         return Result<GrupoRevisadaManualResponse>.Ok(grupo, RevisadaManualMessages.Marcado);
     }
 
-    public async Task<Result<GrupoRevisadaManualResponse>> CubrirDesdeResumenAsync(Guid administradorId, IReadOnlyList<string> claves, decimal comisionPorcentaje, CancellationToken cancellationToken)
+    public async Task<Result<GrupoRevisadaManualResponse>> CubrirDesdeResumenAsync(Guid administradorId, IReadOnlyList<string> claves, decimal comisionPorcentaje, decimal descuentoPorcentaje, CancellationToken cancellationToken)
     {
-        if (!RevisadaManualCalculo.PorcentajeValido(comisionPorcentaje))
+        if (!RevisadaManualCalculo.PorcentajeValido(comisionPorcentaje) || !RevisadaManualCalculo.PorcentajeValido(descuentoPorcentaje))
         {
             return Result<GrupoRevisadaManualResponse>.Fail(RevisadaManualMessages.PorcentajeInvalido);
         }
@@ -72,6 +74,7 @@ public sealed class RevisadaManualService : IRevisadaManualService
         }
 
         AplicarComision(preparada.Operacion!, administradorId, comisionPorcentaje);
+        AplicarDescuento(preparada.Operacion!, administradorId, descuentoPorcentaje);
         var grupo = await GuardarAsync(preparada.Operacion!, preparada.Loteria, cancellationToken);
         return Result<GrupoRevisadaManualResponse>.Ok(grupo, RevisadaManualMessages.Cubierto);
     }
@@ -100,6 +103,11 @@ public sealed class RevisadaManualService : IRevisadaManualService
         }
 
         var elegidas = pedidas.Select(c => porClave[c]).ToList();
+        return new OperacionPreparada(null, ConstruirOperacion(administradorId, elegidas), elegidas[0].Loteria);
+    }
+
+    private OperacionRevisadaManual ConstruirOperacion(Guid administradorId, IReadOnlyList<Pendiente> elegidas)
+    {
         var operacion = new OperacionRevisadaManual
         {
             OperacionId = Guid.NewGuid(),
@@ -123,7 +131,99 @@ public sealed class RevisadaManualService : IRevisadaManualService
             });
         }
 
-        return new OperacionPreparada(null, operacion, elegidas[0].Loteria);
+        return operacion;
+    }
+
+    public async Task<Result<VistaRevisadaManualResponse>> RecubrirPreviaAsync(DateTime desde, DateTime hasta, decimal? valorMinimo, CancellationToken cancellationToken)
+    {
+        if (valorMinimo is < 0)
+        {
+            return Result<VistaRevisadaManualResponse>.Fail(RevisadaManualMessages.ValorMinimoInvalido);
+        }
+
+        var cubiertasHoy = await CubiertasHoyAsync(cancellationToken);
+        var tomadas = await ClavesTomadasAsync(cancellationToken);
+        var pendientes = await PendientesAsync(desde, hasta, cancellationToken);
+        var aRecubrir = pendientes
+            .Where(p => !tomadas.Contains(p.Clave))
+            .Where(p => valorMinimo is null || p.Valor >= valorMinimo.Value)
+            .Where(p => cubiertasHoy.Contains((p.LoteriaId, p.Numero)))
+            .ToList();
+        return Result<VistaRevisadaManualResponse>.Ok(AgruparPendientes(aRecubrir), RevisadaManualMessages.Consultado);
+    }
+
+    public async Task<Result<VistaRevisadaManualResponse>> RecubrirAsync(Guid administradorId, IReadOnlyList<string> claves, decimal comisionPorcentaje, decimal descuentoPorcentaje, CancellationToken cancellationToken)
+    {
+        if (!RevisadaManualCalculo.PorcentajeValido(comisionPorcentaje) || !RevisadaManualCalculo.PorcentajeValido(descuentoPorcentaje))
+        {
+            return Result<VistaRevisadaManualResponse>.Fail(RevisadaManualMessages.PorcentajeInvalido);
+        }
+
+        var pedidas = (claves ?? []).Where(c => !string.IsNullOrWhiteSpace(c)).Distinct(StringComparer.Ordinal).ToList();
+        if (pedidas.Count == 0)
+        {
+            return Result<VistaRevisadaManualResponse>.Fail(RevisadaManualMessages.SinRegistros);
+        }
+
+        var porClave = (await PendientesAsync(DateTime.MinValue, DateTime.MaxValue, cancellationToken)).ToDictionary(p => p.Clave, StringComparer.Ordinal);
+        if (pedidas.Any(c => !porClave.ContainsKey(c)))
+        {
+            return Result<VistaRevisadaManualResponse>.Fail(RevisadaManualMessages.RegistroNoEncontrado);
+        }
+
+        var tomadas = await ClavesTomadasAsync(cancellationToken);
+        if (pedidas.Any(c => tomadas.Contains(c)))
+        {
+            return Result<VistaRevisadaManualResponse>.Fail(RevisadaManualMessages.YaProcesado);
+        }
+
+        var cubiertasHoy = await CubiertasHoyAsync(cancellationToken);
+        var elegidas = pedidas.Select(c => porClave[c]).ToList();
+        if (elegidas.Any(p => !cubiertasHoy.Contains((p.LoteriaId, p.Numero))))
+        {
+            return Result<VistaRevisadaManualResponse>.Fail(RevisadaManualMessages.NoCubiertoHoy);
+        }
+
+        var operaciones = elegidas
+            .GroupBy(p => (p.LoteriaId, p.Numero))
+            .Select(g =>
+            {
+                var operacion = ConstruirOperacion(administradorId, g.ToList());
+                AplicarComision(operacion, administradorId, comisionPorcentaje);
+                AplicarDescuento(operacion, administradorId, descuentoPorcentaje);
+                return (Operacion: operacion, Loteria: g.First().Loteria);
+            })
+            .ToList();
+
+        await _db.ExecuteInTransactionAsync(async ct =>
+        {
+            foreach (var (operacion, _) in operaciones)
+            {
+                _db.OperacionesRevisadaManual.Add(operacion);
+            }
+
+            await _db.SaveChangesAsync(ct);
+        }, cancellationToken);
+
+        var grupos = operaciones.Select(o => Mapear(o.Operacion, o.Loteria)).OrderBy(g => g.Loteria).ThenBy(g => g.Numero).ToList();
+        return Result<VistaRevisadaManualResponse>.Ok(new VistaRevisadaManualResponse
+        {
+            Jugadas = grupos.Sum(g => g.Lineas.Count),
+            Loterias = grupos.Select(g => g.Loteria).Distinct().Count(),
+            Total = grupos.Sum(g => g.Subtotal),
+            Grupos = grupos
+        }, RevisadaManualMessages.Recubierto);
+    }
+
+    private async Task<HashSet<(Guid LoteriaId, string Numero)>> CubiertasHoyAsync(CancellationToken cancellationToken)
+    {
+        var hoy = _clock.LocalNow.Date;
+        var manana = hoy.AddDays(1);
+        var parejas = await _db.OperacionesRevisadaManual.AsNoTracking()
+            .Where(o => o.Estado == OperacionRevisadaManual.EstadoCubierto && o.FechaOperacion >= hoy && o.FechaOperacion < manana)
+            .Select(o => new { o.LoteriaId, o.Numero })
+            .ToListAsync(cancellationToken);
+        return parejas.Select(p => (p.LoteriaId, p.Numero)).ToHashSet();
     }
 
     private async Task<GrupoRevisadaManualResponse> GuardarAsync(OperacionRevisadaManual operacion, string loteria, CancellationToken cancellationToken)
@@ -146,6 +246,16 @@ public sealed class RevisadaManualService : IRevisadaManualService
         operacion.ComisionPorcentaje = comisionPorcentaje;
         operacion.ComisionValor = RevisadaManualCalculo.Parte(operacion.Subtotal, comisionPorcentaje);
         operacion.TotalConComision = RevisadaManualCalculo.TotalConComision(operacion.Subtotal, comisionPorcentaje);
+    }
+
+    private void AplicarDescuento(OperacionRevisadaManual operacion, Guid administradorId, decimal descuentoPorcentaje)
+    {
+        var baseDescuento = operacion.TotalConComision!.Value;
+        operacion.UsuarioId = administradorId;
+        operacion.FechaOperacion = _clock.LocalNow;
+        operacion.DescuentoPorcentaje = descuentoPorcentaje;
+        operacion.DescuentoValor = RevisadaManualCalculo.Parte(baseDescuento, descuentoPorcentaje);
+        operacion.TotalPagar = RevisadaManualCalculo.TotalAPagar(baseDescuento, descuentoPorcentaje);
     }
 
     public async Task<Result<VistaRevisadaManualResponse>> PorCubrirAsync(DateTime desde, DateTime hasta, CancellationToken cancellationToken)
@@ -202,11 +312,7 @@ public sealed class RevisadaManualService : IRevisadaManualService
             return Result<GrupoRevisadaManualResponse>.Fail(RevisadaManualMessages.YaProcesado);
         }
 
-        operacion.UsuarioId = administradorId;
-        operacion.FechaOperacion = _clock.LocalNow;
-        operacion.DescuentoPorcentaje = descuentoPorcentaje;
-        operacion.DescuentoValor = RevisadaManualCalculo.Parte(operacion.TotalConComision.Value, descuentoPorcentaje);
-        operacion.TotalPagar = RevisadaManualCalculo.TotalAPagar(operacion.TotalConComision.Value, descuentoPorcentaje);
+        AplicarDescuento(operacion, administradorId, descuentoPorcentaje);
         await _db.SaveChangesAsync(cancellationToken);
         var loteria = await NombreLoteriaAsync(operacion.LoteriaId, cancellationToken);
         return Result<GrupoRevisadaManualResponse>.Ok(Mapear(operacion, loteria), RevisadaManualMessages.DescuentoRegistrado);
@@ -308,6 +414,7 @@ public sealed class RevisadaManualService : IRevisadaManualService
         DescuentoPorcentaje = operacion.DescuentoPorcentaje,
         DescuentoValor = operacion.DescuentoValor,
         TotalPagar = operacion.TotalPagar,
+        FechaOperacion = operacion.FechaOperacion,
         Lineas = operacion.Lineas.OrderBy(l => l.FechaRegistro).Select(l => new LineaRevisadaManualResponse
         {
             Clave = LineaRevisadaManual.ClaveDe(l.Origen, l.OrigenId),

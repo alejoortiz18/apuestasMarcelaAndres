@@ -82,6 +82,7 @@ public static class UiTexts
     public const string SeRegistraranAmbos = "Se registrarán las filas y el juego números.";
     public const string CompleteParaRegistrar = "Marque un tipo de juego y complete los campos obligatorios.";
     public const string CompleteFilas = "Complete lotería, número y valor en cada fila.";
+    public const string ValorMaximoJuego = "El valor máximo es 999.000.";
     public const string CompleteNumeros = "Complete loterías, valor jugado y número a jugar.";
     public const string CompleteAmbos = "Complete las filas y el juego números antes de registrar.";
     public const string MuchaSuerte = "¡Mucha suerte!";

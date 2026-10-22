@@ -2276,11 +2276,21 @@ iniciarDiasVenta();
     return limpio ? limpio.replace(/\B(?=(\d{3})+(?!\d))/g, ".") : "0";
   }
 
+  let topeAlcanzado = false;
+
+  // No deja escribir más de 999.000: si el valor nuevo lo supera, se queda el último valor válido.
   function aplicarPesos(input) {
-    const formateado = miles(digitos(input.value).slice(0, digitosValor));
+    const limpio = digitos(input.value).slice(0, digitosValor);
+    let formateado = miles(limpio);
+    if (Number(limpio) > valorMaximo) {
+      const previo = input.dataset.valorPrevio;
+      formateado = previo !== undefined && Number(digitos(previo)) <= valorMaximo ? previo : miles(String(valorMaximo));
+      topeAlcanzado = true;
+    }
     if (input.value !== formateado) {
       input.value = formateado;
     }
+    input.dataset.valorPrevio = formateado;
   }
 
   function aplicarNumero(input) {
@@ -2430,7 +2440,7 @@ iniciarDiasVenta();
     registrar.disabled = !puede;
     if (!filasOn && !numerosOn) {
       aviso.textContent = "Marque un tipo de juego y complete los campos obligatorios.";
-    } else if (filasEstado === "excede" || numerosEstado.motivo === valorMaximoTexto) {
+    } else if (topeAlcanzado || filasEstado === "excede" || numerosEstado.motivo === valorMaximoTexto) {
       aviso.textContent = valorMaximoTexto;
     } else if (faltaFilas && faltaNumeros) {
       aviso.textContent = "Complete las filas y el juego números antes de registrar.";
@@ -2465,6 +2475,7 @@ iniciarDiasVenta();
 
   form.addEventListener("input", function (evento) {
     const campo = evento.target;
+    topeAlcanzado = false;
     if (campo.matches("[data-pesos], [data-valor-jugado]")) aplicarPesos(campo);
     if (campo.matches("[data-numero]")) aplicarNumero(campo);
     if (campo.matches("[data-numero-juego]")) aplicarNumeroJuego(campo);
