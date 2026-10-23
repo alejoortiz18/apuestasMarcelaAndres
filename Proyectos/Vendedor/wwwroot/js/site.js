@@ -53,6 +53,25 @@
       button.classList.toggle("is-empty", !elegido);
     }
 
+    let activa = -1;
+
+    function opciones() {
+      return Array.from(list.querySelectorAll(".search-select-option"));
+    }
+
+    function marcarActiva(indice) {
+      const items = opciones();
+      if (!items.length) {
+        activa = -1;
+        filter.removeAttribute("aria-activedescendant");
+        return;
+      }
+      activa = Math.max(0, Math.min(indice, items.length - 1));
+      items.forEach(function (item, i) { item.classList.toggle("is-active", i === activa); });
+      filter.setAttribute("aria-activedescendant", items[activa].id);
+      items[activa].scrollIntoView({ block: "nearest" });
+    }
+
     function render(query) {
       const q = normalizar(query);
       list.innerHTML = "";
@@ -64,12 +83,15 @@
         empty.className = "search-select-empty";
         empty.textContent = noResults;
         list.appendChild(empty);
+        marcarActiva(-1);
         return;
       }
-      matches.forEach((opt) => {
+      matches.forEach((opt, indice) => {
         const item = document.createElement("button");
         item.type = "button";
         item.className = "search-select-option";
+        item.id = (select.name || "loteria").replace(/\W/g, "-") + "-opcion-" + indice;
+        item.tabIndex = -1;
         item.setAttribute("role", "option");
         if (opt.value === select.value) {
           item.setAttribute("aria-selected", "true");
@@ -83,6 +105,8 @@
         });
         list.appendChild(item);
       });
+      const elegida = matches.findIndex((opt) => opt.value === select.value);
+      marcarActiva(q || elegida < 0 ? 0 : elegida);
     }
 
     function open() {
@@ -112,11 +136,16 @@
         close();
         button.focus();
       }
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault();
+        marcarActiva(activa + (event.key === "ArrowDown" ? 1 : -1));
+      }
       if (event.key === "Enter") {
-        const first = list.querySelector(".search-select-option");
-        if (first) {
-          event.preventDefault();
-          first.click();
+        event.preventDefault();
+        const elegida = opciones()[activa];
+        if (elegida) {
+          elegida.click();
+          select.dispatchEvent(new CustomEvent("loteria-elegida-teclado", { bubbles: true }));
         }
       }
     });
@@ -2294,7 +2323,7 @@ iniciarDiasVenta();
   }
 
   function aplicarNumero(input) {
-    const limpio = digitos(input.value);
+    const limpio = digitos(input.value).slice(0, 4);
     if (input.value !== limpio) {
       input.value = limpio;
     }
@@ -2443,17 +2472,17 @@ iniciarDiasVenta();
     } else if (topeAlcanzado || filasEstado === "excede" || numerosEstado.motivo === valorMaximoTexto) {
       aviso.textContent = valorMaximoTexto;
     } else if (faltaFilas && faltaNumeros) {
-      aviso.textContent = "Complete las filas y el juego números antes de registrar.";
+      aviso.textContent = "Complete Individual y Combo antes de registrar.";
     } else if (faltaFilas) {
-      aviso.textContent = "Complete lotería, número y valor en cada fila.";
+      aviso.textContent = "Complete lotería, número y valor en cada fila de Individual.";
     } else if (faltaNumeros) {
-      aviso.textContent = numerosEstado.motivo || "Complete loterías, valor jugado y número a jugar.";
+      aviso.textContent = numerosEstado.motivo || "Complete loterías, valor jugado y número a jugar del Combo.";
     } else if (filasOn && numerosOn) {
-      aviso.textContent = "Se registrarán las filas y el juego números.";
+      aviso.textContent = "Se registrarán Individual y Combo.";
     } else if (filasOn) {
-      aviso.textContent = "Se registrarán las filas.";
+      aviso.textContent = "Se registrará Individual.";
     } else {
-      aviso.textContent = "Se registrará el juego números.";
+      aviso.textContent = "Se registrará el Combo.";
     }
   }
 
@@ -2531,6 +2560,154 @@ iniciarDiasVenta();
       sincronizar();
       const ultima = numeros.querySelector("[data-linea-numero]:last-child [data-numero-juego]");
       if (ultima) ultima.focus();
+    }
+  });
+
+  const valorJugado = form.querySelector("[data-valor-jugado]");
+  let ultimoNumeroJuego = null;
+
+  function abrirLoteria(fila) {
+    const boton = fila && fila.querySelector("button.search-select-input");
+    if (!boton) return;
+    if (boton.getAttribute("aria-expanded") === "true") {
+      const filtro = fila.querySelector(".search-select-filter");
+      if (filtro) filtro.focus();
+      return;
+    }
+    boton.focus();
+    boton.click();
+  }
+
+  function agregarFilaDespues(fila) {
+    const copia = plantilla.content.firstElementChild.cloneNode(true);
+    fila.after(copia);
+    const select = copia.querySelector("select.searchable");
+    if (select && window.NewRichBuscador) {
+      window.NewRichBuscador(select);
+    }
+    reindex();
+    sincronizar();
+    abrirLoteria(copia);
+  }
+
+  function quitarFilaConFoco(fila) {
+    const items = Array.from(filas.querySelectorAll("[data-fila]"));
+    if (items.length === 1) {
+      limpiarFila(fila);
+      reindex();
+      sincronizar();
+      abrirLoteria(fila);
+      return;
+    }
+    const indice = items.indexOf(fila);
+    const destino = items[indice - 1] || items[indice + 1];
+    fila.remove();
+    reindex();
+    sincronizar();
+    abrirLoteria(destino);
+  }
+
+  function agregarNumeroDespues(linea) {
+    const copia = plantillaNumero.content.firstElementChild.cloneNode(true);
+    if (linea) {
+      linea.after(copia);
+    } else {
+      numeros.appendChild(copia);
+    }
+    reindex();
+    sincronizar();
+    copia.querySelector("[data-numero-juego]").focus();
+  }
+
+  function quitarNumeroConFoco(linea) {
+    const items = Array.from(numeros.querySelectorAll("[data-linea-numero]"));
+    let destino = linea;
+    if (items.length === 1) {
+      linea.querySelector("[data-numero-juego]").value = "";
+    } else {
+      const indice = items.indexOf(linea);
+      destino = items[indice - 1] || items[indice + 1];
+      linea.remove();
+    }
+    reindex();
+    sincronizar();
+    destino.querySelector("[data-numero-juego]").focus();
+  }
+
+  filas.addEventListener("loteria-elegida-teclado", function (evento) {
+    const fila = evento.target.closest("[data-fila]");
+    const numero = fila && fila.querySelector("[data-numero]");
+    if (numero) numero.focus();
+  });
+
+  numeros.addEventListener("focusin", function (evento) {
+    if (evento.target.matches("[data-numero-juego]")) ultimoNumeroJuego = evento.target;
+  });
+
+  // Teclado de captura rápida: Enter avanza al siguiente campo, + agrega una línea debajo y − quita la línea con el foco.
+  form.addEventListener("keydown", function (evento) {
+    if (evento.ctrlKey || evento.altKey || evento.metaKey) return;
+    const objetivo = evento.target;
+    const tecla = evento.key;
+    const fila = objetivo.closest("[data-fila]");
+    if (fila) {
+      if (tecla === "+" || tecla === "-") {
+        evento.preventDefault();
+        if (tecla === "+") agregarFilaDespues(fila);
+        else quitarFilaConFoco(fila);
+      } else if (tecla === "Enter" && objetivo.matches("[data-numero]")) {
+        evento.preventDefault();
+        fila.querySelector("[data-pesos]").focus();
+      } else if (tecla === "Enter" && objetivo.matches("[data-pesos]")) {
+        evento.preventDefault();
+        const siguiente = fila.nextElementSibling && fila.nextElementSibling.matches("[data-fila]") ? fila.nextElementSibling : fila;
+        abrirLoteria(siguiente);
+      }
+      return;
+    }
+
+    const linea = objetivo.closest("[data-linea-numero]");
+    if (linea) {
+      if (tecla === "+" || tecla === "-") {
+        evento.preventDefault();
+        if (tecla === "+") agregarNumeroDespues(linea);
+        else quitarNumeroConFoco(linea);
+      } else if (tecla === "Enter" && objetivo.matches("[data-numero-juego]")) {
+        evento.preventDefault();
+        ultimoNumeroJuego = objetivo;
+        if (valorJugado) valorJugado.focus();
+      }
+      return;
+    }
+
+    if (objetivo === valorJugado) {
+      if (tecla === "+") {
+        evento.preventDefault();
+        agregarNumeroDespues(null);
+      } else if (tecla === "-") {
+        evento.preventDefault();
+      } else if (tecla === "Enter") {
+        evento.preventDefault();
+        const destino = ultimoNumeroJuego && ultimoNumeroJuego.isConnected
+          ? ultimoNumeroJuego
+          : numeros.querySelector("[data-numero-juego]");
+        if (destino) destino.focus();
+      }
+      return;
+    }
+
+    if (objetivo.matches("[data-loteria-hoy]")) {
+      const marcas = Array.from(form.querySelectorAll("[data-loteria-hoy]"));
+      const indice = marcas.indexOf(objetivo);
+      if (tecla === "ArrowRight" || tecla === "ArrowDown" || tecla === "ArrowLeft" || tecla === "ArrowUp") {
+        evento.preventDefault();
+        const paso = tecla === "ArrowRight" || tecla === "ArrowDown" ? 1 : -1;
+        const destino = marcas[(indice + paso + marcas.length) % marcas.length];
+        if (destino) destino.focus();
+      } else if (tecla === "Enter") {
+        evento.preventDefault();
+        objetivo.click();
+      }
     }
   });
 
@@ -2625,6 +2802,368 @@ iniciarDiasVenta();
       if (boton && form.checkValidity()) {
         boton.disabled = true;
       }
+    });
+  });
+})();
+
+(function () {
+  var form = document.querySelector("form[data-registrar-venta]");
+  if (!form) {
+    return;
+  }
+  var digitosMaximos = 12;
+  var valor = form.querySelector("[data-venta-valor]");
+  var fecha = form.querySelector("[data-venta-fecha]");
+  var error = form.querySelector("[data-venta-error]");
+  var guardar = form.querySelector("[data-venta-guardar]");
+  var dialogo = form.querySelector("[data-venta-confirmar]");
+  var pregunta = form.querySelector("[data-venta-pregunta]");
+  var clave = form.querySelector("[data-venta-password]");
+  var si = form.querySelector("[data-venta-si]");
+  var no = form.querySelector("[data-venta-no]");
+
+  function digitos() {
+    return (valor.value || "").replace(/\D/g, "").replace(/^0+(?=\d)/, "").slice(0, digitosMaximos);
+  }
+
+  function formatear() {
+    var formateado = digitos().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    if (valor.value !== formateado) {
+      valor.value = formateado;
+    }
+  }
+
+  function mostrarError(texto) {
+    error.textContent = texto || "";
+    error.hidden = !texto;
+    if (texto) {
+      valor.setAttribute("aria-invalid", "true");
+    } else {
+      valor.removeAttribute("aria-invalid");
+    }
+  }
+
+  function fechaTexto() {
+    var partes = (fecha.value || "").split("-");
+    return partes.length === 3 ? partes[2] + "-" + partes[1] + "-" + partes[0] : fecha.value;
+  }
+
+  function abierto() {
+    return !dialogo.hasAttribute("hidden");
+  }
+
+  function abrir() {
+    pregunta.textContent = form.getAttribute("data-plantilla")
+      .replace("{0}", "$ " + valor.value)
+      .replace("{1}", fechaTexto());
+    dialogo.classList.remove("hidden");
+    dialogo.removeAttribute("hidden");
+    clave.value = "";
+    clave.focus();
+  }
+
+  function cerrar() {
+    dialogo.classList.add("hidden");
+    dialogo.setAttribute("hidden", "");
+    clave.value = "";
+    var aviso = dialogo.querySelector("[data-venta-error-clave]");
+    if (aviso) {
+      aviso.remove();
+    }
+    guardar.focus();
+  }
+
+  function pedirConfirmacion() {
+    formatear();
+    if (Number(digitos()) <= 0) {
+      mostrarError(form.getAttribute("data-error-valor"));
+      valor.focus();
+      return;
+    }
+    mostrarError("");
+    abrir();
+  }
+
+  valor.addEventListener("input", function () {
+    formatear();
+    if (Number(digitos()) > 0) {
+      mostrarError("");
+    }
+  });
+  valor.addEventListener("keydown", function (evento) {
+    if (evento.key === "Enter") {
+      evento.preventDefault();
+      pedirConfirmacion();
+    }
+  });
+  guardar.addEventListener("click", pedirConfirmacion);
+  no.addEventListener("click", cerrar);
+  dialogo.addEventListener("click", function (evento) {
+    if (evento.target === dialogo) {
+      cerrar();
+    }
+  });
+  document.addEventListener("keydown", function (evento) {
+    if (evento.key === "Escape" && abierto()) {
+      evento.preventDefault();
+      cerrar();
+    }
+  });
+  form.addEventListener("submit", function (evento) {
+    if (!abierto()) {
+      evento.preventDefault();
+      pedirConfirmacion();
+      return;
+    }
+    if (!clave.value.trim()) {
+      evento.preventDefault();
+      clave.focus();
+      return;
+    }
+    si.disabled = true;
+    no.disabled = true;
+  });
+
+  // El navegador puede autocompletar el campo con valores de envíos anteriores; solo se conserva el de una confirmación en curso.
+  function limpiarValor() {
+    valor.value = "";
+    mostrarError("");
+  }
+
+  if (form.getAttribute("data-abrir") === "si" && Number(digitos()) > 0) {
+    formatear();
+    abrir();
+  } else {
+    limpiarValor();
+  }
+  window.addEventListener("pageshow", function (evento) {
+    if (evento.persisted) {
+      limpiarValor();
+    }
+  });
+})();
+
+(function () {
+  var form = document.querySelector("form[data-cargar-premio]");
+  if (!form) {
+    return;
+  }
+  var numero = form.querySelector("[data-premio-numero]");
+  var pesos = Array.from(form.querySelectorAll("[data-premio-pesos]"));
+  var loteria = form.querySelector("[data-premio-loteria]");
+  var fecha = form.querySelector("[data-premio-fecha]");
+  var guardar = form.querySelector("[data-premio-guardar]");
+  var dialogo = form.querySelector("[data-premio-confirmar]");
+  var paso1 = dialogo.querySelector('[data-premio-paso="1"]');
+  var paso2 = dialogo.querySelector('[data-premio-paso="2"]');
+  var si = dialogo.querySelector("[data-premio-si]");
+  var clave = dialogo.querySelector("[data-premio-password]");
+  var continuar = dialogo.querySelector("[data-premio-continuar]");
+  var hoy = form.getAttribute("data-hoy");
+  var digitosMaximos = 12;
+
+  function soloDigitos(texto) {
+    return String(texto || "").replace(/\D/g, "");
+  }
+
+  function conMiles(digitos) {
+    return digitos.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  }
+
+  function errorDe(campo) {
+    return campo.closest(".field").querySelector("[data-premio-error]");
+  }
+
+  function marcar(campo, invalido) {
+    var error = errorDe(campo);
+    error.textContent = invalido ? campo.getAttribute("data-error") : "";
+    error.hidden = !invalido;
+    if (invalido) {
+      campo.setAttribute("aria-invalid", "true");
+    } else {
+      campo.removeAttribute("aria-invalid");
+    }
+    return !invalido;
+  }
+
+  function aplicarNumero() {
+    var limpio = soloDigitos(numero.value).slice(0, 4);
+    if (numero.value !== limpio) {
+      numero.value = limpio;
+    }
+  }
+
+  function aplicarPesos(input) {
+    var limpio = soloDigitos(input.value).replace(/^0+(?=\d)/, "").slice(0, digitosMaximos);
+    var maximo = Number(input.getAttribute("data-maximo") || 0);
+    var formateado = conMiles(limpio);
+    if (maximo && Number(limpio) > maximo) {
+      formateado = input.dataset.valorPrevio || conMiles(String(maximo));
+    }
+    if (input.value !== formateado) {
+      input.value = formateado;
+    }
+    input.dataset.valorPrevio = formateado;
+  }
+
+  function valido() {
+    var resultados = [
+      marcar(numero, !/^\d{1,4}$/.test(numero.value)),
+      marcar(pesos[0], Number(soloDigitos(pesos[0].value)) <= 0),
+      marcar(loteria, !loteria.value),
+      marcar(fecha, !fecha.value || fecha.value > hoy),
+      marcar(pesos[1], Number(soloDigitos(pesos[1].value)) <= 0)
+    ];
+    var primero = form.querySelector('[aria-invalid="true"]');
+    if (primero) {
+      var visible = primero.matches("select") ? primero.parentNode.querySelector(".search-select-input") : primero;
+      (visible || primero).focus();
+    }
+    return resultados.every(Boolean);
+  }
+
+  function abierto() {
+    return !dialogo.hasAttribute("hidden");
+  }
+
+  function mostrarPaso(paso) {
+    paso1.hidden = paso !== 1;
+    paso2.hidden = paso !== 2;
+    if (paso === 1) {
+      si.focus();
+    } else {
+      clave.value = "";
+      clave.focus();
+    }
+  }
+
+  function abrir(paso) {
+    dialogo.classList.remove("hidden");
+    dialogo.removeAttribute("hidden");
+    mostrarPaso(paso);
+  }
+
+  function cerrar() {
+    dialogo.classList.add("hidden");
+    dialogo.setAttribute("hidden", "");
+    clave.value = "";
+    var aviso = dialogo.querySelector("[data-premio-error-clave]");
+    if (aviso) {
+      aviso.remove();
+    }
+    paso1.hidden = false;
+    paso2.hidden = true;
+    guardar.focus();
+  }
+
+  function pedirConfirmacion() {
+    aplicarNumero();
+    pesos.forEach(aplicarPesos);
+    if (valido()) {
+      abrir(1);
+    }
+  }
+
+  // El navegador puede autocompletar con datos de cargas anteriores; solo se conservan los de un intento sin guardar.
+  function limpiarFormulario() {
+    numero.value = "";
+    pesos.forEach(function (input) {
+      input.value = "";
+      delete input.dataset.valorPrevio;
+    });
+    loteria.value = "";
+    loteria.dispatchEvent(new Event("change", { bubbles: true }));
+    fecha.value = hoy;
+  }
+
+  numero.addEventListener("input", function () {
+    aplicarNumero();
+    if (/^\d{1,4}$/.test(numero.value)) marcar(numero, false);
+  });
+  pesos.forEach(function (input) {
+    input.addEventListener("input", function () {
+      aplicarPesos(input);
+      if (Number(soloDigitos(input.value)) > 0) marcar(input, false);
+    });
+  });
+  loteria.addEventListener("change", function () {
+    if (loteria.value) marcar(loteria, false);
+  });
+  fecha.addEventListener("change", function () {
+    if (fecha.value && fecha.value <= hoy) marcar(fecha, false);
+  });
+  form.addEventListener("keydown", function (evento) {
+    if (evento.key === "Enter" && !evento.defaultPrevented && !abierto()
+      && evento.target.matches("input") && !evento.target.matches(".search-select-filter")) {
+      evento.preventDefault();
+      pedirConfirmacion();
+    }
+  });
+  guardar.addEventListener("click", pedirConfirmacion);
+  si.addEventListener("click", function () {
+    mostrarPaso(2);
+  });
+  dialogo.querySelectorAll("[data-premio-cancelar]").forEach(function (boton) {
+    boton.addEventListener("click", cerrar);
+  });
+  dialogo.addEventListener("click", function (evento) {
+    if (evento.target === dialogo) {
+      cerrar();
+    }
+  });
+  document.addEventListener("keydown", function (evento) {
+    if (evento.key === "Escape" && abierto()) {
+      evento.preventDefault();
+      cerrar();
+    }
+  });
+  form.addEventListener("submit", function (evento) {
+    if (!abierto() || paso2.hidden) {
+      evento.preventDefault();
+      if (!abierto()) {
+        pedirConfirmacion();
+      }
+      return;
+    }
+    if (!clave.value.trim()) {
+      evento.preventDefault();
+      clave.focus();
+      return;
+    }
+    continuar.disabled = true;
+    dialogo.querySelectorAll("[data-premio-cancelar]").forEach(function (boton) {
+      boton.disabled = true;
+    });
+  });
+
+  if (form.getAttribute("data-conservar") === "si") {
+    aplicarNumero();
+    pesos.forEach(aplicarPesos);
+  } else {
+    limpiarFormulario();
+  }
+  if (form.getAttribute("data-abrir") === "si") {
+    abrir(2);
+  }
+  window.addEventListener("pageshow", function (evento) {
+    if (evento.persisted) {
+      limpiarFormulario();
+    }
+  });
+})();
+
+(function () {
+  document.querySelectorAll("[data-nav-acordeon]").forEach(function (grupo) {
+    var boton = grupo.querySelector(".nav-parent");
+    var sub = grupo.querySelector(".nav-sub");
+    if (!boton || !sub) {
+      return;
+    }
+    boton.addEventListener("click", function () {
+      var abrir = sub.hidden;
+      sub.hidden = !abrir;
+      boton.classList.toggle("abierto", abrir);
+      boton.setAttribute("aria-expanded", abrir ? "true" : "false");
     });
   });
 })();

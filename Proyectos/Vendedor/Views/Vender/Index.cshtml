@@ -115,7 +115,7 @@
                         </label>
                         <label class="juego-campo">
                             <span>@UiTexts.Numero <abbr class="obligatorio" title="Obligatorio">*</abbr></span>
-                            <input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" name="Filas[@i].Numero" value="@fila.Numero" data-numero />
+                            <input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" maxlength="4" name="Filas[@i].Numero" value="@fila.Numero" data-numero />
                         </label>
                         <label class="juego-campo">
                             <span>@UiTexts.Valor <abbr class="obligatorio" title="Obligatorio">*</abbr></span>
@@ -154,26 +154,28 @@
                     }
                 </div>
             }
-            <label class="juego-campo">
-                <span>@UiTexts.ValorJugado <abbr class="obligatorio" title="Obligatorio">*</abbr></span>
-                <input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" name="ValorJugado" value="@Model.ValorJugado" data-valor-jugado />
-            </label>
-            <p class="juego-ayuda">@UiTexts.ValorJugadoAyuda</p>
-            <div data-numeros>
-                @for (var i = 0; i < Model.Numeros.Count; i++)
-                {
-                    <div class="juego-numero" data-linea-numero>
-                        <label class="juego-campo">
-                            <span>@UiTexts.NumeroAJugar <abbr class="obligatorio" title="Obligatorio">*</abbr></span>
-                            <input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" maxlength="4" name="Numeros[@i]" value="@Model.Numeros[i]" data-numero-juego />
-                        </label>
-                        <div class="juego-fila-acciones">
-                            <button type="button" class="secondary" data-quitar-numero aria-label="@UiTexts.QuitarNumero">−</button>
-                            <button type="button" class="secondary" data-agregar-numero aria-label="@UiTexts.AgregarNumero" hidden>+</button>
+            <div class="juego-combo-fila">
+                <div class="juego-combo-numeros" data-numeros>
+                    @for (var i = 0; i < Model.Numeros.Count; i++)
+                    {
+                        <div class="juego-numero" data-linea-numero>
+                            <label class="juego-campo">
+                                <span>@UiTexts.Numero <abbr class="obligatorio" title="Obligatorio">*</abbr></span>
+                                <input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" maxlength="4" name="Numeros[@i]" value="@Model.Numeros[i]" data-numero-juego />
+                            </label>
+                            <div class="juego-fila-acciones">
+                                <button type="button" class="secondary" data-quitar-numero aria-label="@UiTexts.QuitarNumero">−</button>
+                                <button type="button" class="secondary" data-agregar-numero aria-label="@UiTexts.AgregarNumero" hidden>+</button>
+                            </div>
                         </div>
-                    </div>
-                }
+                    }
+                </div>
+                <label class="juego-campo juego-combo-valor">
+                    <span>@UiTexts.Valor <abbr class="obligatorio" title="Obligatorio">*</abbr></span>
+                    <input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" name="ValorJugado" value="@Model.ValorJugado" data-valor-jugado />
+                </label>
             </div>
+            <p class="juego-ayuda juego-combo-ayuda">@UiTexts.ValorJugadoAyuda</p>
             <div class="juego-calculo" data-calculo>
                 <p>@UiTexts.CalculoJugada</p>
                 <dl>
@@ -204,7 +206,7 @@
         </label>
         <label class="juego-campo">
             <span>@UiTexts.Numero <abbr class="obligatorio" title="Obligatorio">*</abbr></span>
-            <input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" data-numero />
+            <input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" maxlength="4" data-numero />
         </label>
         <label class="juego-campo">
             <span>@UiTexts.Valor <abbr class="obligatorio" title="Obligatorio">*</abbr></span>
@@ -219,7 +221,7 @@
 <template id="linea-numero">
     <div class="juego-numero" data-linea-numero>
         <label class="juego-campo">
-            <span>@UiTexts.NumeroAJugar <abbr class="obligatorio" title="Obligatorio">*</abbr></span>
+            <span>@UiTexts.Numero <abbr class="obligatorio" title="Obligatorio">*</abbr></span>
             <input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" maxlength="4" data-numero-juego />
         </label>
         <div class="juego-fila-acciones">

@@ -416,6 +416,31 @@ a { color: inherit; }
 }
 .nav svg { flex: 0 0 18px; }
 .nav-group { display: grid; gap: 2px; align-content: start; }
+.nav-acordeon { display: grid; gap: 2px; }
+.nav-parent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  color: #d9c98a;
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.nav-parent:hover, .nav-parent:focus-visible { background: #1c3d34; color: #fff; }
+.nav-parent:focus-visible { outline: 2px solid var(--gold2); outline-offset: 2px; }
+.nav-parent.abierto { color: #fff; }
+.nav-chevron { transition: transform .2s ease; }
+.nav-parent.abierto .nav-chevron { transform: rotate(180deg); }
+.nav-sub { display: grid; gap: 2px; }
+.nav-sub[hidden] { display: none; }
+.nav-sub a { padding-left: 26px; }
 
 .side-foot { margin-top: auto; padding: 8px 4px 4px; color: #d7b45a; font-size: 11px; position: relative; z-index: 1; }
 .side-cuenta {
@@ -1085,6 +1110,7 @@ button.search-select-input:focus-visible { outline: 2px solid #c9a44a; border-co
   font-size: 12px;
 }
 .search-select-option:hover, .search-select-option[aria-selected="true"] { background: var(--green2); }
+.search-select-option.is-active { background: var(--green2); box-shadow: inset 0 0 0 2px #c9a44a; }
 .search-select-empty { padding: 10px 12px; color: var(--muted); font-size: 12px; }
 
 .validation-summary-errors, .field-validation-error { color: var(--red); font-size: 12px; }
@@ -2009,6 +2035,36 @@ button.jornada-filtro-opcion {
 .dialog.dialog-usuario { width: min(520px, 100%); }
 .dialog.dialog-codigo { width: min(640px, 100%); max-height: min(90vh, 900px); overflow: auto; }
 .dialog.dialog-gasto { width: min(520px, 100%); max-height: min(90vh, 900px); overflow: auto; }
+.dialog.dialog-venta { width: min(440px, 100%); }
+.dialog.dialog-venta .field { margin: 0 0 18px; }
+.entrega-seccion { margin: 0 0 28px; }
+.entrega-titulo {
+  margin: 0 0 16px;
+  font-family: Cinzel, "Times New Roman", serif;
+  font-size: 22px;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.premio-form > .field-help { margin-bottom: 4px; }
+.premio-campos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 20px; align-items: start; }
+.premio-campos .field { margin: 12px 0 16px; }
+.premio-campos .money-input-wide { max-width: none; }
+.premio-campos .money-input:has([aria-invalid="true"]),
+.premio-campos input[aria-invalid="true"],
+.premio-campos .search-select:has(select[aria-invalid="true"]) .search-select-input { border-color: var(--red); }
+@media (max-width: 900px) {
+  .premio-campos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .premio-campos { grid-template-columns: minmax(0, 1fr); }
+}
+.venta-campos { display: grid; grid-template-columns: minmax(0, 14rem) minmax(0, 22rem); gap: 0 20px; align-items: start; }
+.venta-campos .field { margin: 12px 0 16px; }
+.venta-campos .money-input:has([aria-invalid="true"]) { border-color: var(--red); }
+@media (max-width: 640px) {
+  .venta-campos { grid-template-columns: minmax(0, 1fr); }
+}
 .dialog.dialog-usuario { max-height: min(90vh, 900px); overflow: auto; }
 .codigo-dialog-titulo {
   display: flex;
@@ -2647,7 +2703,14 @@ th:nth-last-child(-n+3) .th-ayuda-texto { left: auto; right: 0; }
 .juego-loterias { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
 .juego-check { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
 .juego-check small { color: #6d6456; }
+.juego-loterias .juego-check:has(input:focus-visible) { outline: 2px solid #c9a44a; border-color: #c9a44a; }
 .juego-numero { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: end; margin: 0 0 10px; }
+.juego-combo-fila { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 10px 12px; align-items: end; }
+.juego-combo-numeros, .juego-combo-numeros .juego-numero { display: contents; }
+.juego-combo-numeros .juego-campo { grid-column: 1; }
+.juego-combo-numeros .juego-fila-acciones { grid-column: 3; }
+.juego-combo-valor { grid-column: 2; grid-row: 1; }
+.juego-combo-ayuda { margin: 8px 0 10px; }
 .juego-calculo { margin-top: 12px; padding: 14px; border-radius: 10px; background: #143226; color: #f6f1e4; }
 .juego-calculo p { margin: 0 0 8px; color: #e4c56a; font-weight: 800; }
 .juego-calculo dl { display: grid; gap: 6px; margin: 0; }
@@ -2675,6 +2738,9 @@ th:nth-last-child(-n+3) .th-ayuda-texto { left: auto; right: 0; }
 form[data-registrar-juego] .primary { min-height: 44px; }
 @media (max-width: 800px) {
   .juego-fila { grid-template-columns: minmax(0, 1fr); }
+  .juego-combo-fila { grid-template-columns: minmax(0, 1fr); }
+  .juego-combo-numeros .juego-campo, .juego-combo-numeros .juego-fila-acciones { grid-column: 1; }
+  .juego-combo-valor { grid-column: 1; grid-row: 2; }
   .juego-fila-acciones { justify-content: flex-end; }
   .juego-total { max-width: none; }
 }

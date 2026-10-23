@@ -5,16 +5,19 @@ using NewRich.Application.Contracts.Chat;
 using NewRich.Application.Contracts.Configuracion;
 using NewRich.Application.Contracts.Consultas;
 using NewRich.Application.Contracts.Dispositivos;
+using NewRich.Application.Contracts.GastosVendedoresWeb;
 using NewRich.Application.Contracts.Grupos;
 using NewRich.Application.Contracts.Jornadas;
 using NewRich.Application.Contracts.Kpi;
 using NewRich.Application.Contracts.Loterias;
 using NewRich.Application.Contracts.Notificaciones;
 using NewRich.Application.Contracts.Offline;
+using NewRich.Application.Contracts.PremiosEntregadosWeb;
 using NewRich.Application.Contracts.Premios;
 using NewRich.Application.Contracts.Resultados;
 using NewRich.Application.Contracts.Usuarios;
 using NewRich.Application.Contracts.Ventas;
+using NewRich.Application.Contracts.VentasRegistradasWeb;
 using NewRich.Domain.Enums;
 using NewRich.Shared.Results;
 
@@ -133,6 +136,26 @@ public interface IAvisoChatService
 {
     Task<Result<AvisosChatResponse>> ListarAsync(Guid usuarioId, CancellationToken cancellationToken);
     Task<Result> MarcarLeidosAsync(Guid usuarioId, Guid conversacionId, CancellationToken cancellationToken);
+}
+
+public interface IVentaRegistradaWebService
+{
+    Task<Result<VentaRegistradaWebResponse>> RegistrarAsync(Guid vendedorId, RegistrarVentaWebRequest request, DateOnly hoy, CancellationToken cancellationToken);
+    Task<Result<VentasRegistradasWebResponse>> ListarPropiasAsync(Guid vendedorId, int page, int pageSize, CancellationToken cancellationToken);
+    Task<Result<TotalVentasRegistradasWebResponse>> TotalAsync(DateOnly desde, DateOnly hasta, Guid? grupoId, Guid? vendedorId, CancellationToken cancellationToken);
+}
+
+public interface IGastoVendedorWebService
+{
+    Task<Result<GastosVendedoresWebResponse>> ConsultarAsync(DateOnly desde, DateOnly hasta, Guid? grupoId, Guid? vendedorId, CancellationToken cancellationToken);
+}
+
+public interface IPremioEntregadoWebService
+{
+    Task<Result<PremioEntregadoWebResponse>> RegistrarAsync(Guid vendedorId, RegistrarPremioWebRequest request, DateOnly hoy, CancellationToken cancellationToken);
+    Task<Result<PremiosEntregadosWebResponse>> ListarPropiosAsync(Guid vendedorId, int page, int pageSize, CancellationToken cancellationToken);
+    Task<Result<TotalPremiosEntregadosWebResponse>> TotalAsync(DateOnly desde, DateOnly hasta, Guid? grupoId, Guid? vendedorId, CancellationToken cancellationToken);
+    Task<Result<IReadOnlyList<PremioEntregadoWebResponse>>> ListadoAsync(DateOnly desde, DateOnly hasta, Guid? grupoId, CancellationToken cancellationToken);
 }
 
 public interface IKpiService

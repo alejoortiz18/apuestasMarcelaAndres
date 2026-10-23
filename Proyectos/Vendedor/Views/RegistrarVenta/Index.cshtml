@@ -1,0 +1,129 @@
+@model NewRich.Vendedor.Models.RegistrarVentaPaginaViewModel
+@{
+    var paginas = Math.Max(1, (int)Math.Ceiling(Model.Paginacion.Total / (double)Math.Max(1, Model.Paginacion.PageSize)));
+    var inicio = Model.Paginacion.Total == 0 ? 0 : ((Model.Paginacion.Page - 1) * Model.Paginacion.PageSize) + 1;
+    var fin = Math.Min(Model.Paginacion.Total, Model.Paginacion.Page * Model.Paginacion.PageSize);
+    string Enlace(int page) => Url.Action("Index", new { page }) ?? "#";
+    var hoy = Model.Hoy.ToString("yyyy-MM-dd");
+}
+<div class="heading">
+    <div>
+        <div class="eyebrow">@UiTexts.MenuVentas</div>
+        <h1>@UiTexts.RegistrarVenta</h1>
+        <p>@UiTexts.RegistrarVentaAyuda</p>
+    </div>
+</div>
+<div class="panel">
+    <form method="post" asp-action="Index" class="venta-form" data-registrar-venta
+          data-plantilla="@UiTexts.ConfirmarVentaPregunta" data-error-valor="@UiTexts.ValorVentaObligatorio"
+          data-abrir="@(Model.AbrirConfirmacion ? "si" : "no")" novalidate>
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="page" value="@Model.Paginacion.Page" />
+        <div class="venta-campos">
+            <div class="field">
+                <label for="FechaVenta">@UiTexts.FechaVenta <abbr class="obligatorio" title="Obligatorio">*</abbr></label>
+                <input id="FechaVenta" name="FechaVenta" type="date" value="@hoy" min="@hoy" max="@hoy" required
+                       aria-describedby="FechaVentaAyuda" data-venta-fecha />
+                <p id="FechaVentaAyuda" class="field-help">@UiTexts.FechaVentaAyuda</p>
+            </div>
+            <div class="field">
+                <label for="ValorVenta">@UiTexts.ValorVenta <abbr class="obligatorio" title="Obligatorio">*</abbr></label>
+                <div class="money-input money-input-wide">
+                    <span class="money-prefix" aria-hidden="true">$</span>
+                    <input id="ValorVenta" class="money-visible" name="Valor" type="text" inputmode="numeric" autocomplete="off" spellcheck="false"
+                           maxlength="15" required aria-describedby="ValorVentaError" data-venta-valor value="@(Model.AbrirConfirmacion ? Model.Formulario.Valor : null)" />
+                </div>
+                <p id="ValorVentaError" class="field-validation-error" data-venta-error hidden></p>
+            </div>
+        </div>
+        <button class="primary" type="button" data-venta-guardar>@UiTexts.Guardar</button>
+
+        <div class="dialog-back@(Model.AbrirConfirmacion ? "" : " hidden")" role="dialog" aria-modal="true" aria-labelledby="ventaConfirmarTitulo"
+             data-venta-confirmar @(Model.AbrirConfirmacion ? null : "hidden")>
+            <div class="dialog dialog-venta">
+                <h2 id="ventaConfirmarTitulo">@UiTexts.ConfirmarVenta</h2>
+                <p data-venta-pregunta></p>
+                @if (!string.IsNullOrWhiteSpace(Model.ErrorConfirmacion))
+                {
+                    <div class="notice error" role="alert" data-venta-error-clave>@Model.ErrorConfirmacion</div>
+                }
+                <input class="visually-hidden" type="text" autocomplete="username" value="@User.Identity?.Name" readonly tabindex="-1" aria-hidden="true" />
+                <div class="field">
+                    <label for="PasswordVenta">@UiTexts.Contrasena <abbr class="obligatorio" title="Obligatorio">*</abbr></label>
+                    <input id="PasswordVenta" name="Password" type="password" autocomplete="current-password" aria-describedby="PasswordVentaAyuda" data-venta-password />
+                    <p id="PasswordVentaAyuda" class="field-help">@UiTexts.ConfirmarVentaContrasena</p>
+                </div>
+                <div class="dialog-actions">
+                    <button class="secondary" type="button" data-venta-no>@UiTexts.No</button>
+                    <button class="primary" type="submit" data-venta-si>@UiTexts.Si</button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+<div class="panel">
+    <div class="panel-head">
+        <div>
+            <h2>@UiTexts.VentasRegistradas</h2>
+            <div class="panel-sub">@UiTexts.VentasRegistradasAyuda</div>
+        </div>
+    </div>
+    @if (!string.IsNullOrWhiteSpace(Model.AvisoListado))
+    {
+        <div class="notice error" role="alert">@Model.AvisoListado</div>
+    }
+    <div class="table-wrap">
+        <table>
+            <thead>
+            <tr>
+                <th>@UiTexts.FechaVenta</th>
+                <th>@UiTexts.ValorVenta</th>
+                <th>@UiTexts.RegistradaEl</th>
+            </tr>
+            </thead>
+            <tbody>
+            @if (Model.Items.Count == 0)
+            {
+                <tr>
+                    <td colspan="3">@UiTexts.Vacio</td>
+                </tr>
+            }
+            else
+            {
+                foreach (var fila in Model.Items)
+                {
+                    <tr>
+                        <td>@fila.FechaVenta</td>
+                        <td>$ @fila.Valor</td>
+                        <td>@fila.Registrada</td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+    @if (Model.Paginacion.Total > Model.Paginacion.PageSize)
+    {
+        <nav class="pager" aria-label="Paginacion">
+            <p>@string.Format(UiTexts.Mostrando, inicio, fin, Model.Paginacion.Total)</p>
+            <div class="pages">
+                <a class="@(Model.Paginacion.Page <= 1 ? "disabled" : null)" href="@Enlace(1)">@UiTexts.PaginaInicio</a>
+                <a class="@(Model.Paginacion.Page <= 1 ? "disabled" : null)" href="@Enlace(Math.Max(1, Model.Paginacion.Page - 1))">@UiTexts.PaginaAnterior</a>
+                @for (var numero = 1; numero <= paginas; numero++)
+                {
+                    if (paginas > 7 && numero != 1 && numero != paginas && Math.Abs(numero - Model.Paginacion.Page) > 1)
+                    {
+                        if (numero == 2 || numero == paginas - 1)
+                        {
+                            <span aria-hidden="true">...</span>
+                        }
+                        continue;
+                    }
+                    <a class="@(numero == Model.Paginacion.Page ? "active" : null)" href="@Enlace(numero)" @(numero == Model.Paginacion.Page ? "aria-current=page" : null)>@numero</a>
+                }
+                <a class="@(Model.Paginacion.Page >= paginas ? "disabled" : null)" href="@Enlace(Math.Min(paginas, Model.Paginacion.Page + 1))">@UiTexts.PaginaSiguiente</a>
+                <a class="@(Model.Paginacion.Page >= paginas ? "disabled" : null)" href="@Enlace(paginas)">@UiTexts.PaginaUltimo</a>
+            </div>
+        </nav>
+    }
+</div>

@@ -35,6 +35,50 @@
 
     var conceptos = Model.Egresos.Conceptos.Where(c => c.Valor > 0).ToList();
     var conservar = (string[] quitar) => Context.Request.Query.Where(q => !quitar.Contains(q.Key, StringComparer.OrdinalIgnoreCase));
+    var premiosWeb = Model.Egresos.PremiosWeb;
+    var ordenP = Model.Egresos.OrdenPremios;
+    var dirP = Model.Egresos.DireccionPremios;
+    var columnasPremios = new (string Clave, string Texto, bool Numero)[]
+    {
+        (InformePremiosWebOrden.Fecha, UiTexts.Fecha, false),
+        (InformePremiosWebOrden.Vendedor, UiTexts.Vendedor, false),
+        (InformePremiosWebOrden.Loteria, UiTexts.Loteria, false),
+        (InformePremiosWebOrden.Numero, UiTexts.InformeColumnaNumero, false),
+        (InformePremiosWebOrden.Apostado, UiTexts.ValorApostado, true),
+        (InformePremiosWebOrden.Premio, UiTexts.InformeColumnaValorPremio, true)
+    };
+    string UrlOrdenPremios(string columna)
+    {
+        var valores = new Microsoft.AspNetCore.Routing.RouteValueDictionary();
+        foreach (var q in conservar(["ordenP", "dirP", "pageP"])) valores[q.Key] = q.Value.ToString();
+        valores["ordenP"] = columna;
+        valores["dirP"] = InformePremiosWebOrden.SiguienteDireccion(columna, ordenP, dirP);
+        return Url.Action("Index", valores) + "#informeEgresosPremiosWeb";
+    }
+    var ordenG = Model.Egresos.OrdenGastos;
+    var dirG = Model.Egresos.DireccionGastos;
+    var columnasGastos = new (string Clave, string Texto, bool Numero)[]
+    {
+        (VentasInforme.GastoPersonaPersona, UiTexts.InformeColumnaPersona, false),
+        (VentasInforme.GastoPersonaCantidad, UiTexts.InformeColumnaGastos, true),
+        (VentasInforme.GastoPersonaTipo, UiTexts.InformeColumnaTipoPrincipal, false),
+        (VentasInforme.GastoPersonaTotal, UiTexts.Total, true),
+        (VentasInforme.GastoPersonaParticipacion, UiTexts.InformeColumnaParticipacion, false)
+    };
+    string UrlOrdenGastos(string columna)
+    {
+        var valores = new Microsoft.AspNetCore.Routing.RouteValueDictionary();
+        foreach (var q in conservar(["ordenG", "dirG", "pageG"])) valores[q.Key] = q.Value.ToString();
+        valores["ordenG"] = columna;
+        valores["dirG"] = OrdenTabla.Siguiente(columna, ordenG, dirG);
+        return Url.Action("Index", valores) + "#informeEgresosGastosPersonaSeccion";
+    }
+    string EtiquetaGastos(string columna, string texto) => string.Format(
+        OrdenTabla.Siguiente(columna, ordenG, dirG) == "asc" ? UiTexts.OrdenarColumnaAsc : UiTexts.OrdenarColumnaDesc,
+        texto);
+    string EtiquetaPremios(string columna, string texto) => string.Format(
+        InformePremiosWebOrden.SiguienteDireccion(columna, ordenP, dirP) == "asc" ? UiTexts.OrdenarColumnaAsc : UiTexts.OrdenarColumnaDesc,
+        texto);
 }
 <div class="informe-reporte informe-egresos" aria-labelledby="informeEgresosReporteTitulo">
     <header class="informe-reporte-head">
@@ -104,7 +148,69 @@
             </section>
         </div>
 
-        <section class="informe-tabla" aria-labelledby="informeEgresosGastosPersona">
+        <section class="informe-tabla" id="informeEgresosPremiosWeb" aria-labelledby="informeEgresosPremiosWebTitulo">
+            <div class="informe-tabla-head">
+                <div>
+                    <h5 id="informeEgresosPremiosWebTitulo">@UiTexts.InformePremiosWeb</h5>
+                    <p>@UiTexts.InformePremiosWebAyuda</p>
+                </div>
+                <form method="get" asp-action="Index" class="informe-filas" data-submit-on-change>
+                    @foreach (var q in conservar(["pageP", "pageSizeP"]))
+                    {
+                        <input type="hidden" name="@q.Key" value="@q.Value" />
+                    }
+                    <label for="informeEgresosPageSizeP">@UiTexts.FilasPorPagina</label>
+                    <select id="informeEgresosPageSizeP" name="pageSizeP">
+                        @foreach (var size in PagingHelper.PageSizes)
+                        {
+                            <option value="@size" selected="@(premiosWeb.PageSize == size)">@size</option>
+                        }
+                    </select>
+                </form>
+            </div>
+            @if (premiosWeb.TotalCount == 0)
+            {
+                <p class="empty">@UiTexts.InformeSinPremiosWeb</p>
+            }
+            else
+            {
+                <div class="table-wrap">
+                    <table class="informe-table">
+                        <thead>
+                        <tr>
+                            @foreach (var columna in columnasPremios)
+                            {
+                                var activa = ordenP == columna.Clave;
+                                <th scope="col" class="@(columna.Numero ? "num" : null)" aria-sort="@(activa ? (dirP == "asc" ? "ascending" : "descending") : null)">
+                                    <a class="table-sort" href="@UrlOrdenPremios(columna.Clave)" aria-label="@EtiquetaPremios(columna.Clave, columna.Texto)">
+                                        @columna.Texto <span aria-hidden="true">@InformePremiosWebOrden.Marca(columna.Clave, ordenP, dirP)</span>
+                                    </a>
+                                </th>
+                            }
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var p in premiosWeb.Items)
+                        {
+                            <tr>
+                                <td>@Fecha(p.Fecha)</td>
+                                <td><strong>@p.Vendedor</strong></td>
+                                <td>@p.Loteria</td>
+                                <td>@p.Numero</td>
+                                <td class="num">@Pesos(p.ValorApostado)</td>
+                                <td class="num"><strong>@Pesos(p.ValorPremio)</strong></td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+                ViewData["PagerPageKey"] = "pageP";
+                ViewData["PagerPageSizeKey"] = "pageSizeP";
+                <partial name="_Pager" model="premiosWeb" />
+            }
+        </section>
+
+        <section class="informe-tabla" id="informeEgresosGastosPersonaSeccion" aria-labelledby="informeEgresosGastosPersona">
             <div class="informe-tabla-head">
                 <div>
                     <h5 id="informeEgresosGastosPersona">@UiTexts.InformeGastosPorPersona</h5>
@@ -134,11 +240,14 @@
                     <table class="informe-table">
                         <thead>
                         <tr>
-                            <th scope="col">@UiTexts.InformeColumnaPersona</th>
-                            <th scope="col" class="num">@UiTexts.InformeColumnaGastos</th>
-                            <th scope="col">@UiTexts.InformeColumnaTipoPrincipal</th>
-                            <th scope="col" class="num">@UiTexts.Total</th>
-                            <th scope="col">@UiTexts.InformeColumnaParticipacion</th>
+                            @foreach (var columna in columnasGastos)
+                            {
+                                <th scope="col" class="@(columna.Numero ? "num" : null)" aria-sort="@OrdenTabla.Sort(columna.Clave, ordenG, dirG)">
+                                    <a class="table-sort" href="@UrlOrdenGastos(columna.Clave)" aria-label="@EtiquetaGastos(columna.Clave, columna.Texto)">
+                                        @columna.Texto <span aria-hidden="true">@OrdenTabla.Marca(columna.Clave, ordenG, dirG)</span>
+                                    </a>
+                                </th>
+                            }
                         </tr>
                         </thead>
                         <tbody>

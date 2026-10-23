@@ -12,7 +12,7 @@ using NewRich.Pda.Core.Ventas;
 namespace NewRich.Maui.Views.Vendedor;
 
 /// <summary>
-/// Formulario de «Juego números»: loterías del día, valor total y líneas de números.
+/// Formulario de «Combo»: loterías del día, valor total y líneas de números.
 /// Las líneas se repintan solo al agregar o quitar, para no perder el foco mientras se escribe.
 /// </summary>
 public sealed class JuegoNumerosManualPage : ContentPage

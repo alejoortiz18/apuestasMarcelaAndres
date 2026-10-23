@@ -162,69 +162,33 @@ public sealed class ConstruirApuestaPage : ContentPage
             return;
         }
 
-        var combinada = draft.Tipo == TipoApuesta.COMBINADO;
         var numero = Ui.Entero("123", 4);
         var valor = Ui.ValorApostado("1000");
-        var checks = new Dictionary<Guid, CheckBox>();
-        var loteriasBox = new VerticalStackLayout { Spacing = 6 };
-        Picker? picker = null;
-        if (combinada)
+        var picker = new Picker { ItemsSource = _loterias.Select(l => l.Nombre).ToList(), Title = PdaTexts.Loteria };
+        if (_loterias.Count > 0)
         {
-            foreach (var loteria in _loterias)
-            {
-                var check = new CheckBox();
-                checks[loteria.LoteriaId] = check;
-                loteriasBox.Children.Add(new HorizontalStackLayout
-                {
-                    Spacing = 8,
-                    Children =
-                    {
-                        check,
-                        new Label { Text = loteria.Nombre, VerticalOptions = LayoutOptions.Center, TextColor = Ui.Ink }
-                    }
-                });
-            }
-        }
-        else
-        {
-            picker = new Picker { ItemsSource = _loterias.Select(l => l.Nombre).ToList(), Title = PdaTexts.Loteria };
-            if (_loterias.Count > 0)
-            {
-                picker.SelectedIndex = 0;
-            }
+            picker.SelectedIndex = 0;
         }
 
         if (_correccion is not null)
         {
             numero.Text = _correccion.Numero;
             valor.Text = decimal.Truncate(_correccion.Valor).ToString(System.Globalization.CultureInfo.InvariantCulture);
-            if (combinada)
+            var id = _correccion.LoteriaIds.FirstOrDefault();
+            var indiceLoteria = 0;
+            foreach (var loteria in _loterias)
             {
-                foreach (var par in checks)
+                if (loteria.LoteriaId == id)
                 {
-                    par.Value.IsChecked = _correccion.LoteriaIds.Contains(par.Key);
+                    picker.SelectedIndex = indiceLoteria;
+                    break;
                 }
-            }
-            else if (picker is not null)
-            {
-                var id = _correccion.LoteriaIds.FirstOrDefault();
-                var indiceLoteria = 0;
-                foreach (var loteria in _loterias)
-                {
-                    if (loteria.LoteriaId == id)
-                    {
-                        picker.SelectedIndex = indiceLoteria;
-                        break;
-                    }
 
-                    indiceLoteria++;
-                }
+                indiceLoteria++;
             }
         }
 
-        var agregar = Ui.Primario(draft.AlMaximo
-            ? (combinada ? PdaTexts.MaximoJuegos : PdaTexts.MaximoLineas)
-            : (combinada ? PdaTexts.AgregarJuego : PdaTexts.AgregarLinea));
+        var agregar = Ui.Primario(draft.AlMaximo ? PdaTexts.MaximoLineas : PdaTexts.AgregarLinea);
         agregar.IsEnabled = !draft.AlMaximo;
         agregar.Clicked += async (_, _) =>
         {
@@ -234,25 +198,15 @@ public sealed class ConstruirApuestaPage : ContentPage
                 return;
             }
 
-            IReadOnlyList<Guid> ids;
-            IReadOnlyList<string> nombres;
-            if (combinada)
+            var sel = picker.SelectedIndex;
+            if (sel < 0 || sel >= _loterias.Count)
             {
-                ids = checks.Where(c => c.Value.IsChecked).Select(c => c.Key).ToArray();
-                nombres = _loterias.Where(l => ids.Contains(l.LoteriaId)).Select(l => l.Nombre).ToArray();
+                await this.AvisoAsync(PdaTexts.JuegoNuevo, ValidationMessages.LoteriasRequeridas, PdaTexts.Cerrar);
+                return;
             }
-            else
-            {
-                var sel = picker!.SelectedIndex;
-                if (sel < 0 || sel >= _loterias.Count)
-                {
-                    await this.AvisoAsync(PdaTexts.JuegoNuevo, ValidationMessages.LoteriasRequeridas, PdaTexts.Cerrar);
-                    return;
-                }
 
-                ids = [_loterias[sel].LoteriaId];
-                nombres = [_loterias[sel].Nombre];
-            }
+            IReadOnlyList<Guid> ids = [_loterias[sel].LoteriaId];
+            IReadOnlyList<string> nombres = [_loterias[sel].Nombre];
 
             var resultado = draft.AgregarLinea(
                 EntradaEntera.SoloDigitos(numero.Text),
@@ -330,15 +284,8 @@ public sealed class ConstruirApuestaPage : ContentPage
         form.Children.Add(numero);
         form.Children.Add(Ui.Campo(PdaTexts.ValorApostado));
         form.Children.Add(valor);
-        form.Children.Add(Ui.Campo(combinada ? PdaTexts.Loterias : PdaTexts.Loteria));
-        if (combinada)
-        {
-            form.Children.Add(loteriasBox);
-        }
-        else if (picker is not null)
-        {
-            form.Children.Add(picker);
-        }
+        form.Children.Add(Ui.Campo(PdaTexts.Loteria));
+        form.Children.Add(picker);
 
         form.Children.Add(agregar);
 

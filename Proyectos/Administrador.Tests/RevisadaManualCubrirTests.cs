@@ -19,7 +19,7 @@ public sealed class RevisadaManualCubrirTests
         var api = Api(comision: 20m);
         var sut = Crear(api.Object);
 
-        await sut.Cubrir(["fila:1"], new DateTime(2026, 10, 21), new DateTime(2026, 10, 21), cancellationToken: CancellationToken.None);
+        await sut.Cubrir(["fila:1"], DateTime.Today, DateTime.Today, cancellationToken: CancellationToken.None);
 
         sut.TempData["AvisoModal"].Should().Be(UiTexts.PorcentajesSinConfigurar);
         api.Verify(a => a.RevisadaCubrirDesdeResumenAsync(It.IsAny<CubrirDesdeResumenRevisadaManualRequest>(), It.IsAny<CancellationToken>()), Times.Never);

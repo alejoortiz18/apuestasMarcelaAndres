@@ -7,9 +7,12 @@ using NewRich.Admin.Constants;
 using NewRich.Admin.Controllers;
 using NewRich.Admin.Models;
 using NewRich.Admin.Services;
+using NewRich.Application.Contracts.GastosVendedoresWeb;
 using NewRich.Application.Contracts.Grupos;
 using NewRich.Application.Contracts.Kpi;
+using NewRich.Application.Contracts.PremiosEntregadosWeb;
 using NewRich.Application.Contracts.Usuarios;
+using NewRich.Application.Contracts.VentasRegistradasWeb;
 using NewRich.Domain.Enums;
 using UglyToad.PdfPig;
 
@@ -95,6 +98,12 @@ public sealed class KpiInformePdfTests
         api.Setup(x => x.ConsultarKpiAsync(It.IsAny<KpiRequest>(), It.IsAny<CancellationToken>()))
             .Callback<KpiRequest, CancellationToken>((r, _) => enviado = r)
             .ReturnsAsync(ApiCallResult<KpiResponse>.Ok(VistaCompleta().Kpi, "Listo."));
+        api.Setup(x => x.TotalVentasRegistradasWebAsync(It.IsAny<DateOnly>(), It.IsAny<DateOnly>(), It.IsAny<Guid?>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ApiCallResult<TotalVentasRegistradasWebResponse>.Ok(new TotalVentasRegistradasWebResponse(0m, 0), "Listo."));
+        api.Setup(x => x.TotalPremiosEntregadosWebAsync(It.IsAny<DateOnly>(), It.IsAny<DateOnly>(), It.IsAny<Guid?>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ApiCallResult<TotalPremiosEntregadosWebResponse>.Ok(new TotalPremiosEntregadosWebResponse(0m, 0), "Listo."));
+        api.Setup(x => x.GastosVendedoresWebAsync(It.IsAny<DateOnly>(), It.IsAny<DateOnly>(), It.IsAny<Guid?>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ApiCallResult<GastosVendedoresWebResponse>.Ok(new GastosVendedoresWebResponse(0m, 0, []), "Listo."));
         var sut = new KpiController(api.Object)
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }

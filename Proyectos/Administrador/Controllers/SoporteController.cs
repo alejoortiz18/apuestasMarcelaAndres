@@ -17,7 +17,7 @@ public sealed class SoporteController : AdminControllerBase
         _api = api;
     }
 
-    public async Task<IActionResult> Index(Guid? id, CancellationToken cancellationToken)
+    public async Task<IActionResult> Index(Guid? id, CancellationToken cancellationToken, Guid? destinoId = null)
     {
         SetNav("soporte", UiTexts.NavAtencionCliente);
         var conversacionesTask = _api.ListarConversacionesAsync(cancellationToken, "AtencionCliente");
@@ -30,6 +30,27 @@ public sealed class SoporteController : AdminControllerBase
         }
 
         var lista = (conversacionesTask.Result.Data ?? []).ToList();
+        var destinatarios = (usuariosTask.Result.Data ?? [])
+            .Where(u => RolConsola.EsVendedor(u.Rol) || u.Rol is RolUsuario.Observador or RolUsuario.Recaudador)
+            .ToList();
+
+        var nuevoDestino = destinoId.HasValue ? destinatarios.FirstOrDefault(u => u.UsuarioId == destinoId) : null;
+        if (nuevoDestino is not null)
+        {
+            var existente = lista.FirstOrDefault(c => c.UsuarioIniciadorId == nuevoDestino.UsuarioId || c.UsuarioDestinoId == nuevoDestino.UsuarioId);
+            if (existente is not null)
+            {
+                return RedirectToAction(nameof(Index), new { id = existente.ConversacionId });
+            }
+
+            return View(new SoporteIndexViewModel
+            {
+                Conversaciones = lista,
+                Destinatarios = destinatarios,
+                NuevoDestino = nuevoDestino
+            });
+        }
+
         ConversacionDetalleResponse? detalle = null;
         var selected = id ?? lista.FirstOrDefault()?.ConversacionId;
         if (selected.HasValue)
@@ -47,10 +68,6 @@ public sealed class SoporteController : AdminControllerBase
                 await _api.MarcarAvisosChatLeidosAsync(selected.Value, cancellationToken);
             }
         }
-
-        var destinatarios = (usuariosTask.Result.Data ?? [])
-            .Where(u => RolConsola.EsVendedor(u.Rol) || u.Rol is RolUsuario.Observador or RolUsuario.Recaudador)
-            .ToList();
 
         return View(new SoporteIndexViewModel
         {
@@ -138,7 +155,7 @@ public sealed class SoporteController : AdminControllerBase
         if (string.IsNullOrWhiteSpace(request.Texto) && string.IsNullOrWhiteSpace(request.NombreArchivo))
         {
             SetFlash(ChatMessages.TextoOAdjuntoRequerido, false);
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(Index), new { destinoId });
         }
 
         var result = await _api.IniciarConversacionAsync(request, cancellationToken);
@@ -152,10 +169,9 @@ public sealed class SoporteController : AdminControllerBase
         if (!result.Success || result.Data is null)
         {
             SetFlash(result.Message, false);
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(Index), new { destinoId });
         }
 
-        SetFlash(string.IsNullOrWhiteSpace(result.Message) ? SuccessMessages.ConversacionIniciada : result.Message);
         return RedirectToAction(nameof(Index), new { id = result.Data.ConversacionId });
     }
 

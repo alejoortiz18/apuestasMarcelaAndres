@@ -145,7 +145,7 @@
             </section>
         </div>
 
-        <section class="informe-tabla" aria-labelledby="informeVentasRanking">
+        <section class="informe-tabla" id="informeVentasRankingSeccion" aria-labelledby="informeVentasRanking">
             <div class="informe-tabla-head">
                 <div>
                     <h5 id="informeVentasRanking">@UiTexts.InformeRankingVendedores</h5>
@@ -175,12 +175,18 @@
                     <table class="informe-table">
                         <thead>
                         <tr>
-                            <th scope="col">@UiTexts.InformeColumnaPosicion</th>
-                            <th scope="col">@UiTexts.Vendedor</th>
-                            <th scope="col">@UiTexts.Grupo</th>
-                            <th scope="col" class="num">@UiTexts.Ventas</th>
-                            <th scope="col" class="num">@UiTexts.Total</th>
-                            <th scope="col">@UiTexts.InformeColumnaParticipacion</th>
+                            @foreach (var (clave, texto, numero) in new[]
+                            {
+                                (InformeOrden.Posicion, UiTexts.InformeColumnaPosicion, false),
+                                (InformeOrden.Vendedor, UiTexts.Vendedor, false),
+                                (InformeOrden.Grupo, UiTexts.Grupo, false),
+                                (InformeOrden.Ventas, UiTexts.Ventas, true),
+                                (InformeOrden.Total, UiTexts.Total, true),
+                                (InformeOrden.Participacion, UiTexts.InformeColumnaParticipacion, false)
+                            })
+                            {
+                                <partial name="_ColumnaOrden" model='new ColumnaOrdenViewModel { Clave = clave, Texto = texto, Estado = Model.Ingresos.OrdenRanking, ParamOrden = "ordenV", ParamDireccion = "dirV", ParamPagina = "pageV", Ancla = "informeVentasRankingSeccion", Numero = numero }' />
+                            }
                         </tr>
                         </thead>
                         <tbody>

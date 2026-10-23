@@ -3,12 +3,12 @@ using System.Text;
 namespace NewRich.Pda.Core.Ventas;
 
 /// <summary>
-/// Tirilla de «Juego números» con la misma plantilla del recibo de venta:
+/// Tirilla de «Combo» con la misma plantilla del recibo de venta:
 /// encabezado, fecha y hora, bloque JUGADO, total, QR con el código y leyenda.
 /// </summary>
 public static class TirillaJuegoNumerosManual
 {
-    public const string TipoApuesta = "JUEGO NUMEROS";
+    public const string TipoApuesta = "COMBO";
     private const int Ancho = TirillaTexto.AnchoImpresora;
     private const int AnchoNumero = 6;
 

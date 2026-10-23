@@ -1,73 +1,137 @@
+@using NewRich.Vendedor.Services
 @model NewRich.Vendedor.Models.SoporteViewModel
-<div class="heading">
-    <div>
-        <h1>@(Model.Tecnico ? UiTexts.SoporteTecnico : UiTexts.Atencion)</h1>
-    </div>
-</div>
-<div class="panel">
-    @if (Model.Tecnico)
-    {
-        <form asp-action="Reportar" method="post">
-            @Html.AntiForgeryToken()
-            <div class="field">
-                <label for="codigoTicket">@UiTexts.CodigoTicket</label>
-                <input id="codigoTicket" name="codigoTicket" value="@Model.CodigoTicket" />
-            </div>
-            <div class="field">
-                <label for="observacion">@UiTexts.Observacion</label>
-                <textarea id="observacion" name="observacion" rows="3">@Model.Texto</textarea>
-            </div>
-            <button class="primary" type="submit">@UiTexts.Reportar</button>
-        </form>
-    }
-    else
-    {
-        <form asp-action="Iniciar" method="post">
-            @Html.AntiForgeryToken()
-            <div class="field">
-                <label for="texto">@UiTexts.Mensaje</label>
-                <textarea id="texto" name="texto" rows="3"></textarea>
-            </div>
-            <button class="primary" type="submit">@UiTexts.IniciarConversacion</button>
-        </form>
-    }
-</div>
-<div class="panel">
-    @if (Model.Conversaciones.Count == 0)
-    {
-        <div class="empty">@UiTexts.Vacio</div>
-    }
-    else
-    {
-        <ul>
-            @foreach (var item in Model.Conversaciones)
+@{
+    var yoTexto = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    _ = Guid.TryParse(yoTexto, out var yo);
+    var adjuntoPlantilla = Url.Action("Adjunto", "Soporte", new { id = Guid.Empty });
+}
+<div class="page-soporte">
+<div class="chat-shell" data-chat-vivo data-yo="@yo" data-conversacion="@(Model.ConversacionId?.ToString() ?? "")" data-evento="mensajeChat"
+     data-adjunto-plantilla="@adjuntoPlantilla" data-conexion="@Url.Action("Conexion", "Soporte")">
+    <aside class="chat-list">
+        <div class="chat-list-head">
+            <h2>@UiTexts.Conversaciones</h2>
+        </div>
+        <div class="chat-list-body" data-chat-lista role="list" aria-label="@UiTexts.ListaConversacionesAria">
+            @if (Model.Conversaciones.Count == 0)
             {
-                <li>
-                    <a asp-action="@(Model.Tecnico ? "Tecnico" : "Index")" asp-route-id="@item.ConversacionId">
-                        @item.UltimoTexto
-                    </a>
-                    <small>@item.FechaUltimoMensaje?.ToString("dd-MM-yyyy HH:mm:ss")</small>
-                </li>
+                <div class="empty">@UiTexts.Vacio</div>
             }
-        </ul>
-    }
-</div>
-@if (Model.Hilo is not null)
-{
-    <div class="panel">
-        @foreach (var mensaje in Model.Hilo.Mensajes)
+            else
+            {
+                foreach (var c in Model.Conversaciones)
+                {
+                    var persona = ChatVista.Contraparte(c, yo);
+                    var activa = Model.ConversacionId == c.ConversacionId;
+                    var abierta = string.Equals(c.Estado, "Abierta", StringComparison.Ordinal);
+                    <a class="chat-item @(activa ? "active" : null) @(abierta ? null : "is-closed")"
+                       data-chat-item="@c.ConversacionId" role="listitem"
+                       asp-controller="Soporte" asp-action="Index" asp-route-id="@c.ConversacionId"
+                       aria-current="@(activa ? "true" : null)">
+                        <div class="chat-person">
+                            <span class="chat-avatar @persona.Tono" aria-hidden="true">@persona.Iniciales</span>
+                            <span class="chat-person-copy">
+                                <strong>@persona.Nombre</strong>
+                                <em>@persona.Rol</em>
+                            </span>
+                            @if (abierta)
+                            {
+                                <span class="chat-dot" title="@c.Estado"></span>
+                            }
+                            else
+                            {
+                                <span class="pill">@c.Estado</span>
+                            }
+                        </div>
+                        <small>@(string.IsNullOrWhiteSpace(c.UltimoTexto) ? UiTexts.SinMensajes : c.UltimoTexto)</small>
+                    </a>
+                }
+            }
+        </div>
+    </aside>
+    <section class="chat-window">
+        @if (Model.Hilo is null)
         {
-            <p><strong>@mensaje.NombreEmisor</strong> @mensaje.FechaEnvio.ToString("dd-MM-yyyy HH:mm:ss")<br />@mensaje.Texto</p>
-        }
-        <form asp-action="Enviar" method="post">
-            @Html.AntiForgeryToken()
-            <input type="hidden" name="id" value="@Model.Hilo.Conversacion.ConversacionId" />
-            <input type="hidden" name="tecnico" value="@Model.Tecnico.ToString().ToLowerInvariant()" />
-            <div class="field">
-                <label for="respuesta">@UiTexts.Mensaje</label>
-                <textarea id="respuesta" name="texto" rows="3"></textarea>
+            <header class="chat-head">
+                <div>
+                    <h2>@UiTexts.Atencion</h2>
+                    <p>@UiTexts.ChatAtencionAyuda</p>
+                </div>
+            </header>
+            <div class="chat-messages" data-chat-scroll role="log" aria-live="polite" aria-label="@UiTexts.MensajesConversacionAria">
+                <div class="empty">@UiTexts.ChatSinConversacion</div>
             </div>
-            <button class="primary" type="submit">@UiTexts.Enviar</button>
-        </form>
-    </div>
+            <form class="chat-compose" asp-controller="Soporte" asp-action="Iniciar" method="post" enctype="multipart/form-data" data-chat-form>
+                <partial name="_ChatAdjunto" model='"archivoInicio"' />
+                <label class="sr-only" for="textoInicio">@UiTexts.EscribeMensaje</label>
+                <input id="textoInicio" class="chat-compose-text" name="texto" placeholder="@UiTexts.EscribeMensaje" autocomplete="off" maxlength="2000" />
+                <button class="primary" type="submit">@UiTexts.Enviar</button>
+            </form>
+        }
+        else
+        {
+            var conv = Model.Hilo.Conversacion;
+            var persona = ChatVista.Contraparte(conv, yo);
+            <header class="chat-head">
+                <div class="chat-head-person">
+                    <span class="chat-avatar @persona.Tono" aria-hidden="true">@persona.Iniciales</span>
+                    <div>
+                        <h2>@persona.Nombre</h2>
+                        <p>@persona.Rol · @UiTexts.ChatAtencionAyuda</p>
+                    </div>
+                </div>
+                <div class="chat-head-actions">
+                    <span class="pill">@conv.Estado</span>
+                </div>
+            </header>
+            <div class="chat-messages" data-chat-scroll role="log" aria-live="polite" aria-label="@UiTexts.MensajesConversacionAria">
+                @if (Model.Hilo.Mensajes.Count == 0)
+                {
+                    <div class="empty">@UiTexts.SinMensajes</div>
+                }
+                else
+                {
+                    foreach (var m in Model.Hilo.Mensajes)
+                    {
+                        var mio = m.UsuarioEmisorId == yo;
+                        <div class="chat-message @(mio ? "me" : "other")" data-mensaje-id="@m.MensajeId">
+                            @if (!string.IsNullOrWhiteSpace(m.Texto))
+                            {
+                                @m.Texto
+                            }
+                            @if (m.AdjuntoId is Guid adjuntoId)
+                            {
+                                var nombre = m.NombreArchivo ?? UiTexts.VerArchivo;
+                                var href = Url.Action("Adjunto", "Soporte", new { id = adjuntoId });
+                                if (ChatVista.EsImagen(m.NombreArchivo))
+                                {
+                                    <a class="chat-file" href="@href" target="_blank" rel="noopener">
+                                        <img src="@href" alt="@nombre" />
+                                        <span>@nombre</span>
+                                    </a>
+                                }
+                                else
+                                {
+                                    <a class="chat-file chat-file-pdf" href="@href">@nombre</a>
+                                }
+                            }
+                            <time>@m.FechaEnvio.ToString("dd/MM HH:mm") · @(string.IsNullOrWhiteSpace(m.NombreEmisor) ? persona.Nombre : m.NombreEmisor)</time>
+                        </div>
+                    }
+                }
+            </div>
+            <form class="chat-compose" asp-controller="Soporte" asp-action="Enviar" asp-route-id="@conv.ConversacionId" method="post" enctype="multipart/form-data" data-chat-form>
+                <partial name="_ChatAdjunto" model='"archivoMensaje"' />
+                <label class="sr-only" for="textoMensaje">@UiTexts.EscribeMensaje</label>
+                <input id="textoMensaje" class="chat-compose-text" name="texto" placeholder="@UiTexts.EscribeMensaje" autocomplete="off" maxlength="2000" />
+                <button class="primary" type="submit">@UiTexts.Enviar</button>
+            </form>
+        }
+    </section>
+</div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/signalr/signalr.min.js" asp-append-version="true"></script>
+    <script src="~/js/soporte.js" asp-append-version="true"></script>
 }

@@ -1,60 +1,247 @@
 @model NewRich.Vendedor.Models.EntregaPremioViewModel
+@{
+    var hoy = Model.Hoy.ToString("yyyy-MM-dd");
+    var f = Model.Formulario;
+    var conservar = Model.AbrirConfirmacion || ViewData["AvisoPagina"] is string;
+    var web = Model.PaginacionWeb;
+    var paginasWeb = Math.Max(1, (int)Math.Ceiling(web.Total / (double)Math.Max(1, web.PageSize)));
+    var inicioWeb = web.Total == 0 ? 0 : ((web.Page - 1) * web.PageSize) + 1;
+    var finWeb = Math.Min(web.Total, web.Page * web.PageSize);
+    string EnlaceWeb(int pageW) => Url.Action("Index", new { page = Model.Page, pageSize = Model.PageSize, pageW }) + "#premiosCargados";
+}
 <div class="heading">
     <div>
         <div class="eyebrow">@UiTexts.EntregaPremio</div>
         <h1>@UiTexts.EntregaPremio</h1>
     </div>
 </div>
-<div class="panel">
-    <form class="toolbar" method="get">
-        <div class="field">
-            <label for="pageSize">@UiTexts.FilasPorPagina</label>
-            <select id="pageSize" name="pageSize">
-                @foreach (var size in Paginas.Tamanos)
+
+<section class="entrega-seccion" aria-labelledby="entregasWebTitulo">
+    <h2 id="entregasWebTitulo" class="entrega-titulo">@UiTexts.EntregasVendedorWeb</h2>
+    <div class="panel">
+        <p class="field-help">@UiTexts.CargarPremioAyuda</p>
+        <form method="post" asp-action="Cargar" class="premio-form" data-cargar-premio data-abrir="@(Model.AbrirConfirmacion ? "si" : "no")"
+              data-conservar="@(conservar ? "si" : "no")" data-hoy="@hoy" novalidate>
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="page" value="@Model.Page" />
+            <input type="hidden" name="pageSize" value="@Model.PageSize" />
+            <input type="hidden" name="pageW" value="@web.Page" />
+            <div class="premio-campos">
+                <div class="field">
+                    <label for="PremioNumero">@UiTexts.Numero <abbr class="obligatorio" title="Obligatorio">*</abbr></label>
+                    <input id="PremioNumero" name="Numero" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" maxlength="4"
+                           value="@(conservar ? f.Numero : null)" aria-describedby="PremioNumeroError" data-premio-numero
+                           data-error="@UiTexts.PremioNumeroInvalido" />
+                    <p id="PremioNumeroError" class="field-validation-error" data-premio-error hidden></p>
+                </div>
+                <div class="field">
+                    <label for="PremioApostado">@UiTexts.ValorApostado <abbr class="obligatorio" title="Obligatorio">*</abbr></label>
+                    <div class="money-input money-input-wide">
+                        <span class="money-prefix" aria-hidden="true">$</span>
+                        <input id="PremioApostado" class="money-visible" name="ValorApostado" type="text" inputmode="numeric" autocomplete="off" spellcheck="false"
+                               value="@(conservar ? f.ValorApostado : null)" aria-describedby="PremioApostadoError" data-premio-pesos data-maximo="999000"
+                               data-error="@UiTexts.PremioValorApostadoInvalido" />
+                    </div>
+                    <p id="PremioApostadoError" class="field-validation-error" data-premio-error hidden></p>
+                </div>
+                <div class="field">
+                    <label for="PremioLoteria">@UiTexts.Loteria <abbr class="obligatorio" title="Obligatorio">*</abbr></label>
+                    <select id="PremioLoteria" class="searchable" name="LoteriaId" data-loteria data-premio-loteria aria-describedby="PremioLoteriaError"
+                            data-error="@UiTexts.PremioLoteriaObligatoria">
+                        <option value="">@UiTexts.SeleccioneLoteria</option>
+                        @foreach (var loteria in Model.Loterias)
+                        {
+                            if (conservar && loteria.LoteriaId == f.LoteriaId)
+                            {
+                                <option value="@loteria.LoteriaId" selected>@loteria.Nombre</option>
+                            }
+                            else
+                            {
+                                <option value="@loteria.LoteriaId">@loteria.Nombre</option>
+                            }
+                        }
+                    </select>
+                    <p id="PremioLoteriaError" class="field-validation-error" data-premio-error hidden></p>
+                </div>
+                <div class="field">
+                    <label for="PremioFecha">@UiTexts.Fecha <abbr class="obligatorio" title="Obligatorio">*</abbr></label>
+                    <input id="PremioFecha" name="FechaPremio" type="date" max="@hoy" value="@(conservar ? f.FechaPremio?.ToString("yyyy-MM-dd") : hoy)"
+                           aria-describedby="PremioFechaAyuda PremioFechaError" data-premio-fecha data-error="@UiTexts.PremioFechaInvalida" />
+                    <p id="PremioFechaAyuda" class="field-help">@UiTexts.FechaPremioAyuda</p>
+                    <p id="PremioFechaError" class="field-validation-error" data-premio-error hidden></p>
+                </div>
+                <div class="field">
+                    <label for="PremioValor">@UiTexts.ValorPremio <abbr class="obligatorio" title="Obligatorio">*</abbr></label>
+                    <div class="money-input money-input-wide">
+                        <span class="money-prefix" aria-hidden="true">$</span>
+                        <input id="PremioValor" class="money-visible" name="ValorPremio" type="text" inputmode="numeric" autocomplete="off" spellcheck="false"
+                               value="@(conservar ? f.ValorPremio : null)" aria-describedby="PremioValorError" data-premio-pesos
+                               data-error="@UiTexts.PremioValorInvalido" />
+                    </div>
+                    <p id="PremioValorError" class="field-validation-error" data-premio-error hidden></p>
+                </div>
+            </div>
+            <button class="primary" type="button" data-premio-guardar>@UiTexts.Guardar</button>
+
+            <div class="dialog-back@(Model.AbrirConfirmacion ? "" : " hidden")" role="dialog" aria-modal="true" aria-labelledby="premioConfirmarTitulo"
+                 data-premio-confirmar @(Model.AbrirConfirmacion ? null : "hidden")>
+                <div class="dialog dialog-venta">
+                    <h2 id="premioConfirmarTitulo">@UiTexts.CargarPremio</h2>
+                    <div data-premio-paso="1" @(Model.AbrirConfirmacion ? "hidden" : null)>
+                        <p>@UiTexts.CargarPremioPregunta</p>
+                        <div class="dialog-actions">
+                            <button class="secondary" type="button" data-premio-cancelar>@UiTexts.No</button>
+                            <button class="primary" type="button" data-premio-si>@UiTexts.Si</button>
+                        </div>
+                    </div>
+                    <div data-premio-paso="2" @(Model.AbrirConfirmacion ? null : "hidden")>
+                        @if (!string.IsNullOrWhiteSpace(Model.ErrorConfirmacion))
+                        {
+                            <div class="notice error" role="alert" data-premio-error-clave>@Model.ErrorConfirmacion</div>
+                        }
+                        <input class="visually-hidden" type="text" autocomplete="username" value="@User.Identity?.Name" readonly tabindex="-1" aria-hidden="true" />
+                        <div class="field">
+                            <label for="PremioPassword">@UiTexts.Contrasena <abbr class="obligatorio" title="Obligatorio">*</abbr></label>
+                            <input id="PremioPassword" name="Password" type="password" autocomplete="current-password" aria-describedby="PremioPasswordAyuda" data-premio-password />
+                            <p id="PremioPasswordAyuda" class="field-help">@UiTexts.CargarPremioContrasena</p>
+                        </div>
+                        <div class="dialog-actions">
+                            <button class="secondary" type="button" data-premio-cancelar>@UiTexts.Cancelar</button>
+                            <button class="primary" type="submit" data-premio-continuar>@UiTexts.Continuar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+    <div class="panel" id="premiosCargados">
+        <div class="panel-head">
+            <div>
+                <h2>@UiTexts.PremiosCargados</h2>
+                <div class="panel-sub">@UiTexts.PremiosCargadosAyuda</div>
+            </div>
+        </div>
+        @if (!string.IsNullOrWhiteSpace(Model.AvisoPremiosWeb))
+        {
+            <div class="notice error" role="alert">@Model.AvisoPremiosWeb</div>
+        }
+        <div class="table-wrap">
+            <table>
+                <thead>
+                <tr>
+                    <th>@UiTexts.Fecha</th>
+                    <th>@UiTexts.Loteria</th>
+                    <th>@UiTexts.Numero</th>
+                    <th>@UiTexts.ValorApostado</th>
+                    <th>@UiTexts.ValorPremio</th>
+                    <th>@UiTexts.RegistradoEl</th>
+                </tr>
+                </thead>
+                <tbody>
+                @if (Model.PremiosWeb.Count == 0)
                 {
-                    if (Model.PageSize == size)
+                    <tr>
+                        <td colspan="6">@UiTexts.Vacio</td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var p in Model.PremiosWeb)
                     {
-                        <option value="@size" selected>@size</option>
-                    }
-                    else
-                    {
-                        <option value="@size">@size</option>
+                        <tr>
+                            <td>@p.Fecha</td>
+                            <td>@p.Loteria</td>
+                            <td>@p.Numero</td>
+                            <td>$ @p.ValorApostado</td>
+                            <td>$ @p.ValorPremio</td>
+                            <td>@p.Registrado</td>
+                        </tr>
                     }
                 }
-            </select>
+                </tbody>
+            </table>
         </div>
-        <button class="primary" type="submit">@UiTexts.Buscar</button>
-    </form>
-</div>
-@if (Model.Items.Count == 0)
-{
-    <div class="panel"><div class="empty">@UiTexts.Vacio</div></div>
-}
-else
-{
-    @foreach (var caso in Model.Items)
+        @if (web.Total > web.PageSize)
+        {
+            <nav class="pager" aria-label="Paginacion">
+                <p>@string.Format(UiTexts.Mostrando, inicioWeb, finWeb, web.Total)</p>
+                <div class="pages">
+                    <a class="@(web.Page <= 1 ? "disabled" : null)" href="@EnlaceWeb(1)">@UiTexts.PaginaInicio</a>
+                    <a class="@(web.Page <= 1 ? "disabled" : null)" href="@EnlaceWeb(Math.Max(1, web.Page - 1))">@UiTexts.PaginaAnterior</a>
+                    @for (var numero = 1; numero <= paginasWeb; numero++)
+                    {
+                        if (paginasWeb > 7 && numero != 1 && numero != paginasWeb && Math.Abs(numero - web.Page) > 1)
+                        {
+                            if (numero == 2 || numero == paginasWeb - 1)
+                            {
+                                <span aria-hidden="true">...</span>
+                            }
+                            continue;
+                        }
+                        <a class="@(numero == web.Page ? "active" : null)" href="@EnlaceWeb(numero)" @(numero == web.Page ? "aria-current=page" : null)>@numero</a>
+                    }
+                    <a class="@(web.Page >= paginasWeb ? "disabled" : null)" href="@EnlaceWeb(Math.Min(paginasWeb, web.Page + 1))">@UiTexts.PaginaSiguiente</a>
+                    <a class="@(web.Page >= paginasWeb ? "disabled" : null)" href="@EnlaceWeb(paginasWeb)">@UiTexts.PaginaUltimo</a>
+                </div>
+            </nav>
+        }
+    </div>
+</section>
+
+<section class="entrega-seccion" aria-labelledby="entregasPdaTitulo">
+    <h2 id="entregasPdaTitulo" class="entrega-titulo">@UiTexts.EntregaPremioPda</h2>
+    <div class="panel">
+        <form class="toolbar" method="get">
+            <input type="hidden" name="pageW" value="@web.Page" />
+            <div class="field">
+                <label for="pageSize">@UiTexts.FilasPorPagina</label>
+                <select id="pageSize" name="pageSize">
+                    @foreach (var size in Paginas.Tamanos)
+                    {
+                        if (Model.PageSize == size)
+                        {
+                            <option value="@size" selected>@size</option>
+                        }
+                        else
+                        {
+                            <option value="@size">@size</option>
+                        }
+                    }
+                </select>
+            </div>
+            <button class="primary" type="submit">@UiTexts.Buscar</button>
+        </form>
+    </div>
+    @if (Model.Items.Count == 0)
     {
-        <article class="panel">
-            <p><strong>@caso.Ticket</strong> · @caso.Estado</p>
-            <p>@UiTexts.ValorJugado: @Montos.De(caso.TotalApostado ?? 0)</p>
-            <p>@UiTexts.ValorGanado: @Montos.De(caso.ValorTotalGanado ?? 0)</p>
-            <p>@UiTexts.FechaSorteo: @caso.FechaJuego?.ToString("dd-MM-yyyy")</p>
-            <p>@UiTexts.FechaEntrega: @(caso.FechaEntrega?.ToString("dd-MM-yyyy HH:mm:ss") ?? UiTexts.Pendiente)</p>
-            <p>@UiTexts.QuienEntrega: @(string.IsNullOrWhiteSpace(caso.PersonaQueEntrega) ? UiTexts.Pendiente : caso.PersonaQueEntrega)</p>
-            @if (caso.FechaEntrega is null && caso.Estado != "Rechazado" && caso.Estado != "Premio entregado")
-            {
-                <form asp-action="Registrar" method="post">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="id" value="@caso.CasoId" />
-                    <div class="field">
-                        <label for="valor-@caso.CasoId">@UiTexts.ValorGanado</label>
-                        <input id="valor-@caso.CasoId" name="valorGanado" type="number" min="1" step="1" required />
-                    </div>
-                    <button class="primary" type="submit">@UiTexts.RegistrarEntrega</button>
-                </form>
-            }
-        </article>
+        <div class="panel"><div class="empty">@UiTexts.Vacio</div></div>
     }
-    var paginacion = new PaginacionViewModel { Page = Model.Page, PageSize = Model.PageSize, Total = Model.Total, Accion = "Index", Controlador = "EntregaPremio" };
-    <partial name="_Pager" model="paginacion" />
-}
+    else
+    {
+        @foreach (var caso in Model.Items)
+        {
+            <article class="panel">
+                <p><strong>@caso.Ticket</strong> · @caso.Estado</p>
+                <p>@UiTexts.ValorJugado: @Montos.De(caso.TotalApostado ?? 0)</p>
+                <p>@UiTexts.ValorGanado: @Montos.De(caso.ValorTotalGanado ?? 0)</p>
+                <p>@UiTexts.FechaSorteo: @caso.FechaJuego?.ToString("dd-MM-yyyy")</p>
+                <p>@UiTexts.FechaEntrega: @(caso.FechaEntrega?.ToString("dd-MM-yyyy HH:mm:ss") ?? UiTexts.Pendiente)</p>
+                <p>@UiTexts.QuienEntrega: @(string.IsNullOrWhiteSpace(caso.PersonaQueEntrega) ? UiTexts.Pendiente : caso.PersonaQueEntrega)</p>
+                @if (caso.FechaEntrega is null && caso.Estado != "Rechazado" && caso.Estado != "Premio entregado")
+                {
+                    <form asp-action="Registrar" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@caso.CasoId" />
+                        <div class="field">
+                            <label for="valor-@caso.CasoId">@UiTexts.ValorGanado</label>
+                            <input id="valor-@caso.CasoId" name="valorGanado" type="number" min="1" step="1" required />
+                        </div>
+                        <button class="primary" type="submit">@UiTexts.RegistrarEntrega</button>
+                    </form>
+                }
+            </article>
+        }
+        var paginacion = new PaginacionViewModel { Page = Model.Page, PageSize = Model.PageSize, Total = Model.Total, Accion = "Index", Controlador = "EntregaPremio" };
+        <partial name="_Pager" model="paginacion" />
+    }
+</section>

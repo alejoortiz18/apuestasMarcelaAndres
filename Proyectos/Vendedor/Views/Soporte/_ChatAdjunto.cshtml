@@ -1,0 +1,18 @@
+@model string
+<div class="chat-attach" data-chat-adjunto>
+    <input id="@Model" class="sr-only" name="archivo" type="file" accept=".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf" data-chat-archivo />
+    <label class="chat-attach-btn" for="@Model" title="@UiTexts.AdjuntarArchivo">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+            <path d="M21.44 11.05 12.25 20.24a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <span class="sr-only">@UiTexts.AdjuntarArchivo</span>
+    </label>
+    <p class="chat-attach-chip hidden" data-chat-archivo-nombre>
+        <span data-chat-archivo-texto></span>
+        <button type="button" class="chat-attach-clear" data-chat-archivo-quitar aria-label="@UiTexts.QuitarArchivo" title="@UiTexts.QuitarArchivo">
+            <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" focusable="false">
+                <path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            </svg>
+        </button>
+    </p>
+</div>

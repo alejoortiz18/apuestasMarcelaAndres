@@ -1,6 +1,7 @@
 using NewRich.Admin.Models;
 using NewRich.Application.Contracts.Grupos;
 using NewRich.Application.Contracts.Kpi;
+using NewRich.Application.Contracts.PremiosEntregadosWeb;
 using NewRich.Application.Contracts.Recaudo;
 using NewRich.Application.Contracts.RevisadaManual;
 using NewRich.Application.Contracts.Utilidades;
@@ -23,8 +24,9 @@ public enum DatosInforme
     Movimientos = 4,
     Cubierto = 8,
     Recaudo = 16,
-    Ventas = Kpi | Gastos | Cubierto,
-    Egresos = Kpi | Gastos | Movimientos | Cubierto
+    PremiosWeb = 32,
+    Ventas = Kpi | Gastos | Cubierto | PremiosWeb,
+    Egresos = Kpi | Gastos | Movimientos | Cubierto | PremiosWeb
 }
 
 public static class InformeVentasCarga
@@ -52,6 +54,7 @@ public static class InformeVentasCarga
         }
 
         var kpis = new List<KpiResponse>();
+        var ingresosWeb = 0m;
         if (datos.HasFlag(DatosInforme.Kpi))
         {
             foreach (var grupoId in filtros.Grupos?.Cast<Guid?>() ?? [null])
@@ -64,6 +67,24 @@ public static class InformeVentasCarga
                     CompararAnterior = false
                 }, cancellationToken);
                 if (Revisar(kpi)) kpis.Add(kpi.Data!);
+                if (unauthorized) return new CargaInformeVentas { Unauthorized = true };
+
+                var web = await api.TotalVentasRegistradasWebAsync(desde, hasta, grupoId, null, cancellationToken);
+                if (Revisar(web)) ingresosWeb += web.Data!.Total;
+                if (unauthorized) return new CargaInformeVentas { Unauthorized = true };
+            }
+        }
+
+        var premiosWeb = new Dictionary<Guid, PremioEntregadoWebResponse>();
+        if (datos.HasFlag(DatosInforme.PremiosWeb))
+        {
+            foreach (var grupoId in filtros.Grupos?.Cast<Guid?>() ?? [null])
+            {
+                var lote = await api.ListadoPremiosEntregadosWebAsync(desde, hasta, grupoId, cancellationToken);
+                if (Revisar(lote))
+                {
+                    foreach (var premio in lote.Data!) premiosWeb.TryAdd(premio.Id, premio);
+                }
                 if (unauthorized) return new CargaInformeVentas { Unauthorized = true };
             }
         }
@@ -120,6 +141,8 @@ public static class InformeVentasCarga
             Fuente = new FuenteInformeVentas
             {
                 Kpi = VentasInforme.FusionarKpi(kpis),
+                IngresosWeb = ingresosWeb,
+                PremiosWeb = premiosWeb.Values.ToList(),
                 Gastos = gastos,
                 Movimientos = movimientos,
                 Cubierto = cubierto,

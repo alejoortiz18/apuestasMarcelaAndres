@@ -2,8 +2,8 @@ namespace NewRich.Pda.Core;
 
 public static class JuegoNumerosManualTexts
 {
-    public const string Titulo = "Juego números";
-    public const string BotonTipo = "Juego números";
+    public const string Titulo = "Combo";
+    public const string BotonTipo = "COMBO";
     public const string BotonTipoAyuda = "Varios números en una o varias loterías con un solo valor total.";
     public const string Loterias = "Loterías";
     public const string LoteriasAyuda = "Seleccione una o varias loterías disponibles hoy.";
@@ -36,9 +36,9 @@ public static class JuegoNumerosManualTexts
     public const string Finalizar = "Finalizar";
     public const string SinLoterias = "No hay loterías disponibles para jugar en este momento.";
     public const string Cierra = "Cierra";
-    public const string RequiereConexion = "Juego números solo se registra con conexión al servidor.";
+    public const string RequiereConexion = "Combo solo se registra con conexión al servidor.";
     public const string ConexionNoDisponible = "Conexión no disponible";
-    public const string SinConexionRegistrar = "No hay conexión con el servidor. Juego números no se puede jugar sin conexión. La jugada sigue en pantalla: intente registrarla de nuevo cuando vuelva la conexión.";
+    public const string SinConexionRegistrar = "No hay conexión con el servidor. El combo no se puede jugar sin conexión. La jugada sigue en pantalla: intente registrarla de nuevo cuando vuelva la conexión.";
 
     public static string Sobrante(int apuestas) => apuestas == 1
         ? "La primera apuesta lleva $1 más para completar el total."

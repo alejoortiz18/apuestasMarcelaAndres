@@ -21,7 +21,7 @@ public sealed class ChatSoporteVistaTests
     {
         var vista = File.ReadAllText(RutaVista());
         var pagina = vista.IndexOf("page-soporte", StringComparison.Ordinal);
-        var inicio = vista.IndexOf("IniciarConversacion", StringComparison.Ordinal);
+        var inicio = vista.IndexOf("chat-start-bar", StringComparison.Ordinal);
         var shell = vista.IndexOf("chat-shell", StringComparison.Ordinal);
 
         pagina.Should().BePositive();

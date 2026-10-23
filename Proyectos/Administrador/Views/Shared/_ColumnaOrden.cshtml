@@ -1,0 +1,23 @@
+@using NewRich.Admin.Constants
+@using NewRich.Admin.Services
+@model NewRich.Admin.Models.ColumnaOrdenViewModel
+@{
+    var orden = Model.Estado.Orden;
+    var direccion = Model.Estado.Direccion;
+    var siguiente = OrdenTabla.Siguiente(Model.Clave, orden, direccion);
+    var valores = new Microsoft.AspNetCore.Routing.RouteValueDictionary();
+    foreach (var q in Context.Request.Query)
+    {
+        if (q.Key != Model.ParamOrden && q.Key != Model.ParamDireccion && q.Key != Model.ParamPagina)
+        {
+            valores[q.Key] = q.Value.ToString();
+        }
+    }
+    valores[Model.ParamOrden] = Model.Clave;
+    valores[Model.ParamDireccion] = siguiente;
+    var url = Url.Action(ViewContext.RouteData.Values["action"]?.ToString(), valores) + (Model.Ancla is null ? string.Empty : "#" + Model.Ancla);
+    var etiqueta = string.Format(siguiente == OrdenTabla.Ascendente ? UiTexts.OrdenarColumnaAsc : UiTexts.OrdenarColumnaDesc, Model.Texto);
+}
+<th scope="col" class="@(Model.Numero ? "num" : null)" aria-sort="@OrdenTabla.Sort(Model.Clave, orden, direccion)">
+    <a class="@Model.Clase" href="@url" aria-label="@etiqueta">@Model.Texto <span aria-hidden="true">@OrdenTabla.Marca(Model.Clave, orden, direccion)</span></a>
+</th>

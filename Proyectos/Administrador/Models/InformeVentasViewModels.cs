@@ -101,6 +101,7 @@ public sealed class IngresosInforme
     public int DiasConVentas { get; init; }
     public IReadOnlyList<SegmentoValorInforme> PorGrupo { get; init; } = [];
     public PagedViewModel<VendedorIngresoInforme> Vendedores { get; init; } = new();
+    public EstadoOrden OrdenRanking { get; init; } = new("posicion", "asc");
 }
 
 public sealed class SegmentoValorInforme
@@ -121,10 +122,25 @@ public sealed class GastoPersonaInforme
     public string TipoPrincipal { get; init; } = string.Empty;
 }
 
+public sealed class PremioWebInforme
+{
+    public DateOnly Fecha { get; init; }
+    public string Vendedor { get; init; } = string.Empty;
+    public string Loteria { get; init; } = string.Empty;
+    public string Numero { get; init; } = string.Empty;
+    public decimal ValorApostado { get; init; }
+    public decimal ValorPremio { get; init; }
+}
+
 public sealed class EgresosInforme
 {
     public IReadOnlyList<SegmentoValorInforme> Conceptos { get; init; } = [];
     public IReadOnlyList<SegmentoValorInforme> GastosPorTipo { get; init; } = [];
+    public PagedViewModel<PremioWebInforme> PremiosWeb { get; init; } = new();
+    public string OrdenPremios { get; init; } = "fecha";
+    public string DireccionPremios { get; init; } = "desc";
+    public string OrdenGastos { get; init; } = "total";
+    public string DireccionGastos { get; init; } = "desc";
     public PagedViewModel<GastoPersonaInforme> GastosPorPersona { get; init; } = new();
     public decimal AnuladosValor { get; init; }
     public int AnuladosCantidad { get; init; }
@@ -167,5 +183,6 @@ public sealed class RecaudoInforme
     public GraficoLineaRecaudo Grafico { get; init; } = GraficoLineaRecaudo.De([]);
     public IReadOnlyList<RecaudadorInforme> Recaudadores { get; init; } = [];
     public IReadOnlyList<AtrasoInforme> Atrasos { get; init; } = [];
+    public EstadoOrden OrdenAtrasos { get; init; } = new("pendiente", "desc");
     public bool Recortado { get; init; }
 }

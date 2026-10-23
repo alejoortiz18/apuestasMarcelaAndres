@@ -37,9 +37,7 @@ public sealed class TipoApuestaPage : ContentPage
             return;
         }
 
-        var combinada = Tipo(PdaTexts.TipoCombinada, $"{PdaTexts.TipoCombinadaAyuda} Máximo {_sesion.Limites.MaxJuegosCombinado} juego.", TipoApuesta.COMBINADO);
-        combinada.IsVisible = false;
-        var individual = Tipo(PdaTexts.TipoIndividual, $"{PdaTexts.TipoIndividualAyuda} Máximo {_sesion.Limites.MaxLineasIndividual} líneas.", TipoApuesta.INDIVIDUAL);
+        var individual = Individual();
         var juegoNumeros = JuegoNumeros();
         Content = new VerticalStackLayout
         {
@@ -48,7 +46,6 @@ public sealed class TipoApuestaPage : ContentPage
             Children =
             {
                 new Label { Text = PdaTexts.TipoApuestaAyuda, TextColor = Ui.Muted, FontSize = 13 },
-                combinada,
                 individual,
                 juegoNumeros
             }
@@ -56,11 +53,11 @@ public sealed class TipoApuestaPage : ContentPage
         BarraMenuVendedor.Asegurar(this, "vender");
     }
 
-    private Button Tipo(string titulo, string ayuda, TipoApuesta tipo)
+    private Button Individual()
     {
         var boton = new Button
         {
-            Text = $"{titulo}\n{ayuda}",
+            Text = $"{PdaTexts.TipoIndividual}\n{PdaTexts.TipoIndividualAyuda} Máximo {_sesion.Limites.MaxLineasIndividual} líneas.",
             BackgroundColor = Colors.White,
             TextColor = Ui.Ink,
             BorderColor = Ui.Line,
@@ -70,8 +67,7 @@ public sealed class TipoApuestaPage : ContentPage
         };
         boton.Clicked += async (_, _) =>
         {
-            var max = tipo == TipoApuesta.COMBINADO ? _sesion.Limites.MaxJuegosCombinado : _sesion.Limites.MaxLineasIndividual;
-            _sesion.Borrador = TicketDraft.Crear(tipo, max);
+            _sesion.Borrador = TicketDraft.Crear(TipoApuesta.INDIVIDUAL, _sesion.Limites.MaxLineasIndividual);
             await Navigation.PushAsync(_services.GetRequiredService<ConstruirApuestaPage>());
         };
         return boton;

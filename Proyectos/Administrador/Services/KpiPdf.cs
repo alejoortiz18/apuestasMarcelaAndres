@@ -39,9 +39,10 @@ public static class KpiPdf
                 {
                     col.Spacing(12);
                     col.Item().Element(c => Filtros(c, vista, kpi));
-                    col.Item().Element(c => IngresosYVentas(c, kpi));
+                    col.Item().Element(c => IngresosYVentas(c, kpi, vista));
+                    col.Item().Element(c => GastosVendedoresWeb(c, vista));
                     col.Item().Element(c => Personal(c, kpi));
-                    col.Item().Element(c => Premios(c, kpi));
+                    col.Item().Element(c => Premios(c, kpi, vista));
                     col.Item().Element(c => Salud(c, kpi));
                     col.Item().Element(c => Alertas(c, kpi));
                     col.Item().Element(c => VentasDia(c, kpi));
@@ -102,7 +103,7 @@ public static class KpiPdf
         });
     }
 
-    private static void IngresosYVentas(IContainer container, KpiResponse kpi)
+    private static void IngresosYVentas(IContainer container, KpiResponse kpi, KpiIndexViewModel vista)
     {
         container.Column(col =>
         {
@@ -113,11 +114,12 @@ public static class KpiPdf
                 inner.Item().Text(UiTexts.ResultadoFinancieroSub).FontSize(8).FontColor(Apagado);
                 inner.Item().Element(m => Metricas(m,
                 [
-                    Metrica(UiTexts.IngresosRegistrados, Dinero(kpi.Ingresos), Variacion(kpi.VariacionIngresos), kpi.VariacionIngresos < 0),
+                    Metrica(UiTexts.IngresosRegistrados, Dinero(vista.IngresosRegistrados), Variacion(kpi.VariacionIngresos), kpi.VariacionIngresos < 0),
+                    Metrica(UiTexts.KpiGastosVendedoresWeb, Dinero(vista.GastosWebTotal), string.Format(UiTexts.KpiGastosCantidad, vista.GastosWebCantidad.ToString("N0", Cultura))),
                     Metrica(UiTexts.VentasConfirmadas, kpi.VentasConfirmadas.ToString("N0", Cultura), string.Format(UiTexts.VentasPorDiaEtiqueta, kpi.VentasPorDia.ToString("N1", Cultura))),
-                    Metrica(UiTexts.NumeroMasJugado, kpi.NumeroMasJugado ?? "—", UiTexts.SinComparacion),
                     Metrica(UiTexts.ValorMasAltoApostado, Dinero(kpi.ValorMasAltoApostado), UiTexts.SinComparacion),
-                    Metrica(UiTexts.BoletosGanadores, kpi.BoletosGanadores.ToString("N0", Cultura), string.Format(UiTexts.DelTotal, kpi.PorcentajeGanadores.ToString("N1", Cultura)))
+                    Metrica(UiTexts.BoletosGanadores, kpi.BoletosGanadores.ToString("N0", Cultura), string.Format(UiTexts.DelTotal, kpi.PorcentajeGanadores.ToString("N1", Cultura))),
+                    Metrica(UiTexts.NumeroMasJugado, kpi.NumeroMasJugado ?? "—", UiTexts.SinComparacion)
                 ]));
                 inner.Item().Element(b => BarrasGrupo(b, kpi));
             }));
@@ -167,6 +169,27 @@ public static class KpiPdf
         });
     }
 
+    private static void GastosVendedoresWeb(IContainer container, KpiIndexViewModel vista)
+    {
+        container.Element(c => PanelContenido(c, col =>
+        {
+            col.Item().Text(UiTexts.KpiGastosVendedoresWebTitulo).Bold().FontSize(12).FontColor(Verde);
+            col.Item().Text(UiTexts.KpiGastosVendedoresWebSub).FontSize(8).FontColor(Apagado);
+            col.Item().Element(t => Tabla(t,
+                [UiTexts.Fecha, UiTexts.Vendedor, UiTexts.TipoGasto, UiTexts.Observacion, UiTexts.Valor, UiTexts.Estado],
+                vista.GastosWeb.Select(g => new[]
+                {
+                    g.Fecha.ToString("dd/MM/yyyy", Cultura),
+                    g.Vendedor,
+                    g.Tipo,
+                    string.IsNullOrWhiteSpace(g.Observacion) ? "—" : g.Observacion,
+                    Dinero(g.Valor),
+                    g.Estado
+                }),
+                [1.1f, 1.8f, 1.4f, 2.2f, 1.1f, 0.9f]));
+        }));
+    }
+
     private static void TablaVendedores(IContainer container, KpiResponse kpi)
     {
         container.Column(col =>
@@ -203,7 +226,7 @@ public static class KpiPdf
         }));
     }
 
-    private static void Premios(IContainer container, KpiResponse kpi)
+    private static void Premios(IContainer container, KpiResponse kpi, KpiIndexViewModel vista)
     {
         var totalCasos = Math.Max(kpi.CasosAbiertos + kpi.CasosCerrados + kpi.CasosRechazados, 1);
         container.Element(c => PanelContenido(c, col =>
@@ -212,7 +235,7 @@ public static class KpiPdf
             col.Item().Text(UiTexts.PremiosYEntregasSub).FontSize(8).FontColor(Apagado);
             col.Item().Element(c => Metricas(c,
             [
-                Metrica(UiTexts.ValorEntregado, Dinero(kpi.ValorPremiosEntregados), string.Format(UiTexts.EntregasCantidad, kpi.EntregasPremio)),
+                Metrica(UiTexts.ValorEntregado, Dinero(vista.ValorEntregado), string.Format(UiTexts.EntregasCantidad, vista.Entregas)),
                 Metrica(UiTexts.CasosAbiertos, kpi.CasosAbiertos.ToString("00"), string.Format(UiTexts.PorValidar, kpi.CasosReportados)),
                 Metrica(UiTexts.CasosCerrados, kpi.CasosCerrados.ToString(Cultura), string.Format(UiTexts.DelTotalCasos, kpi.PorcentajeCasosCerrados.ToString("N1", Cultura))),
                 Metrica(UiTexts.Rechazados, kpi.CasosRechazados.ToString("00"), UiTexts.RequierenSeguimiento, kpi.CasosRechazados > 0)

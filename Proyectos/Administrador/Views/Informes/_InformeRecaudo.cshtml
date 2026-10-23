@@ -107,7 +107,7 @@
                 </section>
             </div>
 
-            <section class="informe-tabla" aria-labelledby="informeRecaudoAtrasos">
+            <section class="informe-tabla" id="informeRecaudoAtrasosSeccion" aria-labelledby="informeRecaudoAtrasos">
                 <div class="informe-tabla-head">
                     <div>
                         <h5 id="informeRecaudoAtrasos">@UiTexts.InformeRecaudoAtrasos</h5>
@@ -124,12 +124,18 @@
                         <table class="informe-table">
                             <thead>
                             <tr>
-                                <th scope="col">@UiTexts.Vendedor</th>
-                                <th scope="col">@UiTexts.Grupo</th>
-                                <th scope="col">@UiTexts.Recaudador</th>
-                                <th scope="col" class="num">@UiTexts.InformeColumnaDeudaAnterior</th>
-                                <th scope="col" class="num">@UiTexts.InformeColumnaPendienteDia</th>
-                                <th scope="col" class="num">@UiTexts.InformeColumnaTotalPendiente</th>
+                                @foreach (var (clave, texto, numero) in new[]
+                                {
+                                    (InformeOrden.Vendedor, UiTexts.Vendedor, false),
+                                    (InformeOrden.Grupo, UiTexts.Grupo, false),
+                                    (InformeOrden.Recaudador, UiTexts.Recaudador, false),
+                                    (InformeOrden.DeudaAnterior, UiTexts.InformeColumnaDeudaAnterior, true),
+                                    (InformeOrden.PendienteDia, UiTexts.InformeColumnaPendienteDia, true),
+                                    (InformeOrden.TotalPendiente, UiTexts.InformeColumnaTotalPendiente, true)
+                                })
+                                {
+                                    <partial name="_ColumnaOrden" model='new ColumnaOrdenViewModel { Clave = clave, Texto = texto, Estado = recaudo.OrdenAtrasos, ParamOrden = "ordenAt", ParamDireccion = "dirAt", ParamPagina = "pageAt", Ancla = "informeRecaudoAtrasosSeccion", Numero = numero }' />
+                                }
                             </tr>
                             </thead>
                             <tbody>

@@ -2,7 +2,7 @@ using NewRich.Application.Contracts.JuegoNumerosManual;
 
 namespace NewRich.Pda.Core.Ventas;
 
-/// <summary>Datos de una jugada de «Juego números» registrada en el servidor, con su código y su QR.</summary>
+/// <summary>Datos de una jugada de «Combo» registrada en el servidor, con su código y su QR.</summary>
 public sealed class ReciboJuegoNumerosManual
 {
     public string Codigo { get; init; } = string.Empty;

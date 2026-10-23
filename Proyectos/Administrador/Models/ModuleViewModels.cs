@@ -5,6 +5,7 @@ using NewRich.Application.Contracts.Chat;
 using NewRich.Application.Contracts.Configuracion;
 using NewRich.Application.Contracts.Consultas;
 using NewRich.Application.Contracts.Dispositivos;
+using NewRich.Application.Contracts.GastosVendedoresWeb;
 using NewRich.Application.Contracts.Grupos;
 using NewRich.Application.Contracts.Jornadas;
 using NewRich.Application.Contracts.Kpi;
@@ -227,6 +228,22 @@ public sealed class KpiIndexViewModel
     public string Periodo { get; init; } = "30";
     public bool CompararAnterior { get; init; } = true;
     public KpiResponse? Kpi { get; init; }
+    public decimal IngresosWeb { get; init; }
+    public decimal IngresosRegistrados => (Kpi?.Ingresos ?? 0m) + IngresosWeb;
+    public decimal PremiosWeb { get; init; }
+    public int EntregasWeb { get; init; }
+    public decimal ValorEntregado => (Kpi?.ValorPremiosEntregados ?? 0m) + PremiosWeb;
+    public int Entregas => (Kpi?.EntregasPremio ?? 0) + EntregasWeb;
+    public decimal GastosWebTotal { get; init; }
+    public int GastosWebCantidad { get; init; }
+    public IReadOnlyList<GastoVendedorWebResponse> GastosWeb { get; init; } = [];
+    public PagedViewModel<GastoVendedorWebResponse> PaginaGastosWeb { get; init; } = new();
+    public string OrdenGastosWeb { get; init; } = "fecha";
+    public string DireccionGastosWeb { get; init; } = "desc";
+    public EstadoOrden OrdenVendedores { get; init; } = new("total", "desc");
+    public EstadoOrden OrdenAlertas { get; init; } = new("prioridad", "asc");
+    public EstadoOrden OrdenDias { get; init; } = new("fecha", "asc");
+    public EstadoOrden OrdenResultados { get; init; } = new("fecha", "desc");
     public IReadOnlyList<UsuarioResponse> Vendedores { get; init; } = [];
     public IReadOnlyList<GrupoResponse> Grupos { get; init; } = [];
     public PagedViewModel<KpiVendedorFilaResponse> PaginaVendedores { get; init; } = new();
@@ -255,6 +272,7 @@ public sealed class SoporteIndexViewModel
     public ConversacionDetalleResponse? Detalle { get; init; }
     public Guid? ConversacionId { get; init; }
     public IReadOnlyList<UsuarioResponse> Destinatarios { get; init; } = [];
+    public UsuarioResponse? NuevoDestino { get; init; }
 }
 
 public sealed class ConfiguracionIndexViewModel

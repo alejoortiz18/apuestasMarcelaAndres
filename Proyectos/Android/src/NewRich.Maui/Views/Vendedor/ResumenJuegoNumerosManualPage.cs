@@ -10,7 +10,7 @@ using NewRich.Pda.Core.Ventas;
 namespace NewRich.Maui.Views.Vendedor;
 
 /// <summary>
-/// Resumen de «Juego números» antes de registrar. Solo registra en línea; si la red falla la jugada
+/// Resumen de «Combo» antes de registrar. Solo registra en línea; si la red falla la jugada
 /// sigue en pantalla con el mismo identificador para reintentar sin duplicarla.
 /// </summary>
 public sealed class ResumenJuegoNumerosManualPage : ContentPage

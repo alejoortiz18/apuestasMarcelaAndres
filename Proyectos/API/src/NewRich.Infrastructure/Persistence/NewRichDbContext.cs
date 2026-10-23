@@ -68,6 +68,8 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
     public DbSet<AuditoriaCambioGasto> AuditoriaCambiosGasto => Set<AuditoriaCambioGasto>();
     public DbSet<ConfiguracionInforme> ConfiguracionesInforme => Set<ConfiguracionInforme>();
     public DbSet<AvisoChat> AvisosChat => Set<AvisoChat>();
+    public DbSet<VentaRegistradaWeb> VentasRegistradasWeb => Set<VentaRegistradaWeb>();
+    public DbSet<PremioEntregadoWeb> PremiosEntregadosWeb => Set<PremioEntregadoWeb>();
 
     public async Task AsegurarEsquemaRetencionAsync(CancellationToken cancellationToken = default)
     {
@@ -194,6 +196,26 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
         }
 
         await Database.ExecuteSqlRawAsync(EsquemaAvisosChat.Tablas, cancellationToken);
+    }
+
+    public async Task AsegurarEsquemaVentasRegistradasWebAsync(CancellationToken cancellationToken = default)
+    {
+        if (!Database.IsRelational())
+        {
+            return;
+        }
+
+        await Database.ExecuteSqlRawAsync(EsquemaVentasRegistradasWeb.Tablas, cancellationToken);
+    }
+
+    public async Task AsegurarEsquemaPremiosEntregadosWebAsync(CancellationToken cancellationToken = default)
+    {
+        if (!Database.IsRelational())
+        {
+            return;
+        }
+
+        await Database.ExecuteSqlRawAsync(EsquemaPremiosEntregadosWeb.Tablas, cancellationToken);
     }
 
     public async Task<bool> IntentarBloquearRetencionAsync(CancellationToken cancellationToken = default)
@@ -488,6 +510,27 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
             e.ToTable("AvisosChat", "chat");
             e.HasKey(x => x.NotificacionId);
             e.HasIndex(x => x.ConversacionId);
+        });
+
+        modelBuilder.Entity<VentaRegistradaWeb>(e =>
+        {
+            e.ToTable("VentasRegistradasWeb", "manual");
+            e.HasKey(x => x.VentaRegistradaWebId);
+            e.Property(x => x.FechaVenta).HasColumnType("date");
+            e.Property(x => x.Valor).HasColumnType("decimal(18,2)");
+            e.HasIndex(x => new { x.VendedorId, x.FechaVenta });
+        });
+
+        modelBuilder.Entity<PremioEntregadoWeb>(e =>
+        {
+            e.ToTable("PremiosEntregadosWeb", "manual");
+            e.HasKey(x => x.PremioEntregadoWebId);
+            e.Property(x => x.Numero).HasMaxLength(4);
+            e.Property(x => x.ValorApostado).HasColumnType("decimal(18,2)");
+            e.Property(x => x.ValorPremio).HasColumnType("decimal(18,2)");
+            e.Property(x => x.FechaPremio).HasColumnType("date");
+            e.HasIndex(x => x.FechaPremio);
+            e.HasIndex(x => new { x.VendedorId, x.FechaRegistro });
         });
 
         modelBuilder.Entity<ParametroRevisadaManual>(e =>

@@ -31,10 +31,21 @@ public sealed class InformesController : AdminControllerBase
         int pageSizeV = 10,
         int pageG = 1,
         int pageSizeG = 10,
+        string? ordenP = null,
+        string? dirP = null,
+        int pageP = 1,
+        int pageSizeP = 10,
+        string? ordenG = null,
+        string? dirG = null,
+        string? ordenV = null,
+        string? dirV = null,
+        string? ordenAt = null,
+        string? dirAt = null,
         CancellationToken cancellationToken = default)
     {
         SetNav("informes", UiTexts.NavInformes);
-        var (modelo, salida) = await ConstruirAsync(orden, dir, page, pageSize, pageV, pageSizeV, pageG, pageSizeG, cancellationToken);
+        var premios = new OrdenesInforme(ordenP, dirP, pageP, pageSizeP, ordenG, dirG, ordenV, dirV, ordenAt, dirAt);
+        var (modelo, salida) = await ConstruirAsync(orden, dir, page, pageSize, pageV, pageSizeV, pageG, pageSizeG, premios, cancellationToken);
         return salida ?? View(modelo);
     }
 
@@ -47,6 +58,7 @@ public sealed class InformesController : AdminControllerBase
         int pageSizeV,
         int pageG,
         int pageSizeG,
+        OrdenesInforme premios,
         CancellationToken cancellationToken)
     {
         var configuraciones = await _api.ListarConfiguracionesInformeAsync(cancellationToken);
@@ -107,15 +119,18 @@ public sealed class InformesController : AdminControllerBase
                 : null,
             Ventas = ventas,
             InformeVentas = cargaVentas.Carga is { } fuenteVentas
-                ? VentasInforme.Informe(fuenteVentas.Fuente, ventas.Filtros, listaGrupos, cargaVentas.Desde, cargaVentas.Hasta, ahora, pageV, pageSizeV)
+                ? VentasInforme.Informe(fuenteVentas.Fuente, ventas.Filtros, listaGrupos, cargaVentas.Desde, cargaVentas.Hasta, ahora, pageV, pageSizeV,
+                    premios.OrdenRanking, premios.DireccionRanking)
                 : null,
             Egresos = egresos,
             InformeEgresos = cargaEgresos.Carga is { } fuenteEgresos
-                ? VentasInforme.InformeEgresos(fuenteEgresos.Fuente, egresos.Filtros, listaGrupos, cargaEgresos.Desde, cargaEgresos.Hasta, ahora, pageG, pageSizeG)
+                ? VentasInforme.InformeEgresos(fuenteEgresos.Fuente, egresos.Filtros, listaGrupos, cargaEgresos.Desde, cargaEgresos.Hasta, ahora, pageG, pageSizeG,
+                    premios.Orden, premios.Direccion, premios.Pagina, premios.Filas, premios.OrdenGastos, premios.DireccionGastos)
                 : null,
             Recaudo = recaudo,
             InformeRecaudo = cargaRecaudo.Carga is { } fuenteRecaudo
-                ? VentasInforme.InformeRecaudo(fuenteRecaudo.Fuente, recaudo.Filtros, listaGrupos, cargaRecaudo.Desde, cargaRecaudo.Hasta, ahora)
+                ? VentasInforme.InformeRecaudo(fuenteRecaudo.Fuente, recaudo.Filtros, listaGrupos, cargaRecaudo.Desde, cargaRecaudo.Hasta, ahora,
+                    premios.OrdenAtrasos, premios.DireccionAtrasos)
                 : null,
             Tarjetas =
             [
@@ -251,4 +266,16 @@ public sealed class InformesController : AdminControllerBase
 
     private static List<T>? Elegidos<T>(string? modo, IEnumerable<T>? valores) =>
         modo == ModoElegidos ? (valores ?? []).Distinct().ToList() : null;
+
+    private sealed record OrdenesInforme(
+        string? Orden,
+        string? Direccion,
+        int Pagina,
+        int Filas,
+        string? OrdenGastos,
+        string? DireccionGastos,
+        string? OrdenRanking,
+        string? DireccionRanking,
+        string? OrdenAtrasos,
+        string? DireccionAtrasos);
 }

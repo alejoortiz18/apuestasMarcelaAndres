@@ -4,6 +4,7 @@ using NewRich.Admin.Constants;
 using NewRich.Admin.Models;
 using NewRich.Application.Contracts.Grupos;
 using NewRich.Application.Contracts.Kpi;
+using NewRich.Application.Contracts.PremiosEntregadosWeb;
 using NewRich.Application.Contracts.Recaudo;
 using NewRich.Application.Contracts.RevisadaManual;
 using NewRich.Application.Contracts.Utilidades;
@@ -14,6 +15,8 @@ namespace NewRich.Admin.Services;
 public sealed class FuenteInformeVentas
 {
     public KpiResponse? Kpi { get; init; }
+    public decimal IngresosWeb { get; init; }
+    public IReadOnlyList<PremioEntregadoWebResponse> PremiosWeb { get; init; } = [];
     public InformeGastosPropiosResponse? Gastos { get; init; }
     public IReadOnlyList<MovimientoGastoResponse> Movimientos { get; init; } = [];
     public VistaRevisadaManualResponse? Cubierto { get; init; }
@@ -200,14 +203,16 @@ public static class VentasInforme
         DateOnly hasta,
         DateTime corte,
         int paginaVendedores,
-        int filasVendedores) => new()
+        int filasVendedores,
+        string? ordenRanking = null,
+        string? direccionRanking = null) => new()
     {
         Corte = corte,
         Desde = desde,
         Hasta = hasta,
         Alcance = Alcance(filtros, grupos),
         Resumen = Resumen(fuente),
-        Ingresos = Ingresos(fuente.Kpi, desde, hasta, paginaVendedores, filasVendedores)
+        Ingresos = Ingresos(fuente.Kpi, desde, hasta, paginaVendedores, filasVendedores, InformeOrden.EstadoRanking(ordenRanking, direccionRanking))
     };
 
     public static InformeEgresosViewModel InformeEgresos(
@@ -218,9 +223,28 @@ public static class VentasInforme
         DateOnly hasta,
         DateTime corte,
         int paginaGastos,
-        int filasGastos)
+        int filasGastos,
+        string? ordenPremios = null,
+        string? direccionPremios = null,
+        int paginaPremios = 1,
+        int filasPremios = 10,
+        string? ordenGastos = null,
+        string? direccionGastos = null)
     {
         var resumen = Resumen(fuente);
+        var (columnaGastos, sentidoGastos) = OrdenTabla.Resolver(ordenGastos, direccionGastos, ColumnasGastosPersona, GastoPersonaTotal, OrdenTabla.Descendente);
+        var orden = InformePremiosWebOrden.Normalizar(ordenPremios);
+        var direccion = InformePremiosWebOrden.Direccion(ordenPremios, direccionPremios);
+        var premios = InformePremiosWebOrden.Ordenar(fuente.PremiosWeb.Select(p => new PremioWebInforme
+        {
+            Fecha = p.FechaPremio,
+            Vendedor = p.Vendedor,
+            Loteria = p.Loteria,
+            Numero = p.Numero,
+            ValorApostado = p.ValorApostado,
+            ValorPremio = p.ValorPremio
+        }), orden, direccion);
+        var egresos = Egresos(resumen, fuente, paginaGastos, filasGastos, columnaGastos, sentidoGastos);
         return new InformeEgresosViewModel
         {
             Corte = corte,
@@ -228,7 +252,19 @@ public static class VentasInforme
             Hasta = hasta,
             Alcance = Alcance(filtros, grupos),
             Resumen = resumen,
-            Egresos = Egresos(resumen, fuente, paginaGastos, filasGastos)
+            Egresos = new EgresosInforme
+            {
+                Conceptos = egresos.Conceptos,
+                GastosPorTipo = egresos.GastosPorTipo,
+                PremiosWeb = PagingHelper.Paginate(premios, paginaPremios, filasPremios),
+                OrdenPremios = orden,
+                DireccionPremios = direccion,
+                GastosPorPersona = egresos.GastosPorPersona,
+                OrdenGastos = columnaGastos,
+                DireccionGastos = sentidoGastos,
+                AnuladosValor = egresos.AnuladosValor,
+                AnuladosCantidad = egresos.AnuladosCantidad
+            }
         };
     }
 
@@ -238,24 +274,25 @@ public static class VentasInforme
         IReadOnlyList<GrupoResponse> grupos,
         DateOnly desde,
         DateOnly hasta,
-        DateTime corte) => new()
+        DateTime corte,
+        string? ordenAtrasos = null,
+        string? direccionAtrasos = null) => new()
     {
         Corte = corte,
         Desde = desde,
         Hasta = hasta,
         Alcance = Alcance(filtros, grupos),
-        Recaudo = fuente.Recaudo is null ? null : Recaudo(fuente.Recaudo)
+        Recaudo = fuente.Recaudo is null ? null : Recaudo(fuente.Recaudo, InformeOrden.EstadoAtrasos(ordenAtrasos, direccionAtrasos))
     };
 
     private static ResumenFinancieroInforme Resumen(FuenteInformeVentas fuente) => new()
     {
         IngresosPda = fuente.Kpi?.Ingresos ?? 0m,
-        // Las ventas y los premios del vendedor web aún no tienen registro propio; se suman aquí cuando existan.
-        IngresosWeb = 0m,
-        PremiosWeb = 0m,
+        IngresosWeb = fuente.IngresosWeb,
+        PremiosWeb = fuente.PremiosWeb.Sum(p => p.ValorPremio),
         VentasConfirmadas = fuente.Kpi?.VentasConfirmadas ?? 0,
         PremiosObservador = fuente.Kpi?.ValorPremiosEntregados ?? 0m,
-        EntregasPremio = fuente.Kpi?.EntregasPremio ?? 0,
+        EntregasPremio = (fuente.Kpi?.EntregasPremio ?? 0) + fuente.PremiosWeb.Count,
         TotalGastos = fuente.Gastos?.TotalValor ?? 0m,
         CantidadGastos = fuente.Gastos?.Cantidad ?? 0,
         TotalCubierto = fuente.Cubierto?.Total ?? 0m,
@@ -267,7 +304,7 @@ public static class VentasInforme
             filtros.Grupos?.Select(id => grupos.FirstOrDefault(g => g.GrupoId == id)?.Nombre ?? id.ToString()).ToList(),
             UiTexts.InformeTodosGrupos);
 
-    private static IngresosInforme Ingresos(KpiResponse? kpi, DateOnly desde, DateOnly hasta, int pagina, int filas)
+    private static IngresosInforme Ingresos(KpiResponse? kpi, DateOnly desde, DateOnly hasta, int pagina, int filas, EstadoOrden ordenRanking)
     {
         var porFecha = (kpi?.VentasPorDiaDetalle ?? []).GroupBy(d => d.Fecha)
             .ToDictionary(g => g.Key, g => (Total: g.Sum(d => d.Total), Ventas: g.Sum(d => d.Ventas)));
@@ -313,11 +350,30 @@ public static class VentasInforme
             MejorDia = dias.Where(d => d.Total > 0).OrderByDescending(d => d.Total).ThenBy(d => d.Fecha).FirstOrDefault(),
             DiasConVentas = dias.Count(d => d.Total > 0),
             PorGrupo = Segmentos(porGrupo, ingresos),
-            Vendedores = PagingHelper.Paginate(vendedores, pagina, filas)
+            Vendedores = PagingHelper.Paginate(InformeOrden.Ranking(vendedores, ordenRanking), pagina, filas),
+            OrdenRanking = ordenRanking
         };
     }
 
-    private static EgresosInforme Egresos(ResumenFinancieroInforme resumen, FuenteInformeVentas fuente, int pagina, int filas)
+    public const string GastoPersonaPersona = "persona";
+    public const string GastoPersonaCantidad = "gastos";
+    public const string GastoPersonaTipo = "tipo";
+    public const string GastoPersonaTotal = "total";
+    public const string GastoPersonaParticipacion = "participacion";
+    private static readonly string[] ColumnasGastosPersona =
+        [GastoPersonaPersona, GastoPersonaCantidad, GastoPersonaTipo, GastoPersonaTotal, GastoPersonaParticipacion];
+
+    private static IEnumerable<GastoPersonaInforme> OrdenarGastosPersona(IEnumerable<GastoPersonaInforme> personas, string orden, string direccion) =>
+        (orden switch
+        {
+            GastoPersonaPersona => OrdenTabla.Por(personas, p => p.Persona, direccion, OrdenTabla.Texto),
+            GastoPersonaCantidad => OrdenTabla.Por(personas, p => p.Cantidad, direccion),
+            GastoPersonaTipo => OrdenTabla.Por(personas, p => p.TipoPrincipal, direccion, OrdenTabla.Texto),
+            GastoPersonaParticipacion => OrdenTabla.Por(personas, p => p.Participacion, direccion),
+            _ => OrdenTabla.Por(personas, p => p.Total, direccion)
+        }).ThenBy(p => p.Persona, OrdenTabla.Texto);
+
+    private static EgresosInforme Egresos(ResumenFinancieroInforme resumen, FuenteInformeVentas fuente, int pagina, int filas, string ordenGastos = GastoPersonaTotal, string direccionGastos = OrdenTabla.Descendente)
     {
         var conceptos = new List<(string Texto, decimal Valor, int Cantidad)>
         {
@@ -339,22 +395,20 @@ public static class VentasInforme
                 Total = g.Sum(m => m.Valor),
                 Participacion = Porcentaje(g.Sum(m => m.Valor), total),
                 TipoPrincipal = g.GroupBy(m => m.Tipo).OrderByDescending(t => t.Sum(m => m.Valor)).ThenBy(t => t.Key).First().Key
-            })
-            .OrderByDescending(p => p.Total)
-            .ThenBy(p => p.Persona, StringComparer.CurrentCultureIgnoreCase)
-            .ToList();
+            });
+        var ordenadas = OrdenarGastosPersona(personas, ordenGastos, direccionGastos).ToList();
 
         return new EgresosInforme
         {
             Conceptos = Segmentos(conceptos, resumen.TotalEgresos),
             GastosPorTipo = Segmentos(porTipo, resumen.TotalGastos),
-            GastosPorPersona = PagingHelper.Paginate(personas, pagina, filas),
+            GastosPorPersona = PagingHelper.Paginate(ordenadas, pagina, filas),
             AnuladosValor = fuente.Gastos?.AnuladosValor ?? 0m,
             AnuladosCantidad = fuente.Gastos?.AnuladosCantidad ?? 0
         };
     }
 
-    private static RecaudoInforme Recaudo(TableroRecaudoResponse tablero)
+    private static RecaudoInforme Recaudo(TableroRecaudoResponse tablero, EstadoOrden ordenAtrasos)
     {
         var mayor = tablero.Recaudadores.Count == 0 ? 0m : tablero.Recaudadores.Max(r => r.TotalRecaudado + r.TotalPendiente);
         return new RecaudoInforme
@@ -388,8 +442,7 @@ public static class VentasInforme
                     AnchoPendiente = Porcentaje(r.TotalPendiente, mayor)
                 })
                 .ToList(),
-            Atrasos = tablero.MayoresSaldos
-                .OrderByDescending(s => s.TotalPendiente)
+            Atrasos = InformeOrden.Atrasos(tablero.MayoresSaldos
                 .Select(s => new AtrasoInforme
                 {
                     Vendedor = s.Nombre,
@@ -398,8 +451,8 @@ public static class VentasInforme
                     DeudaAnterior = s.DeudaAnterior,
                     PendienteDelDia = s.PendienteDelDia,
                     TotalPendiente = s.TotalPendiente
-                })
-                .ToList(),
+                }), ordenAtrasos),
+            OrdenAtrasos = ordenAtrasos,
             Recortado = tablero.PeriodoRecortado
         };
     }

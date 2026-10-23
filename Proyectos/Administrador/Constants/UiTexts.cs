@@ -315,7 +315,7 @@ public static class UiTexts
     public const string InformePdfGenerando = "Generando PDF...";
     public const string InformePdfError = "No se pudo generar el PDF. Intenta de nuevo.";
     public const string InformeFiltrosVacio = "Aún no hay categorías seleccionadas. Pulsa una tarjeta para configurar sus filtros y ver su informe.";
-    public const string InformeVendedoresNombre = "Informe de vendedores";
+    public const string InformeVendedoresNombre = "Informe de personas";
     public const string InformeCorte = "Corte: {0}";
     public const string InformeMetricaIncluidos = "Personal incluido";
     public const string InformeMetricaIncluidosNota = "{0} % de {1} registrados";
@@ -406,6 +406,11 @@ public static class UiTexts
     public const string InformeColumnaTipoPrincipal = "Tipo principal";
     public const string InformeSinEgresos = "No hay egresos en el periodo.";
     public const string InformeSinGastos = "No hay gastos en el periodo.";
+    public const string InformePremiosWeb = "Premios cargados por vendedor web";
+    public const string InformePremiosWebAyuda = "Premios que los vendedores web cargaron en Entrega de premio, por fecha del premio.";
+    public const string InformeSinPremiosWeb = "No hay premios cargados por vendedores web en el periodo.";
+    public const string InformeColumnaNumero = "Número";
+    public const string InformeColumnaValorPremio = "Valor premio";
     public const string InformeGastosAnulados = "{0} gastos anulados por {1} no suman en los egresos.";
     public const string InformeRecaudoPorRecaudar = "Total por recaudar";
     public const string InformeRecaudoRecaudado = "Total recaudado";
@@ -426,7 +431,7 @@ public static class UiTexts
     public const string InformeSinRecaudo = "No hay recaudo en el periodo.";
     public const string InformeSinAtrasos = "No hay vendedores con saldo pendiente.";
     public const string InformeRecaudoRecortado = "El recaudo muestra los últimos 31 días del periodo.";
-    public const string InformeCategoriaVendedores = "Vendedores";
+    public const string InformeCategoriaVendedores = "Personas";
     public const string InformeCategoriaVendedoresAyuda = "Personal y grupos";
     public const string InformeCategoriaVentas = "Ventas";
     public const string InformeCategoriaVentasAyuda = "Ingresos y ganancias";
@@ -437,7 +442,7 @@ public static class UiTexts
     public const string InformeSeleccionada = "Seleccionada";
     public const string InformeConfigurar = "Configurar {0}";
     public const string InformeEditarFiltros = "Editar filtros";
-    public const string InformeVendedoresTitulo = "Configuración del informe de vendedores";
+    public const string InformeVendedoresTitulo = "Configuración del informe de personas";
     public const string InformeVendedoresAyuda = "Define qué personal se incluye en el informe. Los conteos se actualizan al cambiar los filtros.";
     public const string InformeFiltrarGrupo = "Filtrar por grupo";
     public const string InformeTodosGrupos = "Todos los grupos";
@@ -785,6 +790,10 @@ public static class UiTexts
     public const string VentasPorDiaEtiqueta = "{0} ventas por día";
     public const string DelTotal = "{0}% del total";
     public const string EntregasCantidad = "{0} entregas";
+    public const string KpiGastosVendedoresWeb = "Total gastos";
+    public const string KpiGastosCantidad = "{0} gastos de vendedores web";
+    public const string KpiGastosVendedoresWebTitulo = "Gastos de vendedores web";
+    public const string KpiGastosVendedoresWebSub = "Gastos registrados en Mis gastos del sitio del vendedor. El total solo suma los activos.";
     public const string PorValidar = "{0} por validar";
     public const string DelTotalCasos = "{0}% del total";
     public const string RequierenSeguimiento = "Requieren seguimiento";
@@ -819,6 +828,8 @@ public static class UiTexts
     public const string EscribeMensaje = "Escribe un mensaje";
     public const string IniciarConversacion = "Iniciar conversación";
     public const string Destinatario = "Destinatario";
+    public const string BuscarPersonaChat = "Busca una persona para chatear";
+    public const string PrimerMensajeChat = "Escribe el primer mensaje para {0}. La conversación se crea al enviarlo.";
     public const string ConversacionDeSoporte = "Conversación de soporte";
     public const string NuevaConversacion = "Nueva conversación";
     public const string SeleccionaConversacion = "Selecciona una conversación para ver el historial o inicia una nueva.";

@@ -12,7 +12,7 @@ public sealed record CalculoJuegoNumerosManual(
     int ApuestasConSobrante);
 
 /// <summary>
-/// Formulario de «Juego números»: líneas de números sin límite, loterías elegidas y valor total.
+/// Formulario de «Combo»: líneas de números sin límite, loterías elegidas y valor total.
 /// Cada cambio descarta el identificador de la jugada para que un nuevo registro no se confunda con uno anterior.
 /// </summary>
 public sealed class JuegoNumerosManualBorrador

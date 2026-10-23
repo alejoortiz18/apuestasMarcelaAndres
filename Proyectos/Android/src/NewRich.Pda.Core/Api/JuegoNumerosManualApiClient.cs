@@ -7,7 +7,7 @@ using NewRich.Shared.Results;
 namespace NewRich.Pda.Core.Api;
 
 /// <summary>
-/// Cliente de los endpoints nuevos de «Juego números» (api/JuegoNumerosManual).
+/// Cliente de los endpoints nuevos de «Combo» (api/JuegoNumerosManual).
 /// Un fallo de red se devuelve con código 0 para distinguirlo de un rechazo del servidor.
 /// </summary>
 public sealed class JuegoNumerosManualApiClient

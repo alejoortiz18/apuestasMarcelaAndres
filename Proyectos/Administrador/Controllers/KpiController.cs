@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using NewRich.Admin.Constants;
 using NewRich.Admin.Models;
 using NewRich.Admin.Services;
+using NewRich.Application.Contracts.GastosVendedoresWeb;
 using NewRich.Application.Contracts.Kpi;
 using NewRich.Domain.Enums;
 
@@ -28,11 +29,28 @@ public sealed class KpiController : AdminControllerBase
         int pageR = 1,
         int pageA = 1,
         int pageSize = 5,
+        int pageGW = 1,
+        string? ordenGW = null,
+        string? dirGW = null,
+        string? ordenV = null,
+        string? dirV = null,
+        string? ordenA = null,
+        string? dirA = null,
+        string? ordenD = null,
+        string? dirD = null,
+        string? ordenR = null,
+        string? dirR = null,
         CancellationToken cancellationToken = default)
     {
         SetNav("kpi", UiTexts.NavKpi);
         var (inicio, fin, periodoUsado) = ResolverPeriodo(periodo, fechaInicial, fechaFinal);
-        var model = await ConstruirAsync(grupoId, vendedorId, inicio, fin, periodoUsado, compararAnterior, pageV, pageD, pageR, pageA, pageSize, cancellationToken);
+        var ordenes = new OrdenesKpi(
+            KpiOrden.EstadoVendedores(ordenV, dirV),
+            KpiOrden.EstadoAlertas(ordenA, dirA),
+            KpiOrden.EstadoDias(ordenD, dirD),
+            KpiOrden.EstadoResultados(ordenR, dirR),
+            KpiOrden.EstadoGastosWeb(ordenGW, dirGW));
+        var model = await ConstruirAsync(grupoId, vendedorId, inicio, fin, periodoUsado, compararAnterior, pageV, pageD, pageR, pageA, pageSize, cancellationToken, pageGW, ordenes);
         if (model.redirect is not null)
         {
             return model.redirect;
@@ -81,8 +99,16 @@ public sealed class KpiController : AdminControllerBase
         int pageR,
         int pageA,
         int pageSize,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        int pageGW = 1,
+        OrdenesKpi? ordenes = null)
     {
+        ordenes ??= new OrdenesKpi(
+            KpiOrden.EstadoVendedores(null, null),
+            KpiOrden.EstadoAlertas(null, null),
+            KpiOrden.EstadoDias(null, null),
+            KpiOrden.EstadoResultados(null, null),
+            KpiOrden.EstadoGastosWeb(null, null));
         var usuariosTask = _api.ListarUsuariosAsync(cancellationToken);
         var gruposTask = _api.ListarGruposAsync(cancellationToken);
         await Task.WhenAll(usuariosTask, gruposTask);
@@ -115,6 +141,48 @@ public sealed class KpiController : AdminControllerBase
             return (null, unauthorized);
         }
 
+        var ventasWeb = await _api.TotalVentasRegistradasWebAsync(
+            DateOnly.FromDateTime(inicio),
+            DateOnly.FromDateTime(fin),
+            grupoId,
+            vendedorId,
+            cancellationToken);
+        unauthorized = RedirectIfUnauthorized(ventasWeb);
+        if (unauthorized is not null)
+        {
+            return (null, unauthorized);
+        }
+
+        var premiosWeb = await _api.TotalPremiosEntregadosWebAsync(
+            DateOnly.FromDateTime(inicio),
+            DateOnly.FromDateTime(fin),
+            grupoId,
+            vendedorId,
+            cancellationToken);
+        unauthorized = RedirectIfUnauthorized(premiosWeb);
+        if (unauthorized is not null)
+        {
+            return (null, unauthorized);
+        }
+
+        var premiosWebOk = premiosWeb.Success ? premiosWeb.Data : null;
+
+        var gastosWeb = await _api.GastosVendedoresWebAsync(
+            DateOnly.FromDateTime(inicio),
+            DateOnly.FromDateTime(fin),
+            grupoId,
+            vendedorId,
+            cancellationToken);
+        unauthorized = RedirectIfUnauthorized(gastosWeb);
+        if (unauthorized is not null)
+        {
+            return (null, unauthorized);
+        }
+
+        var gastosWebOk = gastosWeb.Success ? gastosWeb.Data : null;
+        IReadOnlyList<GastoVendedorWebResponse> listaGastosWeb = gastosWebOk?.Items ?? [];
+        var gastosOrdenados = KpiOrden.GastosWeb(listaGastosWeb, ordenes.GastosWeb);
+
         var kpi = kpiTask.Data;
         return (new KpiIndexViewModel
         {
@@ -125,14 +193,29 @@ public sealed class KpiController : AdminControllerBase
             Periodo = periodo,
             CompararAnterior = compararAnterior,
             Kpi = kpi,
+            IngresosWeb = ventasWeb.Success ? ventasWeb.Data?.Total ?? 0m : 0m,
+            PremiosWeb = premiosWebOk?.Total ?? 0m,
+            EntregasWeb = premiosWebOk?.Cantidad ?? 0,
+            GastosWebTotal = gastosWebOk?.TotalActivos ?? 0m,
+            GastosWebCantidad = gastosWebOk?.CantidadActivos ?? 0,
+            GastosWeb = listaGastosWeb,
+            PaginaGastosWeb = PagingHelper.Paginate(gastosOrdenados, pageGW, pageSize),
+            OrdenGastosWeb = ordenes.GastosWeb.Orden,
+            DireccionGastosWeb = ordenes.GastosWeb.Direccion,
+            OrdenVendedores = ordenes.Vendedores,
+            OrdenAlertas = ordenes.Alertas,
+            OrdenDias = ordenes.Dias,
+            OrdenResultados = ordenes.Resultados,
             Vendedores = vendedores,
             Grupos = gruposTask.Result.Data ?? [],
-            PaginaVendedores = PagingHelper.Paginate(kpi?.IngresosPorVendedor ?? [], pageV, pageSize),
-            PaginaDias = PagingHelper.Paginate(kpi?.VentasPorDiaDetalle ?? [], pageD, pageSize),
-            PaginaResultados = PagingHelper.Paginate(kpi?.Resultados ?? [], pageR, pageSize),
-            PaginaAlertas = PagingHelper.Paginate(kpi?.Alertas ?? [], pageA, pageSize)
+            PaginaVendedores = PagingHelper.Paginate(KpiOrden.Vendedores(kpi?.IngresosPorVendedor ?? [], ordenes.Vendedores), pageV, pageSize),
+            PaginaDias = PagingHelper.Paginate(KpiOrden.Dias(kpi?.VentasPorDiaDetalle ?? [], ordenes.Dias), pageD, pageSize),
+            PaginaResultados = PagingHelper.Paginate(KpiOrden.Resultados(kpi?.Resultados ?? [], ordenes.Resultados), pageR, pageSize),
+            PaginaAlertas = PagingHelper.Paginate(KpiOrden.Alertas(kpi?.Alertas ?? [], ordenes.Alertas), pageA, pageSize)
         }, null);
     }
+
+    private sealed record OrdenesKpi(EstadoOrden Vendedores, EstadoOrden Alertas, EstadoOrden Dias, EstadoOrden Resultados, EstadoOrden GastosWeb);
 
     private static (DateTime Inicio, DateTime Fin, string Periodo) ResolverPeriodo(string? periodo, DateTime? fechaInicial, DateTime? fechaFinal)
     {

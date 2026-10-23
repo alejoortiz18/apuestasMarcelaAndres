@@ -4,10 +4,6 @@
         <div class="eyebrow">@UiTexts.SitioVendedor</div>
         <h1>@UiTexts.Inicio</h1>
     </div>
-    @if (!Model.HorarioCerrado)
-    {
-        <a class="primary" asp-controller="Vender" asp-action="Index">@UiTexts.JuegoNuevo</a>
-    }
 </div>
 @if (Model.HorarioCerrado)
 {

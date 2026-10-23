@@ -10,11 +10,13 @@ using NewRich.Application.Contracts.JuegoNumerosManual;
 using NewRich.Application.Contracts.Loterias;
 using NewRich.Application.Contracts.Notificaciones;
 using NewRich.Application.Contracts.Premios;
+using NewRich.Application.Contracts.PremiosEntregadosWeb;
 using NewRich.Application.Contracts.RegistrarJuegoManual;
 using NewRich.Application.Contracts.RegistrarJuegoNumerosWebManual;
 using NewRich.Application.Contracts.Resultados;
 using NewRich.Application.Contracts.Utilidades;
 using NewRich.Application.Contracts.Ventas;
+using NewRich.Application.Contracts.VentasRegistradasWeb;
 using NewRich.Vendedor.Constants;
 using NewRich.Vendedor.Models;
 
@@ -38,17 +40,24 @@ public interface IVendedorApiClient
     Task<ApiCallResult<object>> MarcarAlertasLeidasAsync(CancellationToken cancellationToken);
     Task<ApiCallResult<ConsultaTicketResponse>> ConsultarTicketAsync(string codigo, CancellationToken cancellationToken);
     Task<ApiCallResult<List<ResultadoResponse>>> ResultadosAsync(DateOnly? fecha, Guid? loteriaId, CancellationToken cancellationToken);
-    Task<ApiCallResult<List<ConversacionResponse>>> ConversacionesAsync(bool tecnico, CancellationToken cancellationToken);
-    Task<ApiCallResult<ConversacionResponse>> IniciarConversacionAsync(string texto, CancellationToken cancellationToken);
+    Task<ApiCallResult<List<ConversacionResponse>>> ConversacionesAsync(CancellationToken cancellationToken);
+    Task<ApiCallResult<ConversacionResponse>> IniciarConversacionAsync(IniciarChatRequest request, CancellationToken cancellationToken);
     Task<ApiCallResult<ConversacionDetalleResponse>> ConversacionAsync(Guid id, CancellationToken cancellationToken);
-    Task<ApiCallResult<MensajeResponse>> EnviarMensajeAsync(Guid id, string texto, CancellationToken cancellationToken);
-    Task<ApiCallResult<object>> ReportarTecnicoAsync(string observacion, string codigoTicket, CancellationToken cancellationToken);
+    Task<ApiCallResult<MensajeResponse>> EnviarMensajeAsync(Guid id, EnviarMensajeRequest request, CancellationToken cancellationToken);
+    Task<ApiCallResult<object>> MarcarChatLeidoAsync(Guid conversacionId, CancellationToken cancellationToken);
+    Task<AdjuntoChatDescarga?> DescargarAdjuntoAsync(Guid adjuntoId, CancellationToken cancellationToken);
     Task<ApiCallResult<List<CasoGanadorResponse>>> EntregasAsync(CancellationToken cancellationToken);
     Task<ApiCallResult<CasoGanadorResponse>> RegistrarEntregaAsync(Guid casoId, decimal valorGanado, CancellationToken cancellationToken);
     Task<ApiCallResult<MisGastosResponse>> MisGastosAsync(string periodo, DateOnly? desde, DateOnly? hasta, int page, int pageSize, CancellationToken cancellationToken);
     Task<ApiCallResult<List<TipoGastoResponse>>> TiposGastoAsync(CancellationToken cancellationToken);
     Task<ApiCallResult<GastoRegistradoResponse>> RegistrarGastoAsync(RegistrarGastoRequest request, CancellationToken cancellationToken);
+    Task<ApiCallResult<VentaRegistradaWebResponse>> RegistrarVentaWebAsync(RegistrarVentaWebRequest request, CancellationToken cancellationToken);
+    Task<ApiCallResult<VentasRegistradasWebResponse>> MisVentasRegistradasAsync(int page, int pageSize, CancellationToken cancellationToken);
+    Task<ApiCallResult<PremioEntregadoWebResponse>> CargarPremioWebAsync(RegistrarPremioWebRequest request, CancellationToken cancellationToken);
+    Task<ApiCallResult<PremiosEntregadosWebResponse>> MisPremiosWebAsync(int page, int pageSize, CancellationToken cancellationToken);
 }
+
+public sealed record AdjuntoChatDescarga(byte[] Contenido, string Tipo, string Nombre);
 
 public sealed class VendedorApiClient : IVendedorApiClient
 {
@@ -138,30 +147,54 @@ public sealed class VendedorApiClient : IVendedorApiClient
         return SendAsync<List<ResultadoResponse>>(HttpMethod.Get, path, null, true, null, cancellationToken);
     }
 
-    public Task<ApiCallResult<List<ConversacionResponse>>> ConversacionesAsync(bool tecnico, CancellationToken cancellationToken) =>
-        SendAsync<List<ConversacionResponse>>(
-            HttpMethod.Get,
-            tecnico ? "api/ChatAndroid/ListarTecnicoMob" : "api/ChatAndroid/ListarMob",
-            null,
-            true,
-            null,
-            cancellationToken);
+    public Task<ApiCallResult<List<ConversacionResponse>>> ConversacionesAsync(CancellationToken cancellationToken) =>
+        SendAsync<List<ConversacionResponse>>(HttpMethod.Get, "api/ChatAndroid/ListarMob", null, true, null, cancellationToken);
 
-    public Task<ApiCallResult<ConversacionResponse>> IniciarConversacionAsync(string texto, CancellationToken cancellationToken) =>
-        SendAsync<ConversacionResponse>(HttpMethod.Post, "api/ChatAndroid/IniciarMob", new IniciarChatRequest { Texto = texto }, true, null, cancellationToken);
+    public Task<ApiCallResult<ConversacionResponse>> IniciarConversacionAsync(IniciarChatRequest request, CancellationToken cancellationToken) =>
+        SendAsync<ConversacionResponse>(HttpMethod.Post, "api/ChatAndroid/IniciarMob", request, true, null, cancellationToken);
 
     public Task<ApiCallResult<ConversacionDetalleResponse>> ConversacionAsync(Guid id, CancellationToken cancellationToken) =>
         SendAsync<ConversacionDetalleResponse>(HttpMethod.Get, $"api/ChatAndroid/ObtenerMob/{id}", null, true, null, cancellationToken);
 
-    public Task<ApiCallResult<MensajeResponse>> EnviarMensajeAsync(Guid id, string texto, CancellationToken cancellationToken) =>
-        SendAsync<MensajeResponse>(HttpMethod.Post, $"api/ChatAndroid/EnviarMob/{id}", new EnviarMensajeRequest { Texto = texto }, true, null, cancellationToken);
+    public Task<ApiCallResult<MensajeResponse>> EnviarMensajeAsync(Guid id, EnviarMensajeRequest request, CancellationToken cancellationToken) =>
+        SendAsync<MensajeResponse>(HttpMethod.Post, $"api/ChatAndroid/EnviarMob/{id}", request, true, null, cancellationToken);
 
-    public Task<ApiCallResult<object>> ReportarTecnicoAsync(string observacion, string codigoTicket, CancellationToken cancellationToken) =>
-        SendAsync<object>(HttpMethod.Post, "api/ChatAndroid/ReporteTecnicoMob", new ReporteTecnicoRequest
+    public Task<ApiCallResult<object>> MarcarChatLeidoAsync(Guid conversacionId, CancellationToken cancellationToken) =>
+        SendAsync<object>(HttpMethod.Post, $"api/Notificaciones/chats/{conversacionId}/leidos", null, true, null, cancellationToken);
+
+    public async Task<AdjuntoChatDescarga?> DescargarAdjuntoAsync(Guid adjuntoId, CancellationToken cancellationToken)
+    {
+        try
         {
-            Observacion = observacion,
-            CodigoTicket = codigoTicket
-        }, true, null, cancellationToken);
+            using var request = new HttpRequestMessage(HttpMethod.Get, $"api/ChatAndroid/DescargarAdjuntoMob/{adjuntoId}");
+            var token = _httpContextAccessor.HttpContext?.Request.Cookies[AuthCookieNames.AccessToken];
+            if (!string.IsNullOrWhiteSpace(token))
+            {
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+
+            using var response = await _http.SendAsync(request, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                return null;
+            }
+
+            var contenido = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+            var tipo = response.Content.Headers.ContentType?.MediaType ?? "application/octet-stream";
+            var nombre = response.Content.Headers.ContentDisposition?.FileNameStar
+                ?? response.Content.Headers.ContentDisposition?.FileName?.Trim('"')
+                ?? "adjunto";
+            return new AdjuntoChatDescarga(contenido, tipo, nombre);
+        }
+        catch (HttpRequestException)
+        {
+            return null;
+        }
+        catch (TaskCanceledException)
+        {
+            return null;
+        }
+    }
 
     public Task<ApiCallResult<List<CasoGanadorResponse>>> EntregasAsync(CancellationToken cancellationToken) =>
         SendAsync<List<CasoGanadorResponse>>(HttpMethod.Get, "api/PremiosManual/Listar", null, true, null, cancellationToken);
@@ -189,6 +222,18 @@ public sealed class VendedorApiClient : IVendedorApiClient
 
     public Task<ApiCallResult<GastoRegistradoResponse>> RegistrarGastoAsync(RegistrarGastoRequest request, CancellationToken cancellationToken) =>
         SendAsync<GastoRegistradoResponse>(HttpMethod.Post, "api/utilidades/gastos", request, true, null, cancellationToken);
+
+    public Task<ApiCallResult<VentaRegistradaWebResponse>> RegistrarVentaWebAsync(RegistrarVentaWebRequest request, CancellationToken cancellationToken) =>
+        SendAsync<VentaRegistradaWebResponse>(HttpMethod.Post, "api/VentasRegistradasWeb/Registrar", request, true, null, cancellationToken);
+
+    public Task<ApiCallResult<VentasRegistradasWebResponse>> MisVentasRegistradasAsync(int page, int pageSize, CancellationToken cancellationToken) =>
+        SendAsync<VentasRegistradasWebResponse>(HttpMethod.Get, $"api/VentasRegistradasWeb/Mias?page={page}&pageSize={pageSize}", null, true, null, cancellationToken);
+
+    public Task<ApiCallResult<PremioEntregadoWebResponse>> CargarPremioWebAsync(RegistrarPremioWebRequest request, CancellationToken cancellationToken) =>
+        SendAsync<PremioEntregadoWebResponse>(HttpMethod.Post, "api/PremiosEntregadosWeb/Registrar", request, true, null, cancellationToken);
+
+    public Task<ApiCallResult<PremiosEntregadosWebResponse>> MisPremiosWebAsync(int page, int pageSize, CancellationToken cancellationToken) =>
+        SendAsync<PremiosEntregadosWebResponse>(HttpMethod.Get, $"api/PremiosEntregadosWeb/Mios?page={page}&pageSize={pageSize}", null, true, null, cancellationToken);
 
     public Task<ApiCallResult<CasoGanadorResponse>> RegistrarEntregaAsync(Guid casoId, decimal valorGanado, CancellationToken cancellationToken) =>
         SendAsync<CasoGanadorResponse>(

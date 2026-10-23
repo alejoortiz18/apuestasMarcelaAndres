@@ -10,6 +10,7 @@ using NewRich.Application.Contracts.Chat;
 using NewRich.Application.Contracts.Configuracion;
 using NewRich.Application.Contracts.Consultas;
 using NewRich.Application.Contracts.Dispositivos;
+using NewRich.Application.Contracts.GastosVendedoresWeb;
 using NewRich.Application.Contracts.Grupos;
 using NewRich.Application.Contracts.Informes;
 using NewRich.Application.Contracts.Jornadas;
@@ -19,12 +20,14 @@ using NewRich.Application.Contracts.Llaves;
 using NewRich.Application.Contracts.Notificaciones;
 using NewRich.Application.Contracts.Offline;
 using NewRich.Application.Contracts.Premios;
+using NewRich.Application.Contracts.PremiosEntregadosWeb;
 using NewRich.Application.Contracts.Recaudo;
 using NewRich.Application.Contracts.Resultados;
 using NewRich.Application.Contracts.RevisadaManual;
 using NewRich.Application.Contracts.Usuarios;
 using NewRich.Application.Contracts.Utilidades;
 using NewRich.Application.Contracts.Ventas;
+using NewRich.Application.Contracts.VentasRegistradasWeb;
 using NewRich.Application.Contracts.Versiones;
 using NewRich.Application.Services;
 using NewRich.Constants;
@@ -86,6 +89,10 @@ public interface IAdminApiClient
     Task<ApiCallResult<List<BusquedaAdministrativaResponse>>> BuscarConsultasAsync(BusquedaAdministrativaRequest request, CancellationToken cancellationToken);
 
     Task<ApiCallResult<KpiResponse>> ConsultarKpiAsync(KpiRequest request, CancellationToken cancellationToken);
+    Task<ApiCallResult<TotalVentasRegistradasWebResponse>> TotalVentasRegistradasWebAsync(DateOnly desde, DateOnly hasta, Guid? grupoId, Guid? vendedorId, CancellationToken cancellationToken);
+    Task<ApiCallResult<TotalPremiosEntregadosWebResponse>> TotalPremiosEntregadosWebAsync(DateOnly desde, DateOnly hasta, Guid? grupoId, Guid? vendedorId, CancellationToken cancellationToken);
+    Task<ApiCallResult<GastosVendedoresWebResponse>> GastosVendedoresWebAsync(DateOnly desde, DateOnly hasta, Guid? grupoId, Guid? vendedorId, CancellationToken cancellationToken);
+    Task<ApiCallResult<List<PremioEntregadoWebResponse>>> ListadoPremiosEntregadosWebAsync(DateOnly desde, DateOnly hasta, Guid? grupoId, CancellationToken cancellationToken);
     Task<ApiCallResult<NotificacionesResponse>> ListarNotificacionesAsync(CancellationToken cancellationToken);
     Task<ApiCallResult<NotificacionDetalleResponse>> ObtenerNotificacionAsync(Guid id, CancellationToken cancellationToken);
     Task<ApiCallResult<object>> MarcarNotificacionesLeidasAsync(CancellationToken cancellationToken);
@@ -378,6 +385,45 @@ public sealed class AdminApiClient : IAdminApiClient
             ("fechaFinal", request.FechaFinal?.ToString("o")),
             ("compararAnterior", request.CompararAnterior ? "true" : "false"));
         return SendAsync<KpiResponse>(HttpMethod.Get, "api/Kpi" + q, null, true, cancellationToken);
+    }
+
+    public Task<ApiCallResult<TotalVentasRegistradasWebResponse>> TotalVentasRegistradasWebAsync(DateOnly desde, DateOnly hasta, Guid? grupoId, Guid? vendedorId, CancellationToken cancellationToken)
+    {
+        var q = BuildQuery(
+            ("desde", desde.ToString("yyyy-MM-dd")),
+            ("hasta", hasta.ToString("yyyy-MM-dd")),
+            ("grupoId", grupoId?.ToString()),
+            ("vendedorId", vendedorId?.ToString()));
+        return SendAsync<TotalVentasRegistradasWebResponse>(HttpMethod.Get, "api/VentasRegistradasWeb/Total" + q, null, true, cancellationToken);
+    }
+
+    public Task<ApiCallResult<GastosVendedoresWebResponse>> GastosVendedoresWebAsync(DateOnly desde, DateOnly hasta, Guid? grupoId, Guid? vendedorId, CancellationToken cancellationToken)
+    {
+        var q = BuildQuery(
+            ("desde", desde.ToString("yyyy-MM-dd")),
+            ("hasta", hasta.ToString("yyyy-MM-dd")),
+            ("grupoId", grupoId?.ToString()),
+            ("vendedorId", vendedorId?.ToString()));
+        return SendAsync<GastosVendedoresWebResponse>(HttpMethod.Get, "api/GastosVendedoresWeb/Kpi" + q, null, true, cancellationToken);
+    }
+
+    public Task<ApiCallResult<TotalPremiosEntregadosWebResponse>> TotalPremiosEntregadosWebAsync(DateOnly desde, DateOnly hasta, Guid? grupoId, Guid? vendedorId, CancellationToken cancellationToken)
+    {
+        var q = BuildQuery(
+            ("desde", desde.ToString("yyyy-MM-dd")),
+            ("hasta", hasta.ToString("yyyy-MM-dd")),
+            ("grupoId", grupoId?.ToString()),
+            ("vendedorId", vendedorId?.ToString()));
+        return SendAsync<TotalPremiosEntregadosWebResponse>(HttpMethod.Get, "api/PremiosEntregadosWeb/Total" + q, null, true, cancellationToken);
+    }
+
+    public Task<ApiCallResult<List<PremioEntregadoWebResponse>>> ListadoPremiosEntregadosWebAsync(DateOnly desde, DateOnly hasta, Guid? grupoId, CancellationToken cancellationToken)
+    {
+        var q = BuildQuery(
+            ("desde", desde.ToString("yyyy-MM-dd")),
+            ("hasta", hasta.ToString("yyyy-MM-dd")),
+            ("grupoId", grupoId?.ToString()));
+        return SendAsync<List<PremioEntregadoWebResponse>>(HttpMethod.Get, "api/PremiosEntregadosWeb/Listado" + q, null, true, cancellationToken);
     }
 
     public Task<ApiCallResult<NotificacionesResponse>> ListarNotificacionesAsync(CancellationToken cancellationToken) =>

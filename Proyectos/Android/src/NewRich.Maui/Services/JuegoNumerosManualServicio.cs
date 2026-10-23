@@ -3,7 +3,7 @@ using NewRich.Pda.Core.Ventas;
 
 namespace NewRich.Maui.Services;
 
-/// <summary>Jugada en curso de «Juego números» y comprobación de conexión. Solo se juega en línea.</summary>
+/// <summary>Jugada en curso de «Combo» y comprobación de conexión. Solo se juega en línea.</summary>
 public sealed class JuegoNumerosManualServicio
 {
     private readonly NewRichApiClient _api;

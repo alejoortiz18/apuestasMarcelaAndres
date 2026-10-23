@@ -2,12 +2,15 @@ using Microsoft.AspNetCore.Mvc;
 using System.Globalization;
 using NewRich.Application.Contracts.Chat;
 using NewRich.Application.Contracts.Premios;
+using NewRich.Application.Contracts.PremiosEntregadosWeb;
 using NewRich.Application.Contracts.RegistrarJuegoManual;
 using NewRich.Application.Contracts.RegistrarJuegoNumerosWebManual;
 using NewRich.Application.Contracts.Ventas;
 using NewRich.Application.Services;
 using NewRich.Constants.Messages;
+using NewRich.Domain.Enums;
 using NewRich.Domain.Services;
+using NewRich.Shared;
 using NewRich.Vendedor.Constants;
 using NewRich.Vendedor.Models;
 using NewRich.Vendedor.Services;
@@ -46,6 +49,7 @@ public sealed class InicioController : VendedorController
 public sealed class VenderController : VendedorController
 {
     private const decimal ValorMaximoJuego = 999_000m;
+    private const int DigitosMaximosNumero = 4;
     private readonly IVendedorApiClient _api;
 
     public VenderController(IVendedorApiClient api) => _api = api;
@@ -81,6 +85,12 @@ public sealed class VenderController : VendedorController
         if (excedeFilas || excedeNumeros)
         {
             ModelState.AddModelError(string.Empty, UiTexts.ValorMaximoJuego);
+            return View(await ArmarAsync(model, cancellationToken));
+        }
+
+        if (usarFilas && filas.Any(f => (f.Numero?.Trim().Length ?? 0) > DigitosMaximosNumero))
+        {
+            ModelState.AddModelError(string.Empty, UiTexts.NumeroMaximoDigitos);
             return View(await ArmarAsync(model, cancellationToken));
         }
 
@@ -471,86 +481,241 @@ public sealed class ResultadosController : VendedorController
 
 public sealed class SoporteController : VendedorController
 {
+    private const long TamanoMaximoEnvio = 6_000_000;
     private readonly IVendedorApiClient _api;
+    private readonly IConfiguration _config;
 
-    public SoporteController(IVendedorApiClient api) => _api = api;
-
-    public Task<IActionResult> Index(Guid? id, CancellationToken cancellationToken) =>
-        Vista(false, id, cancellationToken);
-
-    public Task<IActionResult> Tecnico(Guid? id, CancellationToken cancellationToken) =>
-        Vista(true, id, cancellationToken);
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Iniciar(string texto, CancellationToken cancellationToken)
+    public SoporteController(IVendedorApiClient api, IConfiguration config)
     {
-        var result = await _api.IniciarConversacionAsync(texto ?? string.Empty, cancellationToken);
-        Aviso(result.Success ? result.Message : result.Message);
-        return result.Success && result.Data is not null
-            ? RedirectToAction(nameof(Index), new { id = result.Data.ConversacionId })
-            : RedirectToAction(nameof(Index));
+        _api = api;
+        _config = config;
     }
 
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Enviar(Guid id, string texto, bool tecnico, CancellationToken cancellationToken)
+    public async Task<IActionResult> Index(Guid? id, CancellationToken cancellationToken)
     {
-        var result = await _api.EnviarMensajeAsync(id, texto ?? string.Empty, cancellationToken);
-        if (!result.Success)
-        {
-            Aviso(result.Message);
-        }
-
-        return tecnico
-            ? RedirectToAction(nameof(Tecnico), new { id })
-            : RedirectToAction(nameof(Index), new { id });
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Reportar(string observacion, string codigoTicket, CancellationToken cancellationToken)
-    {
-        var result = await _api.ReportarTecnicoAsync(observacion ?? string.Empty, codigoTicket ?? string.Empty, cancellationToken);
-        Aviso(result.Success ? "El reporte técnico quedó enviado." : result.Message);
-        return RedirectToAction(nameof(Tecnico));
-    }
-
-    private async Task<IActionResult> Vista(bool tecnico, Guid? id, CancellationToken cancellationToken)
-    {
-        Nav(tecnico ? "soporte-tecnico" : "soporte", tecnico ? UiTexts.SoporteTecnico : UiTexts.Atencion);
-        var lista = await _api.ConversacionesAsync(tecnico, cancellationToken);
+        Nav("soporte", UiTexts.Atencion);
+        var lista = await _api.ConversacionesAsync(cancellationToken);
         var negado = SiNoAutorizado(lista);
         if (negado is not null)
         {
             return negado;
         }
 
-        ConversacionDetalleResponse? hilo = null;
-        if (id.HasValue)
+        if (!lista.Success)
         {
-            var detalle = await _api.ConversacionAsync(id.Value, cancellationToken);
+            Aviso(lista.Message);
+        }
+
+        var conversaciones = lista.Data ?? [];
+        var seleccionada = id ?? conversaciones.FirstOrDefault()?.ConversacionId;
+        ConversacionDetalleResponse? hilo = null;
+        if (seleccionada.HasValue)
+        {
+            var detalle = await _api.ConversacionAsync(seleccionada.Value, cancellationToken);
+            negado = SiNoAutorizado(detalle);
+            if (negado is not null)
+            {
+                return negado;
+            }
+
             hilo = detalle.Data;
+            if (hilo is not null)
+            {
+                await _api.MarcarChatLeidoAsync(seleccionada.Value, cancellationToken);
+            }
         }
 
         return View("Index", new SoporteViewModel
         {
-            Tecnico = tecnico,
-            Conversaciones = lista.Data ?? [],
+            Conversaciones = conversaciones,
+            ConversacionId = hilo is null ? null : seleccionada,
             Hilo = hilo
         });
+    }
+
+    public IActionResult Tecnico() => RedirectToAction(nameof(Index));
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [RequestFormLimits(MultipartBodyLengthLimit = TamanoMaximoEnvio)]
+    [RequestSizeLimit(TamanoMaximoEnvio)]
+    public async Task<IActionResult> Iniciar(string? texto, IFormFile? archivo, CancellationToken cancellationToken)
+    {
+        var request = new IniciarChatRequest { Texto = texto?.Trim() ?? string.Empty };
+        (request.NombreArchivo, request.ContenidoBase64) = await LeerArchivoAsync(archivo, cancellationToken);
+        if (string.IsNullOrWhiteSpace(request.Texto) && string.IsNullOrWhiteSpace(request.NombreArchivo))
+        {
+            Aviso(ChatMessages.TextoOAdjuntoRequerido);
+            return RedirectToAction(nameof(Index));
+        }
+
+        var result = await _api.IniciarConversacionAsync(request, cancellationToken);
+        var negado = SiNoAutorizado(result);
+        if (negado is not null)
+        {
+            return negado;
+        }
+
+        if (!result.Success || result.Data is null)
+        {
+            Aviso(result.Message);
+            return RedirectToAction(nameof(Index));
+        }
+
+        return RedirectToAction(nameof(Index), new { id = result.Data.ConversacionId });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [RequestFormLimits(MultipartBodyLengthLimit = TamanoMaximoEnvio)]
+    [RequestSizeLimit(TamanoMaximoEnvio)]
+    public async Task<IActionResult> Enviar(Guid id, string? texto, IFormFile? archivo, CancellationToken cancellationToken)
+    {
+        var request = new EnviarMensajeRequest { Texto = texto?.Trim() ?? string.Empty };
+        (request.NombreArchivo, request.ContenidoBase64) = await LeerArchivoAsync(archivo, cancellationToken);
+        if (string.IsNullOrWhiteSpace(request.Texto) && string.IsNullOrWhiteSpace(request.NombreArchivo))
+        {
+            Aviso(ChatMessages.TextoOAdjuntoRequerido);
+            return RedirectToAction(nameof(Index), new { id });
+        }
+
+        var result = await _api.EnviarMensajeAsync(id, request, cancellationToken);
+        var negado = SiNoAutorizado(result);
+        if (negado is not null)
+        {
+            return negado;
+        }
+
+        if (!result.Success)
+        {
+            Aviso(result.Message);
+        }
+
+        return RedirectToAction(nameof(Index), new { id });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Adjunto(Guid id, CancellationToken cancellationToken)
+    {
+        var adjunto = await _api.DescargarAdjuntoAsync(id, cancellationToken);
+        if (adjunto is null)
+        {
+            Aviso(ChatMessages.AdjuntoNoEncontrado);
+            return RedirectToAction(nameof(Index));
+        }
+
+        return File(adjunto.Contenido, adjunto.Tipo, adjunto.Nombre);
+    }
+
+    [HttpGet]
+    public IActionResult Conexion()
+    {
+        var token = Request.Cookies[AuthCookieNames.AccessToken];
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return Unauthorized();
+        }
+
+        var baseUrl = _config["Api:BaseUrl"] ?? "http://localhost:8090/";
+        var chatHubUrl = HubNotificacionesUrl.Resolver(baseUrl, Request.Host.Host, HubRutas.Chat);
+        return Json(new { token, chatHubUrl });
+    }
+
+    private static async Task<(string? Nombre, string? Base64)> LeerArchivoAsync(IFormFile? archivo, CancellationToken cancellationToken)
+    {
+        if (archivo is not { Length: > 0 })
+        {
+            return (null, null);
+        }
+
+        await using var buffer = new MemoryStream();
+        await archivo.CopyToAsync(buffer, cancellationToken);
+        return (archivo.FileName, Convert.ToBase64String(buffer.ToArray()));
     }
 }
 
 public sealed class EntregaPremioController : VendedorController
 {
+    private const int FilasPremiosWeb = 10;
+    private const int DigitosMaximosNumero = 4;
+    private const int DigitosMaximosValor = 12;
+    private const decimal ValorApostadoMaximo = 999_000m;
+    private static readonly CultureInfo Colombia = CultureInfo.GetCultureInfo("es-CO");
     private readonly IVendedorApiClient _api;
 
     public EntregaPremioController(IVendedorApiClient api) => _api = api;
 
-    public async Task<IActionResult> Index(int page = 1, int pageSize = 10, CancellationToken cancellationToken = default)
+    public Task<IActionResult> Index(int page = 1, int pageSize = 10, int pageW = 1, CancellationToken cancellationToken = default)
     {
         Nav("entrega", UiTexts.EntregaPremio);
+        return PaginaAsync(page, pageSize, pageW, null, null, cancellationToken);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Cargar(CargarPremioViewModel model, int page = 1, int pageSize = 10, int pageW = 1, CancellationToken cancellationToken = default)
+    {
+        Nav("entrega", UiTexts.EntregaPremio);
+        var hoy = DateOnly.FromDateTime(ZonaHorariaColombia.ALocal(DateTime.UtcNow));
+        var numero = model.Numero?.Trim() ?? string.Empty;
+        string? error = null;
+        if (numero.Length is 0 or > DigitosMaximosNumero || !numero.All(char.IsAsciiDigit))
+        {
+            error = UiTexts.PremioNumeroInvalido;
+        }
+        else if (!Pesos(model.ValorApostado, out var apostado) || apostado > ValorApostadoMaximo)
+        {
+            error = UiTexts.PremioValorApostadoInvalido;
+        }
+        else if (model.LoteriaId == Guid.Empty)
+        {
+            error = UiTexts.PremioLoteriaObligatoria;
+        }
+        else if (model.FechaPremio is not { } fecha || fecha > hoy)
+        {
+            error = UiTexts.PremioFechaInvalida;
+        }
+        else if (!Pesos(model.ValorPremio, out var premio))
+        {
+            error = UiTexts.PremioValorInvalido;
+        }
+        else
+        {
+            var cargado = await _api.CargarPremioWebAsync(
+                new RegistrarPremioWebRequest(numero, apostado, model.LoteriaId, fecha, premio, model.Password?.Trim()),
+                cancellationToken);
+            var negado = SiNoAutorizado(cargado);
+            if (negado is not null)
+            {
+                return negado;
+            }
+
+            if (cargado.Success && cargado.Data is not null)
+            {
+                Aviso(string.Format(Colombia, UiTexts.PremioCargado, cargado.Data.Numero, cargado.Data.Loteria, Montos.De(cargado.Data.ValorPremio)));
+                return RedirectToAction(nameof(Index), new { page, pageSize });
+            }
+
+            if (cargado.Message is PremioEntregadoWebMessages.ContrasenaIncorrecta or PremioEntregadoWebMessages.ContrasenaRequerida)
+            {
+                return await PaginaAsync(page, pageSize, pageW, model, cargado.Message, cancellationToken);
+            }
+
+            error = cargado.Message;
+        }
+
+        ViewData["AvisoPagina"] = error;
+        return await PaginaAsync(page, pageSize, pageW, model, null, cancellationToken);
+    }
+
+    private async Task<IActionResult> PaginaAsync(
+        int page,
+        int pageSize,
+        int pageW,
+        CargarPremioViewModel? formulario,
+        string? errorConfirmacion,
+        CancellationToken cancellationToken)
+    {
         var entregas = await _api.EntregasAsync(cancellationToken);
         var negado = SiNoAutorizado(entregas);
         if (negado is not null)
@@ -563,16 +728,68 @@ public sealed class EntregaPremioController : VendedorController
             Aviso(entregas.Message);
         }
 
+        var loterias = await _api.LoteriasTodasAsync(cancellationToken);
+        negado = SiNoAutorizado(loterias);
+        if (negado is not null)
+        {
+            return negado;
+        }
+
+        pageW = Math.Max(1, pageW);
+        var premiosWeb = await _api.MisPremiosWebAsync(pageW, FilasPremiosWeb, cancellationToken);
+        negado = SiNoAutorizado(premiosWeb);
+        if (negado is not null)
+        {
+            return negado;
+        }
+
+        var hoy = DateOnly.FromDateTime(ZonaHorariaColombia.ALocal(DateTime.UtcNow));
         var tamano = Paginas.Tamano(pageSize);
         var lista = entregas.Data ?? [];
         var numero = Paginas.Numero(page, lista.Count, tamano);
-        return View(new EntregaPremioViewModel
+        var totalWeb = premiosWeb.Data?.TotalFilas ?? 0;
+        formulario ??= new CargarPremioViewModel { FechaPremio = hoy };
+        formulario.Password = null;
+        return View("Index", new EntregaPremioViewModel
         {
             Page = numero,
             PageSize = tamano,
             Total = lista.Count,
-            Items = lista.Skip((numero - 1) * tamano).Take(tamano).ToList()
+            Items = lista.Skip((numero - 1) * tamano).Take(tamano).ToList(),
+            Hoy = hoy,
+            Formulario = formulario,
+            Loterias = (loterias.Data ?? []).Where(l => l.Estado == EstadoGeneral.Activo).OrderBy(l => l.Nombre).ToList(),
+            AbrirConfirmacion = errorConfirmacion is not null,
+            ErrorConfirmacion = errorConfirmacion,
+            AvisoPremiosWeb = premiosWeb.Success ? null : premiosWeb.Message,
+            PremiosWeb = (premiosWeb.Data?.Items ?? []).Select(p => new PremioWebFilaViewModel
+            {
+                Fecha = p.FechaPremio.ToString("dd-MM-yyyy"),
+                Loteria = p.Loteria,
+                Numero = p.Numero,
+                ValorApostado = Montos.De(p.ValorApostado),
+                ValorPremio = Montos.De(p.ValorPremio),
+                Registrado = ZonaHorariaColombia.ALocal(p.FechaRegistro).ToString("dd-MM-yyyy hh:mm tt", Colombia)
+            }).ToList(),
+            PaginacionWeb = new PaginacionViewModel
+            {
+                Page = Paginas.Numero(pageW, totalWeb, FilasPremiosWeb),
+                PageSize = FilasPremiosWeb,
+                Total = totalWeb,
+                Accion = nameof(Index),
+                Controlador = "EntregaPremio"
+            }
         });
+    }
+
+    private static bool Pesos(string? texto, out decimal valor)
+    {
+        valor = 0;
+        var limpio = (texto ?? string.Empty).Replace(".", string.Empty).Trim();
+        return limpio.Length is > 0 and <= DigitosMaximosValor
+            && limpio.All(char.IsAsciiDigit)
+            && decimal.TryParse(limpio, NumberStyles.None, CultureInfo.InvariantCulture, out valor)
+            && valor > 0;
     }
 
     [HttpPost]

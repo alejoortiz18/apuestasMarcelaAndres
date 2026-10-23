@@ -168,10 +168,10 @@ public sealed class ResultadosViewModel
 
 public sealed class SoporteViewModel
 {
-    public bool Tecnico { get; set; }
     public string Texto { get; set; } = string.Empty;
     public string CodigoTicket { get; set; } = string.Empty;
     public IReadOnlyList<ConversacionResponse> Conversaciones { get; set; } = [];
+    public Guid? ConversacionId { get; set; }
     public ConversacionDetalleResponse? Hilo { get; set; }
 }
 
@@ -181,6 +181,59 @@ public sealed class EntregaPremioViewModel
     public int PageSize { get; set; } = 10;
     public int Total { get; set; }
     public IReadOnlyList<CasoGanadorResponse> Items { get; set; } = [];
+    public DateOnly Hoy { get; set; }
+    public CargarPremioViewModel Formulario { get; set; } = new();
+    public IReadOnlyList<LoteriaResponse> Loterias { get; set; } = [];
+    public bool AbrirConfirmacion { get; set; }
+    public string? ErrorConfirmacion { get; set; }
+    public string? AvisoPremiosWeb { get; set; }
+    public IReadOnlyList<PremioWebFilaViewModel> PremiosWeb { get; set; } = [];
+    public PaginacionViewModel PaginacionWeb { get; set; } = new();
+}
+
+public sealed class CargarPremioViewModel
+{
+    public string? Numero { get; set; }
+    public string? ValorApostado { get; set; }
+    public Guid LoteriaId { get; set; }
+    public DateOnly? FechaPremio { get; set; }
+    public string? ValorPremio { get; set; }
+    public string? Password { get; set; }
+}
+
+public sealed class PremioWebFilaViewModel
+{
+    public string Fecha { get; init; } = string.Empty;
+    public string Loteria { get; init; } = string.Empty;
+    public string Numero { get; init; } = string.Empty;
+    public string ValorApostado { get; init; } = string.Empty;
+    public string ValorPremio { get; init; } = string.Empty;
+    public string Registrado { get; init; } = string.Empty;
+}
+
+public sealed class RegistrarVentaViewModel
+{
+    public DateOnly FechaVenta { get; set; }
+    public string? Valor { get; set; }
+    public string? Password { get; set; }
+}
+
+public sealed class VentaRegistradaFilaViewModel
+{
+    public string FechaVenta { get; init; } = string.Empty;
+    public string Valor { get; init; } = string.Empty;
+    public string Registrada { get; init; } = string.Empty;
+}
+
+public sealed class RegistrarVentaPaginaViewModel
+{
+    public DateOnly Hoy { get; init; }
+    public RegistrarVentaViewModel Formulario { get; init; } = new();
+    public bool AbrirConfirmacion { get; init; }
+    public string? ErrorConfirmacion { get; init; }
+    public string? AvisoListado { get; init; }
+    public IReadOnlyList<VentaRegistradaFilaViewModel> Items { get; init; } = [];
+    public PaginacionViewModel Paginacion { get; init; } = new();
 }
 
 public sealed class PaginacionViewModel

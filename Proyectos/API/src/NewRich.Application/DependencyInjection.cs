@@ -31,6 +31,9 @@ public static class DependencyInjection
         services.AddScoped<INotificacionTiempoReal, NotificacionTiempoRealNulo>();
         services.AddScoped<INotificacionService, NotificacionService>();
         services.AddScoped<IAvisoChatService, AvisoChatService>();
+        services.AddScoped<IVentaRegistradaWebService, VentaRegistradaWebService>();
+        services.AddScoped<IPremioEntregadoWebService, PremioEntregadoWebService>();
+        services.AddScoped<IGastoVendedorWebService, GastoVendedorWebService>();
         services.AddScoped<IKpiService, KpiService>();
         services.AddScoped<IConsultaService, ConsultaService>();
         services.AddScoped<IChatTiempoReal, ChatTiempoRealNulo>();

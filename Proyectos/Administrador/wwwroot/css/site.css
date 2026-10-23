@@ -1348,6 +1348,9 @@ a[data-offline-associate][hidden] { display: none; }
   padding: 7px 10px;
 }
 .chat-start-message { min-width: 0; }
+.chat-start-elegir { max-width: 440px; }
+.chat-start-elegir .field { margin: 0; gap: 0; }
+.chat-start-elegir .search-select-input { padding: 7px 10px; }
 .chat-start-actions {
   display: flex;
   align-items: center;
@@ -1674,6 +1677,7 @@ a[data-offline-associate][hidden] { display: none; }
 .kpi-sort { display: inline-flex; align-items: center; gap: 5px; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; font-weight: 700; cursor: pointer; }
 .kpi-sort span { color: var(--muted); font-size: 13px; }
 .kpi-sort:hover, .kpi-sort:focus-visible { color: var(--green); }
+a.kpi-sort { text-decoration: none; }
 .table-sort { display: inline-flex; align-items: center; gap: 6px; color: inherit; text-decoration: none; font: inherit; letter-spacing: inherit; text-transform: inherit; }
 .table-sort span { color: var(--gold); font-size: 12px; }
 .table-sort:hover, .table-sort:focus-visible { color: var(--ink); }

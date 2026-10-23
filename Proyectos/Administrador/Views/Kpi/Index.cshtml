@@ -16,6 +16,18 @@
         return $"{signo}{valor.Value.ToString("N1", cultura)}% {UiTexts.VsPeriodoAnterior}";
     }
     bool Alerta(decimal? valor) => valor < 0;
+    NewRich.Admin.Models.ColumnaOrdenViewModel Columna(string clave, string texto, NewRich.Admin.Models.EstadoOrden estado, string sufijo, string ancla) => new()
+    {
+        Clave = clave,
+        Texto = texto,
+        Estado = estado,
+        ParamOrden = "orden" + sufijo,
+        ParamDireccion = "dir" + sufijo,
+        ParamPagina = "page" + sufijo,
+        Ancla = ancla,
+        Clase = "kpi-sort"
+    };
+    var ordenGastosWeb = new NewRich.Admin.Models.EstadoOrden(Model.OrdenGastosWeb, Model.DireccionGastosWeb);
 }
 <div class="heading">
     <div>
@@ -111,18 +123,18 @@ else
             <div class="metric-grid">
                 <div class="metric@(Alerta(kpi.VariacionIngresos) ? " alert" : null)">
                     <small>@UiTexts.IngresosRegistrados</small>
-                    <strong>@Dinero(kpi.Ingresos)</strong>
+                    <strong>@Dinero(Model.IngresosRegistrados)</strong>
                     @if (kpi.VariacionIngresos.HasValue) { <em>@Variacion(kpi.VariacionIngresos)</em> }
+                </div>
+                <div class="metric">
+                    <small>@UiTexts.KpiGastosVendedoresWeb</small>
+                    <strong>@Dinero(Model.GastosWebTotal)</strong>
+                    <em>@string.Format(UiTexts.KpiGastosCantidad, Model.GastosWebCantidad.ToString("N0", cultura))</em>
                 </div>
                 <div class="metric">
                     <small>@UiTexts.VentasConfirmadas</small>
                     <strong>@kpi.VentasConfirmadas.ToString("N0", cultura)</strong>
                     <em>@string.Format(UiTexts.VentasPorDiaEtiqueta, kpi.VentasPorDia.ToString("N1", cultura))</em>
-                </div>
-                <div class="metric">
-                    <small>@UiTexts.NumeroMasJugado</small>
-                    <strong>@(kpi.NumeroMasJugado ?? "—")</strong>
-                    <em>@UiTexts.SinComparacion</em>
                 </div>
                 <div class="metric">
                     <small>@UiTexts.ValorMasAltoApostado</small>
@@ -133,6 +145,11 @@ else
                     <small>@UiTexts.BoletosGanadores</small>
                     <strong>@kpi.BoletosGanadores.ToString("N0", cultura)</strong>
                     <em>@string.Format(UiTexts.DelTotal, kpi.PorcentajeGanadores.ToString("N1", cultura))</em>
+                </div>
+                <div class="metric">
+                    <small>@UiTexts.NumeroMasJugado</small>
+                    <strong>@(kpi.NumeroMasJugado ?? "—")</strong>
+                    <em>@UiTexts.SinComparacion</em>
                 </div>
             </div>
             <div class="kpi-split">
@@ -158,7 +175,7 @@ else
                         }
                     </div>
                 </div>
-                <div>
+                <div id="kpiIngresosPersona">
                     <h3>@UiTexts.IngresosPorPersona</h3>
                     @if (!Model.PaginaVendedores.Items.Any())
                     {
@@ -167,13 +184,13 @@ else
                     else
                     {
                         <div class="kpi-table-wrap">
-                            <table class="kpi-table" data-kpi-sort-table>
+                            <table class="kpi-table">
                                 <thead>
                                 <tr>
-                                    <th><button class="kpi-sort" type="button" data-kpi-sort="text" aria-label="Ordenar por @UiTexts.Vendedor">@UiTexts.Vendedor <span aria-hidden="true">↕</span></button></th>
-                                    <th><button class="kpi-sort" type="button" data-kpi-sort="text" aria-label="Ordenar por @UiTexts.Grupo">@UiTexts.Grupo <span aria-hidden="true">↕</span></button></th>
-                                    <th><button class="kpi-sort" type="button" data-kpi-sort="number" aria-label="Ordenar por @UiTexts.Ventas">@UiTexts.Ventas <span aria-hidden="true">↕</span></button></th>
-                                    <th><button class="kpi-sort" type="button" data-kpi-sort="number" aria-label="Ordenar por @UiTexts.Total">@UiTexts.Total <span aria-hidden="true">↕</span></button></th>
+                                    <partial name="_ColumnaOrden" model='Columna(KpiOrden.Vendedor, UiTexts.Vendedor, Model.OrdenVendedores, "V", "kpiIngresosPersona")' />
+                                    <partial name="_ColumnaOrden" model='Columna(KpiOrden.Grupo, UiTexts.Grupo, Model.OrdenVendedores, "V", "kpiIngresosPersona")' />
+                                    <partial name="_ColumnaOrden" model='Columna(KpiOrden.Ventas, UiTexts.Ventas, Model.OrdenVendedores, "V", "kpiIngresosPersona")' />
+                                    <partial name="_ColumnaOrden" model='Columna(KpiOrden.Total, UiTexts.Total, Model.OrdenVendedores, "V", "kpiIngresosPersona")' />
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -194,6 +211,46 @@ else
                     }
                 </div>
             </div>
+        </section>
+        <section class="kpi-section kpi-section-wide" id="kpiGastosWeb" aria-labelledby="kpiGastosWebTitulo">
+            <h2 id="kpiGastosWebTitulo">@UiTexts.KpiGastosVendedoresWebTitulo</h2>
+            <p>@UiTexts.KpiGastosVendedoresWebSub</p>
+            @if (!Model.PaginaGastosWeb.Items.Any())
+            {
+                <div class="empty">@UiTexts.Vacio</div>
+            }
+            else
+            {
+                <div class="kpi-table-wrap">
+                    <table class="kpi-table">
+                        <thead>
+                        <tr>
+                            <partial name="_ColumnaOrden" model='Columna(KpiOrden.Fecha, UiTexts.Fecha, ordenGastosWeb, "GW", "kpiGastosWeb")' />
+                            <partial name="_ColumnaOrden" model='Columna(KpiOrden.Vendedor, UiTexts.Vendedor, ordenGastosWeb, "GW", "kpiGastosWeb")' />
+                            <partial name="_ColumnaOrden" model='Columna(KpiOrden.Tipo, UiTexts.TipoGasto, ordenGastosWeb, "GW", "kpiGastosWeb")' />
+                            <partial name="_ColumnaOrden" model='Columna(KpiOrden.Observacion, UiTexts.Observacion, ordenGastosWeb, "GW", "kpiGastosWeb")' />
+                            <partial name="_ColumnaOrden" model='Columna(KpiOrden.Valor, UiTexts.Valor, ordenGastosWeb, "GW", "kpiGastosWeb")' />
+                            <partial name="_ColumnaOrden" model='Columna(KpiOrden.Estado, UiTexts.Estado, ordenGastosWeb, "GW", "kpiGastosWeb")' />
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var gasto in Model.PaginaGastosWeb.Items)
+                        {
+                            <tr>
+                                <td>@gasto.Fecha.ToString("dd/MM/yyyy")</td>
+                                <td>@gasto.Vendedor</td>
+                                <td>@gasto.Tipo</td>
+                                <td>@(string.IsNullOrWhiteSpace(gasto.Observacion) ? "—" : gasto.Observacion)</td>
+                                <td>@Dinero(gasto.Valor)</td>
+                                <td><span class="pill @(gasto.Estado == "Anulado" ? "bad" : "ok")">@gasto.Estado</span></td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+                ViewData["PagerPageKey"] = "pageGW";
+                <partial name="_Pager" model="Model.PaginaGastosWeb" />
+            }
         </section>
         <section class="kpi-section">
             <h2>@UiTexts.Personal</h2>
@@ -228,8 +285,8 @@ else
             <div class="metric-grid metric-grid-2">
                 <div class="metric">
                     <small>@UiTexts.ValorEntregado</small>
-                    <strong>@Dinero(kpi.ValorPremiosEntregados)</strong>
-                    <em>@string.Format(UiTexts.EntregasCantidad, kpi.EntregasPremio)</em>
+                    <strong>@Dinero(Model.ValorEntregado)</strong>
+                    <em>@string.Format(UiTexts.EntregasCantidad, Model.Entregas)</em>
                 </div>
                 <div class="metric">
                     <small>@UiTexts.CasosAbiertos</small>
@@ -291,7 +348,7 @@ else
                 <div class="kpi-note">@UiTexts.LoteriasUtilizadas: @string.Join(", ", kpi.LoteriasUtilizadas)</div>
             }
         </section>
-        <section class="kpi-section">
+        <section class="kpi-section" id="kpiAlertas">
             <h2>@UiTexts.RiesgosYAlertas</h2>
             <p>@UiTexts.RiesgosYAlertasSub</p>
             @if (!Model.PaginaAlertas.Items.Any())
@@ -304,9 +361,9 @@ else
                     <table class="kpi-table">
                         <thead>
                         <tr>
-                            <th>@UiTexts.Prioridad</th>
-                            <th>@UiTexts.Evento</th>
-                            <th>@UiTexts.Impacto</th>
+                            <partial name="_ColumnaOrden" model='Columna(KpiOrden.Prioridad, UiTexts.Prioridad, Model.OrdenAlertas, "A", "kpiAlertas")' />
+                            <partial name="_ColumnaOrden" model='Columna(KpiOrden.Evento, UiTexts.Evento, Model.OrdenAlertas, "A", "kpiAlertas")' />
+                            <partial name="_ColumnaOrden" model='Columna(KpiOrden.Impacto, UiTexts.Impacto, Model.OrdenAlertas, "A", "kpiAlertas")' />
                             <th>@UiTexts.Accion</th>
                         </tr>
                         </thead>
@@ -327,7 +384,7 @@ else
                 <partial name="_Pager" model="Model.PaginaAlertas" />
             }
         </section>
-        <section class="kpi-section">
+        <section class="kpi-section" id="kpiVentasDia">
             <h2>@UiTexts.VentasPorDia</h2>
             @if (!Model.PaginaDias.Items.Any())
             {
@@ -339,9 +396,9 @@ else
                     <table class="kpi-table">
                         <thead>
                         <tr>
-                            <th>@UiTexts.Fecha</th>
-                            <th>@UiTexts.Ventas</th>
-                            <th>@UiTexts.Total</th>
+                            <partial name="_ColumnaOrden" model='Columna(KpiOrden.Fecha, UiTexts.Fecha, Model.OrdenDias, "D", "kpiVentasDia")' />
+                            <partial name="_ColumnaOrden" model='Columna(KpiOrden.Ventas, UiTexts.Ventas, Model.OrdenDias, "D", "kpiVentasDia")' />
+                            <partial name="_ColumnaOrden" model='Columna(KpiOrden.Total, UiTexts.Total, Model.OrdenDias, "D", "kpiVentasDia")' />
                         </tr>
                         </thead>
                         <tbody>
@@ -360,7 +417,7 @@ else
                 <partial name="_Pager" model="Model.PaginaDias" />
             }
         </section>
-        <section class="kpi-section">
+        <section class="kpi-section" id="kpiNumerosGanadores">
             <h2>@UiTexts.NumerosGanadoresKpi</h2>
             @if (!Model.PaginaResultados.Items.Any())
             {
@@ -372,9 +429,9 @@ else
                     <table class="kpi-table">
                         <thead>
                         <tr>
-                            <th>@UiTexts.Fecha</th>
-                            <th>@UiTexts.Loteria</th>
-                            <th>@UiTexts.NumeroGanador</th>
+                            <partial name="_ColumnaOrden" model='Columna(KpiOrden.Fecha, UiTexts.Fecha, Model.OrdenResultados, "R", "kpiNumerosGanadores")' />
+                            <partial name="_ColumnaOrden" model='Columna(KpiOrden.Loteria, UiTexts.Loteria, Model.OrdenResultados, "R", "kpiNumerosGanadores")' />
+                            <partial name="_ColumnaOrden" model='Columna(KpiOrden.Numero, UiTexts.NumeroGanador, Model.OrdenResultados, "R", "kpiNumerosGanadores")' />
                         </tr>
                         </thead>
                         <tbody>
