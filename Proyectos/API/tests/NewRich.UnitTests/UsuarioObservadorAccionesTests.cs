@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using NewRich.Application.Abstractions;
+using NewRich.Application.Contracts.Auth;
 using NewRich.Application.Services;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
@@ -96,15 +97,56 @@ public sealed class UsuarioObservadorAccionesTests
     }
 
     [Fact]
-    public async Task El_desbloqueo_del_administrador_sigue_pidiendo_cambiar_la_contrasena()
+    public async Task El_usuario_desbloqueado_por_el_administrador_ingresa_sin_cambiar_la_contrasena()
     {
         var (sut, db) = CreateSut();
         var vendedor = await AgregarUsuarioAsync(db, "Pedro Vendedor", RolUsuario.Vendedor, bloqueado: true);
 
         var result = await sut.DesbloquearAsync(vendedor.UsuarioId, RolUsuario.Administrador, CancellationToken.None);
 
+        result.IsSuccess.Should().BeTrue(result.Message);
         result.Message.Should().Be(SuccessMessages.UsuarioDesbloqueado);
+        var guardado = await db.Usuarios.SingleAsync(u => u.UsuarioId == vendedor.UsuarioId);
+        guardado.EstadoBloqueado.Should().BeFalse();
+        guardado.EstadoValidado.Should().BeFalse();
+        guardado.IntentosFallidos.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task El_desbloqueo_del_administrador_conserva_el_cambio_pendiente_de_una_contrasena_temporal()
+    {
+        var (sut, db) = CreateSut();
+        var vendedor = await AgregarUsuarioAsync(db, "Pedro Vendedor", RolUsuario.Vendedor, bloqueado: true, debeCambiarPassword: true);
+
+        await sut.DesbloquearAsync(vendedor.UsuarioId, RolUsuario.Administrador, CancellationToken.None);
+
         (await db.Usuarios.SingleAsync(u => u.UsuarioId == vendedor.UsuarioId)).EstadoValidado.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Bloqueado_por_intentos_y_desbloqueado_por_el_administrador_entra_directo_al_sistema()
+    {
+        var (sut, db) = CreateSut();
+        var vendedor = await AgregarUsuarioAsync(db, "Pedro Vendedor", RolUsuario.VendedorWeb);
+        var ingreso = new AuthManualService(db, new HasherFalso(), new JwtFalso(), new RelojFijo(new DateTime(2026, 10, 1, 17, 0, 0, DateTimeKind.Utc)));
+        for (var i = 0; i < 3; i++)
+        {
+            await ingreso.LoginAsync(new LoginRequest { Usuario = vendedor.NombreUsuario, Password = "equivocada" }, CancellationToken.None);
+        }
+
+        (await ingreso.LoginAsync(new LoginRequest { Usuario = vendedor.NombreUsuario, Password = "hash" }, CancellationToken.None))
+            .Message.Should().Be(AuthMessages.UsuarioBloqueado);
+
+        await sut.DesbloquearAsync(vendedor.UsuarioId, RolUsuario.Administrador, CancellationToken.None);
+        var login = await ingreso.LoginAsync(new LoginRequest { Usuario = vendedor.NombreUsuario, Password = "hash" }, CancellationToken.None);
+
+        login.IsSuccess.Should().BeTrue(login.Message);
+        login.Data!.DebeCambiarPassword.Should().BeFalse();
+    }
+
+    private sealed class JwtFalso : IJwtTokenService
+    {
+        public string CreateToken(JwtUser user, DateTime expiresAt) => "token";
     }
 
     private static (UsuarioService Sut, NewRichDbContext Db) CreateSut()

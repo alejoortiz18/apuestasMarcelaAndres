@@ -13,7 +13,7 @@ public static class SuccessMessages
     public const string UsuarioCreado = "El usuario fue creado correctamente con contraseña temporal.";
     public const string UsuarioActualizado = "El usuario fue actualizado correctamente.";
     public const string UsuarioEliminado = "El usuario y toda su información asociada fueron eliminados correctamente.";
-    public const string UsuarioDesbloqueado = "El usuario fue desbloqueado. Deberá cambiar su contraseña al ingresar.";
+    public const string UsuarioDesbloqueado = "El usuario fue desbloqueado. Ya puede ingresar con su contraseña.";
     public const string UsuarioDesbloqueadoPorObservador = "El usuario fue desbloqueado. Ya puede ingresar con su contraseña.";
     public const string PasswordRestablecido = "La contraseña fue restablecida. El usuario deberá cambiarla al ingresar.";
     public const string PasswordCambiado = "La contraseña fue cambiada correctamente.";

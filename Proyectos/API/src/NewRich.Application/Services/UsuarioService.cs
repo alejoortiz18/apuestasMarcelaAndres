@@ -404,11 +404,6 @@ public sealed class UsuarioService : IUsuarioService
 
         var desbloqueoDelObservador = rolSolicitante == RolUsuario.Observador;
         usuario.EstadoBloqueado = false;
-        if (!desbloqueoDelObservador)
-        {
-            usuario.EstadoValidado = true;
-        }
-
         usuario.IntentosFallidos = 0;
         var sesiones = await _db.Sesiones.Where(s => s.UsuarioId == usuarioId && s.Activa).ToListAsync(cancellationToken);
         foreach (var sesion in sesiones)
