@@ -367,11 +367,7 @@ public sealed class AuthService : IAuthService
             return Result<ConfirmarAccionResponse>.Fail(AuthMessages.ContrasenaAccionIncorrecta, 403);
         }
 
-        var accion = request.Accion.Trim();
-        var vigencia = accion == AccionesProtegidas.ConfiguracionVersionAplicacion
-            ? ConfirmacionAccion.VigenciaCargaArchivo
-            : ConfirmacionAccion.Vigencia;
-        var token = await _confirmaciones.EmitirAsync(usuarioId, accion, request.Usos, vigencia, cancellationToken);
+        var token = await _confirmaciones.EmitirAsync(usuarioId, request.Accion.Trim(), request.Usos, ConfirmacionAccion.Vigencia, cancellationToken);
         return Result<ConfirmarAccionResponse>.Ok(new ConfirmarAccionResponse { Token = token }, SuccessMessages.OperacionExitosa);
     }
 

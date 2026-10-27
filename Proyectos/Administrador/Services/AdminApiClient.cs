@@ -28,7 +28,7 @@ using NewRich.Application.Contracts.Usuarios;
 using NewRich.Application.Contracts.Utilidades;
 using NewRich.Application.Contracts.Ventas;
 using NewRich.Application.Contracts.VentasRegistradasWeb;
-using NewRich.Application.Contracts.Versiones;
+using NewRich.Application.Contracts.ApkStore;
 using NewRich.Application.Services;
 using NewRich.Constants;
 using NewRich.Constants.Messages;
@@ -132,13 +132,9 @@ public interface IAdminApiClient
     Task<ApiCallResult<LlaveAdministradorEstadoResponse>> EstadoLlaveAsync(Guid usuarioId, CancellationToken cancellationToken);
     Task<ApiCallResult<GenerarLlaveAdministradorResponse>> GenerarLlaveAsync(GenerarLlaveAdministradorRequest request, CancellationToken cancellationToken);
 
-    Task<ApiCallResult<List<VersionAplicacionResponse>>> ListarVersionesAplicacionAsync(CancellationToken cancellationToken);
-    Task<ApiCallResult<VersionAplicacionResponse>> PublicarVersionAplicacionAsync(
-        Stream contenido,
-        string nombreArchivo,
-        string nombreVersion,
-        int numeroCompilacion,
-        CancellationToken cancellationToken);
+    Task<ApiCallResult<LlaveFirmaResponse>> HuellaLlaveFirmaAsync(CancellationToken cancellationToken);
+    Task<ApiCallResult<List<VersionApkResponse>>> ListarVersionesApkAsync(CancellationToken cancellationToken);
+    Task<ApiCallResult<List<AuditoriaApkResponse>>> ListarAuditoriaApkAsync(CancellationToken cancellationToken);
 
     Task<ApiCallResult<List<RecaudadorResumenResponse>>> PanelRecaudoAsync(DateOnly desde, DateOnly hasta, CancellationToken cancellationToken);
     Task<ApiCallResult<ConfiguracionRecaudoResponse>> ConfiguracionRecaudoAsync(DateOnly desde, DateOnly hasta, CancellationToken cancellationToken);
@@ -564,80 +560,14 @@ public sealed class AdminApiClient : IAdminApiClient
     public Task<ApiCallResult<GenerarLlaveAdministradorResponse>> GenerarLlaveAsync(GenerarLlaveAdministradorRequest request, CancellationToken cancellationToken) =>
         SendAsync<GenerarLlaveAdministradorResponse>(HttpMethod.Post, "api/LlavesAdministrador", request, true, cancellationToken);
 
-    public Task<ApiCallResult<List<VersionAplicacionResponse>>> ListarVersionesAplicacionAsync(CancellationToken cancellationToken) =>
-        SendAsync<List<VersionAplicacionResponse>>(HttpMethod.Get, "api/VersionesAplicacion", null, true, cancellationToken);
+    public Task<ApiCallResult<LlaveFirmaResponse>> HuellaLlaveFirmaAsync(CancellationToken cancellationToken) =>
+        SendAsync<LlaveFirmaResponse>(HttpMethod.Get, "api/ApkStore/llave/huella", null, true, cancellationToken);
 
-    public async Task<ApiCallResult<VersionAplicacionResponse>> PublicarVersionAplicacionAsync(
-        Stream contenido,
-        string nombreArchivo,
-        string nombreVersion,
-        int numeroCompilacion,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            using var cliente = new HttpClient
-            {
-                BaseAddress = _http.BaseAddress,
-                Timeout = ConfirmacionAccion.VigenciaCargaArchivo
-            };
-            using var request = new HttpRequestMessage(HttpMethod.Post, "api/VersionesAplicacion");
-            var token = _httpContextAccessor.HttpContext?.Request.Cookies[AuthCookieNames.AccessToken];
-            if (!string.IsNullOrWhiteSpace(token))
-            {
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            }
+    public Task<ApiCallResult<List<VersionApkResponse>>> ListarVersionesApkAsync(CancellationToken cancellationToken) =>
+        SendAsync<List<VersionApkResponse>>(HttpMethod.Get, "api/ApkStore/versiones", null, true, cancellationToken);
 
-            AdjuntarConfirmacion(request);
-            var formulario = new MultipartFormDataContent();
-            var archivo = new StreamContent(contenido);
-            archivo.Headers.ContentType = new MediaTypeHeaderValue("application/vnd.android.package-archive");
-            formulario.Add(archivo, "archivo", Path.GetFileName(nombreArchivo));
-            formulario.Add(new StringContent(nombreVersion), "nombreVersion");
-            formulario.Add(new StringContent(numeroCompilacion.ToString(System.Globalization.CultureInfo.InvariantCulture)), "numeroCompilacion");
-            request.Content = formulario;
-
-            using var response = await cliente.SendAsync(request, cancellationToken);
-            var json = await response.Content.ReadAsStringAsync(cancellationToken);
-            if (string.IsNullOrWhiteSpace(json))
-            {
-                return SinContrato<VersionAplicacionResponse>(response);
-            }
-
-            ApiEnvelope<VersionAplicacionResponse>? envelope;
-            try
-            {
-                envelope = JsonSerializer.Deserialize<ApiEnvelope<VersionAplicacionResponse>>(json, JsonOptions);
-            }
-            catch (JsonException)
-            {
-                return SinContrato<VersionAplicacionResponse>(response);
-            }
-
-            if (envelope is null)
-            {
-                return SinContrato<VersionAplicacionResponse>(response);
-            }
-
-            if (!envelope.Success)
-            {
-                return ApiCallResult<VersionAplicacionResponse>.Fail(
-                    string.IsNullOrWhiteSpace(envelope.Message) ? UiTexts.ApiNoDisponible : envelope.Message,
-                    (int)response.StatusCode,
-                    response.StatusCode == HttpStatusCode.Unauthorized);
-            }
-
-            return ApiCallResult<VersionAplicacionResponse>.Ok(envelope.Data, envelope.Message, (int)response.StatusCode);
-        }
-        catch (HttpRequestException)
-        {
-            return ApiCallResult<VersionAplicacionResponse>.Fail(UiTexts.ApiNoDisponible, 0);
-        }
-        catch (TaskCanceledException)
-        {
-            return ApiCallResult<VersionAplicacionResponse>.Fail(UiTexts.ApiNoDisponible, 0);
-        }
-    }
+    public Task<ApiCallResult<List<AuditoriaApkResponse>>> ListarAuditoriaApkAsync(CancellationToken cancellationToken) =>
+        SendAsync<List<AuditoriaApkResponse>>(HttpMethod.Get, "api/ApkStore/auditoria", null, true, cancellationToken);
 
     public Task<ApiCallResult<List<RecaudadorResumenResponse>>> PanelRecaudoAsync(DateOnly desde, DateOnly hasta, CancellationToken cancellationToken) =>
         SendAsync<List<RecaudadorResumenResponse>>(HttpMethod.Get, "api/Recaudo/Panel" + BuildQuery(

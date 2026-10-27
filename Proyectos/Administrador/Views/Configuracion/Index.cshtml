@@ -15,9 +15,9 @@
     string EtiquetaOrdenCatalogo(string columna, string nombre) => string.Format(
         CatalogoLoteriasOrden.SiguienteDireccion(columna, Model.Orden, Model.Direccion) == "asc" ? UiTexts.OrdenarColumnaAsc : UiTexts.OrdenarColumnaDesc,
         nombre);
-    if (!string.IsNullOrWhiteSpace(Model.AvisoVersiones))
+    if (!string.IsNullOrWhiteSpace(Model.AlmacenApk?.Aviso))
     {
-        ViewData["AvisoPagina"] = Model.AvisoVersiones;
+        ViewData["AvisoPagina"] = Model.AlmacenApk.Aviso;
     }
 }
 <div class="heading">
@@ -146,62 +146,10 @@
         <button class="primary" type="submit">@UiTexts.GuardarConfiguracion</button>
     </div>
 </form>
-<form asp-action="PublicarVersion" method="post" enctype="multipart/form-data" class="config-form" id="version-aplicacion" data-protected-action="@AccionesProtegidas.ConfiguracionVersionAplicacion" data-msg-subiendo="@UiTexts.SubiendoArchivo" data-msg-guardando="@UiTexts.GuardandoVersion" data-msg-lista="@UiTexts.VersionLista" data-msg-error="@UiTexts.ErrorAlPublicarVersion" data-msg-tamano="@UiTexts.ArchivoSuperaTamano" data-msg-sesion="@UiTexts.SesionExpiradaAlPublicar" data-tamano-maximo="209715200">
-    @Html.AntiForgeryToken()
-    <section class="kpi-section kpi-section-wide">
-        <h2>@UiTexts.ConfigVersionAplicacion</h2>
-        <p>@UiTexts.ConfigVersionAplicacionSub</p>
-        @if (Model.Versiones.Count == 0)
-        {
-            if (string.IsNullOrWhiteSpace(Model.AvisoVersiones))
-            {
-                <div class="empty">@UiTexts.VacioVersionesAplicacion</div>
-            }
-        }
-        else
-        {
-            <ul class="version-aplicacion-lista">
-                @foreach (var version in Model.Versiones)
-                {
-                    var publicada = ZonaHorariaColombia.ALocal(version.FechaPublicacion).ToString("dd/MM/yyyy HH:mm");
-                    <li>
-                        <strong>@version.NombreVersion</strong>
-                        @if (version.Vigente)
-                        {
-                            <span class="pill ok">@UiTexts.VersionVigente</span>
-                        }
-                        <span>@UiTexts.Compilacion @version.NumeroCompilacion</span>
-                        <span>@UiTexts.PublicadaEl @publicada</span>
-                    </li>
-                }
-            </ul>
-        }
-        <div class="field">
-            <label for="archivo-apk">@UiTexts.ArchivoApk</label>
-            <input id="archivo-apk" name="archivo" type="file" accept=".apk,application/vnd.android.package-archive" required />
-            <span class="field-help">@UiTexts.ArchivoApkAyuda</span>
-        </div>
-        <div class="field">
-            <label for="nombre-version">@UiTexts.NombreVersion</label>
-            <input id="nombre-version" name="nombreVersion" type="text" maxlength="20" required autocomplete="off" />
-            <span class="field-help">@UiTexts.NombreVersionAyuda</span>
-        </div>
-        <div class="field">
-            <label for="numero-compilacion">@UiTexts.NumeroCompilacion</label>
-            <input id="numero-compilacion" name="numeroCompilacion" type="number" min="1" step="1" required />
-            <span class="field-help">@UiTexts.NumeroCompilacionAyuda</span>
-        </div>
-        <div id="version-progreso" class="version-progreso" hidden>
-            <p id="version-progreso-texto" role="status" aria-live="polite"></p>
-            <div class="version-progreso-pista">
-                <span id="version-progreso-barra" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-labelledby="version-progreso-texto"></span>
-            </div>
-        </div>
-        <div class="config-save">
-            <button class="primary" type="submit">@UiTexts.PublicarVersion</button>
-        </div>
-    </section>
-</form>
+@if (Model.AlmacenApk is { } almacen)
+{
+    <partial name="_AlmacenApk" model="almacen" />
+}
 <form asp-action="GuardarDias" method="post" class="dias-venta" id="dias-venta" data-protected-action="@AccionesProtegidas.ConfiguracionDias">
     @Html.AntiForgeryToken()
     <section class="kpi-section kpi-section-wide dias-venta-panel" data-resumen="@UiTexts.LoteriasHabilitadasDelDia">

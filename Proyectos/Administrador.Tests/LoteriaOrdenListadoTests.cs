@@ -9,7 +9,6 @@ using NewRich.Admin.Models;
 using NewRich.Admin.Services;
 using NewRich.Application.Contracts.Configuracion;
 using NewRich.Application.Contracts.Loterias;
-using NewRich.Application.Contracts.Versiones;
 using NewRich.Domain.Enums;
 
 namespace NewRich.Admin.Tests;
@@ -87,8 +86,6 @@ public sealed class LoteriaOrdenListadoTests
             .ReturnsAsync(ApiCallResult<ConfiguracionOperativaResponse>.Ok(null, "ok"));
         api.Setup(x => x.ListarNumerosRestringidosAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(ApiCallResult<List<NumeroRestringidoResponse>>.Ok([], "ok"));
-        api.Setup(x => x.ListarVersionesAplicacionAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ApiCallResult<List<VersionAplicacionResponse>>.Ok([], "ok"));
         return api;
     }
 

@@ -22,6 +22,7 @@ public static class DependencyInjection
         services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
         services.AddSingleton<IQrCryptoService, AesGcmQrCryptoService>();
+        services.AddSingleton<IGeneradorLlaveFirma, GeneradorLlaveFirmaPkcs12>();
         services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton<IConfirmacionAccionStore, ConfirmacionAccionBd>();
         if (OpcionesAwsS3.Configurado(configuration))

@@ -54,7 +54,6 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
     public DbSet<EntregaGanador> EntregasGanadores => Set<EntregaGanador>();
     public DbSet<EvidenciaGanador> EvidenciasGanador => Set<EvidenciaGanador>();
     public DbSet<LlaveAdministrador> LlavesAdministrador => Set<LlaveAdministrador>();
-    public DbSet<VersionAplicacion> VersionesAplicacion => Set<VersionAplicacion>();
     public DbSet<AuditoriaRetencion> AuditoriasRetencion => Set<AuditoriaRetencion>();
     public DbSet<AsignacionGrupoRecaudo> AsignacionesGrupoRecaudo => Set<AsignacionGrupoRecaudo>();
     public DbSet<PorcentajeGrupoRecaudo> PorcentajesGrupoRecaudo => Set<PorcentajeGrupoRecaudo>();
@@ -70,6 +69,9 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
     public DbSet<AvisoChat> AvisosChat => Set<AvisoChat>();
     public DbSet<VentaRegistradaWeb> VentasRegistradasWeb => Set<VentaRegistradaWeb>();
     public DbSet<PremioEntregadoWeb> PremiosEntregadosWeb => Set<PremioEntregadoWeb>();
+    public DbSet<LlaveFirmaApk> LlavesFirmaApk => Set<LlaveFirmaApk>();
+    public DbSet<VersionApk> VersionesApk => Set<VersionApk>();
+    public DbSet<AuditoriaApk> AuditoriaApk => Set<AuditoriaApk>();
 
     public async Task AsegurarEsquemaRetencionAsync(CancellationToken cancellationToken = default)
     {
@@ -216,6 +218,16 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
         }
 
         await Database.ExecuteSqlRawAsync(EsquemaPremiosEntregadosWeb.Tablas, cancellationToken);
+    }
+
+    public async Task AsegurarEsquemaApkStoreAsync(CancellationToken cancellationToken = default)
+    {
+        if (!Database.IsRelational())
+        {
+            return;
+        }
+
+        await Database.ExecuteSqlRawAsync(EsquemaApkStore.Tablas, cancellationToken);
     }
 
     public async Task<bool> IntentarBloquearRetencionAsync(CancellationToken cancellationToken = default)
@@ -505,6 +517,37 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
             e.HasIndex(x => new { x.UsuarioId, x.Categoria }).IsUnique();
         });
 
+        modelBuilder.Entity<LlaveFirmaApk>(e =>
+        {
+            e.ToTable("LlaveFirma", "apkstore");
+            e.HasKey(x => x.LlaveFirmaId);
+            e.Property(x => x.Alias).HasMaxLength(50);
+            e.Property(x => x.Almacen).HasColumnType("varbinary(max)");
+            e.Property(x => x.Clave).HasMaxLength(200);
+            e.Property(x => x.Huella).HasMaxLength(64);
+        });
+
+        modelBuilder.Entity<VersionApk>(e =>
+        {
+            e.ToTable("Versiones", "apkstore");
+            e.HasKey(x => x.VersionId);
+            e.Property(x => x.NombreVersion).HasMaxLength(20);
+            e.Property(x => x.NombreArchivo).HasMaxLength(100);
+            e.Property(x => x.Sha256).HasMaxLength(64);
+            e.Property(x => x.HuellaFirma).HasMaxLength(64);
+            e.HasIndex(x => x.NumeroCompilacion).IsUnique();
+        });
+
+        modelBuilder.Entity<AuditoriaApk>(e =>
+        {
+            e.ToTable("Auditoria", "apkstore");
+            e.HasKey(x => x.AuditoriaId);
+            e.Property(x => x.Accion).HasMaxLength(40);
+            e.Property(x => x.Detalle).HasMaxLength(400);
+            e.Property(x => x.Ip).HasMaxLength(64);
+            e.HasIndex(x => x.FechaUtc);
+        });
+
         modelBuilder.Entity<AvisoChat>(e =>
         {
             e.ToTable("AvisosChat", "chat");
@@ -699,15 +742,6 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
             e.Property(x => x.MotivoRevocacion).HasMaxLength(200);
             e.HasOne(x => x.Usuario).WithMany().HasForeignKey(x => x.UsuarioId).OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(x => x.Codigo).IsUnique();
-        });
-
-        modelBuilder.Entity<VersionAplicacion>(e =>
-        {
-            e.ToTable("VersionesAplicacion");
-            e.HasKey(x => x.VersionAplicacionId);
-            e.Property(x => x.NombreVersion).HasMaxLength(20);
-            e.Property(x => x.NombreArchivo).HasMaxLength(32);
-            e.HasIndex(x => x.NumeroCompilacion).IsUnique();
         });
 
         modelBuilder.Entity<AuditoriaRetencion>(e =>

@@ -1,8 +1,9 @@
-using NewRich.Application.Contracts.Versiones;
+using NewRich.Application.Contracts.ApkStore;
 using NewRich.Domain.Services;
 using NewRich.Maui.Data;
 using NewRich.Maui.Views.Shared;
 using NewRich.Pda.Core;
+using NewRich.Pda.Core.Actualizacion;
 using NewRich.Pda.Core.Api;
 using NewRich.Pda.Core.Auth;
 
@@ -42,7 +43,7 @@ public sealed class ActualizacionEnVivoServicio
         _vivo.ActualizacionRecibida += aviso => _ = RevisarAhoraAsync(aviso);
     }
 
-    public Task<bool> RevisarAhoraAsync(VersionAplicacionResponse? aviso = null)
+    public Task<bool> RevisarAhoraAsync(VersionApkResponse? aviso = null)
     {
         lock (_candado)
         {
@@ -61,7 +62,7 @@ public sealed class ActualizacionEnVivoServicio
         }
     }
 
-    private async Task<bool> EjecutarAsync(VersionAplicacionResponse? aviso)
+    private async Task<bool> EjecutarAsync(VersionApkResponse? aviso)
     {
         if (!await _puerta.WaitAsync(0))
         {
@@ -124,6 +125,15 @@ public sealed class ActualizacionEnVivoServicio
                 return false;
             }
 
+            var problema = Verificar(ruta, vigente, instalada);
+            if (problema is not null)
+            {
+                File.Delete(ruta);
+                await AvisarAsync(problema);
+                await VolverAlIngresoAsync();
+                return false;
+            }
+
             pantalla?.Aplicar(DescargaActualizacion.Instalando());
             await CerrarSesionLocalAsync();
             await AbrirInstaladorAsync(pantalla, ruta);
@@ -143,6 +153,13 @@ public sealed class ActualizacionEnVivoServicio
         {
             _puerta.Release();
         }
+    }
+
+    private static string? Verificar(string ruta, VersionApkResponse vigente, int instalada)
+    {
+        var (huella, compilacion) = InstaladorApk.LeerFirma(ruta);
+        var descargado = new DatosApkDescargado(VerificacionApk.Sha256DeArchivo(ruta), huella, compilacion);
+        return VerificacionApk.Problema(descargado, vigente, instalada);
     }
 
     private Task<DescargaActualizacionPage?> MostrarPantallaAsync(string ruta) =>

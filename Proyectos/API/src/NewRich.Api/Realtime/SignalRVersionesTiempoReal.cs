@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.SignalR;
 using NewRich.Api.Hubs;
 using NewRich.Application.Abstractions;
-using NewRich.Application.Contracts.Versiones;
+using NewRich.Application.Contracts.ApkStore;
 using NewRich.Shared;
 
 namespace NewRich.Api.Realtime;
@@ -15,6 +15,6 @@ public sealed class SignalRVersionesTiempoReal : IVersionesTiempoReal
         _hub = hub;
     }
 
-    public Task AvisarVersionPublicadaAsync(VersionAplicacionResponse version, CancellationToken cancellationToken) =>
+    public Task AvisarVersionPublicadaAsync(VersionApkResponse version, CancellationToken cancellationToken) =>
         _hub.Clients.All.SendAsync(HubRutas.EventoActualizacionAplicacion, version, cancellationToken);
 }

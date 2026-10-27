@@ -8,19 +8,16 @@ namespace NewRich.UnitTests;
 public sealed class ConfirmacionAccionMemoriaTests
 {
     [Fact]
-    public void Publicar_la_aplicacion_sigue_confirmado_despues_de_dos_minutos()
+    public void Una_vigencia_propia_reemplaza_la_de_dos_minutos()
     {
         var reloj = new Reloj(new DateTime(2026, 9, 29, 23, 0, 0, DateTimeKind.Utc));
         var store = new ConfirmacionAccionMemoria(reloj);
         var usuarioId = Guid.NewGuid();
-        var token = store.Emitir(
-            usuarioId,
-            AccionesProtegidas.ConfiguracionVersionAplicacion,
-            vigencia: ConfirmacionAccion.VigenciaCargaArchivo);
+        var token = store.Emitir(usuarioId, AccionesProtegidas.ConfiguracionGuardar, vigencia: TimeSpan.FromMinutes(15));
 
         reloj.Avanzar(TimeSpan.FromMinutes(3));
 
-        store.Consumir(token, usuarioId, AccionesProtegidas.ConfiguracionVersionAplicacion).Should().BeTrue();
+        store.Consumir(token, usuarioId, AccionesProtegidas.ConfiguracionGuardar).Should().BeTrue();
     }
 
     [Fact]

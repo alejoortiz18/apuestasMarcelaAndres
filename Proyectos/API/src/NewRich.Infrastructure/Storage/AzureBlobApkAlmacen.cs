@@ -39,12 +39,14 @@ public sealed class AzureBlobApkAlmacen : IApkAlmacen
 {
     private readonly IConfiguration _configuration;
     private readonly ILogger<AzureBlobApkAlmacen> _logger;
+    private readonly BlobClientOptions _opciones;
     private BlobContainerClient? _contenedor;
 
-    public AzureBlobApkAlmacen(IConfiguration configuration, ILogger<AzureBlobApkAlmacen> logger)
+    public AzureBlobApkAlmacen(IConfiguration configuration, ILogger<AzureBlobApkAlmacen> logger, BlobClientOptions? opciones = null)
     {
         _configuration = configuration;
         _logger = logger;
+        _opciones = opciones ?? CargaBlobApk.Opciones();
     }
 
     public async Task GuardarAsync(string nombreArchivo, Stream contenido, long tamano, CancellationToken cancellationToken)
@@ -52,7 +54,7 @@ public sealed class AzureBlobApkAlmacen : IApkAlmacen
         _ = tamano;
         try
         {
-            var blob = (await ContenedorAsync(cancellationToken)).GetBlobClient(nombreArchivo);
+            var blob = Contenedor().GetBlobClient(nombreArchivo);
             if (contenido.CanSeek)
             {
                 contenido.Position = 0;
@@ -89,7 +91,7 @@ public sealed class AzureBlobApkAlmacen : IApkAlmacen
     {
         try
         {
-            var blob = (await ContenedorAsync(cancellationToken)).GetBlobClient(nombreArchivo);
+            var blob = Contenedor().GetBlobClient(nombreArchivo);
             await blob.DeleteIfExistsAsync(cancellationToken: cancellationToken);
         }
         catch (ApkAlmacenException)
@@ -106,7 +108,7 @@ public sealed class AzureBlobApkAlmacen : IApkAlmacen
     {
         try
         {
-            var blob = (await ContenedorAsync(cancellationToken)).GetBlobClient(nombreArchivo);
+            var blob = Contenedor().GetBlobClient(nombreArchivo);
             if (!await blob.ExistsAsync(cancellationToken))
             {
                 return null;
@@ -124,18 +126,9 @@ public sealed class AzureBlobApkAlmacen : IApkAlmacen
         }
     }
 
-    private async Task<BlobContainerClient> ContenedorAsync(CancellationToken cancellationToken)
-    {
-        var contenedor = Cliente();
-        if (!await contenedor.ExistsAsync(cancellationToken))
-        {
-            throw new ApkAlmacenException(VersionAplicacionMessages.RecursoNoDisponible);
-        }
-
-        return contenedor;
-    }
-
-    private BlobContainerClient Cliente()
+    // Un token SAS de contenedor no autoriza consultar el contenedor; si no existe, la operación
+    // del blob responde 404 y Controlado la reporta como recurso no disponible.
+    private BlobContainerClient Contenedor()
     {
         if (_contenedor is not null)
         {
@@ -148,7 +141,7 @@ public sealed class AzureBlobApkAlmacen : IApkAlmacen
             throw new ApkAlmacenException(leido.Message);
         }
 
-        _contenedor = new BlobContainerClient(leido.Data.Conexion, leido.Data.Contenedor, CargaBlobApk.Opciones());
+        _contenedor = new BlobContainerClient(leido.Data.Conexion, leido.Data.Contenedor, _opciones);
         return _contenedor;
     }
 

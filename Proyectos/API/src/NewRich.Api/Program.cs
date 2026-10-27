@@ -140,6 +140,7 @@ using (var alcance = app.Services.CreateScope())
     await db.AsegurarEsquemaAvisosChatAsync(CancellationToken.None);
     await db.AsegurarEsquemaVentasRegistradasWebAsync(CancellationToken.None);
     await db.AsegurarEsquemaPremiosEntregadosWebAsync(CancellationToken.None);
+    await db.AsegurarEsquemaApkStoreAsync(CancellationToken.None);
     var super = alcance.ServiceProvider.GetRequiredService<NewRich.Application.Services.ISuperUsuarioAsegurador>();
     await super.AsegurarAsync(CancellationToken.None);
 }

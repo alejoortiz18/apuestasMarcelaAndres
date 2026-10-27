@@ -17,7 +17,7 @@ using NewRich.Application.Contracts.Recaudo;
 using NewRich.Application.Contracts.Resultados;
 using NewRich.Application.Contracts.Usuarios;
 using NewRich.Application.Contracts.Ventas;
-using NewRich.Application.Contracts.Versiones;
+using NewRich.Application.Contracts.ApkStore;
 using NewRich.Constants.Messages;
 using NewRich.Pda.Core;
 using NewRich.Shared.Results;
@@ -311,8 +311,8 @@ public sealed class NewRichApiClient
     public Task<Result<AdjuntoDescargado>> DescargarEvidenciaPremioAsync(Guid casoId, Guid evidenciaId, CancellationToken ct) =>
         DescargarArchivoAsync($"api/PremiosAndroid/EvidenciaMob/{casoId}/{evidenciaId}", ct);
 
-    public Task<Result<VersionAplicacionResponse>> VersionVigenteAsync(CancellationToken ct) =>
-        Enviar<VersionAplicacionResponse>(HttpMethod.Get, "api/VersionesAplicacion/vigente", null, ct);
+    public Task<Result<VersionApkResponse>> VersionVigenteAsync(CancellationToken ct) =>
+        Enviar<VersionApkResponse>(HttpMethod.Get, "api/ApkStore/versiones/vigente", null, ct);
 
     public Task<Result<IReadOnlyList<ObligacionRecaudoResponse>>> ObligacionesRecaudoAsync(DateOnly? fecha, CancellationToken ct)
     {
@@ -339,7 +339,7 @@ public sealed class NewRichApiClient
         {
             Timeout = TimeSpan.FromMinutes(5)
         };
-        using var request = Crear(HttpMethod.Get, "api/VersionesAplicacion/vigente/archivo", null, token);
+        using var request = Crear(HttpMethod.Get, "api/ApkStore/versiones/vigente/archivo", null, token);
         try
         {
             using var response = await cliente.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);

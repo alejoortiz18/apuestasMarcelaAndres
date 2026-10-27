@@ -94,8 +94,8 @@ public sealed class AvisoPaginaTests
         }
 
         var config = File.ReadAllText(Ruta("Administrador", "Views", "Configuracion", "Index.cshtml"));
-        config.Should().NotContain("role=\"alert\">@Model.AvisoVersiones");
-        config.Should().Contain("ViewData[\"AvisoPagina\"] = Model.AvisoVersiones");
+        config.Should().NotContain("role=\"alert\">@Model.AlmacenApk");
+        config.Should().Contain("ViewData[\"AvisoPagina\"] = Model.AlmacenApk.Aviso");
         var registro = File.ReadAllText(Ruta("Administrador", "Views", "Dispositivos", "Crear.cshtml"));
         registro.Should().NotContain("data-verificacion-error");
         registro.Should().NotContain("data-registro-error");

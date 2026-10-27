@@ -430,3 +430,6 @@ FodyWeavers.xsd
 
 # Local build, publish, and probe output (includes APK copies over GitHub's 100 MB limit)
 tmp/
+
+# Datos y credenciales de los recursos de Azure de produccion
+documentos/azure/

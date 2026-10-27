@@ -1,10 +1,11 @@
 ﻿/*
-Copia completa de la base local NewRich, tomada el 18/10/2026.
-Incluye la estructura y los datos (3591 filas).
+Copia completa de la base local NewRich, tomada el 27/10/2026.
+Incluye la estructura y los datos (3772 filas), con el esquema apkstore (llave de firma, versiones y auditoría de los APK).
+Ya no incluye dbo.VersionesAplicacion, reemplazada por apkstore.Versiones.
 Hay que ejecutarlo en modo SQLCMD. Si la base NewRich ya existe, este script la elimina y la vuelve a crear.
 */
 /*
-Estructura y datos de NewRich al 18/10/2026
+Estructura y datos de NewRich al 27/10/2026
 
 Este código lo generó una herramienta.
 Los cambios en este archivo pueden provocar un comportamiento incorrecto y se perderán si
@@ -309,6 +310,33 @@ EXECUTE sp_addrolemember @rolename = N'db_owner', @membername = N'IIS APPPOOL\ap
 
 
 GO
+PRINT N'Creando Esquema [apkstore]...';
+
+
+GO
+CREATE SCHEMA [apkstore]
+    AUTHORIZATION [dbo];
+
+
+GO
+PRINT N'Creando Esquema [chat]...';
+
+
+GO
+CREATE SCHEMA [chat]
+    AUTHORIZATION [dbo];
+
+
+GO
+PRINT N'Creando Esquema [informes]...';
+
+
+GO
+CREATE SCHEMA [informes]
+    AUTHORIZATION [dbo];
+
+
+GO
 PRINT N'Creando Esquema [manual]...';
 
 
@@ -327,46 +355,144 @@ CREATE SCHEMA [recaudo]
 
 
 GO
-PRINT N'Creando Tabla [manual].[RegistroJuegoFilas]...';
+PRINT N'Creando Esquema [utilidades]...';
 
 
 GO
-CREATE TABLE [manual].[RegistroJuegoFilas] (
-    [FilaId]     UNIQUEIDENTIFIER NOT NULL,
-    [RegistroId] UNIQUEIDENTIFIER NOT NULL,
-    [LoteriaId]  UNIQUEIDENTIFIER NOT NULL,
-    [Valor]      DECIMAL (18, 2)  NOT NULL,
-    [Numero]     NVARCHAR (MAX)   NOT NULL,
-    CONSTRAINT [PK_manual_RegistroJuegoFilas] PRIMARY KEY CLUSTERED ([FilaId] ASC)
+CREATE SCHEMA [utilidades]
+    AUTHORIZATION [dbo];
+
+
+GO
+PRINT N'Creando Tabla [apkstore].[LlaveFirma]...';
+
+
+GO
+CREATE TABLE [apkstore].[LlaveFirma] (
+    [LlaveFirmaId]     UNIQUEIDENTIFIER NOT NULL,
+    [Alias]            NVARCHAR (50)    NOT NULL,
+    [Almacen]          VARBINARY (MAX)  NOT NULL,
+    [Clave]            NVARCHAR (200)   NOT NULL,
+    [Huella]           NVARCHAR (64)    NOT NULL,
+    [CreadaPor]        UNIQUEIDENTIFIER NOT NULL,
+    [FechaCreacionUtc] DATETIME2 (7)    NOT NULL,
+    CONSTRAINT [PK_apkstore_LlaveFirma] PRIMARY KEY CLUSTERED ([LlaveFirmaId] ASC)
 );
 
 
 GO
-PRINT N'Creando Tabla [manual].[Ventas]...';
+PRINT N'Creando Tabla [apkstore].[Auditoria]...';
 
 
 GO
-CREATE TABLE [manual].[Ventas] (
-    [VentaId]        UNIQUEIDENTIFIER NOT NULL,
-    [UsuarioId]      UNIQUEIDENTIFIER NOT NULL,
-    [FechaVenta]     DATETIME2 (7)    NOT NULL,
-    [Total]          DECIMAL (18, 2)  NOT NULL,
-    [TipoApuesta]    NVARCHAR (20)    NOT NULL,
-    [IdempotencyKey] NVARCHAR (100)   NOT NULL,
-    CONSTRAINT [PK_manual_Ventas] PRIMARY KEY CLUSTERED ([VentaId] ASC),
-    CONSTRAINT [UQ_manual_Ventas_IdempotencyKey] UNIQUE NONCLUSTERED ([IdempotencyKey] ASC)
+CREATE TABLE [apkstore].[Auditoria] (
+    [AuditoriaId] UNIQUEIDENTIFIER NOT NULL,
+    [UsuarioId]   UNIQUEIDENTIFIER NOT NULL,
+    [Accion]      NVARCHAR (40)    NOT NULL,
+    [Detalle]     NVARCHAR (400)   NULL,
+    [Ip]          NVARCHAR (64)    NULL,
+    [FechaUtc]    DATETIME2 (7)    NOT NULL,
+    CONSTRAINT [PK_apkstore_Auditoria] PRIMARY KEY CLUSTERED ([AuditoriaId] ASC)
 );
 
 
 GO
-PRINT N'Creando Tabla [manual].[JuegoLoterias]...';
+PRINT N'Creando Índice [apkstore].[Auditoria].[IX_apkstore_Auditoria_FechaUtc]...';
 
 
 GO
-CREATE TABLE [manual].[JuegoLoterias] (
-    [JuegoId]   UNIQUEIDENTIFIER NOT NULL,
-    [LoteriaId] UNIQUEIDENTIFIER NOT NULL,
-    CONSTRAINT [PK_manual_JuegoLoterias] PRIMARY KEY CLUSTERED ([JuegoId] ASC, [LoteriaId] ASC)
+CREATE NONCLUSTERED INDEX [IX_apkstore_Auditoria_FechaUtc]
+    ON [apkstore].[Auditoria]([FechaUtc] ASC);
+
+
+GO
+PRINT N'Creando Tabla [apkstore].[Versiones]...';
+
+
+GO
+CREATE TABLE [apkstore].[Versiones] (
+    [VersionId]           UNIQUEIDENTIFIER NOT NULL,
+    [NumeroCompilacion]   INT              NOT NULL,
+    [NombreVersion]       NVARCHAR (20)    NOT NULL,
+    [NombreArchivo]       NVARCHAR (100)   NOT NULL,
+    [TamanoBytes]         BIGINT           NOT NULL,
+    [Sha256]              NVARCHAR (64)    NOT NULL,
+    [HuellaFirma]         NVARCHAR (64)    NOT NULL,
+    [PublicadaPor]        UNIQUEIDENTIFIER NOT NULL,
+    [FechaPublicacionUtc] DATETIME2 (7)    NOT NULL,
+    CONSTRAINT [PK_apkstore_Versiones] PRIMARY KEY CLUSTERED ([VersionId] ASC)
+);
+
+
+GO
+PRINT N'Creando Índice [apkstore].[Versiones].[UX_apkstore_Versiones_NumeroCompilacion]...';
+
+
+GO
+CREATE UNIQUE NONCLUSTERED INDEX [UX_apkstore_Versiones_NumeroCompilacion]
+    ON [apkstore].[Versiones]([NumeroCompilacion] ASC);
+
+
+GO
+PRINT N'Creando Tabla [chat].[AvisosChat]...';
+
+
+GO
+CREATE TABLE [chat].[AvisosChat] (
+    [NotificacionId]  UNIQUEIDENTIFIER NOT NULL,
+    [ConversacionId]  UNIQUEIDENTIFIER NOT NULL,
+    [UsuarioEmisorId] UNIQUEIDENTIFIER NOT NULL,
+    CONSTRAINT [PK_chat_AvisosChat] PRIMARY KEY CLUSTERED ([NotificacionId] ASC)
+);
+
+
+GO
+PRINT N'Creando Índice [chat].[AvisosChat].[IX_chat_AvisosChat_Conversacion]...';
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_chat_AvisosChat_Conversacion]
+    ON [chat].[AvisosChat]([ConversacionId] ASC);
+
+
+GO
+PRINT N'Creando Tabla [informes].[ConfiguracionesInforme]...';
+
+
+GO
+CREATE TABLE [informes].[ConfiguracionesInforme] (
+    [ConfiguracionId]       UNIQUEIDENTIFIER NOT NULL,
+    [UsuarioId]             UNIQUEIDENTIFIER NOT NULL,
+    [Categoria]             NVARCHAR (40)    NOT NULL,
+    [Filtros]               NVARCHAR (MAX)   NOT NULL,
+    [FechaActualizacionUtc] DATETIME2 (7)    NOT NULL,
+    CONSTRAINT [PK_informes_ConfiguracionesInforme] PRIMARY KEY CLUSTERED ([ConfiguracionId] ASC)
+);
+
+
+GO
+PRINT N'Creando Índice [informes].[ConfiguracionesInforme].[UX_informes_ConfiguracionesInforme_Usuario_Categoria]...';
+
+
+GO
+CREATE UNIQUE NONCLUSTERED INDEX [UX_informes_ConfiguracionesInforme_Usuario_Categoria]
+    ON [informes].[ConfiguracionesInforme]([UsuarioId] ASC, [Categoria] ASC);
+
+
+GO
+PRINT N'Creando Tabla [manual].[Boletos]...';
+
+
+GO
+CREATE TABLE [manual].[Boletos] (
+    [BoletoId]      UNIQUEIDENTIFIER NOT NULL,
+    [VentaId]       UNIQUEIDENTIFIER NOT NULL,
+    [CodigoPublico] CHAR (7)         NOT NULL,
+    [FechaCreacion] DATETIME2 (7)    NOT NULL,
+    [VigenciaDias]  INT              NOT NULL,
+    [EstadoBoleto]  NVARCHAR (30)    NOT NULL,
+    CONSTRAINT [PK_manual_Boletos] PRIMARY KEY CLUSTERED ([BoletoId] ASC),
+    CONSTRAINT [UQ_manual_Boletos_CodigoPublico] UNIQUE NONCLUSTERED ([CodigoPublico] ASC)
 );
 
 
@@ -389,6 +515,22 @@ CREATE TABLE [manual].[RegistrosJuego] (
 
 
 GO
+PRINT N'Creando Tabla [manual].[VentasJuegoNumeros]...';
+
+
+GO
+CREATE TABLE [manual].[VentasJuegoNumeros] (
+    [VentaId]          UNIQUEIDENTIFIER NOT NULL,
+    [ValorJugado]      DECIMAL (18, 2)  NOT NULL,
+    [CantidadNumeros]  INT              NOT NULL,
+    [CantidadLoterias] INT              NOT NULL,
+    [CantidadApuestas] INT              NOT NULL,
+    [FechaRegistro]    DATETIME2 (0)    NOT NULL,
+    CONSTRAINT [PK_manual_VentasJuegoNumeros] PRIMARY KEY CLUSTERED ([VentaId] ASC)
+);
+
+
+GO
 PRINT N'Creando Tabla [manual].[RegistroJuegoNumerosWebApuestas]...';
 
 
@@ -401,6 +543,75 @@ CREATE TABLE [manual].[RegistroJuegoNumerosWebApuestas] (
     [Valor]      DECIMAL (18, 2)  NOT NULL,
     CONSTRAINT [PK_manual_RegistroJuegoNumerosWebApuestas] PRIMARY KEY CLUSTERED ([ApuestaId] ASC)
 );
+
+
+GO
+PRINT N'Creando Tabla [manual].[RevisadaManualLineas]...';
+
+
+GO
+CREATE TABLE [manual].[RevisadaManualLineas] (
+    [LineaId]       UNIQUEIDENTIFIER NOT NULL,
+    [OperacionId]   UNIQUEIDENTIFIER NOT NULL,
+    [Origen]        NVARCHAR (20)    NOT NULL,
+    [OrigenId]      UNIQUEIDENTIFIER NOT NULL,
+    [Valor]         DECIMAL (18, 2)  NOT NULL,
+    [FechaRegistro] DATETIME2 (7)    NOT NULL,
+    CONSTRAINT [PK_manual_RevisadaManualLineas] PRIMARY KEY CLUSTERED ([LineaId] ASC),
+    CONSTRAINT [UQ_manual_RevisadaManualLineas_Origen] UNIQUE NONCLUSTERED ([Origen] ASC, [OrigenId] ASC)
+);
+
+
+GO
+PRINT N'Creando Tabla [manual].[RegistroJuegoFilas]...';
+
+
+GO
+CREATE TABLE [manual].[RegistroJuegoFilas] (
+    [FilaId]     UNIQUEIDENTIFIER NOT NULL,
+    [RegistroId] UNIQUEIDENTIFIER NOT NULL,
+    [LoteriaId]  UNIQUEIDENTIFIER NOT NULL,
+    [Valor]      DECIMAL (18, 2)  NOT NULL,
+    [Numero]     NVARCHAR (MAX)   NOT NULL,
+    CONSTRAINT [PK_manual_RegistroJuegoFilas] PRIMARY KEY CLUSTERED ([FilaId] ASC)
+);
+
+
+GO
+PRINT N'Creando Tabla [manual].[PremiosEntregadosWeb]...';
+
+
+GO
+CREATE TABLE [manual].[PremiosEntregadosWeb] (
+    [PremioEntregadoWebId] UNIQUEIDENTIFIER NOT NULL,
+    [VendedorId]           UNIQUEIDENTIFIER NOT NULL,
+    [LoteriaId]            UNIQUEIDENTIFIER NOT NULL,
+    [Numero]               NVARCHAR (4)     NOT NULL,
+    [ValorApostado]        DECIMAL (18, 2)  NOT NULL,
+    [ValorPremio]          DECIMAL (18, 2)  NOT NULL,
+    [FechaPremio]          DATE             NOT NULL,
+    [FechaRegistro]        DATETIME2 (7)    NOT NULL,
+    CONSTRAINT [PK_manual_PremiosEntregadosWeb] PRIMARY KEY CLUSTERED ([PremioEntregadoWebId] ASC)
+);
+
+
+GO
+PRINT N'Creando Índice [manual].[PremiosEntregadosWeb].[IX_manual_PremiosEntregadosWeb_Vendedor]...';
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_manual_PremiosEntregadosWeb_Vendedor]
+    ON [manual].[PremiosEntregadosWeb]([VendedorId] ASC, [FechaRegistro] DESC);
+
+
+GO
+PRINT N'Creando Índice [manual].[PremiosEntregadosWeb].[IX_manual_PremiosEntregadosWeb_Fecha]...';
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_manual_PremiosEntregadosWeb_Fecha]
+    ON [manual].[PremiosEntregadosWeb]([FechaPremio] ASC)
+    INCLUDE([VendedorId], [ValorPremio]);
 
 
 GO
@@ -427,35 +638,14 @@ CREATE TABLE [manual].[RevisadaManualOperaciones] (
 
 
 GO
-PRINT N'Creando Tabla [manual].[RevisadaManualLineas]...';
+PRINT N'Creando Tabla [manual].[JuegoLoterias]...';
 
 
 GO
-CREATE TABLE [manual].[RevisadaManualLineas] (
-    [LineaId]       UNIQUEIDENTIFIER NOT NULL,
-    [OperacionId]   UNIQUEIDENTIFIER NOT NULL,
-    [Origen]        NVARCHAR (20)    NOT NULL,
-    [OrigenId]      UNIQUEIDENTIFIER NOT NULL,
-    [Valor]         DECIMAL (18, 2)  NOT NULL,
-    [FechaRegistro] DATETIME2 (7)    NOT NULL,
-    CONSTRAINT [PK_manual_RevisadaManualLineas] PRIMARY KEY CLUSTERED ([LineaId] ASC),
-    CONSTRAINT [UQ_manual_RevisadaManualLineas_Origen] UNIQUE NONCLUSTERED ([Origen] ASC, [OrigenId] ASC)
-);
-
-
-GO
-PRINT N'Creando Tabla [manual].[VentasJuegoNumeros]...';
-
-
-GO
-CREATE TABLE [manual].[VentasJuegoNumeros] (
-    [VentaId]          UNIQUEIDENTIFIER NOT NULL,
-    [ValorJugado]      DECIMAL (18, 2)  NOT NULL,
-    [CantidadNumeros]  INT              NOT NULL,
-    [CantidadLoterias] INT              NOT NULL,
-    [CantidadApuestas] INT              NOT NULL,
-    [FechaRegistro]    DATETIME2 (0)    NOT NULL,
-    CONSTRAINT [PK_manual_VentasJuegoNumeros] PRIMARY KEY CLUSTERED ([VentaId] ASC)
+CREATE TABLE [manual].[JuegoLoterias] (
+    [JuegoId]   UNIQUEIDENTIFIER NOT NULL,
+    [LoteriaId] UNIQUEIDENTIFIER NOT NULL,
+    CONSTRAINT [PK_manual_JuegoLoterias] PRIMARY KEY CLUSTERED ([JuegoId] ASC, [LoteriaId] ASC)
 );
 
 
@@ -492,6 +682,57 @@ CREATE TABLE [manual].[RegistrosJuegoNumerosWeb] (
 
 
 GO
+PRINT N'Creando Tabla [manual].[VentasRegistradasWeb]...';
+
+
+GO
+CREATE TABLE [manual].[VentasRegistradasWeb] (
+    [VentaRegistradaWebId] UNIQUEIDENTIFIER NOT NULL,
+    [VendedorId]           UNIQUEIDENTIFIER NOT NULL,
+    [FechaVenta]           DATE             NOT NULL,
+    [Valor]                DECIMAL (18, 2)  NOT NULL,
+    [FechaRegistro]        DATETIME2 (7)    NOT NULL,
+    CONSTRAINT [PK_manual_VentasRegistradasWeb] PRIMARY KEY CLUSTERED ([VentaRegistradaWebId] ASC)
+);
+
+
+GO
+PRINT N'Creando Índice [manual].[VentasRegistradasWeb].[IX_manual_VentasRegistradasWeb_Fecha]...';
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_manual_VentasRegistradasWeb_Fecha]
+    ON [manual].[VentasRegistradasWeb]([FechaVenta] ASC)
+    INCLUDE([VendedorId], [Valor]);
+
+
+GO
+PRINT N'Creando Índice [manual].[VentasRegistradasWeb].[IX_manual_VentasRegistradasWeb_VendedorFecha]...';
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_manual_VentasRegistradasWeb_VendedorFecha]
+    ON [manual].[VentasRegistradasWeb]([VendedorId] ASC, [FechaVenta] DESC, [FechaRegistro] DESC);
+
+
+GO
+PRINT N'Creando Tabla [manual].[Ventas]...';
+
+
+GO
+CREATE TABLE [manual].[Ventas] (
+    [VentaId]        UNIQUEIDENTIFIER NOT NULL,
+    [UsuarioId]      UNIQUEIDENTIFIER NOT NULL,
+    [FechaVenta]     DATETIME2 (7)    NOT NULL,
+    [Total]          DECIMAL (18, 2)  NOT NULL,
+    [TipoApuesta]    NVARCHAR (20)    NOT NULL,
+    [IdempotencyKey] NVARCHAR (100)   NOT NULL,
+    CONSTRAINT [PK_manual_Ventas] PRIMARY KEY CLUSTERED ([VentaId] ASC),
+    CONSTRAINT [UQ_manual_Ventas_IdempotencyKey] UNIQUE NONCLUSTERED ([IdempotencyKey] ASC)
+);
+
+
+GO
 PRINT N'Creando Tabla [manual].[ParametrosRevisadaManual]...';
 
 
@@ -505,95 +746,21 @@ CREATE TABLE [manual].[ParametrosRevisadaManual] (
 
 
 GO
-PRINT N'Creando Tabla [manual].[Boletos]...';
+PRINT N'Creando Tabla [recaudo].[TirillasCobro]...';
 
 
 GO
-CREATE TABLE [manual].[Boletos] (
-    [BoletoId]      UNIQUEIDENTIFIER NOT NULL,
-    [VentaId]       UNIQUEIDENTIFIER NOT NULL,
-    [CodigoPublico] CHAR (7)         NOT NULL,
-    [FechaCreacion] DATETIME2 (7)    NOT NULL,
-    [VigenciaDias]  INT              NOT NULL,
-    [EstadoBoleto]  NVARCHAR (30)    NOT NULL,
-    CONSTRAINT [PK_manual_Boletos] PRIMARY KEY CLUSTERED ([BoletoId] ASC),
-    CONSTRAINT [UQ_manual_Boletos_CodigoPublico] UNIQUE NONCLUSTERED ([CodigoPublico] ASC)
-);
-
-
-GO
-PRINT N'Creando Tabla [recaudo].[PorcentajesGrupo]...';
-
-
-GO
-CREATE TABLE [recaudo].[PorcentajesGrupo] (
-    [GrupoId]           UNIQUEIDENTIFIER NOT NULL,
-    [Porcentaje]        INT              NOT NULL,
-    [FechaModificacion] DATETIME2 (7)    NOT NULL,
-    CONSTRAINT [PK_Recaudo_PorcentajesGrupo] PRIMARY KEY CLUSTERED ([GrupoId] ASC)
-);
-
-
-GO
-PRINT N'Creando Tabla [recaudo].[Obligaciones]...';
-
-
-GO
-CREATE TABLE [recaudo].[Obligaciones] (
-    [ObligacionId]    UNIQUEIDENTIFIER NOT NULL,
-    [VendedorId]      UNIQUEIDENTIFIER NOT NULL,
-    [RecaudadorId]    UNIQUEIDENTIFIER NOT NULL,
-    [Fecha]           DATE             NOT NULL,
-    [TotalVendido]    DECIMAL (18, 2)  NOT NULL,
-    [Porcentaje]      INT              NOT NULL,
-    [ValorGenerado]   DECIMAL (18, 2)  NOT NULL,
-    [SaldoAnterior]   DECIMAL (18, 2)  NOT NULL,
-    [FechaGeneracion] DATETIME2 (7)    NOT NULL,
-    CONSTRAINT [PK_Recaudo_Obligaciones] PRIMARY KEY CLUSTERED ([ObligacionId] ASC),
-    CONSTRAINT [UQ_Recaudo_Obligaciones_VendedorFecha] UNIQUE NONCLUSTERED ([VendedorId] ASC, [Fecha] ASC)
-);
-
-
-GO
-PRINT N'Creando Tabla [recaudo].[AsignacionesGrupo]...';
-
-
-GO
-CREATE TABLE [recaudo].[AsignacionesGrupo] (
-    [AsignacionId]      UNIQUEIDENTIFIER NOT NULL,
-    [RecaudadorId]      UNIQUEIDENTIFIER NOT NULL,
-    [GrupoId]           UNIQUEIDENTIFIER NOT NULL,
-    [Porcentaje]        INT              NOT NULL,
-    [Estado]            NVARCHAR (20)    NOT NULL,
-    [FechaCreacion]     DATETIME2 (7)    NOT NULL,
-    [FechaModificacion] DATETIME2 (7)    NOT NULL,
-    CONSTRAINT [PK_Recaudo_AsignacionesGrupo] PRIMARY KEY CLUSTERED ([AsignacionId] ASC)
-);
-
-
-GO
-PRINT N'Creando Índice [recaudo].[AsignacionesGrupo].[UQ_Recaudo_AsignacionesGrupo_Activa]...';
-
-
-GO
-CREATE UNIQUE NONCLUSTERED INDEX [UQ_Recaudo_AsignacionesGrupo_Activa]
-    ON [recaudo].[AsignacionesGrupo]([GrupoId] ASC) WHERE ([Estado]=N'Activa');
-
-
-GO
-PRINT N'Creando Tabla [recaudo].[Auditoria]...';
-
-
-GO
-CREATE TABLE [recaudo].[Auditoria] (
-    [AuditoriaId]   UNIQUEIDENTIFIER NOT NULL,
-    [UsuarioId]     UNIQUEIDENTIFIER NOT NULL,
-    [FechaHora]     DATETIME2 (7)    NOT NULL,
-    [TipoOperacion] NVARCHAR (40)    NOT NULL,
-    [Valor]         DECIMAL (18, 2)  NULL,
-    [ObligacionId]  UNIQUEIDENTIFIER NULL,
-    [MovimientoId]  UNIQUEIDENTIFIER NOT NULL,
-    CONSTRAINT [PK_Recaudo_Auditoria] PRIMARY KEY CLUSTERED ([AuditoriaId] ASC)
+CREATE TABLE [recaudo].[TirillasCobro] (
+    [TirillaId]        UNIQUEIDENTIFIER NOT NULL,
+    [PagoId]           UNIQUEIDENTIFIER NOT NULL,
+    [Consecutivo]      INT              IDENTITY (1, 1) NOT NULL,
+    [RecaudadorNombre] NVARCHAR (200)   NOT NULL,
+    [VendedorNombre]   NVARCHAR (200)   NOT NULL,
+    [FechaHora]        DATETIME2 (7)    NOT NULL,
+    [ValorRecibido]    DECIMAL (18, 2)  NOT NULL,
+    [SaldoRestante]    DECIMAL (18, 2)  NOT NULL,
+    CONSTRAINT [PK_Recaudo_TirillasCobro] PRIMARY KEY CLUSTERED ([TirillaId] ASC),
+    CONSTRAINT [UQ_Recaudo_TirillasCobro_Pago] UNIQUE NONCLUSTERED ([PagoId] ASC)
 );
 
 
@@ -624,6 +791,45 @@ CREATE UNIQUE NONCLUSTERED INDEX [UQ_Recaudo_AsignacionesVendedor_Activa]
 
 
 GO
+PRINT N'Creando Tabla [recaudo].[AsignacionesGrupo]...';
+
+
+GO
+CREATE TABLE [recaudo].[AsignacionesGrupo] (
+    [AsignacionId]      UNIQUEIDENTIFIER NOT NULL,
+    [RecaudadorId]      UNIQUEIDENTIFIER NOT NULL,
+    [GrupoId]           UNIQUEIDENTIFIER NOT NULL,
+    [Porcentaje]        INT              NOT NULL,
+    [Estado]            NVARCHAR (20)    NOT NULL,
+    [FechaCreacion]     DATETIME2 (7)    NOT NULL,
+    [FechaModificacion] DATETIME2 (7)    NOT NULL,
+    CONSTRAINT [PK_Recaudo_AsignacionesGrupo] PRIMARY KEY CLUSTERED ([AsignacionId] ASC)
+);
+
+
+GO
+PRINT N'Creando Índice [recaudo].[AsignacionesGrupo].[UQ_Recaudo_AsignacionesGrupo_Activa]...';
+
+
+GO
+CREATE UNIQUE NONCLUSTERED INDEX [UQ_Recaudo_AsignacionesGrupo_Activa]
+    ON [recaudo].[AsignacionesGrupo]([GrupoId] ASC) WHERE ([Estado]=N'Activa');
+
+
+GO
+PRINT N'Creando Tabla [recaudo].[PorcentajesGrupo]...';
+
+
+GO
+CREATE TABLE [recaudo].[PorcentajesGrupo] (
+    [GrupoId]           UNIQUEIDENTIFIER NOT NULL,
+    [Porcentaje]        INT              NOT NULL,
+    [FechaModificacion] DATETIME2 (7)    NOT NULL,
+    CONSTRAINT [PK_Recaudo_PorcentajesGrupo] PRIMARY KEY CLUSTERED ([GrupoId] ASC)
+);
+
+
+GO
 PRINT N'Creando Tabla [recaudo].[HistorialConfiguracion]...';
 
 
@@ -640,21 +846,39 @@ CREATE TABLE [recaudo].[HistorialConfiguracion] (
 
 
 GO
-PRINT N'Creando Tabla [recaudo].[TirillasCobro]...';
+PRINT N'Creando Tabla [recaudo].[Obligaciones]...';
 
 
 GO
-CREATE TABLE [recaudo].[TirillasCobro] (
-    [TirillaId]        UNIQUEIDENTIFIER NOT NULL,
-    [PagoId]           UNIQUEIDENTIFIER NOT NULL,
-    [Consecutivo]      INT              IDENTITY (1, 1) NOT NULL,
-    [RecaudadorNombre] NVARCHAR (200)   NOT NULL,
-    [VendedorNombre]   NVARCHAR (200)   NOT NULL,
-    [FechaHora]        DATETIME2 (7)    NOT NULL,
-    [ValorRecibido]    DECIMAL (18, 2)  NOT NULL,
-    [SaldoRestante]    DECIMAL (18, 2)  NOT NULL,
-    CONSTRAINT [PK_Recaudo_TirillasCobro] PRIMARY KEY CLUSTERED ([TirillaId] ASC),
-    CONSTRAINT [UQ_Recaudo_TirillasCobro_Pago] UNIQUE NONCLUSTERED ([PagoId] ASC)
+CREATE TABLE [recaudo].[Obligaciones] (
+    [ObligacionId]    UNIQUEIDENTIFIER NOT NULL,
+    [VendedorId]      UNIQUEIDENTIFIER NOT NULL,
+    [RecaudadorId]    UNIQUEIDENTIFIER NOT NULL,
+    [Fecha]           DATE             NOT NULL,
+    [TotalVendido]    DECIMAL (18, 2)  NOT NULL,
+    [Porcentaje]      INT              NOT NULL,
+    [ValorGenerado]   DECIMAL (18, 2)  NOT NULL,
+    [SaldoAnterior]   DECIMAL (18, 2)  NOT NULL,
+    [FechaGeneracion] DATETIME2 (7)    NOT NULL,
+    CONSTRAINT [PK_Recaudo_Obligaciones] PRIMARY KEY CLUSTERED ([ObligacionId] ASC),
+    CONSTRAINT [UQ_Recaudo_Obligaciones_VendedorFecha] UNIQUE NONCLUSTERED ([VendedorId] ASC, [Fecha] ASC)
+);
+
+
+GO
+PRINT N'Creando Tabla [recaudo].[Auditoria]...';
+
+
+GO
+CREATE TABLE [recaudo].[Auditoria] (
+    [AuditoriaId]   UNIQUEIDENTIFIER NOT NULL,
+    [UsuarioId]     UNIQUEIDENTIFIER NOT NULL,
+    [FechaHora]     DATETIME2 (7)    NOT NULL,
+    [TipoOperacion] NVARCHAR (40)    NOT NULL,
+    [Valor]         DECIMAL (18, 2)  NULL,
+    [ObligacionId]  UNIQUEIDENTIFIER NULL,
+    [MovimientoId]  UNIQUEIDENTIFIER NOT NULL,
+    CONSTRAINT [PK_Recaudo_Auditoria] PRIMARY KEY CLUSTERED ([AuditoriaId] ASC)
 );
 
 
@@ -675,6 +899,106 @@ CREATE TABLE [recaudo].[Pagos] (
     CONSTRAINT [PK_Recaudo_Pagos] PRIMARY KEY CLUSTERED ([PagoId] ASC),
     CONSTRAINT [UQ_Recaudo_Pagos_Clave] UNIQUE NONCLUSTERED ([ClaveIdempotencia] ASC)
 );
+
+
+GO
+PRINT N'Creando Tabla [utilidades].[TiposGasto]...';
+
+
+GO
+CREATE TABLE [utilidades].[TiposGasto] (
+    [TipoGastoId]            UNIQUEIDENTIFIER NOT NULL,
+    [Nombre]                 NVARCHAR (80)    NOT NULL,
+    [Descripcion]            NVARCHAR (300)   NULL,
+    [Activo]                 BIT              NOT NULL,
+    [RequiereObservacion]    BIT              NOT NULL,
+    [FechaCreacion]          DATETIME2 (7)    NOT NULL,
+    [UsuarioCreacionId]      UNIQUEIDENTIFIER NOT NULL,
+    [FechaActualizacion]     DATETIME2 (7)    NULL,
+    [UsuarioActualizacionId] UNIQUEIDENTIFIER NULL,
+    CONSTRAINT [PK_utilidades_TiposGasto] PRIMARY KEY CLUSTERED ([TipoGastoId] ASC)
+);
+
+
+GO
+PRINT N'Creando Índice [utilidades].[TiposGasto].[UQ_utilidades_TiposGasto_Nombre]...';
+
+
+GO
+CREATE UNIQUE NONCLUSTERED INDEX [UQ_utilidades_TiposGasto_Nombre]
+    ON [utilidades].[TiposGasto]([Nombre] ASC);
+
+
+GO
+PRINT N'Creando Tabla [utilidades].[Gastos]...';
+
+
+GO
+CREATE TABLE [utilidades].[Gastos] (
+    [GastoId]                UNIQUEIDENTIFIER NOT NULL,
+    [TipoGastoId]            UNIQUEIDENTIFIER NOT NULL,
+    [FechaGasto]             DATE             NOT NULL,
+    [Valor]                  DECIMAL (18, 2)  NOT NULL,
+    [Observacion]            NVARCHAR (500)   NULL,
+    [UsuarioRegistroId]      UNIQUEIDENTIFIER NOT NULL,
+    [Estado]                 NVARCHAR (20)    NOT NULL,
+    [ClaveIdempotencia]      NVARCHAR (100)   NOT NULL,
+    [FechaCreacion]          DATETIME2 (7)    NOT NULL,
+    [FechaActualizacion]     DATETIME2 (7)    NULL,
+    [UsuarioActualizacionId] UNIQUEIDENTIFIER NULL,
+    CONSTRAINT [PK_utilidades_Gastos] PRIMARY KEY CLUSTERED ([GastoId] ASC)
+);
+
+
+GO
+PRINT N'Creando Índice [utilidades].[Gastos].[UQ_utilidades_Gastos_Clave]...';
+
+
+GO
+CREATE UNIQUE NONCLUSTERED INDEX [UQ_utilidades_Gastos_Clave]
+    ON [utilidades].[Gastos]([ClaveIdempotencia] ASC);
+
+
+GO
+PRINT N'Creando Índice [utilidades].[Gastos].[IX_utilidades_Gastos_Consulta]...';
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_utilidades_Gastos_Consulta]
+    ON [utilidades].[Gastos]([UsuarioRegistroId] ASC, [FechaGasto] ASC, [Estado] ASC);
+
+
+GO
+PRINT N'Creando Tabla [utilidades].[AuditoriaCambios]...';
+
+
+GO
+CREATE TABLE [utilidades].[AuditoriaCambios] (
+    [AuditoriaCambioGastoId] UNIQUEIDENTIFIER NOT NULL,
+    [GastoId]                UNIQUEIDENTIFIER NOT NULL,
+    [Accion]                 NVARCHAR (20)    NOT NULL,
+    [ValorAnterior]          DECIMAL (18, 2)  NOT NULL,
+    [ValorNuevo]             DECIMAL (18, 2)  NOT NULL,
+    [FechaAnterior]          DATE             NOT NULL,
+    [FechaNueva]             DATE             NOT NULL,
+    [TipoAnteriorId]         UNIQUEIDENTIFIER NOT NULL,
+    [TipoNuevoId]            UNIQUEIDENTIFIER NOT NULL,
+    [EstadoAnterior]         NVARCHAR (20)    NOT NULL,
+    [EstadoNuevo]            NVARCHAR (20)    NOT NULL,
+    [Motivo]                 NVARCHAR (300)   NOT NULL,
+    [UsuarioId]              UNIQUEIDENTIFIER NOT NULL,
+    [Fecha]                  DATETIME2 (7)    NOT NULL,
+    CONSTRAINT [PK_utilidades_AuditoriaCambios] PRIMARY KEY CLUSTERED ([AuditoriaCambioGastoId] ASC)
+);
+
+
+GO
+PRINT N'Creando Índice [utilidades].[AuditoriaCambios].[IX_utilidades_AuditoriaCambios_Gasto]...';
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_utilidades_AuditoriaCambios_Gasto]
+    ON [utilidades].[AuditoriaCambios]([GastoId] ASC);
 
 
 GO
@@ -1432,15 +1756,6 @@ CREATE TABLE [dbo].[Ventas] (
 
 
 GO
-PRINT N'Creando Índice [dbo].[Ventas].[IX_Ventas_IdempotencyKey]...';
-
-
-GO
-CREATE NONCLUSTERED INDEX [IX_Ventas_IdempotencyKey]
-    ON [dbo].[Ventas]([IdempotencyKey] ASC);
-
-
-GO
 PRINT N'Creando Índice [dbo].[Ventas].[IX_Ventas_FechaVenta_UsuarioId]...';
 
 
@@ -1450,20 +1765,12 @@ CREATE NONCLUSTERED INDEX [IX_Ventas_FechaVenta_UsuarioId]
 
 
 GO
-PRINT N'Creando Tabla [dbo].[VersionesAplicacion]...';
+PRINT N'Creando Índice [dbo].[Ventas].[IX_Ventas_IdempotencyKey]...';
 
 
 GO
-CREATE TABLE [dbo].[VersionesAplicacion] (
-    [VersionAplicacionId] UNIQUEIDENTIFIER NOT NULL,
-    [NumeroCompilacion]   INT              NOT NULL,
-    [NombreVersion]       NVARCHAR (20)    NOT NULL,
-    [NombreArchivo]       NVARCHAR (32)    NOT NULL,
-    [TamanoBytes]         BIGINT           NOT NULL,
-    [FechaPublicacion]    DATETIME2 (7)    NOT NULL,
-    CONSTRAINT [PK_VersionesAplicacion] PRIMARY KEY CLUSTERED ([VersionAplicacionId] ASC),
-    CONSTRAINT [UQ_VersionesAplicacion_Compilacion] UNIQUE NONCLUSTERED ([NumeroCompilacion] ASC)
-);
+CREATE NONCLUSTERED INDEX [IX_Ventas_IdempotencyKey]
+    ON [dbo].[Ventas]([IdempotencyKey] ASC);
 
 
 GO
@@ -1485,15 +1792,6 @@ ALTER TABLE [manual].[VentasJuegoNumeros]
 
 
 GO
-PRINT N'Creando Restricción DEFAULT [recaudo].[DF_Recaudo_AsignacionesGrupo_Estado]...';
-
-
-GO
-ALTER TABLE [recaudo].[AsignacionesGrupo]
-    ADD CONSTRAINT [DF_Recaudo_AsignacionesGrupo_Estado] DEFAULT (N'Activa') FOR [Estado];
-
-
-GO
 PRINT N'Creando Restricción DEFAULT [recaudo].[DF_Recaudo_AsignacionesVendedor_Estado]...';
 
 
@@ -1503,12 +1801,30 @@ ALTER TABLE [recaudo].[AsignacionesVendedor]
 
 
 GO
-PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[AdjuntosChat]...';
+PRINT N'Creando Restricción DEFAULT [recaudo].[DF_Recaudo_AsignacionesGrupo_Estado]...';
 
 
 GO
-ALTER TABLE [dbo].[AdjuntosChat]
-    ADD DEFAULT (newid()) FOR [AdjuntoId];
+ALTER TABLE [recaudo].[AsignacionesGrupo]
+    ADD CONSTRAINT [DF_Recaudo_AsignacionesGrupo_Estado] DEFAULT (N'Activa') FOR [Estado];
+
+
+GO
+PRINT N'Creando Restricción DEFAULT [utilidades].[DF_utilidades_TiposGasto_Activo]...';
+
+
+GO
+ALTER TABLE [utilidades].[TiposGasto]
+    ADD CONSTRAINT [DF_utilidades_TiposGasto_Activo] DEFAULT ((1)) FOR [Activo];
+
+
+GO
+PRINT N'Creando Restricción DEFAULT [utilidades].[DF_utilidades_TiposGasto_Observacion]...';
+
+
+GO
+ALTER TABLE [utilidades].[TiposGasto]
+    ADD CONSTRAINT [DF_utilidades_TiposGasto_Observacion] DEFAULT ((1)) FOR [RequiereObservacion];
 
 
 GO
@@ -1521,12 +1837,48 @@ ALTER TABLE [dbo].[AdjuntosChat]
 
 
 GO
+PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[AdjuntosChat]...';
+
+
+GO
+ALTER TABLE [dbo].[AdjuntosChat]
+    ADD DEFAULT (newid()) FOR [AdjuntoId];
+
+
+GO
 PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[AuditoriaRetencion]...';
 
 
 GO
 ALTER TABLE [dbo].[AuditoriaRetencion]
     ADD DEFAULT (newid()) FOR [AuditoriaRetencionId];
+
+
+GO
+PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[Boletos]...';
+
+
+GO
+ALTER TABLE [dbo].[Boletos]
+    ADD DEFAULT (sysutcdatetime()) FOR [FechaCreacion];
+
+
+GO
+PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[Boletos]...';
+
+
+GO
+ALTER TABLE [dbo].[Boletos]
+    ADD DEFAULT ('Jugado') FOR [EstadoBoleto];
+
+
+GO
+PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[Boletos]...';
+
+
+GO
+ALTER TABLE [dbo].[Boletos]
+    ADD DEFAULT ((30)) FOR [VigenciaDias];
 
 
 GO
@@ -1548,39 +1900,12 @@ ALTER TABLE [dbo].[Boletos]
 
 
 GO
-PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[Boletos]...';
-
-
-GO
-ALTER TABLE [dbo].[Boletos]
-    ADD DEFAULT (sysutcdatetime()) FOR [FechaCreacion];
-
-
-GO
-PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[Boletos]...';
-
-
-GO
-ALTER TABLE [dbo].[Boletos]
-    ADD DEFAULT ((30)) FOR [VigenciaDias];
-
-
-GO
-PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[Boletos]...';
-
-
-GO
-ALTER TABLE [dbo].[Boletos]
-    ADD DEFAULT ('Jugado') FOR [EstadoBoleto];
-
-
-GO
 PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[CasosGanadores]...';
 
 
 GO
 ALTER TABLE [dbo].[CasosGanadores]
-    ADD DEFAULT ('Reportado') FOR [Estado];
+    ADD DEFAULT (newid()) FOR [CasoId];
 
 
 GO
@@ -1598,16 +1923,7 @@ PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[CasosGana
 
 GO
 ALTER TABLE [dbo].[CasosGanadores]
-    ADD DEFAULT (newid()) FOR [CasoId];
-
-
-GO
-PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[ClavesValidacionBoleto]...';
-
-
-GO
-ALTER TABLE [dbo].[ClavesValidacionBoleto]
-    ADD DEFAULT (newid()) FOR [IdentificadorClave];
+    ADD DEFAULT ('Reportado') FOR [Estado];
 
 
 GO
@@ -1634,15 +1950,15 @@ PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[ClavesVal
 
 GO
 ALTER TABLE [dbo].[ClavesValidacionBoleto]
-    ADD DEFAULT (sysutcdatetime()) FOR [FechaCreacion];
+    ADD DEFAULT (newid()) FOR [IdentificadorClave];
 
 
 GO
-PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[CodigosPreventaOffline]...';
+PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[ClavesValidacionBoleto]...';
 
 
 GO
-ALTER TABLE [dbo].[CodigosPreventaOffline]
+ALTER TABLE [dbo].[ClavesValidacionBoleto]
     ADD DEFAULT (sysutcdatetime()) FOR [FechaCreacion];
 
 
@@ -1662,6 +1978,15 @@ PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[CodigosPr
 GO
 ALTER TABLE [dbo].[CodigosPreventaOffline]
     ADD DEFAULT ('Generado') FOR [EstadoDelCodigo];
+
+
+GO
+PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[CodigosPreventaOffline]...';
+
+
+GO
+ALTER TABLE [dbo].[CodigosPreventaOffline]
+    ADD DEFAULT (sysutcdatetime()) FOR [FechaCreacion];
 
 
 GO
@@ -1688,7 +2013,7 @@ PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[Configura
 
 GO
 ALTER TABLE [dbo].[ConfiguracionesTipoApuesta]
-    ADD DEFAULT (sysutcdatetime()) FOR [FechaActualizacion];
+    ADD DEFAULT (newid()) FOR [ConfiguracionTipoApuestaId];
 
 
 GO
@@ -1697,25 +2022,7 @@ PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[Configura
 
 GO
 ALTER TABLE [dbo].[ConfiguracionesTipoApuesta]
-    ADD DEFAULT (newid()) FOR [ConfiguracionTipoApuestaId];
-
-
-GO
-PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[Conversaciones]...';
-
-
-GO
-ALTER TABLE [dbo].[Conversaciones]
-    ADD DEFAULT (newid()) FOR [ConversacionId];
-
-
-GO
-PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[Conversaciones]...';
-
-
-GO
-ALTER TABLE [dbo].[Conversaciones]
-    ADD DEFAULT ('Abierta') FOR [Estado];
+    ADD DEFAULT (sysutcdatetime()) FOR [FechaActualizacion];
 
 
 GO
@@ -1737,12 +2044,30 @@ ALTER TABLE [dbo].[Conversaciones]
 
 
 GO
+PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[Conversaciones]...';
+
+
+GO
+ALTER TABLE [dbo].[Conversaciones]
+    ADD DEFAULT (newid()) FOR [ConversacionId];
+
+
+GO
+PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[Conversaciones]...';
+
+
+GO
+ALTER TABLE [dbo].[Conversaciones]
+    ADD DEFAULT ('Abierta') FOR [Estado];
+
+
+GO
 PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[Dispositivos]...';
 
 
 GO
 ALTER TABLE [dbo].[Dispositivos]
-    ADD DEFAULT (sysutcdatetime()) FOR [FechaRegistro];
+    ADD DEFAULT ('Vendedor') FOR [Tipo];
 
 
 GO
@@ -1769,7 +2094,7 @@ PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[Dispositi
 
 GO
 ALTER TABLE [dbo].[Dispositivos]
-    ADD DEFAULT ('Vendedor') FOR [Tipo];
+    ADD DEFAULT (sysutcdatetime()) FOR [FechaRegistro];
 
 
 GO
@@ -1787,7 +2112,7 @@ PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[Dispositi
 
 GO
 ALTER TABLE [dbo].[DispositivosUsuarios]
-    ADD DEFAULT ((1)) FOR [Activo];
+    ADD DEFAULT (sysutcdatetime()) FOR [FechaAsociacion];
 
 
 GO
@@ -1796,7 +2121,7 @@ PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[Dispositi
 
 GO
 ALTER TABLE [dbo].[DispositivosUsuarios]
-    ADD DEFAULT (sysutcdatetime()) FOR [FechaAsociacion];
+    ADD DEFAULT ((1)) FOR [Activo];
 
 
 GO
@@ -1859,7 +2184,7 @@ PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[IntentosF
 
 GO
 ALTER TABLE [dbo].[IntentosFallidos]
-    ADD DEFAULT ((0)) FOR [Exitoso];
+    ADD DEFAULT (sysutcdatetime()) FOR [FechaIntento];
 
 
 GO
@@ -1868,7 +2193,7 @@ PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[IntentosF
 
 GO
 ALTER TABLE [dbo].[IntentosFallidos]
-    ADD DEFAULT (sysutcdatetime()) FOR [FechaIntento];
+    ADD DEFAULT ((0)) FOR [Exitoso];
 
 
 GO
@@ -1908,33 +2233,6 @@ ALTER TABLE [dbo].[LlavesAdministrador]
 
 
 GO
-PRINT N'Creando Restricción DEFAULT [dbo].[DF_Loterias_Tope]...';
-
-
-GO
-ALTER TABLE [dbo].[Loterias]
-    ADD CONSTRAINT [DF_Loterias_Tope] DEFAULT ((1000)) FOR [Tope];
-
-
-GO
-PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[Loterias]...';
-
-
-GO
-ALTER TABLE [dbo].[Loterias]
-    ADD DEFAULT ('Activo') FOR [Estado];
-
-
-GO
-PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[Loterias]...';
-
-
-GO
-ALTER TABLE [dbo].[Loterias]
-    ADD DEFAULT (sysutcdatetime()) FOR [FechaCreacion];
-
-
-GO
 PRINT N'Creando Restricción DEFAULT [dbo].[DF_Loterias_HoraFin]...';
 
 
@@ -1949,7 +2247,34 @@ PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[Loterias]
 
 GO
 ALTER TABLE [dbo].[Loterias]
+    ADD DEFAULT (sysutcdatetime()) FOR [FechaCreacion];
+
+
+GO
+PRINT N'Creando Restricción DEFAULT [dbo].[DF_Loterias_Tope]...';
+
+
+GO
+ALTER TABLE [dbo].[Loterias]
+    ADD CONSTRAINT [DF_Loterias_Tope] DEFAULT ((1000)) FOR [Tope];
+
+
+GO
+PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[Loterias]...';
+
+
+GO
+ALTER TABLE [dbo].[Loterias]
     ADD DEFAULT (newid()) FOR [LoteriaId];
+
+
+GO
+PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[Loterias]...';
+
+
+GO
+ALTER TABLE [dbo].[Loterias]
+    ADD DEFAULT ('Activo') FOR [Estado];
 
 
 GO
@@ -1976,7 +2301,7 @@ PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[Mensajes]
 
 GO
 ALTER TABLE [dbo].[Mensajes]
-    ADD DEFAULT ((0)) FOR [Permanente];
+    ADD DEFAULT (newid()) FOR [MensajeId];
 
 
 GO
@@ -1994,7 +2319,7 @@ PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[Mensajes]
 
 GO
 ALTER TABLE [dbo].[Mensajes]
-    ADD DEFAULT (newid()) FOR [MensajeId];
+    ADD DEFAULT ((0)) FOR [Permanente];
 
 
 GO
@@ -2066,7 +2391,7 @@ PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[Sesiones]
 
 GO
 ALTER TABLE [dbo].[Sesiones]
-    ADD DEFAULT ((1)) FOR [Activa];
+    ADD DEFAULT (newid()) FOR [SesionId];
 
 
 GO
@@ -2075,7 +2400,7 @@ PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[Sesiones]
 
 GO
 ALTER TABLE [dbo].[Sesiones]
-    ADD DEFAULT (newid()) FOR [SesionId];
+    ADD DEFAULT ((1)) FOR [Activa];
 
 
 GO
@@ -2111,34 +2436,7 @@ PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[Usuarios]
 
 GO
 ALTER TABLE [dbo].[Usuarios]
-    ADD DEFAULT (sysutcdatetime()) FOR [FechaCreacion];
-
-
-GO
-PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[Usuarios]...';
-
-
-GO
-ALTER TABLE [dbo].[Usuarios]
-    ADD DEFAULT ((0)) FOR [EstadoBloqueado];
-
-
-GO
-PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[Usuarios]...';
-
-
-GO
-ALTER TABLE [dbo].[Usuarios]
-    ADD DEFAULT (newid()) FOR [UsuarioId];
-
-
-GO
-PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[Usuarios]...';
-
-
-GO
-ALTER TABLE [dbo].[Usuarios]
-    ADD DEFAULT ('Vendedor') FOR [Rol];
+    ADD DEFAULT ('Activo') FOR [Estado];
 
 
 GO
@@ -2156,7 +2454,16 @@ PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[Usuarios]
 
 GO
 ALTER TABLE [dbo].[Usuarios]
-    ADD DEFAULT ('Activo') FOR [Estado];
+    ADD DEFAULT ((0)) FOR [EstadoBloqueado];
+
+
+GO
+PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[Usuarios]...';
+
+
+GO
+ALTER TABLE [dbo].[Usuarios]
+    ADD DEFAULT (sysutcdatetime()) FOR [FechaCreacion];
 
 
 GO
@@ -2166,6 +2473,24 @@ PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[Usuarios]
 GO
 ALTER TABLE [dbo].[Usuarios]
     ADD DEFAULT ((1)) FOR [EstadoValidado];
+
+
+GO
+PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[Usuarios]...';
+
+
+GO
+ALTER TABLE [dbo].[Usuarios]
+    ADD DEFAULT ('Vendedor') FOR [Rol];
+
+
+GO
+PRINT N'Creando Restricción DEFAULT restricción sin nombre en [dbo].[Usuarios]...';
+
+
+GO
+ALTER TABLE [dbo].[Usuarios]
+    ADD DEFAULT (newid()) FOR [UsuarioId];
 
 
 GO
@@ -2187,66 +2512,12 @@ ALTER TABLE [dbo].[Ventas]
 
 
 GO
-PRINT N'Creando Restricción DEFAULT [dbo].[DF_VersionesAplicacion_VersionAplicacionId]...';
+PRINT N'Creando Clave externa [manual].[FK_manual_Boletos_Ventas]...';
 
 
 GO
-ALTER TABLE [dbo].[VersionesAplicacion]
-    ADD CONSTRAINT [DF_VersionesAplicacion_VersionAplicacionId] DEFAULT (newid()) FOR [VersionAplicacionId];
-
-
-GO
-PRINT N'Creando Restricción DEFAULT [dbo].[DF_VersionesAplicacion_FechaPublicacion]...';
-
-
-GO
-ALTER TABLE [dbo].[VersionesAplicacion]
-    ADD CONSTRAINT [DF_VersionesAplicacion_FechaPublicacion] DEFAULT (sysutcdatetime()) FOR [FechaPublicacion];
-
-
-GO
-PRINT N'Creando Clave externa [manual].[FK_manual_RegistroJuegoFilas_Loterias]...';
-
-
-GO
-ALTER TABLE [manual].[RegistroJuegoFilas]
-    ADD CONSTRAINT [FK_manual_RegistroJuegoFilas_Loterias] FOREIGN KEY ([LoteriaId]) REFERENCES [dbo].[Loterias] ([LoteriaId]);
-
-
-GO
-PRINT N'Creando Clave externa [manual].[FK_manual_RegistroJuegoFilas_Registros]...';
-
-
-GO
-ALTER TABLE [manual].[RegistroJuegoFilas]
-    ADD CONSTRAINT [FK_manual_RegistroJuegoFilas_Registros] FOREIGN KEY ([RegistroId]) REFERENCES [manual].[RegistrosJuego] ([RegistroId]);
-
-
-GO
-PRINT N'Creando Clave externa [manual].[FK_manual_Ventas_Usuarios]...';
-
-
-GO
-ALTER TABLE [manual].[Ventas]
-    ADD CONSTRAINT [FK_manual_Ventas_Usuarios] FOREIGN KEY ([UsuarioId]) REFERENCES [dbo].[Usuarios] ([UsuarioId]);
-
-
-GO
-PRINT N'Creando Clave externa [manual].[FK_manual_JuegoLoterias_Loterias]...';
-
-
-GO
-ALTER TABLE [manual].[JuegoLoterias]
-    ADD CONSTRAINT [FK_manual_JuegoLoterias_Loterias] FOREIGN KEY ([LoteriaId]) REFERENCES [dbo].[Loterias] ([LoteriaId]);
-
-
-GO
-PRINT N'Creando Clave externa [manual].[FK_manual_JuegoLoterias_Juegos]...';
-
-
-GO
-ALTER TABLE [manual].[JuegoLoterias]
-    ADD CONSTRAINT [FK_manual_JuegoLoterias_Juegos] FOREIGN KEY ([JuegoId]) REFERENCES [manual].[Juegos] ([JuegoId]);
+ALTER TABLE [manual].[Boletos]
+    ADD CONSTRAINT [FK_manual_Boletos_Ventas] FOREIGN KEY ([VentaId]) REFERENCES [manual].[Ventas] ([VentaId]);
 
 
 GO
@@ -2259,12 +2530,12 @@ ALTER TABLE [manual].[RegistrosJuego]
 
 
 GO
-PRINT N'Creando Clave externa [manual].[FK_manual_RegistroJuegoNumerosWebApuestas_Registros]...';
+PRINT N'Creando Clave externa [manual].[FK_manual_VentasJuegoNumeros_Ventas]...';
 
 
 GO
-ALTER TABLE [manual].[RegistroJuegoNumerosWebApuestas]
-    ADD CONSTRAINT [FK_manual_RegistroJuegoNumerosWebApuestas_Registros] FOREIGN KEY ([RegistroId]) REFERENCES [manual].[RegistrosJuegoNumerosWeb] ([RegistroId]);
+ALTER TABLE [manual].[VentasJuegoNumeros]
+    ADD CONSTRAINT [FK_manual_VentasJuegoNumeros_Ventas] FOREIGN KEY ([VentaId]) REFERENCES [dbo].[Ventas] ([VentaId]);
 
 
 GO
@@ -2277,21 +2548,12 @@ ALTER TABLE [manual].[RegistroJuegoNumerosWebApuestas]
 
 
 GO
-PRINT N'Creando Clave externa [manual].[FK_manual_RevisadaManualOperaciones_Loterias]...';
+PRINT N'Creando Clave externa [manual].[FK_manual_RegistroJuegoNumerosWebApuestas_Registros]...';
 
 
 GO
-ALTER TABLE [manual].[RevisadaManualOperaciones]
-    ADD CONSTRAINT [FK_manual_RevisadaManualOperaciones_Loterias] FOREIGN KEY ([LoteriaId]) REFERENCES [dbo].[Loterias] ([LoteriaId]);
-
-
-GO
-PRINT N'Creando Clave externa [manual].[FK_manual_RevisadaManualOperaciones_Usuarios]...';
-
-
-GO
-ALTER TABLE [manual].[RevisadaManualOperaciones]
-    ADD CONSTRAINT [FK_manual_RevisadaManualOperaciones_Usuarios] FOREIGN KEY ([UsuarioId]) REFERENCES [dbo].[Usuarios] ([UsuarioId]);
+ALTER TABLE [manual].[RegistroJuegoNumerosWebApuestas]
+    ADD CONSTRAINT [FK_manual_RegistroJuegoNumerosWebApuestas_Registros] FOREIGN KEY ([RegistroId]) REFERENCES [manual].[RegistrosJuegoNumerosWeb] ([RegistroId]);
 
 
 GO
@@ -2304,12 +2566,75 @@ ALTER TABLE [manual].[RevisadaManualLineas]
 
 
 GO
-PRINT N'Creando Clave externa [manual].[FK_manual_VentasJuegoNumeros_Ventas]...';
+PRINT N'Creando Clave externa [manual].[FK_manual_RegistroJuegoFilas_Registros]...';
 
 
 GO
-ALTER TABLE [manual].[VentasJuegoNumeros]
-    ADD CONSTRAINT [FK_manual_VentasJuegoNumeros_Ventas] FOREIGN KEY ([VentaId]) REFERENCES [dbo].[Ventas] ([VentaId]);
+ALTER TABLE [manual].[RegistroJuegoFilas]
+    ADD CONSTRAINT [FK_manual_RegistroJuegoFilas_Registros] FOREIGN KEY ([RegistroId]) REFERENCES [manual].[RegistrosJuego] ([RegistroId]);
+
+
+GO
+PRINT N'Creando Clave externa [manual].[FK_manual_RegistroJuegoFilas_Loterias]...';
+
+
+GO
+ALTER TABLE [manual].[RegistroJuegoFilas]
+    ADD CONSTRAINT [FK_manual_RegistroJuegoFilas_Loterias] FOREIGN KEY ([LoteriaId]) REFERENCES [dbo].[Loterias] ([LoteriaId]);
+
+
+GO
+PRINT N'Creando Clave externa [manual].[FK_manual_PremiosEntregadosWeb_Usuarios]...';
+
+
+GO
+ALTER TABLE [manual].[PremiosEntregadosWeb]
+    ADD CONSTRAINT [FK_manual_PremiosEntregadosWeb_Usuarios] FOREIGN KEY ([VendedorId]) REFERENCES [dbo].[Usuarios] ([UsuarioId]);
+
+
+GO
+PRINT N'Creando Clave externa [manual].[FK_manual_PremiosEntregadosWeb_Loterias]...';
+
+
+GO
+ALTER TABLE [manual].[PremiosEntregadosWeb]
+    ADD CONSTRAINT [FK_manual_PremiosEntregadosWeb_Loterias] FOREIGN KEY ([LoteriaId]) REFERENCES [dbo].[Loterias] ([LoteriaId]);
+
+
+GO
+PRINT N'Creando Clave externa [manual].[FK_manual_RevisadaManualOperaciones_Usuarios]...';
+
+
+GO
+ALTER TABLE [manual].[RevisadaManualOperaciones]
+    ADD CONSTRAINT [FK_manual_RevisadaManualOperaciones_Usuarios] FOREIGN KEY ([UsuarioId]) REFERENCES [dbo].[Usuarios] ([UsuarioId]);
+
+
+GO
+PRINT N'Creando Clave externa [manual].[FK_manual_RevisadaManualOperaciones_Loterias]...';
+
+
+GO
+ALTER TABLE [manual].[RevisadaManualOperaciones]
+    ADD CONSTRAINT [FK_manual_RevisadaManualOperaciones_Loterias] FOREIGN KEY ([LoteriaId]) REFERENCES [dbo].[Loterias] ([LoteriaId]);
+
+
+GO
+PRINT N'Creando Clave externa [manual].[FK_manual_JuegoLoterias_Juegos]...';
+
+
+GO
+ALTER TABLE [manual].[JuegoLoterias]
+    ADD CONSTRAINT [FK_manual_JuegoLoterias_Juegos] FOREIGN KEY ([JuegoId]) REFERENCES [manual].[Juegos] ([JuegoId]);
+
+
+GO
+PRINT N'Creando Clave externa [manual].[FK_manual_JuegoLoterias_Loterias]...';
+
+
+GO
+ALTER TABLE [manual].[JuegoLoterias]
+    ADD CONSTRAINT [FK_manual_JuegoLoterias_Loterias] FOREIGN KEY ([LoteriaId]) REFERENCES [dbo].[Loterias] ([LoteriaId]);
 
 
 GO
@@ -2331,12 +2656,21 @@ ALTER TABLE [manual].[RegistrosJuegoNumerosWeb]
 
 
 GO
-PRINT N'Creando Clave externa [manual].[FK_manual_Boletos_Ventas]...';
+PRINT N'Creando Clave externa [manual].[FK_manual_VentasRegistradasWeb_Usuarios]...';
 
 
 GO
-ALTER TABLE [manual].[Boletos]
-    ADD CONSTRAINT [FK_manual_Boletos_Ventas] FOREIGN KEY ([VentaId]) REFERENCES [manual].[Ventas] ([VentaId]);
+ALTER TABLE [manual].[VentasRegistradasWeb]
+    ADD CONSTRAINT [FK_manual_VentasRegistradasWeb_Usuarios] FOREIGN KEY ([VendedorId]) REFERENCES [dbo].[Usuarios] ([UsuarioId]);
+
+
+GO
+PRINT N'Creando Clave externa [manual].[FK_manual_Ventas_Usuarios]...';
+
+
+GO
+ALTER TABLE [manual].[Ventas]
+    ADD CONSTRAINT [FK_manual_Ventas_Usuarios] FOREIGN KEY ([UsuarioId]) REFERENCES [dbo].[Usuarios] ([UsuarioId]);
 
 
 GO
@@ -2358,21 +2692,30 @@ ALTER TABLE [recaudo].[Pagos]
 
 
 GO
+PRINT N'Creando Clave externa [utilidades].[FK_utilidades_Gastos_TiposGasto]...';
+
+
+GO
+ALTER TABLE [utilidades].[Gastos]
+    ADD CONSTRAINT [FK_utilidades_Gastos_TiposGasto] FOREIGN KEY ([TipoGastoId]) REFERENCES [utilidades].[TiposGasto] ([TipoGastoId]);
+
+
+GO
+PRINT N'Creando Clave externa [utilidades].[FK_utilidades_AuditoriaCambios_Gastos]...';
+
+
+GO
+ALTER TABLE [utilidades].[AuditoriaCambios]
+    ADD CONSTRAINT [FK_utilidades_AuditoriaCambios_Gastos] FOREIGN KEY ([GastoId]) REFERENCES [utilidades].[Gastos] ([GastoId]);
+
+
+GO
 PRINT N'Creando Clave externa [dbo].[FK_AdjuntosChat_Mensajes]...';
 
 
 GO
 ALTER TABLE [dbo].[AdjuntosChat]
     ADD CONSTRAINT [FK_AdjuntosChat_Mensajes] FOREIGN KEY ([MensajeId]) REFERENCES [dbo].[Mensajes] ([MensajeId]);
-
-
-GO
-PRINT N'Creando Clave externa [dbo].[FK_Boletos_CasosGanadores]...';
-
-
-GO
-ALTER TABLE [dbo].[Boletos]
-    ADD CONSTRAINT [FK_Boletos_CasosGanadores] FOREIGN KEY ([CasoGanadorId]) REFERENCES [dbo].[CasosGanadores] ([CasoId]);
 
 
 GO
@@ -2385,12 +2728,21 @@ ALTER TABLE [dbo].[Boletos]
 
 
 GO
-PRINT N'Creando Clave externa [dbo].[FK_CasosGanadores_AdminValido]...';
+PRINT N'Creando Clave externa [dbo].[FK_Boletos_CasosGanadores]...';
+
+
+GO
+ALTER TABLE [dbo].[Boletos]
+    ADD CONSTRAINT [FK_Boletos_CasosGanadores] FOREIGN KEY ([CasoGanadorId]) REFERENCES [dbo].[CasosGanadores] ([CasoId]);
+
+
+GO
+PRINT N'Creando Clave externa [dbo].[FK_CasosGanadores_Boletos]...';
 
 
 GO
 ALTER TABLE [dbo].[CasosGanadores]
-    ADD CONSTRAINT [FK_CasosGanadores_AdminValido] FOREIGN KEY ([AdminQueValido]) REFERENCES [dbo].[Usuarios] ([UsuarioId]);
+    ADD CONSTRAINT [FK_CasosGanadores_Boletos] FOREIGN KEY ([BoletoId]) REFERENCES [dbo].[Boletos] ([BoletoId]);
 
 
 GO
@@ -2403,12 +2755,12 @@ ALTER TABLE [dbo].[CasosGanadores]
 
 
 GO
-PRINT N'Creando Clave externa [dbo].[FK_CasosGanadores_Observador]...';
+PRINT N'Creando Clave externa [dbo].[FK_CasosGanadores_AdminValido]...';
 
 
 GO
 ALTER TABLE [dbo].[CasosGanadores]
-    ADD CONSTRAINT [FK_CasosGanadores_Observador] FOREIGN KEY ([ObservadorAsignado]) REFERENCES [dbo].[Usuarios] ([UsuarioId]);
+    ADD CONSTRAINT [FK_CasosGanadores_AdminValido] FOREIGN KEY ([AdminQueValido]) REFERENCES [dbo].[Usuarios] ([UsuarioId]);
 
 
 GO
@@ -2421,12 +2773,12 @@ ALTER TABLE [dbo].[CasosGanadores]
 
 
 GO
-PRINT N'Creando Clave externa [dbo].[FK_CasosGanadores_Boletos]...';
+PRINT N'Creando Clave externa [dbo].[FK_CasosGanadores_Observador]...';
 
 
 GO
 ALTER TABLE [dbo].[CasosGanadores]
-    ADD CONSTRAINT [FK_CasosGanadores_Boletos] FOREIGN KEY ([BoletoId]) REFERENCES [dbo].[Boletos] ([BoletoId]);
+    ADD CONSTRAINT [FK_CasosGanadores_Observador] FOREIGN KEY ([ObservadorAsignado]) REFERENCES [dbo].[Usuarios] ([UsuarioId]);
 
 
 GO
@@ -2457,21 +2809,21 @@ ALTER TABLE [dbo].[CodigosPreventaOffline]
 
 
 GO
-PRINT N'Creando Clave externa [dbo].[FK_CodigosPreventaOffline_Ventas]...';
-
-
-GO
-ALTER TABLE [dbo].[CodigosPreventaOffline]
-    ADD CONSTRAINT [FK_CodigosPreventaOffline_Ventas] FOREIGN KEY ([VentaId]) REFERENCES [dbo].[Ventas] ([VentaId]);
-
-
-GO
 PRINT N'Creando Clave externa [dbo].[FK_CodigosPreventaOffline_Dispositivos]...';
 
 
 GO
 ALTER TABLE [dbo].[CodigosPreventaOffline]
     ADD CONSTRAINT [FK_CodigosPreventaOffline_Dispositivos] FOREIGN KEY ([DispositivoId]) REFERENCES [dbo].[Dispositivos] ([DispositivoId]);
+
+
+GO
+PRINT N'Creando Clave externa [dbo].[FK_CodigosPreventaOffline_Ventas]...';
+
+
+GO
+ALTER TABLE [dbo].[CodigosPreventaOffline]
+    ADD CONSTRAINT [FK_CodigosPreventaOffline_Ventas] FOREIGN KEY ([VentaId]) REFERENCES [dbo].[Ventas] ([VentaId]);
 
 
 GO
@@ -2493,21 +2845,21 @@ ALTER TABLE [dbo].[Conversaciones]
 
 
 GO
-PRINT N'Creando Clave externa [dbo].[FK_DispositivosUsuarios_Dispositivos]...';
-
-
-GO
-ALTER TABLE [dbo].[DispositivosUsuarios]
-    ADD CONSTRAINT [FK_DispositivosUsuarios_Dispositivos] FOREIGN KEY ([DispositivoId]) REFERENCES [dbo].[Dispositivos] ([DispositivoId]);
-
-
-GO
 PRINT N'Creando Clave externa [dbo].[FK_DispositivosUsuarios_Usuarios]...';
 
 
 GO
 ALTER TABLE [dbo].[DispositivosUsuarios]
     ADD CONSTRAINT [FK_DispositivosUsuarios_Usuarios] FOREIGN KEY ([UsuarioId]) REFERENCES [dbo].[Usuarios] ([UsuarioId]);
+
+
+GO
+PRINT N'Creando Clave externa [dbo].[FK_DispositivosUsuarios_Dispositivos]...';
+
+
+GO
+ALTER TABLE [dbo].[DispositivosUsuarios]
+    ADD CONSTRAINT [FK_DispositivosUsuarios_Dispositivos] FOREIGN KEY ([DispositivoId]) REFERENCES [dbo].[Dispositivos] ([DispositivoId]);
 
 
 GO
@@ -2547,21 +2899,21 @@ ALTER TABLE [dbo].[IntentosFallidos]
 
 
 GO
-PRINT N'Creando Clave externa [dbo].[FK_JuegoLoteria_Loterias]...';
-
-
-GO
-ALTER TABLE [dbo].[JuegoLoteria]
-    ADD CONSTRAINT [FK_JuegoLoteria_Loterias] FOREIGN KEY ([LoteriaId]) REFERENCES [dbo].[Loterias] ([LoteriaId]);
-
-
-GO
 PRINT N'Creando Clave externa [dbo].[FK_JuegoLoteria_Juegos]...';
 
 
 GO
 ALTER TABLE [dbo].[JuegoLoteria]
     ADD CONSTRAINT [FK_JuegoLoteria_Juegos] FOREIGN KEY ([JuegoId]) REFERENCES [dbo].[Juegos] ([JuegoId]);
+
+
+GO
+PRINT N'Creando Clave externa [dbo].[FK_JuegoLoteria_Loterias]...';
+
+
+GO
+ALTER TABLE [dbo].[JuegoLoteria]
+    ADD CONSTRAINT [FK_JuegoLoteria_Loterias] FOREIGN KEY ([LoteriaId]) REFERENCES [dbo].[Loterias] ([LoteriaId]);
 
 
 GO
@@ -2664,21 +3016,21 @@ ALTER TABLE [dbo].[Sincronizaciones]
 
 
 GO
-PRINT N'Creando Clave externa [dbo].[FK_UsuariosGrupos_Grupos]...';
-
-
-GO
-ALTER TABLE [dbo].[UsuariosGrupos]
-    ADD CONSTRAINT [FK_UsuariosGrupos_Grupos] FOREIGN KEY ([GrupoId]) REFERENCES [dbo].[Grupos] ([GrupoId]);
-
-
-GO
 PRINT N'Creando Clave externa [dbo].[FK_UsuariosGrupos_Usuarios]...';
 
 
 GO
 ALTER TABLE [dbo].[UsuariosGrupos]
     ADD CONSTRAINT [FK_UsuariosGrupos_Usuarios] FOREIGN KEY ([UsuarioId]) REFERENCES [dbo].[Usuarios] ([UsuarioId]);
+
+
+GO
+PRINT N'Creando Clave externa [dbo].[FK_UsuariosGrupos_Grupos]...';
+
+
+GO
+ALTER TABLE [dbo].[UsuariosGrupos]
+    ADD CONSTRAINT [FK_UsuariosGrupos_Grupos] FOREIGN KEY ([GrupoId]) REFERENCES [dbo].[Grupos] ([GrupoId]);
 
 
 GO
@@ -2718,24 +3070,6 @@ ALTER TABLE [dbo].[Ventas]
 
 
 GO
-PRINT N'Creando Restricción CHECK [manual].[CK_manual_Ventas_TipoApuesta]...';
-
-
-GO
-ALTER TABLE [manual].[Ventas]
-    ADD CONSTRAINT [CK_manual_Ventas_TipoApuesta] CHECK ([TipoApuesta]='INDIVIDUAL' OR [TipoApuesta]='COMBINADO');
-
-
-GO
-PRINT N'Creando Restricción CHECK [manual].[CK_manual_RegistroJuegoNumerosWebApuestas_Valor]...';
-
-
-GO
-ALTER TABLE [manual].[RegistroJuegoNumerosWebApuestas]
-    ADD CONSTRAINT [CK_manual_RegistroJuegoNumerosWebApuestas_Valor] CHECK ([Valor]>(0));
-
-
-GO
 PRINT N'Creando Restricción CHECK [manual].[CK_manual_VentasJuegoNumeros_Valor]...';
 
 
@@ -2751,6 +3085,24 @@ PRINT N'Creando Restricción CHECK [manual].[CK_manual_VentasJuegoNumeros_Cantid
 GO
 ALTER TABLE [manual].[VentasJuegoNumeros]
     ADD CONSTRAINT [CK_manual_VentasJuegoNumeros_Cantidades] CHECK ([CantidadApuestas]=[CantidadNumeros]*[CantidadLoterias]);
+
+
+GO
+PRINT N'Creando Restricción CHECK [manual].[CK_manual_RegistroJuegoNumerosWebApuestas_Valor]...';
+
+
+GO
+ALTER TABLE [manual].[RegistroJuegoNumerosWebApuestas]
+    ADD CONSTRAINT [CK_manual_RegistroJuegoNumerosWebApuestas_Valor] CHECK ([Valor]>(0));
+
+
+GO
+PRINT N'Creando Restricción CHECK [manual].[CK_manual_PremiosEntregadosWeb_Valores]...';
+
+
+GO
+ALTER TABLE [manual].[PremiosEntregadosWeb]
+    ADD CONSTRAINT [CK_manual_PremiosEntregadosWeb_Valores] CHECK ([ValorApostado]>(0) AND [ValorPremio]>(0));
 
 
 GO
@@ -2772,12 +3124,30 @@ ALTER TABLE [manual].[RegistrosJuegoNumerosWeb]
 
 
 GO
-PRINT N'Creando Restricción CHECK [recaudo].[CK_Recaudo_PorcentajesGrupo_Porcentaje]...';
+PRINT N'Creando Restricción CHECK [manual].[CK_manual_VentasRegistradasWeb_Valor]...';
 
 
 GO
-ALTER TABLE [recaudo].[PorcentajesGrupo]
-    ADD CONSTRAINT [CK_Recaudo_PorcentajesGrupo_Porcentaje] CHECK ([Porcentaje]>=(1) AND [Porcentaje]<=(100));
+ALTER TABLE [manual].[VentasRegistradasWeb]
+    ADD CONSTRAINT [CK_manual_VentasRegistradasWeb_Valor] CHECK ([Valor]>(0));
+
+
+GO
+PRINT N'Creando Restricción CHECK [manual].[CK_manual_Ventas_TipoApuesta]...';
+
+
+GO
+ALTER TABLE [manual].[Ventas]
+    ADD CONSTRAINT [CK_manual_Ventas_TipoApuesta] CHECK ([TipoApuesta]='INDIVIDUAL' OR [TipoApuesta]='COMBINADO');
+
+
+GO
+PRINT N'Creando Restricción CHECK [recaudo].[CK_Recaudo_AsignacionesVendedor_Porcentaje]...';
+
+
+GO
+ALTER TABLE [recaudo].[AsignacionesVendedor]
+    ADD CONSTRAINT [CK_Recaudo_AsignacionesVendedor_Porcentaje] CHECK ([Porcentaje]>=(1) AND [Porcentaje]<=(100));
 
 
 GO
@@ -2790,12 +3160,30 @@ ALTER TABLE [recaudo].[AsignacionesGrupo]
 
 
 GO
-PRINT N'Creando Restricción CHECK [recaudo].[CK_Recaudo_AsignacionesVendedor_Porcentaje]...';
+PRINT N'Creando Restricción CHECK [recaudo].[CK_Recaudo_PorcentajesGrupo_Porcentaje]...';
 
 
 GO
-ALTER TABLE [recaudo].[AsignacionesVendedor]
-    ADD CONSTRAINT [CK_Recaudo_AsignacionesVendedor_Porcentaje] CHECK ([Porcentaje]>=(1) AND [Porcentaje]<=(100));
+ALTER TABLE [recaudo].[PorcentajesGrupo]
+    ADD CONSTRAINT [CK_Recaudo_PorcentajesGrupo_Porcentaje] CHECK ([Porcentaje]>=(1) AND [Porcentaje]<=(100));
+
+
+GO
+PRINT N'Creando Restricción CHECK [utilidades].[CK_utilidades_Gastos_Valor]...';
+
+
+GO
+ALTER TABLE [utilidades].[Gastos]
+    ADD CONSTRAINT [CK_utilidades_Gastos_Valor] CHECK ([Valor]>(0));
+
+
+GO
+PRINT N'Creando Restricción CHECK [utilidades].[CK_utilidades_Gastos_Estado]...';
+
+
+GO
+ALTER TABLE [utilidades].[Gastos]
+    ADD CONSTRAINT [CK_utilidades_Gastos_Estado] CHECK ([Estado]=N'Anulado' OR [Estado]=N'Activo');
 
 
 GO
@@ -2826,21 +3214,21 @@ ALTER TABLE [dbo].[CodigosPreventaOffline]
 
 
 GO
-PRINT N'Creando Restricción CHECK [dbo].[CK_ConfiguracionesTipoApuesta_Maximo]...';
-
-
-GO
-ALTER TABLE [dbo].[ConfiguracionesTipoApuesta]
-    ADD CONSTRAINT [CK_ConfiguracionesTipoApuesta_Maximo] CHECK ([Maximo]>(0));
-
-
-GO
 PRINT N'Creando Restricción CHECK [dbo].[CK_ConfiguracionesTipoApuesta_Tipo]...';
 
 
 GO
 ALTER TABLE [dbo].[ConfiguracionesTipoApuesta]
     ADD CONSTRAINT [CK_ConfiguracionesTipoApuesta_Tipo] CHECK ([TipoApuesta]='INDIVIDUAL' OR [TipoApuesta]='COMBINADO');
+
+
+GO
+PRINT N'Creando Restricción CHECK [dbo].[CK_ConfiguracionesTipoApuesta_Maximo]...';
+
+
+GO
+ALTER TABLE [dbo].[ConfiguracionesTipoApuesta]
+    ADD CONSTRAINT [CK_ConfiguracionesTipoApuesta_Maximo] CHECK ([Maximo]>(0));
 
 
 GO
@@ -2961,141 +3349,6 @@ ALTER TABLE [dbo].[Ventas]
 
 
 GO
-PRINT N'Creando Procedimiento [manual].[ConsultarVentas]...';
-
-
-GO
-CREATE   PROCEDURE manual.ConsultarVentas
-    @UsuarioId uniqueidentifier,
-    @Desde datetime2,
-    @Hasta datetime2
-AS
-BEGIN
-    SET NOCOUNT ON;
-    SELECT
-        v.VentaId,
-        v.UsuarioId,
-        v.FechaVenta,
-        v.Total,
-        v.TipoApuesta,
-        v.IdempotencyKey,
-        b.BoletoId,
-        b.CodigoPublico,
-        b.VigenciaDias,
-        j.JuegoId,
-        j.Numero,
-        j.Valor,
-        j.TipoJuego,
-        jl.LoteriaId,
-        lot.Nombre AS LoteriaNombre
-    FROM manual.Ventas v
-    INNER JOIN manual.Boletos b ON b.VentaId = v.VentaId
-    INNER JOIN manual.Juegos j ON j.BoletoId = b.BoletoId
-    INNER JOIN manual.JuegoLoterias jl ON jl.JuegoId = j.JuegoId
-    INNER JOIN dbo.Loterias lot ON lot.LoteriaId = jl.LoteriaId
-    WHERE v.UsuarioId = @UsuarioId
-      AND v.FechaVenta >= @Desde
-      AND v.FechaVenta <= @Hasta
-    ORDER BY v.FechaVenta DESC, j.Numero;
-END
-GO
-PRINT N'Creando Procedimiento [manual].[ConsultarRegistrosJuego]...';
-
-
-GO
-CREATE   PROCEDURE manual.ConsultarRegistrosJuego
-    @UsuarioId uniqueidentifier,
-    @Desde datetime2,
-    @Hasta datetime2
-AS
-BEGIN
-    SET NOCOUNT ON;
-    SELECT
-        r.FechaRegistro,
-        r.CodigoPublico,
-        f.Numero,
-        f.Valor,
-        l.Nombre AS Loteria
-    FROM manual.RegistrosJuego r
-    INNER JOIN manual.RegistroJuegoFilas f ON f.RegistroId = r.RegistroId
-    INNER JOIN dbo.Loterias l ON l.LoteriaId = f.LoteriaId
-    WHERE r.UsuarioId = @UsuarioId
-      AND r.FechaRegistro >= @Desde
-      AND r.FechaRegistro <= @Hasta;
-END
-GO
-PRINT N'Creando Procedimiento [manual].[RegistrarJuegoNumerosWeb]...';
-
-
-GO
-CREATE   PROCEDURE manual.RegistrarJuegoNumerosWeb
-    @RegistroId uniqueidentifier,
-    @UsuarioId uniqueidentifier,
-    @NombreCompleto nvarchar(200),
-    @FechaRegistro datetime2,
-    @CodigoPublico char(7),
-    @ValorJugado decimal(18,2),
-    @Apuestas nvarchar(max)
-AS
-BEGIN
-    SET NOCOUNT ON;
-    SET XACT_ABORT ON;
-    IF EXISTS (SELECT 1 FROM manual.RegistrosJuegoNumerosWeb WHERE RegistroId = @RegistroId)
-        RETURN;
-
-    BEGIN TRANSACTION;
-    INSERT INTO manual.RegistrosJuegoNumerosWeb
-        (RegistroId, UsuarioId, NombreCompleto, FechaRegistro, CodigoPublico, ValorJugado)
-    VALUES
-        (@RegistroId, @UsuarioId, @NombreCompleto, @FechaRegistro, @CodigoPublico, @ValorJugado);
-
-    INSERT INTO manual.RegistroJuegoNumerosWebApuestas (ApuestaId, RegistroId, LoteriaId, Numero, Valor)
-    SELECT ApuestaId, @RegistroId, LoteriaId, Numero, Valor
-    FROM OPENJSON(@Apuestas)
-    WITH (
-        ApuestaId uniqueidentifier '$.apuestaId',
-        LoteriaId uniqueidentifier '$.loteriaId',
-        Numero nvarchar(4) '$.numero',
-        Valor decimal(18,2) '$.valor'
-    );
-    COMMIT TRANSACTION;
-END
-GO
-PRINT N'Creando Procedimiento [manual].[ConsultarPorCodigo]...';
-
-
-GO
-CREATE   PROCEDURE manual.ConsultarPorCodigo
-    @UsuarioId uniqueidentifier,
-    @Codigo char(7)
-AS
-BEGIN
-    SET NOCOUNT ON;
-    SELECT
-        v.VentaId,
-        v.UsuarioId,
-        v.FechaVenta,
-        v.Total,
-        v.TipoApuesta,
-        v.IdempotencyKey,
-        b.BoletoId,
-        b.CodigoPublico,
-        b.VigenciaDias,
-        j.JuegoId,
-        j.Numero,
-        j.Valor,
-        j.TipoJuego,
-        jl.LoteriaId,
-        lot.Nombre AS LoteriaNombre
-    FROM manual.Ventas v
-    INNER JOIN manual.Boletos b ON b.VentaId = v.VentaId
-    INNER JOIN manual.Juegos j ON j.BoletoId = b.BoletoId
-    INNER JOIN manual.JuegoLoterias jl ON jl.JuegoId = j.JuegoId
-    INNER JOIN dbo.Loterias lot ON lot.LoteriaId = jl.LoteriaId
-    WHERE v.UsuarioId = @UsuarioId
-      AND b.CodigoPublico = @Codigo;
-END
-GO
 PRINT N'Creando Procedimiento [manual].[ConfirmarVenta]...';
 
 
@@ -3182,6 +3435,43 @@ BEGIN
     COMMIT TRANSACTION;
 END
 GO
+PRINT N'Creando Procedimiento [manual].[RegistrarJuegoNumerosWeb]...';
+
+
+GO
+CREATE   PROCEDURE manual.RegistrarJuegoNumerosWeb
+    @RegistroId uniqueidentifier,
+    @UsuarioId uniqueidentifier,
+    @NombreCompleto nvarchar(200),
+    @FechaRegistro datetime2,
+    @CodigoPublico char(7),
+    @ValorJugado decimal(18,2),
+    @Apuestas nvarchar(max)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+    IF EXISTS (SELECT 1 FROM manual.RegistrosJuegoNumerosWeb WHERE RegistroId = @RegistroId)
+        RETURN;
+
+    BEGIN TRANSACTION;
+    INSERT INTO manual.RegistrosJuegoNumerosWeb
+        (RegistroId, UsuarioId, NombreCompleto, FechaRegistro, CodigoPublico, ValorJugado)
+    VALUES
+        (@RegistroId, @UsuarioId, @NombreCompleto, @FechaRegistro, @CodigoPublico, @ValorJugado);
+
+    INSERT INTO manual.RegistroJuegoNumerosWebApuestas (ApuestaId, RegistroId, LoteriaId, Numero, Valor)
+    SELECT ApuestaId, @RegistroId, LoteriaId, Numero, Valor
+    FROM OPENJSON(@Apuestas)
+    WITH (
+        ApuestaId uniqueidentifier '$.apuestaId',
+        LoteriaId uniqueidentifier '$.loteriaId',
+        Numero nvarchar(4) '$.numero',
+        Valor decimal(18,2) '$.valor'
+    );
+    COMMIT TRANSACTION;
+END
+GO
 PRINT N'Creando Procedimiento [manual].[JuegoNumerosMarcar]...';
 
 
@@ -3205,47 +3495,195 @@ BEGIN
         (@VentaId, @ValorJugado, @CantidadNumeros, @CantidadLoterias, @CantidadApuestas, @FechaRegistro);
 END
 GO
-PRINT N'Creando Procedimiento [recaudo].[sp_recaudo_consultar_vendedores]...';
+PRINT N'Creando Procedimiento [manual].[ConsultarVentas]...';
 
 
 GO
-
-CREATE   PROCEDURE recaudo.sp_recaudo_consultar_vendedores
+CREATE   PROCEDURE manual.ConsultarVentas
+    @UsuarioId uniqueidentifier,
+    @Desde datetime2,
+    @Hasta datetime2
 AS
 BEGIN
     SET NOCOUNT ON;
     SELECT
-        u.UsuarioId AS VendedorId,
-        u.NombreCompleto AS Nombre,
-        ISNULL(a.Porcentaje, 0) AS Porcentaje,
-        a.RecaudadorId,
-        r.NombreCompleto AS RecaudadorNombre
-    FROM dbo.Usuarios u
-    LEFT JOIN recaudo.AsignacionesVendedor a ON a.VendedorId = u.UsuarioId AND a.Estado = N'Activa'
-    LEFT JOIN dbo.Usuarios r ON r.UsuarioId = a.RecaudadorId
-    WHERE u.Rol = N'Vendedor'
-      AND NOT EXISTS (SELECT 1 FROM dbo.UsuariosGrupos ug WHERE ug.UsuarioId = u.UsuarioId)
-    ORDER BY u.NombreCompleto;
-END;
+        v.VentaId,
+        v.UsuarioId,
+        v.FechaVenta,
+        v.Total,
+        v.TipoApuesta,
+        v.IdempotencyKey,
+        b.BoletoId,
+        b.CodigoPublico,
+        b.VigenciaDias,
+        j.JuegoId,
+        j.Numero,
+        j.Valor,
+        j.TipoJuego,
+        jl.LoteriaId,
+        lot.Nombre AS LoteriaNombre
+    FROM manual.Ventas v
+    INNER JOIN manual.Boletos b ON b.VentaId = v.VentaId
+    INNER JOIN manual.Juegos j ON j.BoletoId = b.BoletoId
+    INNER JOIN manual.JuegoLoterias jl ON jl.JuegoId = j.JuegoId
+    INNER JOIN dbo.Loterias lot ON lot.LoteriaId = jl.LoteriaId
+    WHERE v.UsuarioId = @UsuarioId
+      AND v.FechaVenta >= @Desde
+      AND v.FechaVenta <= @Hasta
+    ORDER BY v.FechaVenta DESC, j.Numero;
+END
 GO
-PRINT N'Creando Procedimiento [recaudo].[sp_recaudo_configurar_recaudador]...';
+PRINT N'Creando Procedimiento [manual].[ConsultarPorCodigo]...';
 
 
 GO
-
-CREATE   PROCEDURE recaudo.sp_recaudo_configurar_recaudador
-    @RecaudadorId uniqueidentifier,
+CREATE   PROCEDURE manual.ConsultarPorCodigo
     @UsuarioId uniqueidentifier,
-    @Detalle nvarchar(400)
+    @Codigo char(7)
 AS
 BEGIN
     SET NOCOUNT ON;
-    IF NOT EXISTS (SELECT 1 FROM dbo.Usuarios WHERE UsuarioId = @RecaudadorId AND Rol = N'Recaudador')
+    SELECT
+        v.VentaId,
+        v.UsuarioId,
+        v.FechaVenta,
+        v.Total,
+        v.TipoApuesta,
+        v.IdempotencyKey,
+        b.BoletoId,
+        b.CodigoPublico,
+        b.VigenciaDias,
+        j.JuegoId,
+        j.Numero,
+        j.Valor,
+        j.TipoJuego,
+        jl.LoteriaId,
+        lot.Nombre AS LoteriaNombre
+    FROM manual.Ventas v
+    INNER JOIN manual.Boletos b ON b.VentaId = v.VentaId
+    INNER JOIN manual.Juegos j ON j.BoletoId = b.BoletoId
+    INNER JOIN manual.JuegoLoterias jl ON jl.JuegoId = j.JuegoId
+    INNER JOIN dbo.Loterias lot ON lot.LoteriaId = jl.LoteriaId
+    WHERE v.UsuarioId = @UsuarioId
+      AND b.CodigoPublico = @Codigo;
+END
+GO
+PRINT N'Creando Procedimiento [manual].[ConsultarRegistrosJuego]...';
+
+
+GO
+CREATE   PROCEDURE manual.ConsultarRegistrosJuego
+    @UsuarioId uniqueidentifier,
+    @Desde datetime2,
+    @Hasta datetime2
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT
+        r.FechaRegistro,
+        r.CodigoPublico,
+        f.Numero,
+        f.Valor,
+        l.Nombre AS Loteria
+    FROM manual.RegistrosJuego r
+    INNER JOIN manual.RegistroJuegoFilas f ON f.RegistroId = r.RegistroId
+    INNER JOIN dbo.Loterias l ON l.LoteriaId = f.LoteriaId
+    WHERE r.UsuarioId = @UsuarioId
+      AND r.FechaRegistro >= @Desde
+      AND r.FechaRegistro <= @Hasta;
+END
+GO
+PRINT N'Creando Procedimiento [recaudo].[sp_recaudo_consultar_historial]...';
+
+
+GO
+
+CREATE   PROCEDURE recaudo.sp_recaudo_consultar_historial
+    @RecaudadorId uniqueidentifier = NULL,
+    @VendedorId uniqueidentifier = NULL,
+    @GrupoId uniqueidentifier = NULL,
+    @Desde date,
+    @Hasta date
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @InicioUtc datetime2 = DATEADD(HOUR, 5, CAST(@Desde AS datetime2));
+    DECLARE @FinUtc datetime2 = DATEADD(HOUR, 5, CAST(DATEADD(DAY, 1, @Hasta) AS datetime2));
+    SELECT
+        p.FechaHora,
+        r.NombreCompleto AS Recaudador,
+        v.NombreCompleto AS Vendedor,
+        ISNULL(g.Nombre, N'Sin grupo') AS Grupo,
+        p.Valor AS ValorRecibido,
+        p.SaldoResultante,
+        CASE WHEN p.SaldoResultante = 0 THEN N'Al dia' ELSE N'Deudado' END AS Estado
+    FROM recaudo.Pagos p
+    INNER JOIN dbo.Usuarios r ON r.UsuarioId = p.RecaudadorId
+    INNER JOIN dbo.Usuarios v ON v.UsuarioId = p.VendedorId
+    LEFT JOIN dbo.UsuariosGrupos ug ON ug.UsuarioId = p.VendedorId
+    LEFT JOIN dbo.Grupos g ON g.GrupoId = ug.GrupoId
+    WHERE p.FechaHora >= @InicioUtc
+      AND p.FechaHora < @FinUtc
+      AND (@RecaudadorId IS NULL OR p.RecaudadorId = @RecaudadorId)
+      AND (@VendedorId IS NULL OR p.VendedorId = @VendedorId)
+      AND (@GrupoId IS NULL OR ug.GrupoId = @GrupoId)
+    ORDER BY p.FechaHora DESC;
+END;
+GO
+PRINT N'Creando Procedimiento [recaudo].[sp_recaudo_configurar_porcentaje]...';
+
+
+GO
+
+CREATE   PROCEDURE recaudo.sp_recaudo_configurar_porcentaje
+    @GrupoId uniqueidentifier = NULL,
+    @VendedorId uniqueidentifier = NULL,
+    @Porcentaje int,
+    @UsuarioId uniqueidentifier
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF @Porcentaje < 1 OR @Porcentaje > 100
+        THROW 50011, N'El porcentaje debe estar entre 1 y 100.', 1;
+    DECLARE @Ahora datetime2 = SYSUTCDATETIME();
+    IF @GrupoId IS NOT NULL
     BEGIN
-        THROW 50010, N'El usuario no es un recaudador.', 1;
-    END;
-    INSERT INTO recaudo.HistorialConfiguracion (HistorialId, RecaudadorId, Tipo, Detalle, UsuarioId, FechaHora)
-    VALUES (NEWID(), @RecaudadorId, N'Configuracion', ISNULL(@Detalle, N'Configuracion de recaudador'), @UsuarioId, SYSUTCDATETIME());
+        UPDATE recaudo.AsignacionesGrupo
+        SET Porcentaje = @Porcentaje, FechaModificacion = @Ahora
+        WHERE GrupoId = @GrupoId AND Estado = N'Activa';
+        IF @@ROWCOUNT = 0
+            THROW 50015, N'El grupo no tiene una asignacion activa.', 1;
+    END
+    ELSE IF @VendedorId IS NOT NULL
+    BEGIN
+        UPDATE recaudo.AsignacionesVendedor
+        SET Porcentaje = @Porcentaje, FechaModificacion = @Ahora
+        WHERE VendedorId = @VendedorId AND Estado = N'Activa';
+        IF @@ROWCOUNT = 0
+            THROW 50016, N'El vendedor no tiene una asignacion activa.', 1;
+    END
+    ELSE
+        THROW 50017, N'Debe indicar un grupo o un vendedor.', 1;
+END;
+GO
+PRINT N'Creando Procedimiento [recaudo].[sp_recaudo_consultar_ventas]...';
+
+
+GO
+
+CREATE   PROCEDURE recaudo.sp_recaudo_consultar_ventas
+    @VendedorId uniqueidentifier,
+    @Fecha date
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @InicioUtc datetime2 = DATEADD(HOUR, 5, CAST(@Fecha AS datetime2));
+    DECLARE @FinUtc datetime2 = DATEADD(DAY, 1, @InicioUtc);
+    SELECT ISNULL(SUM(Total), 0) AS TotalVendido
+    FROM dbo.Ventas
+    WHERE UsuarioId = @VendedorId
+      AND FechaVenta >= @InicioUtc
+      AND FechaVenta < @FinUtc;
 END;
 GO
 PRINT N'Creando Procedimiento [recaudo].[sp_recaudo_asignar_vendedor]...';
@@ -3290,48 +3728,6 @@ BEGIN
 
     INSERT INTO recaudo.HistorialConfiguracion (HistorialId, RecaudadorId, Tipo, Detalle, UsuarioId, FechaHora)
     VALUES (NEWID(), @RecaudadorId, N'AsignarVendedor', CONVERT(nvarchar(36), @VendedorId), @UsuarioId, @Ahora);
-END;
-GO
-PRINT N'Creando Procedimiento [recaudo].[sp_recaudo_consultar_grupos]...';
-
-
-GO
-
-CREATE   PROCEDURE recaudo.sp_recaudo_consultar_grupos
-AS
-BEGIN
-    SET NOCOUNT ON;
-    SELECT
-        g.GrupoId,
-        g.Nombre,
-        ISNULL(a.Porcentaje, 0) AS Porcentaje,
-        a.RecaudadorId,
-        r.NombreCompleto AS RecaudadorNombre,
-        CAST(CASE WHEN a.AsignacionId IS NULL THEN 1 ELSE 0 END AS bit) AS SinConfigurar
-    FROM dbo.Grupos g
-    LEFT JOIN recaudo.AsignacionesGrupo a ON a.GrupoId = g.GrupoId AND a.Estado = N'Activa'
-    LEFT JOIN dbo.Usuarios r ON r.UsuarioId = a.RecaudadorId
-    ORDER BY g.Nombre;
-END;
-GO
-PRINT N'Creando Procedimiento [recaudo].[sp_recaudo_consultar_ventas]...';
-
-
-GO
-
-CREATE   PROCEDURE recaudo.sp_recaudo_consultar_ventas
-    @VendedorId uniqueidentifier,
-    @Fecha date
-AS
-BEGIN
-    SET NOCOUNT ON;
-    DECLARE @InicioUtc datetime2 = DATEADD(HOUR, 5, CAST(@Fecha AS datetime2));
-    DECLARE @FinUtc datetime2 = DATEADD(DAY, 1, @InicioUtc);
-    SELECT ISNULL(SUM(Total), 0) AS TotalVendido
-    FROM dbo.Ventas
-    WHERE UsuarioId = @VendedorId
-      AND FechaVenta >= @InicioUtc
-      AND FechaVenta < @FinUtc;
 END;
 GO
 PRINT N'Creando Procedimiento [recaudo].[sp_recaudo_generar_obligaciones]...';
@@ -3438,77 +3834,69 @@ BEGIN
     VALUES (NEWID(), @RecaudadorId, N'AsignarGrupo', CONVERT(nvarchar(36), @GrupoId), @UsuarioId, @Ahora);
 END;
 GO
-PRINT N'Creando Procedimiento [recaudo].[sp_recaudo_consultar_historial]...';
+PRINT N'Creando Procedimiento [recaudo].[sp_recaudo_configurar_recaudador]...';
 
 
 GO
 
-CREATE   PROCEDURE recaudo.sp_recaudo_consultar_historial
-    @RecaudadorId uniqueidentifier = NULL,
-    @VendedorId uniqueidentifier = NULL,
-    @GrupoId uniqueidentifier = NULL,
-    @Desde date,
-    @Hasta date
+CREATE   PROCEDURE recaudo.sp_recaudo_configurar_recaudador
+    @RecaudadorId uniqueidentifier,
+    @UsuarioId uniqueidentifier,
+    @Detalle nvarchar(400)
 AS
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @InicioUtc datetime2 = DATEADD(HOUR, 5, CAST(@Desde AS datetime2));
-    DECLARE @FinUtc datetime2 = DATEADD(HOUR, 5, CAST(DATEADD(DAY, 1, @Hasta) AS datetime2));
-    SELECT
-        p.FechaHora,
-        r.NombreCompleto AS Recaudador,
-        v.NombreCompleto AS Vendedor,
-        ISNULL(g.Nombre, N'Sin grupo') AS Grupo,
-        p.Valor AS ValorRecibido,
-        p.SaldoResultante,
-        CASE WHEN p.SaldoResultante = 0 THEN N'Al dia' ELSE N'Deudado' END AS Estado
-    FROM recaudo.Pagos p
-    INNER JOIN dbo.Usuarios r ON r.UsuarioId = p.RecaudadorId
-    INNER JOIN dbo.Usuarios v ON v.UsuarioId = p.VendedorId
-    LEFT JOIN dbo.UsuariosGrupos ug ON ug.UsuarioId = p.VendedorId
-    LEFT JOIN dbo.Grupos g ON g.GrupoId = ug.GrupoId
-    WHERE p.FechaHora >= @InicioUtc
-      AND p.FechaHora < @FinUtc
-      AND (@RecaudadorId IS NULL OR p.RecaudadorId = @RecaudadorId)
-      AND (@VendedorId IS NULL OR p.VendedorId = @VendedorId)
-      AND (@GrupoId IS NULL OR ug.GrupoId = @GrupoId)
-    ORDER BY p.FechaHora DESC;
+    IF NOT EXISTS (SELECT 1 FROM dbo.Usuarios WHERE UsuarioId = @RecaudadorId AND Rol = N'Recaudador')
+    BEGIN
+        THROW 50010, N'El usuario no es un recaudador.', 1;
+    END;
+    INSERT INTO recaudo.HistorialConfiguracion (HistorialId, RecaudadorId, Tipo, Detalle, UsuarioId, FechaHora)
+    VALUES (NEWID(), @RecaudadorId, N'Configuracion', ISNULL(@Detalle, N'Configuracion de recaudador'), @UsuarioId, SYSUTCDATETIME());
 END;
 GO
-PRINT N'Creando Procedimiento [recaudo].[sp_recaudo_configurar_porcentaje]...';
+PRINT N'Creando Procedimiento [recaudo].[sp_recaudo_consultar_grupos]...';
 
 
 GO
 
-CREATE   PROCEDURE recaudo.sp_recaudo_configurar_porcentaje
-    @GrupoId uniqueidentifier = NULL,
-    @VendedorId uniqueidentifier = NULL,
-    @Porcentaje int,
-    @UsuarioId uniqueidentifier
+CREATE   PROCEDURE recaudo.sp_recaudo_consultar_grupos
 AS
 BEGIN
     SET NOCOUNT ON;
-    IF @Porcentaje < 1 OR @Porcentaje > 100
-        THROW 50011, N'El porcentaje debe estar entre 1 y 100.', 1;
-    DECLARE @Ahora datetime2 = SYSUTCDATETIME();
-    IF @GrupoId IS NOT NULL
-    BEGIN
-        UPDATE recaudo.AsignacionesGrupo
-        SET Porcentaje = @Porcentaje, FechaModificacion = @Ahora
-        WHERE GrupoId = @GrupoId AND Estado = N'Activa';
-        IF @@ROWCOUNT = 0
-            THROW 50015, N'El grupo no tiene una asignacion activa.', 1;
-    END
-    ELSE IF @VendedorId IS NOT NULL
-    BEGIN
-        UPDATE recaudo.AsignacionesVendedor
-        SET Porcentaje = @Porcentaje, FechaModificacion = @Ahora
-        WHERE VendedorId = @VendedorId AND Estado = N'Activa';
-        IF @@ROWCOUNT = 0
-            THROW 50016, N'El vendedor no tiene una asignacion activa.', 1;
-    END
-    ELSE
-        THROW 50017, N'Debe indicar un grupo o un vendedor.', 1;
+    SELECT
+        g.GrupoId,
+        g.Nombre,
+        ISNULL(a.Porcentaje, 0) AS Porcentaje,
+        a.RecaudadorId,
+        r.NombreCompleto AS RecaudadorNombre,
+        CAST(CASE WHEN a.AsignacionId IS NULL THEN 1 ELSE 0 END AS bit) AS SinConfigurar
+    FROM dbo.Grupos g
+    LEFT JOIN recaudo.AsignacionesGrupo a ON a.GrupoId = g.GrupoId AND a.Estado = N'Activa'
+    LEFT JOIN dbo.Usuarios r ON r.UsuarioId = a.RecaudadorId
+    ORDER BY g.Nombre;
+END;
+GO
+PRINT N'Creando Procedimiento [recaudo].[sp_recaudo_consultar_vendedores]...';
+
+
+GO
+
+CREATE   PROCEDURE recaudo.sp_recaudo_consultar_vendedores
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT
+        u.UsuarioId AS VendedorId,
+        u.NombreCompleto AS Nombre,
+        ISNULL(a.Porcentaje, 0) AS Porcentaje,
+        a.RecaudadorId,
+        r.NombreCompleto AS RecaudadorNombre
+    FROM dbo.Usuarios u
+    LEFT JOIN recaudo.AsignacionesVendedor a ON a.VendedorId = u.UsuarioId AND a.Estado = N'Activa'
+    LEFT JOIN dbo.Usuarios r ON r.UsuarioId = a.RecaudadorId
+    WHERE u.Rol = N'Vendedor'
+      AND NOT EXISTS (SELECT 1 FROM dbo.UsuariosGrupos ug WHERE ug.UsuarioId = u.UsuarioId)
+    ORDER BY u.NombreCompleto;
 END;
 GO
 PRINT N'Creando Procedimiento [dbo].[sp_CambiarGrupoVendedor]...';
@@ -4303,7 +4691,25 @@ PRINT N'Cargando los datos actuales...';
 GO
 EXEC sp_MSforeachtable 'ALTER TABLE ? NOCHECK CONSTRAINT ALL';
 GO
+
+PRINT N'Datos de chat.AvisosChat';
+INSERT INTO [chat].[AvisosChat] ([NotificacionId], [ConversacionId], [UsuarioEmisorId]) VALUES (N'84be0623-2618-4a6d-8bfe-254df8704b4a', N'0d69c6bd-9691-45a5-b33a-43b742f08199', N'dca750a8-5821-4ff0-bec6-eb2b23d32d7b');
+INSERT INTO [chat].[AvisosChat] ([NotificacionId], [ConversacionId], [UsuarioEmisorId]) VALUES (N'57d7b1e5-f739-4a2c-a516-2bca885d68a6', N'0a928fce-84c9-4a21-8231-23165bcd866c', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7');
+INSERT INTO [chat].[AvisosChat] ([NotificacionId], [ConversacionId], [UsuarioEmisorId]) VALUES (N'85ebd81e-1578-4607-b093-471e912a7022', N'0a928fce-84c9-4a21-8231-23165bcd866c', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7');
+INSERT INTO [chat].[AvisosChat] ([NotificacionId], [ConversacionId], [UsuarioEmisorId]) VALUES (N'85052bcf-1834-4eb5-a9b7-4aa085ae1b3e', N'0d69c6bd-9691-45a5-b33a-43b742f08199', N'dca750a8-5821-4ff0-bec6-eb2b23d32d7b');
+INSERT INTO [chat].[AvisosChat] ([NotificacionId], [ConversacionId], [UsuarioEmisorId]) VALUES (N'2e288085-2353-4b99-8a42-5db3a596bbea', N'0a928fce-84c9-4a21-8231-23165bcd866c', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7');
+INSERT INTO [chat].[AvisosChat] ([NotificacionId], [ConversacionId], [UsuarioEmisorId]) VALUES (N'1770bee0-d927-4011-9775-6068af4666c6', N'0d69c6bd-9691-45a5-b33a-43b742f08199', N'dca750a8-5821-4ff0-bec6-eb2b23d32d7b');
+INSERT INTO [chat].[AvisosChat] ([NotificacionId], [ConversacionId], [UsuarioEmisorId]) VALUES (N'34919257-d284-4157-914e-8b0bd038bc75', N'0a928fce-84c9-4a21-8231-23165bcd866c', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7');
+INSERT INTO [chat].[AvisosChat] ([NotificacionId], [ConversacionId], [UsuarioEmisorId]) VALUES (N'4dd5ee33-3a71-4a43-a49d-8bcf6e24241a', N'0a928fce-84c9-4a21-8231-23165bcd866c', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7');
+INSERT INTO [chat].[AvisosChat] ([NotificacionId], [ConversacionId], [UsuarioEmisorId]) VALUES (N'80ba9a6d-c07a-439d-81a9-a4fb4f3b1164', N'0d69c6bd-9691-45a5-b33a-43b742f08199', N'dca750a8-5821-4ff0-bec6-eb2b23d32d7b');
+INSERT INTO [chat].[AvisosChat] ([NotificacionId], [ConversacionId], [UsuarioEmisorId]) VALUES (N'3126ec74-70c8-4d60-ac0a-be24cb626dcf', N'0d69c6bd-9691-45a5-b33a-43b742f08199', N'dca750a8-5821-4ff0-bec6-eb2b23d32d7b');
+INSERT INTO [chat].[AvisosChat] ([NotificacionId], [ConversacionId], [UsuarioEmisorId]) VALUES (N'22be2be0-570b-4eb9-9d73-c354793e412c', N'0d69c6bd-9691-45a5-b33a-43b742f08199', N'dca750a8-5821-4ff0-bec6-eb2b23d32d7b');
+INSERT INTO [chat].[AvisosChat] ([NotificacionId], [ConversacionId], [UsuarioEmisorId]) VALUES (N'2859335a-ae3a-4b96-89e7-cb02a9e35b6d', N'0a928fce-84c9-4a21-8231-23165bcd866c', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7');
+INSERT INTO [chat].[AvisosChat] ([NotificacionId], [ConversacionId], [UsuarioEmisorId]) VALUES (N'382a1ebf-47d1-43ee-b01b-dae8eae004fb', N'0d69c6bd-9691-45a5-b33a-43b742f08199', N'dca750a8-5821-4ff0-bec6-eb2b23d32d7b');
+INSERT INTO [chat].[AvisosChat] ([NotificacionId], [ConversacionId], [UsuarioEmisorId]) VALUES (N'27268a91-104f-49a6-ab2b-e5086222fbc3', N'0d69c6bd-9691-45a5-b33a-43b742f08199', N'dca750a8-5821-4ff0-bec6-eb2b23d32d7b');
+GO
 PRINT N'Datos de dbo.AuditoriaRetencion';
+INSERT INTO [dbo].[AuditoriaRetencion] ([AuditoriaRetencionId], [FechaEjecucionUtc], [MesesMaximos], [MesesAEliminar], [PeriodosEvaluados], [PeriodosEliminados], [VentasEliminadas], [PremiosEliminados], [PagosEliminados], [JuegosEliminados], [Resultado], [MensajeError]) VALUES (N'a7ba9d61-2231-455d-98b6-4abcb7e84b1b', N'2026-10-24T05:41:52.0769634', 6, 1, N'2026-08,2026-09,2026-10', N'', 0, 0, 0, 0, N'Exitoso', N'No hay registros con 6 meses de antigüedad. No se eliminó información.');
 INSERT INTO [dbo].[AuditoriaRetencion] ([AuditoriaRetencionId], [FechaEjecucionUtc], [MesesMaximos], [MesesAEliminar], [PeriodosEvaluados], [PeriodosEliminados], [VentasEliminadas], [PremiosEliminados], [PagosEliminados], [JuegosEliminados], [Resultado], [MensajeError]) VALUES (N'80d51f33-20ef-4e24-81ef-709af8fa1110', N'2026-10-02T21:07:38.1335873', 6, 1, N'2026-08,2026-09,2026-10', N'', 0, 0, 0, 0, N'Exitoso', N'No hay registros con 6 meses de antigüedad. No se eliminó información.');
 INSERT INTO [dbo].[AuditoriaRetencion] ([AuditoriaRetencionId], [FechaEjecucionUtc], [MesesMaximos], [MesesAEliminar], [PeriodosEvaluados], [PeriodosEliminados], [VentasEliminadas], [PremiosEliminados], [PagosEliminados], [JuegosEliminados], [Resultado], [MensajeError]) VALUES (N'460a98bb-c8aa-4942-b87a-cd8a65c9eaf4', N'2026-10-14T18:11:56.3934855', 6, 1, N'2026-08,2026-09,2026-10', N'', 0, 0, 0, 0, N'Exitoso', N'No hay registros con 6 meses de antigüedad. No se eliminó información.');
 GO
@@ -7389,10 +7795,15 @@ INSERT INTO [dbo].[ConfirmacionesAccion] ([Token], [UsuarioId], [Accion], [Expir
 INSERT INTO [dbo].[ConfirmacionesAccion] ([Token], [UsuarioId], [Accion], [Expira], [UsosRestantes]) VALUES (N'f15b8464a09d4a30bc29614d95722a45', N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'revisada.cubrir', N'2026-10-18T16:12:05.6725622', 1);
 INSERT INTO [dbo].[ConfirmacionesAccion] ([Token], [UsuarioId], [Accion], [Expira], [UsosRestantes]) VALUES (N'fb3dce1cc9ac4b57835c8a59bf078aac', N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'grupos.asignar', N'2026-10-15T15:29:56.0844418', 1);
 GO
+PRINT N'Datos de dbo.Conversaciones';
+INSERT INTO [dbo].[Conversaciones] ([ConversacionId], [UsuarioIniciadorId], [UsuarioDestinoId], [FechaInicio], [FechaCierre], [Estado], [Tipo]) VALUES (N'0a928fce-84c9-4a21-8231-23165bcd866c', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'5e991d00-0fb0-4f16-8968-9531c583d4a9', N'2026-10-22T20:03:28.3985265', NULL, N'Abierta', N'AtencionCliente');
+INSERT INTO [dbo].[Conversaciones] ([ConversacionId], [UsuarioIniciadorId], [UsuarioDestinoId], [FechaInicio], [FechaCierre], [Estado], [Tipo]) VALUES (N'0d69c6bd-9691-45a5-b33a-43b742f08199', N'dca750a8-5821-4ff0-bec6-eb2b23d32d7b', N'5e991d00-0fb0-4f16-8968-9531c583d4a9', N'2026-10-21T08:33:08.5227166', NULL, N'Abierta', N'AtencionCliente');
+GO
 PRINT N'Datos de dbo.Dispositivos';
 INSERT INTO [dbo].[Dispositivos] ([DispositivoId], [CodigoDispositivo], [Tipo], [Estado], [Modelo], [NumeroSerie], [CapacidadCodigosOffline], [FechaRegistro]) VALUES (N'8023643f-65d1-4d78-95fd-16fbce188347', N'PDA-959F8B5A', N'Observador', N'Activo', N'RMX3710', N'TCDUAAVWV4KVGI8L', 0, N'2026-10-03T22:57:50.9602539');
 INSERT INTO [dbo].[Dispositivos] ([DispositivoId], [CodigoDispositivo], [Tipo], [Estado], [Modelo], [NumeroSerie], [CapacidadCodigosOffline], [FechaRegistro]) VALUES (N'0a7602fe-f63c-4b0d-bc25-20180ba569da', N'PDA-00EA9C9D', N'Vendedor', N'Activo', N'H10', N'H10P77624BL0472', 0, N'2026-10-03T18:56:57.4024881');
 INSERT INTO [dbo].[Dispositivos] ([DispositivoId], [CodigoDispositivo], [Tipo], [Estado], [Modelo], [NumeroSerie], [CapacidadCodigosOffline], [FechaRegistro]) VALUES (N'1e6d9ce5-141a-4cae-9b08-6089baae8d99', N'PDA-7EFBDD64', N'Vendedor', N'Activo', N'Silver_Max_Pro_2', N'SMP2220623001356', 0, N'2026-10-03T19:20:01.6061987');
+INSERT INTO [dbo].[Dispositivos] ([DispositivoId], [CodigoDispositivo], [Tipo], [Estado], [Modelo], [NumeroSerie], [CapacidadCodigosOffline], [FechaRegistro]) VALUES (N'27fda5cb-37db-4263-8808-984ade649807', N'CEL-0A222144', N'Recaudador', N'Activo', N'CEL-CPH2815', N'CEL-0A222144', 3000, N'2026-10-21T08:30:18.7329125');
 GO
 PRINT N'Datos de dbo.DispositivosUsuarios';
 INSERT INTO [dbo].[DispositivosUsuarios] ([DispositivoId], [UsuarioId], [FechaAsociacion], [Activo]) VALUES (N'8023643f-65d1-4d78-95fd-16fbce188347', N'fded5304-5978-45ec-ae54-87b15825d76b', N'2026-10-04T19:48:32.9797826', 1);
@@ -7400,6 +7811,7 @@ INSERT INTO [dbo].[DispositivosUsuarios] ([DispositivoId], [UsuarioId], [FechaAs
 INSERT INTO [dbo].[DispositivosUsuarios] ([DispositivoId], [UsuarioId], [FechaAsociacion], [Activo]) VALUES (N'0a7602fe-f63c-4b0d-bc25-20180ba569da', N'521949af-a65a-4585-8d8f-74e2598eac12', N'2026-10-16T20:56:34.4147809', 1);
 INSERT INTO [dbo].[DispositivosUsuarios] ([DispositivoId], [UsuarioId], [FechaAsociacion], [Activo]) VALUES (N'0a7602fe-f63c-4b0d-bc25-20180ba569da', N'dca750a8-5821-4ff0-bec6-eb2b23d32d7b', N'2026-10-15T10:12:12.4525001', 0);
 INSERT INTO [dbo].[DispositivosUsuarios] ([DispositivoId], [UsuarioId], [FechaAsociacion], [Activo]) VALUES (N'1e6d9ce5-141a-4cae-9b08-6089baae8d99', N'fd4d77af-08d9-4cd1-868f-0d82e183a1d1', N'2026-10-03T19:20:35.5553174', 0);
+INSERT INTO [dbo].[DispositivosUsuarios] ([DispositivoId], [UsuarioId], [FechaAsociacion], [Activo]) VALUES (N'27fda5cb-37db-4263-8808-984ade649807', N'dca750a8-5821-4ff0-bec6-eb2b23d32d7b', N'2026-10-21T08:30:18.7333717', 1);
 GO
 PRINT N'Datos de dbo.EstadosBoleto';
 SET IDENTITY_INSERT [dbo].[EstadosBoleto] ON;
@@ -7535,6 +7947,94 @@ INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], 
 INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (978, N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-18T12:36:18.9812251', 1);
 INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (979, N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-18T12:58:55.9489078', 1);
 INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (980, N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-18T13:25:34.5549880', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (981, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-18T16:59:14.8442651', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (982, N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-18T17:34:56.0702951', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (983, N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-18T18:03:12.2662669', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (984, N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-18T18:10:06.8729631', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (985, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-18T18:12:28.5759563', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (986, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-18T18:31:54.4742484', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (987, N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-18T18:45:26.9675548', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (988, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-18T21:23:54.3353397', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (989, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-18T21:53:29.3506961', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (990, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-18T22:28:22.8912125', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (991, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-18T22:29:02.0806327', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (992, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-18T22:29:23.5970660', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (993, N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-19T11:11:05.8227422', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (994, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-19T11:18:30.8090798', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (995, N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-19T15:38:25.3590840', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (996, N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-19T21:01:57.3177132', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (997, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-19T22:14:58.4415737', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (998, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-19T22:25:54.0555112', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (999, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-20T15:28:22.2387138', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1000, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-20T15:43:48.5052860', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1001, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-20T16:06:47.5661495', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1002, N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-20T16:07:21.2667459', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1003, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-20T17:39:34.7536195', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1004, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-20T18:07:57.0716285', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1005, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-20T18:51:08.4762010', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1006, N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-20T19:13:07.3588920', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1007, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-20T19:13:12.3282965', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1008, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-20T20:04:12.4257325', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1009, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-20T21:26:41.2858949', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1010, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-20T21:41:00.5913725', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1011, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-20T22:22:37.0485447', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1012, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-20T22:39:30.6542771', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1013, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-20T23:04:10.0911800', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1014, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-21T08:29:21.3303568', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1015, N'dca750a8-5821-4ff0-bec6-eb2b23d32d7b', N'2026-10-21T08:30:18.8054489', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1016, N'dca750a8-5821-4ff0-bec6-eb2b23d32d7b', N'2026-10-21T08:31:57.7644114', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1017, N'dca750a8-5821-4ff0-bec6-eb2b23d32d7b', N'2026-10-21T08:50:46.3941616', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1018, N'dca750a8-5821-4ff0-bec6-eb2b23d32d7b', N'2026-10-21T09:09:10.9195168', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1019, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-21T09:09:33.7099682', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1020, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-21T09:42:32.0182647', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1021, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-21T10:27:54.7230379', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1022, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-21T10:44:32.7617300', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1023, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-21T11:23:23.3756310', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1024, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-21T11:34:18.9251985', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1025, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-21T11:51:47.2383488', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1026, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-21T12:15:50.6407448', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1027, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-21T12:44:35.8117128', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1028, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-21T14:59:48.7497657', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1029, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-21T15:14:40.7163115', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1030, N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-21T15:36:32.3246732', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1031, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-21T15:49:35.1860168', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1032, N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-21T16:02:08.0568746', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1033, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-21T16:02:17.2598293', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1034, N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-21T18:18:59.1707965', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1035, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-21T18:30:46.3175873', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1036, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-21T18:42:28.6075225', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1037, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-21T19:38:13.7591794', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1038, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-21T20:16:03.6094772', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1039, N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-21T20:18:33.1018167', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1040, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-21T21:00:20.6441724', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1041, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-21T21:26:36.2468113', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1042, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-21T21:51:49.9637446', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1043, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-21T23:00:17.8644877', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1044, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-21T23:12:29.6974551', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1045, N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-22T14:59:28.5780143', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1046, N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-22T15:09:51.2599472', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1047, N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-22T15:52:41.0686424', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1048, N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-22T16:42:51.5933826', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1049, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-22T16:49:08.9585417', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1050, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-22T17:22:07.8144046', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1051, N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-22T17:22:10.7924287', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1052, N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-22T17:45:28.7892276', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1053, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-22T18:18:22.2663079', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1054, N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-22T18:22:54.1245480', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1055, N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-22T18:53:23.7132405', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1056, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-22T18:53:26.0732982', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1057, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-22T19:20:08.9142215', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1058, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-22T19:38:35.2045509', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1059, N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-22T19:38:38.0913887', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1060, N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-22T19:58:34.4477144', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1061, N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-22T20:13:49.8807703', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1062, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-22T20:14:07.8435731', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (1063, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-22T20:35:35.4242570', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (2060, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-23T15:47:43.5859894', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (2061, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-23T16:06:32.8511511', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (2062, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-23T17:38:14.3500836', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (3060, N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-26T23:43:41.1450193', 1);
+INSERT INTO [dbo].[IntentosFallidos] ([IntentoId], [UsuarioId], [FechaIntento], [Exitoso]) VALUES (3061, N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-26T23:43:56.4342168', 1);
 SET IDENTITY_INSERT [dbo].[IntentosFallidos] OFF;
 GO
 PRINT N'Datos de dbo.Jornadas';
@@ -7660,21 +8160,47 @@ INSERT INTO [dbo].[LoteriasDiasSemana] ([LoteriaId], [DiaSemana], [FechaActualiz
 INSERT INTO [dbo].[LoteriasDiasSemana] ([LoteriaId], [DiaSemana], [FechaActualizacion]) VALUES (N'55250655-979d-4672-aa10-be287eba5600', 6, N'2026-10-04T20:31:32.0143761');
 INSERT INTO [dbo].[LoteriasDiasSemana] ([LoteriaId], [DiaSemana], [FechaActualizacion]) VALUES (N'55250655-979d-4672-aa10-be287eba5600', 7, N'2026-10-04T20:31:32.0144302');
 GO
+PRINT N'Datos de dbo.Mensajes';
+INSERT INTO [dbo].[Mensajes] ([MensajeId], [ConversacionId], [UsuarioEmisorId], [Texto], [FechaEnvio], [Permanente]) VALUES (N'3c5ed9f4-5b85-4216-b4ed-264070893964', N'0a928fce-84c9-4a21-8231-23165bcd866c', N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'que pasa', N'2026-10-22T20:14:21.5762926', 0);
+INSERT INTO [dbo].[Mensajes] ([MensajeId], [ConversacionId], [UsuarioEmisorId], [Texto], [FechaEnvio], [Permanente]) VALUES (N'a8cab987-f6c8-4d70-b7b7-4cc205799cb8', N'0d69c6bd-9691-45a5-b33a-43b742f08199', N'dca750a8-5821-4ff0-bec6-eb2b23d32d7b', N'hola', N'2026-10-21T08:33:14.6682497', 0);
+INSERT INTO [dbo].[Mensajes] ([MensajeId], [ConversacionId], [UsuarioEmisorId], [Texto], [FechaEnvio], [Permanente]) VALUES (N'189b8b92-3164-45d0-95e0-531a435d9a6e', N'0d69c6bd-9691-45a5-b33a-43b742f08199', N'dca750a8-5821-4ff0-bec6-eb2b23d32d7b', N'hola', N'2026-10-21T08:33:08.5242019', 0);
+INSERT INTO [dbo].[Mensajes] ([MensajeId], [ConversacionId], [UsuarioEmisorId], [Texto], [FechaEnvio], [Permanente]) VALUES (N'4719f0f1-bcb9-4fb0-97e9-6e53aa530d70', N'0a928fce-84c9-4a21-8231-23165bcd866c', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'hola', N'2026-10-22T20:03:28.4012899', 0);
+INSERT INTO [dbo].[Mensajes] ([MensajeId], [ConversacionId], [UsuarioEmisorId], [Texto], [FechaEnvio], [Permanente]) VALUES (N'd637754e-3d09-4025-8f00-742ec724d68e', N'0d69c6bd-9691-45a5-b33a-43b742f08199', N'dca750a8-5821-4ff0-bec6-eb2b23d32d7b', N'jfbdl', N'2026-10-21T09:09:27.6456204', 0);
+INSERT INTO [dbo].[Mensajes] ([MensajeId], [ConversacionId], [UsuarioEmisorId], [Texto], [FechaEnvio], [Permanente]) VALUES (N'cddfe787-218e-49a7-bb9f-b8cc42b30681', N'0d69c6bd-9691-45a5-b33a-43b742f08199', N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'listo', N'2026-10-21T09:09:47.4988063', 0);
+INSERT INTO [dbo].[Mensajes] ([MensajeId], [ConversacionId], [UsuarioEmisorId], [Texto], [FechaEnvio], [Permanente]) VALUES (N'b2665cf4-34f4-44b3-8ff7-b9906b3cbc10', N'0d69c6bd-9691-45a5-b33a-43b742f08199', N'dca750a8-5821-4ff0-bec6-eb2b23d32d7b', N'ok', N'2026-10-21T09:09:52.3633574', 0);
+INSERT INTO [dbo].[Mensajes] ([MensajeId], [ConversacionId], [UsuarioEmisorId], [Texto], [FechaEnvio], [Permanente]) VALUES (N'c4b6534e-8f5e-49dc-8665-caf0db10aa6f', N'0a928fce-84c9-4a21-8231-23165bcd866c', N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'diga pues', N'2026-10-22T20:14:16.8729401', 0);
+INSERT INTO [dbo].[Mensajes] ([MensajeId], [ConversacionId], [UsuarioEmisorId], [Texto], [FechaEnvio], [Permanente]) VALUES (N'81696344-b5c5-402b-b51e-e0ddf116bd5e', N'0a928fce-84c9-4a21-8231-23165bcd866c', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'nada, quiero ver que pasa', N'2026-10-22T20:14:29.7059649', 0);
+INSERT INTO [dbo].[Mensajes] ([MensajeId], [ConversacionId], [UsuarioEmisorId], [Texto], [FechaEnvio], [Permanente]) VALUES (N'fd9480cd-30d1-450c-9f56-e7a509a715f9', N'0a928fce-84c9-4a21-8231-23165bcd866c', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'hola', N'2026-10-22T20:13:59.8186910', 0);
+GO
 PRINT N'Datos de dbo.Notificaciones';
 INSERT INTO [dbo].[Notificaciones] ([NotificacionId], [UsuarioId], [Tipo], [Mensaje], [Leida], [FechaCreacion], [VentaId], [JuegoId]) VALUES (N'e58b5792-ef36-46c2-a58f-0735c2c2788c', N'5e991d00-0fb0-4f16-8968-9531c583d4a9', N'ValorAlto', N'Se registró una apuesta con valor alto: 25.000. Número 5368 en Armenia.', 0, N'2026-10-15T10:00:16.8491842', N'79f075e6-2f24-4237-aec7-3be703567050', N'8f65f1ec-adb9-4ca9-a76d-b28c5f6eb9e5');
 INSERT INTO [dbo].[Notificaciones] ([NotificacionId], [UsuarioId], [Tipo], [Mensaje], [Leida], [FechaCreacion], [VentaId], [JuegoId]) VALUES (N'4aa4f78b-9723-4d87-962f-10f00b0b7c3e', N'5e991d00-0fb0-4f16-8968-9531c583d4a9', N'ValorAlto', N'Se registró una apuesta con valor alto: 10.000. Número 7894 en Medellín.', 0, N'2026-10-03T22:12:49.9223162', N'7360f6e0-94ec-44ff-8094-27574b3d448f', N'50a7832b-5db4-42e7-923f-c41e558bfe65');
 INSERT INTO [dbo].[Notificaciones] ([NotificacionId], [UsuarioId], [Tipo], [Mensaje], [Leida], [FechaCreacion], [VentaId], [JuegoId]) VALUES (N'78d13a21-7d6c-4da5-b6f9-205461f9875b', N'5e991d00-0fb0-4f16-8968-9531c583d4a9', N'ValorAlto', N'Se registró una apuesta con valor alto: 10.000. Número 5825 en Armenia, Bogotá.', 0, N'2026-10-06T18:26:12.8879176', N'90e73d97-de36-4802-ac4d-19adcc5b8357', N'fed17bca-f2e7-4aea-ab62-06a7beb2a4a1');
 INSERT INTO [dbo].[Notificaciones] ([NotificacionId], [UsuarioId], [Tipo], [Mensaje], [Leida], [FechaCreacion], [VentaId], [JuegoId]) VALUES (N'cb215084-c893-430d-a9b1-22cfc39be723', N'5e991d00-0fb0-4f16-8968-9531c583d4a9', N'ValorAlto', N'Se registró una apuesta con valor alto: 27.000. Número 4578 en Pasto, Armenia, Bogotá.', 0, N'2026-10-04T11:05:51.8532902', N'517e52dd-3e1f-47da-9181-25172c1c0218', N'9a4e0127-8958-48e0-8791-6d72d7701994');
+INSERT INTO [dbo].[Notificaciones] ([NotificacionId], [UsuarioId], [Tipo], [Mensaje], [Leida], [FechaCreacion], [VentaId], [JuegoId]) VALUES (N'84be0623-2618-4a6d-8bfe-254df8704b4a', N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'ChatSoporte', N'Hugo escribió en soporte.', 1, N'2026-10-21T08:33:14.6867445', NULL, NULL);
+INSERT INTO [dbo].[Notificaciones] ([NotificacionId], [UsuarioId], [Tipo], [Mensaje], [Leida], [FechaCreacion], [VentaId], [JuegoId]) VALUES (N'57d7b1e5-f739-4a2c-a516-2bca885d68a6', N'5e991d00-0fb0-4f16-8968-9531c583d4a9', N'ChatSoporte', N'Vendedor Web escribió en soporte.', 0, N'2026-10-22T20:14:29.7298789', NULL, NULL);
 INSERT INTO [dbo].[Notificaciones] ([NotificacionId], [UsuarioId], [Tipo], [Mensaje], [Leida], [FechaCreacion], [VentaId], [JuegoId]) VALUES (N'f8fdd7ba-5c7d-466e-bcb4-2f56317bb1b8', N'5e991d00-0fb0-4f16-8968-9531c583d4a9', N'ValorAlto', N'Se registró una apuesta con valor alto: 19.000. Número 5858 en Bogotá.', 0, N'2026-10-03T23:10:42.0388115', N'f701ce3d-3e68-4030-8474-7ff61648fc50', N'681c921f-db03-40b5-bc14-9985f16273b7');
+INSERT INTO [dbo].[Notificaciones] ([NotificacionId], [UsuarioId], [Tipo], [Mensaje], [Leida], [FechaCreacion], [VentaId], [JuegoId]) VALUES (N'85ebd81e-1578-4607-b093-471e912a7022', N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'ChatSoporte', N'Vendedor Web escribió en soporte.', 1, N'2026-10-22T20:14:29.7298789', NULL, NULL);
 INSERT INTO [dbo].[Notificaciones] ([NotificacionId], [UsuarioId], [Tipo], [Mensaje], [Leida], [FechaCreacion], [VentaId], [JuegoId]) VALUES (N'2ea46c81-d84e-4876-9ef0-48e9ec69543b', N'5e991d00-0fb0-4f16-8968-9531c583d4a9', N'ValorAlto', N'Se registró una apuesta con valor alto: 11.792. Número 1234 en Armenia, Bogotá.', 0, N'2026-10-02T17:35:18.4281735', N'0dfbd10c-ef53-4680-967f-58fd55b62c5c', N'01e32046-b682-41b2-896a-2cc74247865a');
+INSERT INTO [dbo].[Notificaciones] ([NotificacionId], [UsuarioId], [Tipo], [Mensaje], [Leida], [FechaCreacion], [VentaId], [JuegoId]) VALUES (N'85052bcf-1834-4eb5-a9b7-4aa085ae1b3e', N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'ChatSoporte', N'Hugo escribió en soporte.', 1, N'2026-10-21T09:09:52.3681701', NULL, NULL);
 INSERT INTO [dbo].[Notificaciones] ([NotificacionId], [UsuarioId], [Tipo], [Mensaje], [Leida], [FechaCreacion], [VentaId], [JuegoId]) VALUES (N'a7017eb4-4fbd-492e-ba4e-56444b3f65b6', N'5e991d00-0fb0-4f16-8968-9531c583d4a9', N'ValorAlto', N'Se registró una apuesta con valor alto: 50.000. Número 8956 en Bogotá.', 0, N'2026-10-03T19:22:26.0750721', N'762fe1b4-0f73-46e8-93d6-f2cee5152d21', N'9e547047-f911-49d3-80af-13f1e6b66707');
 INSERT INTO [dbo].[Notificaciones] ([NotificacionId], [UsuarioId], [Tipo], [Mensaje], [Leida], [FechaCreacion], [VentaId], [JuegoId]) VALUES (N'470d9a79-618c-43c9-9d46-57723d41ab02', N'5e991d00-0fb0-4f16-8968-9531c583d4a9', N'CasoGanador', N'Se reportó el ticket 7820371 como ganador.', 0, N'2026-10-02T17:37:10.0406189', NULL, NULL);
+INSERT INTO [dbo].[Notificaciones] ([NotificacionId], [UsuarioId], [Tipo], [Mensaje], [Leida], [FechaCreacion], [VentaId], [JuegoId]) VALUES (N'2e288085-2353-4b99-8a42-5db3a596bbea', N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'ChatSoporte', N'Vendedor Web escribió en soporte.', 1, N'2026-10-22T20:13:59.9466388', NULL, NULL);
+INSERT INTO [dbo].[Notificaciones] ([NotificacionId], [UsuarioId], [Tipo], [Mensaje], [Leida], [FechaCreacion], [VentaId], [JuegoId]) VALUES (N'1770bee0-d927-4011-9775-6068af4666c6', N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'ChatSoporte', N'Hugo escribió en soporte.', 1, N'2026-10-21T08:33:08.6919801', NULL, NULL);
 INSERT INTO [dbo].[Notificaciones] ([NotificacionId], [UsuarioId], [Tipo], [Mensaje], [Leida], [FechaCreacion], [VentaId], [JuegoId]) VALUES (N'3535269f-9f52-4ad2-b209-6153235cf7b2', N'5e991d00-0fb0-4f16-8968-9531c583d4a9', N'CasoGanador', N'Se reportó el ticket 0151346 como ganador.', 0, N'2026-10-02T17:18:35.5599455', NULL, NULL);
 INSERT INTO [dbo].[Notificaciones] ([NotificacionId], [UsuarioId], [Tipo], [Mensaje], [Leida], [FechaCreacion], [VentaId], [JuegoId]) VALUES (N'bc58721e-8793-4d32-b906-690ade7f866c', N'5e991d00-0fb0-4f16-8968-9531c583d4a9', N'ValorAlto', N'Se registró una apuesta con valor alto: 17.000. Número 5847 en Armenia, Medellín.', 0, N'2026-10-03T18:41:16.3145179', N'e3137420-5669-4592-aaef-ed2c3af98360', N'54e8dac3-0dd3-48dd-9e04-52ed706085ef');
 INSERT INTO [dbo].[Notificaciones] ([NotificacionId], [UsuarioId], [Tipo], [Mensaje], [Leida], [FechaCreacion], [VentaId], [JuegoId]) VALUES (N'4aad2b79-c3d3-49e1-951e-744a1641a580', N'5e991d00-0fb0-4f16-8968-9531c583d4a9', N'ValorAlto', N'Se registró una apuesta con valor alto: 35.000. Número 8096 en Bogotá.', 0, N'2026-10-03T23:04:41.1586188', N'1891a3bc-9245-4b33-9ead-4c4b77d63ae3', N'd7eef002-2e03-4f1c-b3b0-e367ecb82a80');
+INSERT INTO [dbo].[Notificaciones] ([NotificacionId], [UsuarioId], [Tipo], [Mensaje], [Leida], [FechaCreacion], [VentaId], [JuegoId]) VALUES (N'34919257-d284-4157-914e-8b0bd038bc75', N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'ChatSoporte', N'Vendedor Web escribió en soporte.', 1, N'2026-10-22T20:03:28.5872147', NULL, NULL);
+INSERT INTO [dbo].[Notificaciones] ([NotificacionId], [UsuarioId], [Tipo], [Mensaje], [Leida], [FechaCreacion], [VentaId], [JuegoId]) VALUES (N'4dd5ee33-3a71-4a43-a49d-8bcf6e24241a', N'5e991d00-0fb0-4f16-8968-9531c583d4a9', N'ChatSoporte', N'Vendedor Web escribió en soporte.', 0, N'2026-10-22T20:03:28.5872147', NULL, NULL);
+INSERT INTO [dbo].[Notificaciones] ([NotificacionId], [UsuarioId], [Tipo], [Mensaje], [Leida], [FechaCreacion], [VentaId], [JuegoId]) VALUES (N'80ba9a6d-c07a-439d-81a9-a4fb4f3b1164', N'5e991d00-0fb0-4f16-8968-9531c583d4a9', N'ChatSoporte', N'Hugo escribió en soporte.', 0, N'2026-10-21T08:33:14.6867445', NULL, NULL);
 INSERT INTO [dbo].[Notificaciones] ([NotificacionId], [UsuarioId], [Tipo], [Mensaje], [Leida], [FechaCreacion], [VentaId], [JuegoId]) VALUES (N'4366879a-91a2-4e36-8083-b43e9919be0f', N'5e991d00-0fb0-4f16-8968-9531c583d4a9', N'CasoGanador', N'Se reportó el ticket 0151346 como ganador.', 0, N'2026-10-02T16:13:35.4981042', NULL, NULL);
+INSERT INTO [dbo].[Notificaciones] ([NotificacionId], [UsuarioId], [Tipo], [Mensaje], [Leida], [FechaCreacion], [VentaId], [JuegoId]) VALUES (N'3126ec74-70c8-4d60-ac0a-be24cb626dcf', N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'ChatSoporte', N'Hugo escribió en soporte.', 1, N'2026-10-21T09:09:27.6585899', NULL, NULL);
+INSERT INTO [dbo].[Notificaciones] ([NotificacionId], [UsuarioId], [Tipo], [Mensaje], [Leida], [FechaCreacion], [VentaId], [JuegoId]) VALUES (N'22be2be0-570b-4eb9-9d73-c354793e412c', N'5e991d00-0fb0-4f16-8968-9531c583d4a9', N'ChatSoporte', N'Hugo escribió en soporte.', 0, N'2026-10-21T09:09:27.6585899', NULL, NULL);
 INSERT INTO [dbo].[Notificaciones] ([NotificacionId], [UsuarioId], [Tipo], [Mensaje], [Leida], [FechaCreacion], [VentaId], [JuegoId]) VALUES (N'c7b058ee-37cc-45f8-8651-c3cdfba38c16', N'5e991d00-0fb0-4f16-8968-9531c583d4a9', N'ValorAlto', N'Se registró una apuesta con valor alto: 80.000. Número 5864 en Medellín, Bogotá.', 0, N'2026-10-03T21:26:56.8546670', N'85671add-03c8-48fa-8312-1de03243869b', N'78dbc7b4-a444-4812-9e3e-fef216188606');
+INSERT INTO [dbo].[Notificaciones] ([NotificacionId], [UsuarioId], [Tipo], [Mensaje], [Leida], [FechaCreacion], [VentaId], [JuegoId]) VALUES (N'2859335a-ae3a-4b96-89e7-cb02a9e35b6d', N'5e991d00-0fb0-4f16-8968-9531c583d4a9', N'ChatSoporte', N'Vendedor Web escribió en soporte.', 0, N'2026-10-22T20:13:59.9466388', NULL, NULL);
 INSERT INTO [dbo].[Notificaciones] ([NotificacionId], [UsuarioId], [Tipo], [Mensaje], [Leida], [FechaCreacion], [VentaId], [JuegoId]) VALUES (N'9f7a0a87-60db-420c-823e-d8dccb0af3c9', N'5e991d00-0fb0-4f16-8968-9531c583d4a9', N'ValorAlto', N'Se registró una apuesta con valor alto: 10.000. Número 6547 en Cali, Bogotá.', 0, N'2026-10-16T17:58:42.3224867', N'0dcfbadc-d9c7-4f4c-aaf2-4f163ea74510', N'c6f9988c-b8ca-466d-b360-c25daff5d182');
+INSERT INTO [dbo].[Notificaciones] ([NotificacionId], [UsuarioId], [Tipo], [Mensaje], [Leida], [FechaCreacion], [VentaId], [JuegoId]) VALUES (N'382a1ebf-47d1-43ee-b01b-dae8eae004fb', N'5e991d00-0fb0-4f16-8968-9531c583d4a9', N'ChatSoporte', N'Hugo escribió en soporte.', 0, N'2026-10-21T08:33:08.6919801', NULL, NULL);
+INSERT INTO [dbo].[Notificaciones] ([NotificacionId], [UsuarioId], [Tipo], [Mensaje], [Leida], [FechaCreacion], [VentaId], [JuegoId]) VALUES (N'27268a91-104f-49a6-ab2b-e5086222fbc3', N'5e991d00-0fb0-4f16-8968-9531c583d4a9', N'ChatSoporte', N'Hugo escribió en soporte.', 0, N'2026-10-21T09:09:52.3681701', NULL, NULL);
 INSERT INTO [dbo].[Notificaciones] ([NotificacionId], [UsuarioId], [Tipo], [Mensaje], [Leida], [FechaCreacion], [VentaId], [JuegoId]) VALUES (N'c964c004-9027-469a-a439-e5430627d76d', N'5e991d00-0fb0-4f16-8968-9531c583d4a9', N'ValorAlto', N'Se registró una apuesta con valor alto: 69.134. Número 3456 en Armenia, Bogotá.', 0, N'2026-10-16T17:59:12.8622327', N'537dcc18-d614-4bb4-a570-947f87a879e5', N'e8de5c3e-985b-41a4-955b-97c8c9725b76');
 GO
 PRINT N'Datos de dbo.NumerosGanadores';
@@ -7691,53 +8217,99 @@ INSERT INTO [dbo].[Roles] ([RolId], [Nombre], [Descripcion]) VALUES (5, N'Recaud
 SET IDENTITY_INSERT [dbo].[Roles] OFF;
 GO
 PRINT N'Datos de dbo.Sesiones';
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'9c7ccec4-8621-4d48-b238-011e50bebef5', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'a92f23cb2a1f43e89148cd3c8f74acfa', N'2026-10-22T01:16:03.7302454', N'2026-10-22T09:16:03.7296500', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'58f47bd1-cdd8-4e2d-92b3-0141e260b98a', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'cb63295efbd64eada163659497e45507', N'2026-10-19T16:18:30.8109256', N'2026-10-20T00:18:30.8109145', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'12238695-581e-4307-b659-032df9501473', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'829d9ca0d2ae449aa0caa8a346ffcd33', N'2026-10-19T16:11:05.8870738', N'2026-10-20T00:11:05.8866035', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'94353bdd-09f6-43e9-967d-0361805c57bf', N'521949af-a65a-4585-8d8f-74e2598eac12', N'0a7602fe-f63c-4b0d-bc25-20180ba569da', N'96c089862b914edbb1dfb906c275d8e7', N'2026-10-17T03:48:33.7679178', N'2026-10-17T11:48:33.7679063', 1);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'487f86a1-6add-4ea6-805e-0602da3a95be', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'de1834574c704c6ebdb27846a4e6b3e6', N'2026-10-21T20:49:35.1862260', N'2026-10-22T04:49:35.1862164', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'd25c9176-9c61-4b22-bf53-0686b074b54a', N'fd4d77af-08d9-4cd1-868f-0d82e183a1d1', N'1e6d9ce5-141a-4cae-9b08-6089baae8d99', N'2a9ec8be36ca45fbaab032af76d9cf7e', N'2026-10-04T16:05:05.4121711', N'2026-10-05T00:05:05.4117928', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'dc5319df-2663-41ec-a274-077dbc510eeb', N'521949af-a65a-4585-8d8f-74e2598eac12', N'0a7602fe-f63c-4b0d-bc25-20180ba569da', N'd4a95acb9bc24be6bb0a01657a54bf44', N'2026-10-17T04:06:36.1266539', N'2026-10-17T12:06:36.1266441', 1);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'db1db27a-f91c-45d3-bab0-0b2f29c1f42e', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'e0c2624cce3e41a68da43333ee229a8e', N'2026-10-23T00:38:38.0936788', N'2026-10-23T08:38:38.0936694', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'7f9e8e8e-d76e-439b-a16e-0b750939d438', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'c6a9730d56614967867972fd3852074e', N'2026-10-04T13:36:50.2221554', N'2026-10-04T21:36:50.2216524', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'ffa9351c-d60d-4945-9162-0d29967a8d9e', N'fd4d77af-08d9-4cd1-868f-0d82e183a1d1', NULL, N'8c5f0d5cbc5c4ea4ae8b45948290cf6f', N'2026-10-02T21:34:15.4951560', N'2026-10-03T05:34:15.4951482', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'df62c114-6e7c-4fdf-97cb-0e5d2cc382c5', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'a3fbe7b876124fd289787d101ba7c1f9', N'2026-10-22T02:00:20.6444970', N'2026-10-22T10:00:20.6444857', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'24b55ac8-63b9-4241-86f9-12915c815cf8', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'6466215e7aa94eeb890cc3a5c0918630', N'2026-10-20T21:06:47.5663858', N'2026-10-21T05:06:47.5663727', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'0c888eec-4311-42b7-82c7-13c579cdcf3b', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'168a1a38279f413bb041365c00cad65d', N'2026-10-19T02:53:29.4443880', N'2026-10-19T10:53:29.4437584', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'de7a2357-fef0-4c2c-b15e-1403b88a6901', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'348134f22e0045d0b2b67f589bfa1b85', N'2026-10-17T16:16:42.4805691', N'2026-10-18T00:16:42.4796558', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'a8308bde-d0fa-4ea4-9aa3-141d2250f8ce', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'b752fff2f0a1468db0bc23bfbd1c85cf', N'2026-10-06T16:41:40.1068134', N'2026-10-07T00:41:40.1064412', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'd954708d-bd1f-4f98-8a1b-190c0d0bb555', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'ca91735e03e24dda9c10db545d0c05a0', N'2026-10-18T22:34:56.0731588', N'2026-10-19T06:34:56.0731495', 1);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'a750ee43-2f1d-45d5-b232-195e880aef6b', N'521949af-a65a-4585-8d8f-74e2598eac12', N'0a7602fe-f63c-4b0d-bc25-20180ba569da', N'5d7654eaa61c4ac8a59c719cb2bdc66d', N'2026-10-07T00:03:25.8518537', N'2026-10-07T08:03:25.8514999', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'4ccc993d-4d21-4353-b0af-196c71576562', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'7977e6a588b34aad9a8d6a401cb4553a', N'2026-10-15T14:41:02.0397892', N'2026-10-15T22:41:02.0392907', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'fd36185d-7cf3-4548-9ee5-1b6b8861ef34', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'239d3e3bd4c341f48fbd4982f3450540', N'2026-10-22T02:51:50.0491555', N'2026-10-22T10:51:50.0486620', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'e330ac54-0d42-4fad-b961-1c3c553c29f7', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'72627d8493c048a48fccb3572fa3c996', N'2026-10-07T23:51:47.6982188', N'2026-10-08T07:51:47.6974041', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'58d9064e-b708-4d9e-a508-1d9a8402bce4', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'00b3b5e00f7d472696453d9db4d805ed', N'2026-10-21T14:42:32.1864035', N'2026-10-21T22:42:32.1855010', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'5a42a117-187f-4793-a9a6-1ddf774c8955', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'9a7888698819468e882c213d10811cde', N'2026-10-17T19:11:26.6675940', N'2026-10-18T03:11:26.6613345', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'33d485da-623d-41f5-8dd1-1df4810d2932', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'963f0030b81d4383ab66cc34f6003daf', N'2026-10-04T13:06:08.4630992', N'2026-10-04T21:06:08.4630921', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'0419d218-5aee-42ad-8b09-1e5ee66aa908', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'7b9c202ea1374345b09f912d17d5e8b9', N'2026-10-22T23:53:26.0756656', N'2026-10-23T07:53:26.0756482', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'1c83b5b4-2bd2-4ef7-ba40-20548a71bebc', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'c79a59623d02436aba1528c469cc8d14', N'2026-10-06T21:46:52.9626943', N'2026-10-07T05:46:52.9620028', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'b0be57ce-685f-48db-aa86-21d59bd215d6', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'68cd2ab8100b46909939fb9d6886b2a5', N'2026-10-18T18:25:34.6409124', N'2026-10-19T02:25:34.6404226', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'02235156-f7e4-458b-81c0-220102ae6817', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'4a024751375045299d91d383908f608e', N'2026-10-04T17:54:35.1479551', N'2026-10-05T01:54:35.1476146', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'0fdc2da5-ab95-44dd-b151-2393198d21d0', N'521949af-a65a-4585-8d8f-74e2598eac12', N'0a7602fe-f63c-4b0d-bc25-20180ba569da', N'1098fae4ff8d414c998d4a437c60405f', N'2026-10-17T01:56:57.1834455', N'2026-10-17T09:56:57.1834390', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'418859a7-14ac-40d1-90dc-23a327ab0807', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'cdeaf821106a410681dd4baae2e6f23e', N'2026-10-22T22:22:07.8861536', N'2026-10-23T06:22:07.8856672', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'13ed40a6-c14d-43c5-8782-2803628bf154', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'5d2f225ec72942e287bc33b6fe7e596b', N'2026-10-18T14:23:32.2038364', N'2026-10-18T22:23:32.2038227', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'6174e9ee-3f3e-44ab-9aff-28f7a5a21c11', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'619bd51ea2ff448093571d1e930504c6', N'2026-10-22T04:00:17.8663665', N'2026-10-22T12:00:17.8663586', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'c8a38e47-b834-4dcb-a559-2a7a6b97b04f', N'fd4d77af-08d9-4cd1-868f-0d82e183a1d1', NULL, N'724e686b000e4d72a09cde55b4817f7a', N'2026-10-02T22:17:49.1784151', N'2026-10-03T06:17:49.1784064', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'39c7678b-5875-41e5-8878-2b19731559b9', N'521949af-a65a-4585-8d8f-74e2598eac12', N'0a7602fe-f63c-4b0d-bc25-20180ba569da', N'2371c2d035204c5b8a1d4a2539d3b076', N'2026-10-06T22:54:12.2515651', N'2026-10-07T06:54:12.2515543', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'f93f2517-e2a4-4fb3-9db3-2b1e69c9316e', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'bff80d86541141a4afb143b61c27d41c', N'2026-10-17T23:17:25.0091080', N'2026-10-18T07:17:25.0085355', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'db25bb8f-ef10-4d87-8dce-2ba77c3a5450', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'049b01d679bf45468e4d306f2b2a4c5d', N'2026-10-21T02:41:00.5916313', N'2026-10-21T10:41:00.5916207', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'd5110b5d-79c1-4dd9-8990-2c66ed26c730', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'8147f97130c5486dbba1b9fb9f0162bd', N'2026-10-21T04:04:10.0916145', N'2026-10-21T12:04:10.0915661', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'eccd62b4-74dd-4568-8425-2d5f883254a5', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'2d4da57c571a43879eae014a3bda5894', N'2026-10-27T04:43:41.3818268', N'2026-10-27T12:43:41.3811879', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'850f25ae-5b7c-49f6-9271-2da12f905360', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'a77933fc16f540599fd305071a40cba6', N'2026-10-21T23:42:28.7064756', N'2026-10-22T07:42:28.7052874', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'8fe2426f-d163-41b3-b88f-2e4031afdd8c', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'c68c587878d345019843e99a9e16654c', N'2026-10-21T01:04:12.5435316', N'2026-10-21T09:04:12.5429337', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'20e12258-eac4-4932-95db-2fd9a3f778d8', N'fded5304-5978-45ec-ae54-87b15825d76b', N'8023643f-65d1-4d78-95fd-16fbce188347', N'6ca70ce26b464c848856a8f05425b870', N'2026-10-05T00:49:19.5946410', N'2026-10-05T08:49:19.5946346', 0);
-INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'8c4c9ab4-50f5-4e54-84d7-30ae0bacd85d', N'dca750a8-5821-4ff0-bec6-eb2b23d32d7b', N'0a7602fe-f63c-4b0d-bc25-20180ba569da', N'f308b2959fcf4678a40d15fa5bbc1041', N'2026-10-15T15:51:05.9291765', N'2026-10-15T23:51:05.9291706', 1);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'8c4c9ab4-50f5-4e54-84d7-30ae0bacd85d', N'dca750a8-5821-4ff0-bec6-eb2b23d32d7b', N'0a7602fe-f63c-4b0d-bc25-20180ba569da', N'f308b2959fcf4678a40d15fa5bbc1041', N'2026-10-15T15:51:05.9291765', N'2026-10-15T23:51:05.9291706', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'48dae737-66f7-452f-916d-315f7d3b6a1b', N'521949af-a65a-4585-8d8f-74e2598eac12', N'0a7602fe-f63c-4b0d-bc25-20180ba569da', N'c1e7d351d43c4d98bf941c717b808387', N'2026-10-06T21:48:46.0250505', N'2026-10-07T05:48:46.0250334', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'201ae5f4-f0f9-48fe-a0b2-31d73c93b77d', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'163bbdea318a4710b2e937205da79056', N'2026-10-20T23:51:08.5738155', N'2026-10-21T07:51:08.5730954', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'78e1a117-43c2-4895-81a8-34a0058b73a5', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'957903551ded4f80a1d14eb895449743', N'2026-10-04T00:37:21.3445365', N'2026-10-04T08:37:21.3445226', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'b7093e00-b606-40bd-91a6-352c64c77c45', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'ec9ed053d9ac4a3ca2f95777a1408cb1', N'2026-10-17T01:55:21.3579329', N'2026-10-17T09:55:21.3575701', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'3eb9e3ec-17f3-4f70-b3ab-39c20a8a1819', N'dca750a8-5821-4ff0-bec6-eb2b23d32d7b', N'27fda5cb-37db-4263-8808-984ade649807', N'0312d5b6b43440eca723314edfa97861', N'2026-10-21T14:09:10.9197748', N'2026-10-21T22:09:10.9197643', 1);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'12e86a69-aff4-4008-a29b-39d9cde49b2d', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'5b0484656dd7431eaa562b90abf758d0', N'2026-10-17T04:05:03.1243137', N'2026-10-17T12:05:03.1241821', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'a68ce74a-33bd-4ec4-baae-3a1d41ad4e60', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'd9eb71cce75e4bea95452592a1681925', N'2026-10-18T01:57:29.1831638', N'2026-10-18T09:57:29.1831250', 0);
-INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'c5e43a30-f7f6-4d33-89fb-3fb5755828e9', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'fe7f98adfe2645739bb8c76e815e894e', N'2026-10-18T17:08:57.3090526', N'2026-10-19T01:08:57.3090446', 1);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'c5e43a30-f7f6-4d33-89fb-3fb5755828e9', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'fe7f98adfe2645739bb8c76e815e894e', N'2026-10-18T17:08:57.3090526', N'2026-10-19T01:08:57.3090446', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'7b3d737a-018b-4845-b39f-3fd58f288759', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'ea0d9969ed344e1eae313f6fd81f31be', N'2026-10-21T16:51:47.2386593', N'2026-10-22T00:51:47.2386528', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'745ecfc3-3626-4225-85b9-40a062dbf36a', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'29515a0f62b745ebacc71aac743207c7', N'2026-10-17T17:51:08.2563992', N'2026-10-18T01:51:08.2557040', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'bfe0d33a-0e7f-4ced-9141-41b1206acc7b', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'd522283bc766424e9123b60c361cd297', N'2026-10-15T20:18:10.5402448', N'2026-10-16T04:18:10.5398612', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'5b7789cb-c1df-4700-b4a9-4307149581db', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'282e573aaa5842bd894b9dff91bdbe36', N'2026-10-15T15:43:05.9491498', N'2026-10-15T23:43:05.9488277', 0);
-INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'68461206-6909-4aa0-abca-489beffa3e10', N'dca750a8-5821-4ff0-bec6-eb2b23d32d7b', N'0a7602fe-f63c-4b0d-bc25-20180ba569da', N'd56d5a41eec44b86a322fef2682f7e85', N'2026-10-15T15:14:27.2132355', N'2026-10-15T23:14:27.2132294', 1);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'c4190970-3276-4858-a84b-4486e1a3f6e5', N'dca750a8-5821-4ff0-bec6-eb2b23d32d7b', N'27fda5cb-37db-4263-8808-984ade649807', N'b871b5520f744c66a3ef202699a01f6f', N'2026-10-21T13:50:46.3944356', N'2026-10-21T21:50:46.3944283', 1);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'1aa87098-c9e0-4caa-98a9-4506e9a70dfc', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'ff378d392ad94d44bf9e5f272cd717ca', N'2026-10-23T01:14:07.8439969', N'2026-10-23T09:14:07.8439887', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'659f5841-45dc-49a2-b8ad-45aee2d916f9', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'73967fa831574259ae1ba963501a0cea', N'2026-10-22T04:12:29.6976326', N'2026-10-22T12:12:29.6976271', 1);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'dbefd55b-2d82-4516-9cdc-4724eb0f951e', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'0d081fad5f9140dd974c75ee5ceef096', N'2026-10-18T23:31:54.5610511', N'2026-10-19T07:31:54.5605893', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'a922f966-5564-4784-8fa9-47e8fe38063c', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'4b275e1a013a42e5a5f8fbce51168293', N'2026-10-22T01:18:33.1035765', N'2026-10-22T09:18:33.1035668', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'68461206-6909-4aa0-abca-489beffa3e10', N'dca750a8-5821-4ff0-bec6-eb2b23d32d7b', N'0a7602fe-f63c-4b0d-bc25-20180ba569da', N'd56d5a41eec44b86a322fef2682f7e85', N'2026-10-15T15:14:27.2132355', N'2026-10-15T23:14:27.2132294', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'2a25ba8a-4b7a-4fcd-bc49-491e7636d6b7', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'22aebe7a166d42beb160825ef56dc7d6', N'2026-10-20T22:39:34.7539879', N'2026-10-21T06:39:34.7539783', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'1771d3d5-d3fe-4cfc-8953-4ab5b5775139', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'e24d969961634022a6658cad16a9339a', N'2026-10-04T14:40:57.6664712', N'2026-10-04T22:40:57.6659126', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'eacf0f22-ade9-4567-9d22-4de2ee03b686', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'48d02b788b114dd884ccf8340abb5cb6', N'2026-10-18T04:13:51.0987009', N'2026-10-18T12:13:51.0948655', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'07af6a09-adf5-451d-a1e1-4f023d627459', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'b1dea031cad142909953dc3c373983af', N'2026-10-21T14:09:33.7102102', N'2026-10-21T22:09:33.7102028', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'61280c6c-5d2a-4788-8eef-4f5941b4ecbd', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'75c39485c212472892aa43750ba0ab9d', N'2026-10-22T00:38:13.7607391', N'2026-10-22T08:38:13.7607309', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'3dcd7080-18ad-40b8-949c-4f8f8760b821', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'744d47e8726a4920a67280b730d8a120', N'2026-10-04T03:57:36.2040537', N'2026-10-04T11:57:36.2040471', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'fbd7018f-4b54-43be-b525-4fe3e825bf11', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'b1a331b133724b46aab54c8930d72b3b', N'2026-10-22T20:09:51.2622627', N'2026-10-23T04:09:51.2622523', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'3f022b55-d004-4022-a4f3-5003a47720aa', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'f46001724b3747e78f4f40e9c5576d91', N'2026-10-21T00:13:12.3285196', N'2026-10-21T08:13:12.3285122', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'7229c9ba-7983-4065-b36c-501b97c7c1f5', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'b99d029dc1144746a6690a2990d2d571', N'2026-10-22T22:45:28.8401502', N'2026-10-23T06:45:28.8395509', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'afcf553b-bdb2-4d9a-9777-5272fc684d89', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'c3109528b3a94edbac7cb87993461b76', N'2026-10-21T17:44:35.8121582', N'2026-10-22T01:44:35.8121479', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'b79be613-00aa-44f5-818a-547482155c45', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'4ce5a5915ece48ba85bfb77ab73d7ee3', N'2026-10-17T18:00:07.0325467', N'2026-10-18T02:00:07.0325373', 1);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'f81491dd-73c1-4e0f-8cf1-566fc2490bfb', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'c2255561c3e8492fb975f35c6ce01804', N'2026-10-20T23:07:57.0719427', N'2026-10-21T07:07:57.0719300', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'c50d223b-0c8d-456c-83e2-585b836c3c46', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'576b63f561af44b787d05dc88b010a35', N'2026-10-18T17:26:42.0562389', N'2026-10-19T01:26:42.0557786', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'b3df17cf-c053-407c-a0c4-59464fa1a3c6', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'd8b611db9f4c4f5e9b06881a3ca3f9b1', N'2026-10-21T20:36:32.3249155', N'2026-10-22T04:36:32.3249088', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'a1f8532b-32ea-4b78-a467-595a088450f5', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'cf5941af3f4c455e909a80a078ff4365', N'2026-10-22T23:22:54.1247524', N'2026-10-23T07:22:54.1247452', 1);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'fe1bae89-dd42-44df-b5a0-5ffca3cf1aab', N'521949af-a65a-4585-8d8f-74e2598eac12', N'0a7602fe-f63c-4b0d-bc25-20180ba569da', N'1977ae09d5be4e3db18d7ce634d1f356', N'2026-10-18T03:36:53.5329683', N'2026-10-18T11:36:53.5324858', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'6b6f3860-8990-492a-86af-6404806ab3e4', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'e593d359f43849b78510f01fa2d0f1c6', N'2026-10-18T16:54:17.4983206', N'2026-10-19T00:54:17.4982809', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'be692136-80f2-4425-a0b8-65ffe4d87653', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'bc472fdeb61848ed8d3c72467f5b0f48', N'2026-10-23T20:47:43.7482424', N'2026-10-24T04:47:43.7476369', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'083184dc-5ac7-44ee-ad9b-667d58aa06ef', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'bb049bdb2fbd40e3bc8293383ccb95ce', N'2026-10-20T03:25:54.0557094', N'2026-10-20T11:25:54.0557020', 1);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'916639e0-657a-4b10-bae2-67c8a3abe268', N'fd4d77af-08d9-4cd1-868f-0d82e183a1d1', N'1e6d9ce5-141a-4cae-9b08-6089baae8d99', N'0af7c58dd8734d5ab553f709bbba5851', N'2026-10-04T02:26:18.1371533', N'2026-10-04T10:26:18.1371461', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'6289b769-71c6-4953-9a1d-681402f7fe7b', N'521949af-a65a-4585-8d8f-74e2598eac12', N'0a7602fe-f63c-4b0d-bc25-20180ba569da', N'509fdff1854a4a20b88177775b9353b0', N'2026-10-06T23:24:41.5164208', N'2026-10-07T07:24:41.5164138', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'214ea7d8-59fb-46e1-af77-6b6cef9cc5d1', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'0243354b340748eb9670aa92bddfd6e2', N'2026-10-06T22:20:33.8848435', N'2026-10-07T06:20:33.8848249', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'4f102841-47df-4d7b-aa6e-6d140f2e4463', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'4d39006128654c849f042f0cf9fbd119', N'2026-10-21T15:44:32.7620182', N'2026-10-21T23:44:32.7620076', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'f83c3b69-db38-49c9-a8f7-6df6c7d7b45c', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'7b9edfd1c7554768a82150f56e2f3b03', N'2026-10-22T19:59:28.8754332', N'2026-10-23T03:59:28.8745201', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'1fe6ada4-1241-4019-bdbe-6e5cdc4543ef', N'521949af-a65a-4585-8d8f-74e2598eac12', N'0a7602fe-f63c-4b0d-bc25-20180ba569da', N'4acd9757befa4a9a951d1be4b279d93c', N'2026-10-15T14:59:24.8006434', N'2026-10-15T22:59:24.8006386', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'0fa68227-63e2-4992-9620-6ed10e4b1d96', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'8b8bc189bf21496fa64891fb7a195656', N'2026-10-21T15:27:54.7263274', N'2026-10-21T23:27:54.7263188', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'01b7704c-b46e-430b-a1c9-6f6cf31b0bc3', N'fd4d77af-08d9-4cd1-868f-0d82e183a1d1', N'1e6d9ce5-141a-4cae-9b08-6089baae8d99', N'c6870d3367b64632ac3d87cda3228f96', N'2026-10-04T03:11:30.9626893', N'2026-10-04T11:11:30.9626798', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'8398fd01-39be-4648-96c1-74a5abb2fef5', N'521949af-a65a-4585-8d8f-74e2598eac12', N'0a7602fe-f63c-4b0d-bc25-20180ba569da', N'88c3dcc07cf74a66aa23631273169cc4', N'2026-10-06T22:38:46.5860041', N'2026-10-07T06:38:46.5859951', 1);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'4641fdf8-253d-450e-8044-761d364fc3ee', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'052e59dd18b34b358573391466054fde', N'2026-10-18T03:52:41.3582301', N'2026-10-18T11:52:41.3582175', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'c8c99f35-6750-4ff4-bc16-7732e4caaa45', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'a709953adb69441c8f0c71195cc42a49', N'2026-10-22T20:52:41.0799956', N'2026-10-23T04:52:41.0794579', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'00b3a3b1-1cb3-403e-a389-77d827b760e6', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'ed6c18d09909452b8e6a99c403bd577d', N'2026-10-05T00:39:58.9812321', N'2026-10-05T08:39:58.9805265', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'b34f6435-b745-4356-ab42-7abd5f8eca1e', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'003a0d6534da4da5bbcac5949af96c4a', N'2026-10-19T03:29:23.5972548', N'2026-10-19T11:29:23.5972493', 1);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'a8db3eb5-ccbc-409d-a50c-7afada5accfd', N'dca750a8-5821-4ff0-bec6-eb2b23d32d7b', N'27fda5cb-37db-4263-8808-984ade649807', N'8c202e2000d243159ac538c021f8fd5f', N'2026-10-21T13:31:57.7646716', N'2026-10-21T21:31:57.7646628', 1);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'bb760624-fff5-4bca-b39d-803981c192e7', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'61b5f3aa217c4f3ca02ae700132f6cb9', N'2026-10-21T20:14:40.7184402', N'2026-10-22T04:14:40.7184323', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'c81dc8e8-2562-4acb-b68f-80cd7ac6f45c', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'b284a00ee7c9415f81f2364077574a92', N'2026-10-18T01:35:56.1528051', N'2026-10-18T09:35:56.1519785', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'03e32471-ce44-4d66-aba3-8317acb5f7d9', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'0c458773bdab4cf9a106925273c53db4', N'2026-10-06T17:19:50.9525693', N'2026-10-07T01:19:50.9525637', 1);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'65f7110b-ebc8-41b0-bb7b-83f4a5e421e7', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'88de8f1c8c814579840915dc9ecc0cf4', N'2026-10-17T17:00:51.2008685', N'2026-10-18T01:00:51.2001417', 0);
@@ -7746,53 +8318,95 @@ INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token],
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'7a0aa229-687e-4179-9aa0-853655586664', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'ca77480bb97b4b8fa19eb5896f5051a3', N'2026-10-02T22:03:00.4231285', N'2026-10-03T06:03:00.4231185', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'bd13ac8b-17b7-43d7-bc35-85ba61df5ae7', N'521949af-a65a-4585-8d8f-74e2598eac12', N'0a7602fe-f63c-4b0d-bc25-20180ba569da', N'11c65c5a8e6b4035a0c1b18ed65aff3a', N'2026-10-05T00:55:40.7615817', N'2026-10-05T08:55:40.7615759', 1);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'873fef86-db3c-438a-930b-8cf980536b41', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'05b2a282b2d54cf29e1cc5b1dd203bb8', N'2026-10-16T22:29:08.3420182', N'2026-10-17T06:29:08.3415359', 1);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'7714b58e-06ee-4397-b236-8dbdce3f8b8f', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'8b24b9fde0114d72a3078048341c5c40', N'2026-10-18T23:03:12.3348052', N'2026-10-19T07:03:12.3344527', 1);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'03c380b5-0167-4bf6-bfd5-8f7c28abe414', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'84d86e40e7fc44b1b64d99a7988bf6fa', N'2026-10-20T20:43:48.5067919', N'2026-10-21T04:43:48.5067845', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'aaa82b8b-6517-4d40-818b-91f3767eabcd', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'd3e02cfd850c47db8c13391cb48fd75c', N'2026-10-18T13:36:11.6980986', N'2026-10-18T21:36:11.6980889', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'0998b52b-ad51-4d2b-bf2a-92078be9d523', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'9c44ebaee03440eebd366a413a2ac22c', N'2026-10-23T21:06:32.8600452', N'2026-10-24T05:06:32.8600287', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'614ec4dc-a8a2-4299-b69f-9274e459c214', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'8432e47897b143c18ab8cf960676e17c', N'2026-10-21T13:29:21.4550673', N'2026-10-21T21:29:21.4540903', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'a927ebda-81b8-4bec-82d2-966c2e9eaa71', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'eae09758d0bc4558adb67688a51c3260', N'2026-10-18T17:05:33.7604666', N'2026-10-19T01:05:33.7599957', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'535aed51-3645-4e5e-a94e-97e1d5932a41', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'1595387df6454fa88ee10def3c7ac31d', N'2026-10-16T22:30:55.2973372', N'2026-10-17T06:30:55.2973319', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'682048fe-2265-45af-8456-9954bd9077c0', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'4200827af95c4764a1c1c687653587a0', N'2026-10-18T13:13:10.3160451', N'2026-10-18T21:13:10.3156125', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'c4c7ecef-5eaa-45b6-bead-9aadfc7ee4d6', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'10a0062693f742cf8e93da50105dfe0c', N'2026-10-23T00:58:34.4480799', N'2026-10-23T08:58:34.4480724', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'dea7ecda-bed4-4b6f-94a9-9ac5ba9bb2a3', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'4f0edae50b0c430b99f7a2c9a89b94be', N'2026-10-18T04:13:51.7077958', N'2026-10-18T12:13:51.7077872', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'a8b1bafe-02d1-45e0-ae6a-9b42b7ddf29a', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'73ae58ab36274c248740721a3567647a', N'2026-10-16T22:31:44.1007168', N'2026-10-17T06:31:44.1006824', 1);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'8a65847b-9eaf-4dc8-be19-9b5a511bc7ea', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'351dd8efbd5549018a28415c483e48d5', N'2026-10-18T14:23:08.7257127', N'2026-10-18T22:23:08.7252826', 1);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'6193cad4-73b3-4e68-b0d7-9cbe95cbad50', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'7848a3ce228444859204fde8b817eb6e', N'2026-10-21T21:02:17.2600842', N'2026-10-22T05:02:17.2600746', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'dd778745-2823-466f-8b76-9d47781364b1', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'46b5066fcde04fcfa7292483a60f13b5', N'2026-10-02T20:28:20.9810509', N'2026-10-03T04:28:20.9810417', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'1c6cd3c2-fcde-4349-8bdf-9e555f7d82f3', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'4720fd5127704082bed556301f10226a', N'2026-10-22T22:22:10.7942720', N'2026-10-23T06:22:10.7942617', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'7356cecc-2a96-4879-94a0-a07df51ede22', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'20974a0cc4a24e6081556b98b432a52d', N'2026-10-04T03:17:34.1935504', N'2026-10-04T11:17:34.1929855', 0);
-INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'7fbc1b5e-db54-41e6-9051-a10863da5ce3', N'dca750a8-5821-4ff0-bec6-eb2b23d32d7b', N'0a7602fe-f63c-4b0d-bc25-20180ba569da', N'c53c939c7e614011a760487a9eb24002', N'2026-10-15T14:55:20.5393496', N'2026-10-15T22:55:20.5393402', 1);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'7fbc1b5e-db54-41e6-9051-a10863da5ce3', N'dca750a8-5821-4ff0-bec6-eb2b23d32d7b', N'0a7602fe-f63c-4b0d-bc25-20180ba569da', N'c53c939c7e614011a760487a9eb24002', N'2026-10-15T14:55:20.5393496', N'2026-10-15T22:55:20.5393402', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'55ce016d-45ae-4003-b459-a11bde270293', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'303b61994e864c3da8920a41582bd2c7', N'2026-10-18T17:09:56.1178591', N'2026-10-19T01:09:56.1178531', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'6b77c122-54a2-43ae-a61f-a13ac3314adc', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'c2fe67edc9b64813a56383d5ee088a79', N'2026-10-06T17:21:57.4376534', N'2026-10-07T01:21:57.4376412', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'84b6d059-f689-45f7-8c6b-a16d8834efd8', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'132babb9d9174d6eaf9710eb0129ce47', N'2026-10-18T16:39:03.4613139', N'2026-10-19T00:39:03.4609570', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'6f32b4cf-0294-4add-9fd6-a1abdbde618d', N'fded5304-5978-45ec-ae54-87b15825d76b', N'8023643f-65d1-4d78-95fd-16fbce188347', N'00b8c323633248e6bb394716f6653900', N'2026-10-05T00:51:42.2269761', N'2026-10-05T08:51:42.2269713', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'af1ba4d3-ee65-473a-93e2-a20ee5a4e8a1', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'a239a0f148e0413da715ac5121fc661e', N'2026-10-18T17:36:18.9823989', N'2026-10-19T01:36:18.9823930', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'9231cc1a-749a-4609-baaa-a55debcddf1f', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'2311c70a9bd242b49732b696cfa5745d', N'2026-10-21T00:13:07.3593811', N'2026-10-21T08:13:07.3593705', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'a1fff3be-40d8-486f-b4ee-a6845b4077bd', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'b83117de2dfc44fbba789dec8f402085', N'2026-10-18T03:40:19.1507471', N'2026-10-18T11:40:19.1497041', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'b5af0267-0ef9-4aa3-af9e-a768fdb1dbc8', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'127dad433c104dee820f201eb04a11c4', N'2026-10-23T00:20:08.9146433', N'2026-10-23T08:20:08.9146235', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'5d8bb77b-a83f-4c60-b68b-a8a13289c1b3', N'fd4d77af-08d9-4cd1-868f-0d82e183a1d1', N'0a7602fe-f63c-4b0d-bc25-20180ba569da', N'a5e36903f254491f9ad95dd558f278ad', N'2026-10-15T15:09:12.1018573', N'2026-10-15T23:09:12.1018437', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'571401e1-9ecc-4ed9-8fc1-aa3cc57467ee', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'60a9d692cfe3489baef1c109be6c44c7', N'2026-10-22T02:26:36.3647970', N'2026-10-22T10:26:36.3640794', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'7fb452dc-40db-4e1d-b331-ab956a0a8343', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'a7866c0a27d24448b5e6be9794a4e2c0', N'2026-10-17T03:40:13.9607707', N'2026-10-17T11:40:13.9607600', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'08fb5eaa-2882-4ee4-91ac-ad7d2bbf8651', N'521949af-a65a-4585-8d8f-74e2598eac12', N'0a7602fe-f63c-4b0d-bc25-20180ba569da', N'b34a34f0096e439196dd36b9222f163f', N'2026-10-17T03:48:00.3351247', N'2026-10-17T11:48:00.3346624', 1);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'43c98648-6537-4091-a018-ad85014d0a62', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'33a849d8e4f5407386a45a5456b5ce48', N'2026-10-21T17:15:50.6409914', N'2026-10-22T01:15:50.6409831', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'89d4563f-8265-4d8f-8f94-b0ba2a1c45ec', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'2c66ec85566745d2bcc3fd085fc4df68', N'2026-10-22T23:53:23.8135623', N'2026-10-23T07:53:23.8129918', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'9fa14b79-b82a-4b12-8ac0-b2a9224f3389', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'ac4d8d3c738740999ee801ddb8835245', N'2026-10-06T17:18:45.4239395', N'2026-10-07T01:18:45.4239335', 1);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'9446d8ee-a115-4868-a663-b47dd7b79229', N'dca750a8-5821-4ff0-bec6-eb2b23d32d7b', N'27fda5cb-37db-4263-8808-984ade649807', N'3ffcd622019849d09d11077f5d8bc61e', N'2026-10-21T13:30:18.8069643', N'2026-10-21T21:30:18.8069578', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'a7fc1ff1-f853-43c8-bbb2-b4f63c3ed52b', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'c975dc39f6ee4ce980fdaca75c179b46', N'2026-10-23T01:35:35.4246862', N'2026-10-23T09:35:35.4246743', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'944da6f9-7394-435a-9666-bb4cebb2b8e3', N'fd4d77af-08d9-4cd1-868f-0d82e183a1d1', NULL, N'f5a9b6ffd1de4e37a5cb82e7a6ebe5c9', N'2026-10-02T21:08:47.9721698', N'2026-10-03T05:08:47.9721640', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'f28861a3-86a2-4e76-b58f-bcb98c0f4502', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'3eb00f90277b422eb2a280816e1f2247', N'2026-10-20T02:01:57.3242055', N'2026-10-20T10:01:57.3241329', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'735e8860-9d1d-475d-8b44-bcc1d5e7abea', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'a663243a9b35463e8e8cda7bcea4dda7', N'2026-10-21T16:34:18.9289170', N'2026-10-22T00:34:18.9289098', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'7c0a57f4-4cdb-4478-b13f-c18548b80ca4', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'76fe01611c534170ae2b010d7bae2cb0', N'2026-10-27T04:43:56.4360602', N'2026-10-27T12:43:56.4360486', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'42332a74-def2-404b-9b36-c2597272be85', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'b04f7db0fc8248a7b3464532b993d6b8', N'2026-10-23T01:13:49.9539555', N'2026-10-23T09:13:49.9534620', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'6b65e76b-83fc-45a1-8a26-c3714fde3e4d', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'0acfbf40926246159d3fab92bb11806b', N'2026-10-20T03:14:58.4426262', N'2026-10-20T11:14:58.4426146', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'b64d6ee1-6cd4-420b-a540-c470a311d27d', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'0d061f20ca024459aef1b496c3367f34', N'2026-10-04T04:45:32.9088734', N'2026-10-04T12:45:32.9088621', 1);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'48e59fa6-f11f-4ebb-8362-c5b857a3a546', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'a6d3b0e2f459443ca50be9987ab1d298', N'2026-10-19T20:38:25.5050814', N'2026-10-20T04:38:25.5041003', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'46b1f120-2eb3-4105-8a04-c6178857dc28', N'fd4d77af-08d9-4cd1-868f-0d82e183a1d1', NULL, N'bb2c0abfa36e424cbbc0b3561a971eea', N'2026-10-03T23:40:06.0831923', N'2026-10-04T07:40:06.0831795', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'538ae642-2d68-4824-b7a7-c6ffe2343def', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'07a41711f522462d84def6bec42c22b5', N'2026-10-22T23:18:22.2713416', N'2026-10-23T07:18:22.2713255', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'6e4a2484-4f14-4ae6-bc62-c766a9da2d5d', N'521949af-a65a-4585-8d8f-74e2598eac12', N'0a7602fe-f63c-4b0d-bc25-20180ba569da', N'164a39b88d034c738b1928032d315a1e', N'2026-10-17T03:10:23.1020089', N'2026-10-17T11:10:23.1012022', 1);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'c2710535-c749-41c8-88de-c9fea7bb675f', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'aa7ab639bef340858bb468a4da17ba62', N'2026-10-05T01:30:29.3339814', N'2026-10-05T09:30:29.3335926', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'712a7a66-0021-4dfb-a802-cc479e81ef6d', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'ba2899773c574482aaa98812d8f7fee2', N'2026-10-21T03:22:37.1283677', N'2026-10-21T11:22:37.1275905', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'88beffa0-4f7a-4b90-b3fd-ce05a4113235', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'7721ad15c98447b8b9c15c7d9aa142c4', N'2026-10-23T00:38:35.2785835', N'2026-10-23T08:38:35.2781029', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'2b7b01e3-8a2e-410b-9fa1-cf4279196724', N'521949af-a65a-4585-8d8f-74e2598eac12', N'0a7602fe-f63c-4b0d-bc25-20180ba569da', N'dc861a39ab384dcc9b0c2eefe101ea35', N'2026-10-05T00:52:52.7680522', N'2026-10-05T08:52:52.7680450', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'bcfdcc4b-47fe-420d-98b2-d1e4417ef8ea', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'74ece485eb4e42649fa279454af55c5a', N'2026-10-22T21:49:08.9589549', N'2026-10-23T05:49:08.9589429', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'97879967-695e-47cc-bc56-d25ea58721b8', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'a37a6a6dc59f45909c848f3f261ff834', N'2026-10-20T21:07:21.2669172', N'2026-10-21T05:07:21.2669082', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'9a4750ba-cdae-42f0-953f-d37fac746171', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'c998bc7ade1b45baa2bd4644a9005c2e', N'2026-10-21T23:18:59.2096012', N'2026-10-22T07:18:59.2089737', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'349e7e87-4cc0-40f9-b4c0-d40a0f610062', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'6a1711200abf46a18441fe097fe2d3ee', N'2026-10-04T15:11:09.3947635', N'2026-10-04T23:11:09.3944212', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'6a5f1fe8-7d6f-4e6b-815b-d552dc430a35', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'a202749c2fe548a3b76d5e6daf4f90e1', N'2026-10-16T22:34:56.8942560', N'2026-10-17T06:34:56.8942465', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'e5268b50-fe3d-4502-8167-d7af2aafa62c', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'd46b3f2cbec34299b73c0cd0a67e0bcf', N'2026-10-02T21:07:49.8721043', N'2026-10-03T05:07:49.8717376', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'bdc3efa3-7a76-4bbf-b7db-d9abf206b435', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'b49410f807184a378960f67d3a65adb4', N'2026-10-18T15:07:49.6820521', N'2026-10-18T23:07:49.6820437', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'2256dd5f-893a-41d3-b42b-da520b61e87d', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'0929556fbc69413f92e73778abc4241b', N'2026-10-19T02:23:54.4016494', N'2026-10-19T10:23:54.4011247', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'fc610cb4-7457-4561-a66b-dcaa6ebdbd17', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'6cae3ffcfa5c4569a6d9dff75e130c6e', N'2026-10-17T17:08:33.3935826', N'2026-10-18T01:08:33.3935726', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'5d0ff1e3-3dfe-4948-a974-dd0dcec6f91c', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'65f26ecf49094bf6b1bf96123b4faf09', N'2026-10-03T23:36:23.7827453', N'2026-10-04T07:36:23.7812145', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'47009837-eac9-427e-833f-df53514d6e94', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'da8c2e773e2c47a0bc74809c6223fbbd', N'2026-10-19T03:28:22.9666894', N'2026-10-19T11:28:22.9662633', 1);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'81f54e8d-c636-46e9-9004-e09471254b90', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'c37a7cfdadfa4a9388e33502d8623980', N'2026-10-04T14:06:39.8383581', N'2026-10-04T22:06:39.8380024', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'd40e8af3-e642-433e-84bf-e129eafcfe88', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'375c6a1ca5c04d0db4fe78b9d61e48ef', N'2026-10-17T17:01:25.9925804', N'2026-10-18T01:01:25.9925696', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'7c201c8c-a932-43a1-bfdf-e221f3a53176', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'359a2d424cf146da9de5cfbe5a9ebe5f', N'2026-10-21T19:59:48.9171156', N'2026-10-22T03:59:48.9162244', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'f5cbe200-7697-42a7-8060-e29ec6c53254', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'576959e381d04ed285215cbb2eb9ed18', N'2026-10-21T23:30:46.3179368', N'2026-10-22T07:30:46.3179269', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'3615e00e-a64e-43dc-8fd8-e2f15e46fe96', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'524cb698c33f489b801359e1854aa033', N'2026-10-23T22:38:14.3765352', N'2026-10-24T06:38:14.3740729', 1);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'e9984f29-17b2-4a1f-bbad-e541feefe3d5', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'6183e485e53d48109957c4707cff55b1', N'2026-10-18T13:14:22.6209753', N'2026-10-18T21:14:22.6209689', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'aa2314f8-7c51-4444-8076-e77f5018c3c6', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'47471b93bbc34ff8bfc7060dc8710b13', N'2026-10-04T16:05:22.9938778', N'2026-10-05T00:05:22.9938709', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'48f52b6b-705f-48e1-b68d-e8d6346c238c', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'64a81cedc57844b9b1c46f388d0c97c0', N'2026-10-19T03:29:02.0816807', N'2026-10-19T11:29:02.0816747', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'be1c091c-4187-4161-a095-e942d1a80ebb', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'78653277a34d441b8ce52166f59ab02a', N'2026-10-21T03:39:30.6546463', N'2026-10-21T11:39:30.6546368', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'a45660c4-e029-4c78-bdda-e977832385bf', N'521949af-a65a-4585-8d8f-74e2598eac12', N'0a7602fe-f63c-4b0d-bc25-20180ba569da', N'827a807accce4c71bfa3710ed4b40eb3', N'2026-10-05T00:50:47.4015430', N'2026-10-05T08:50:47.4015367', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'6990b308-a192-4bab-aa87-eb315179ecf5', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'a006d45cfeff499a939514faa7c8c4a6', N'2026-10-18T21:59:14.9440320', N'2026-10-19T05:59:14.9435170', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'9f0badea-66dd-4e74-8280-ebd82c87bf22', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'5ef43388dcc84003927df53d64b0d6b5', N'2026-10-18T23:45:26.9711922', N'2026-10-19T07:45:26.9711842', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'63b06c01-8157-4263-8f06-ebdc76a15a6f', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'cc1f8b9872fd4ee69caa5e7b7c93e0c6', N'2026-10-20T20:28:22.3592792', N'2026-10-21T04:28:22.3586580', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'9cebcb4e-d54d-4d0f-bc36-ed34da45b2ef', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'e8a88eff38d749608fced9c20bc56577', N'2026-10-16T22:57:34.9668981', N'2026-10-17T06:57:34.9668862', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'74c75b63-fa51-4e52-8680-ee38ae83495c', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'b36dc107dc3746f8b64d0deb63e27408', N'2026-10-21T16:23:23.4973426', N'2026-10-22T00:23:23.4966866', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'ffb57c0f-a394-4020-9c6b-efafe5d79cbc', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'8a4501541d67437e94a2793973e0e384', N'2026-10-17T01:37:53.5490552', N'2026-10-17T09:37:53.5485006', 1);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'a94af797-9039-408d-a309-f036de64189c', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'77026add594d4a8393a08079620ffadd', N'2026-10-21T21:02:08.0571702', N'2026-10-22T05:02:08.0571583', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'541fd7fd-4eee-448c-aaaf-f07f0343782a', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'a358fc17903944d19605c78431d11ab1', N'2026-10-02T21:28:36.4209915', N'2026-10-03T05:28:36.4209826', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'a524aeee-91f7-440f-a374-f124dc4112c2', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'885c6c7dbe2c4c63961085838d67150d', N'2026-10-22T21:42:51.5942405', N'2026-10-23T05:42:51.5942256', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'f3832a24-c2c1-4113-82c1-f19786558aeb', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'8762b3bce9da4fff94bc507730f5ecc4', N'2026-10-06T17:14:59.1777107', N'2026-10-07T01:14:59.1777028', 1);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'fdc46414-b9f4-4a03-ad87-f318748e9c93', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'b787fe0d10c94f058a520700b7766351', N'2026-10-18T17:02:20.1189313', N'2026-10-19T01:02:20.1182061', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'343586e4-1681-4b1c-aed7-f37909f51463', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'18d8d598c906446c8fcca782a279ec7a', N'2026-10-17T22:58:45.1269770', N'2026-10-18T06:58:45.1263313', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'5704ec3b-d201-4e19-a294-f4733dadfeb6', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'7067777f95524aaf9106405ead11745b', N'2026-10-18T23:12:28.5761818', N'2026-10-19T07:12:28.5761755', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'd021071a-58fa-4aa4-ab04-f5e1d5870b39', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'2608c7e8345946aaaf71fd9ae6be4c0e', N'2026-10-17T03:58:51.3626479', N'2026-10-17T11:58:51.3611093', 1);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'd183cae2-f5e2-4560-b4ac-f656dc12da97', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'9622dba3d16f4558858ec7ef38031c5d', N'2026-10-18T17:58:55.9491608', N'2026-10-19T01:58:55.9491522', 1);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'374cfbb1-ce33-4767-a662-fab67cc030a8', N'fd4d77af-08d9-4cd1-868f-0d82e183a1d1', N'1e6d9ce5-141a-4cae-9b08-6089baae8d99', N'6355cf83c4124bb4908eb51193c4b508', N'2026-10-04T00:21:03.2429344', N'2026-10-04T08:21:03.2429271', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'e5c7e52d-8849-4d40-b575-face0102561b', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', NULL, N'1193f7e9885b4140809c4b8e2d73cfd5', N'2026-10-18T23:10:06.8741918', N'2026-10-19T07:10:06.8741841', 0);
 INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'4a1d4fdd-eb96-4d4f-bd66-fb4c09b8ff26', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'ff6a221936854162a17fc61541f4f55b', N'2026-10-14T18:11:27.4780047', N'2026-10-15T02:11:27.4696751', 0);
+INSERT INTO [dbo].[Sesiones] ([SesionId], [UsuarioId], [DispositivoId], [Token], [FechaInicio], [FechaExpiracion], [Activa]) VALUES (N'4f5179e6-8378-4cec-a518-ff10d741167d', N'173dddc6-f00a-4281-83c6-ccbb1896895b', NULL, N'88cebf96e1064d758160d19fa57d187d', N'2026-10-21T02:26:41.2884087', N'2026-10-21T10:26:41.2883985', 0);
 GO
 PRINT N'Datos de dbo.Sincronizaciones';
 INSERT INTO [dbo].[Sincronizaciones] ([SincronizacionId], [DispositivoId], [FechaSincronizacion], [Tipo], [Resultado]) VALUES (N'0b4b1b4a-5851-4749-b3d9-2d7950ae9a48', N'8023643f-65d1-4d78-95fd-16fbce188347', N'2026-10-03T23:03:29.4462026', N'ReposicionOfflineDiaria', N'2026-10-03');
@@ -7804,6 +8418,18 @@ INSERT INTO [dbo].[Sincronizaciones] ([SincronizacionId], [DispositivoId], [Fech
 INSERT INTO [dbo].[Sincronizaciones] ([SincronizacionId], [DispositivoId], [FechaSincronizacion], [Tipo], [Resultado]) VALUES (N'd6fa7230-64dc-412a-aca9-8c9ab86f11f0', N'0a7602fe-f63c-4b0d-bc25-20180ba569da', N'2026-10-16T20:57:00.3198017', N'ReposicionOfflineDiaria', N'2026-10-16');
 INSERT INTO [dbo].[Sincronizaciones] ([SincronizacionId], [DispositivoId], [FechaSincronizacion], [Tipo], [Resultado]) VALUES (N'6e509be5-24ec-42a4-9a66-9bc5ca6b8f45', N'0a7602fe-f63c-4b0d-bc25-20180ba569da', N'2026-10-17T22:37:00.8075713', N'ReposicionOfflineDiaria', N'2026-10-17');
 GO
+IF OBJECT_ID(N'dbo.sysdiagrams', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[sysdiagrams] (
+        [name] SYSNAME NOT NULL,
+        [principal_id] INT NOT NULL,
+        [diagram_id] INT IDENTITY (1, 1) NOT NULL PRIMARY KEY CLUSTERED,
+        [version] INT NULL,
+        [definition] VARBINARY (MAX) NULL,
+        CONSTRAINT [UK_principal_name] UNIQUE NONCLUSTERED ([principal_id] ASC, [name] ASC)
+    );
+END
+GO
 PRINT N'Datos de dbo.sysdiagrams';
 SET IDENTITY_INSERT [dbo].[sysdiagrams] ON;
 INSERT INTO [dbo].[sysdiagrams] ([name], [principal_id], [diagram_id], [version], [definition]) VALUES (N'Diagram_0', 1, 1, 1, 0xD0CF11E0A1B11AE1000000000000000000000000000000003E000300FEFF0900060000000000000000000000030000000100000000000000001000002801000001000000FEFFFFFF00000000000000000200000003000000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFDFFFFFF2D010000FDFFFFFFFDFFFFFF05000000060000000700000008000000090000000A0000000B0000000C0000000D0000000E0000000F000000100000001100000012000000130000001400000015000000160000001700000018000000190000001A0000001B0000001C0000001D0000001E0000001F000000200000002100000022000000230000002400000025000000260000002700000028000000290000002A0000002B0000002C0000002D0000002E0000002F000000300000003100000032000000330000003400000035000000360000003700000038000000390000003A0000003B0000003C0000003D0000003E0000003F000000400000004100000042000000430000004400000045000000460000004700000048000000490000004A0000004B0000004C0000004D0000004E0000004F000000500000005100000052000000530000005400000055000000560000005700000058000000590000005A0000005B0000005C0000005D0000005E0000005F000000600000006100000062000000630000006400000065000000660000006700000068000000690000006A0000006B0000006C0000006D0000006E0000006F000000700000007100000072000000730000007400000075000000760000007700000078000000790000007A0000007B0000007C0000007D0000007E0000007F0000008000000052006F006F007400200045006E00740072007900000000000000000000000000000000000000000000000000000000000000000000000000000000000000000016000500FFFFFFFFFFFFFFFF0200000000000000000000000000000000000000000000000000000000000000001D26FEA43FDD0129010000C00800000000000044006400730058004D004C00530074007200650061006D00000000000000000000000000000000000000000000000000000000000000000000000000000000001A000201FFFFFFFFFFFFFFFFFFFFFFFF00000000000000000000000000000000000000000000000000000000000000000000000004000000CC7802000000000053006300680065006D00610020005500440056002000440065006600610075006C00740000000000000000000000000000000000000000000000000000000000260002010100000003000000FFFFFFFF000000000000000000000000000000000000000000000000000000000000000000000000000000001600000000000000440053005200450046002D0053004300480045004D0041002D0043004F004E00540045004E0054005300000000000000000000000000000000000000000000002C000201FFFFFFFF04000000FFFFFFFF0000000000000000000000000000000000000000000000000000000000000000000000000100000078080000000000008100000082000000830000008400000085000000860000008700000088000000890000008A0000008B0000008C0000008D0000008E0000008F000000900000009100000092000000930000009400000095000000960000009700000098000000990000009A0000009B0000009C0000009D0000009E0000009F000000A0000000A1000000A2000000A3000000A4000000A5000000A6000000A7000000A8000000A9000000AA000000AB000000AC000000AD000000AE000000AF000000B0000000B1000000B2000000B3000000B4000000B5000000B6000000B7000000B8000000B9000000BA000000BB000000BC000000BD000000BE000000BF000000C0000000C1000000C2000000C3000000C4000000C5000000C6000000C7000000C8000000C9000000CA000000CB000000CC000000CD000000CE000000CF000000D0000000D1000000D2000000D3000000D4000000D5000000D6000000D7000000D8000000D9000000DA000000DB000000DC000000DD000000DE000000DF000000E0000000E1000000E2000000E3000000E4000000E5000000E6000000E7000000E8000000E9000000EA000000EB000000EC000000ED000000EE000000EF000000F0000000F1000000F2000000F3000000F4000000F5000000F6000000F7000000F8000000F9000000FA000000FB000000FC000000FD000000FE000000FF000000000100000101000002010000030100000401000005010000060100000701000008010000090100000A0100000B0100000C0100000D0100000E0100000F010000100100001101000012010000130100001401000015010000160100001701000018010000190100001A0100001B0100001C0100001D0100001E0100001F01000020010000210100002201000023010000240100002501000026010000270100002F010000FEFFFFFF2A0100002B0100002C0100002E010000FEFFFFFFFEFFFFFF300100003101000032010000330100003401000035010000360100003701000038010000390100003A0100003B0100003C0100003D0100003E0100003F0100004001000041010000420100004301000044010000450100004601000047010000FEFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF3C6464733E3C6469616772616D20666F6E74636C7369643D227B37374432433932442D373737392D313144382D393037302D3030303635423834304439437D22206D6F75736569636F6E636C7369643D227B30424533353230342D384639312D313143452D394445332D3030414130303442423835317D222064656661756C746C61796F75743D224D534444532E52656374696C696E656172222064656661756C746C696E65726F7574653D224D534444532E52656374696C696E656172222076657273696F6E3D223722206E6578746F626A6563743D2231313122207363616C653D22313030222070616765627265616B616E63686F72783D2230222070616765627265616B616E63686F72793D2230222070616765627265616B73697A65783D2230222070616765627265616B73697A65793D223022207363726F6C6C6C6566743D222D3835343122207363726F6C6C746F703D222D353731222067726964783D22313530222067726964793D2231353022206D617267696E783D223530303022206D617267696E793D223530303022207A6F6F6D3D2236302220783D2232383730372220793D22313531303822206261636B636F6C6F723D222D32313437343833363433222064656661756C7470657273697374656E63653D223322205072696E74506167654E756D626572734D6F64653D223322205072696E744D617267696E546F703D223022205072696E744D617267696E426F74746F6D3D2236333522205072696E744D617267696E4C6566743D223022205072696E744D617267696E52696768743D223022206D61727175656573656C656374696F6E6D6F64653D223122206D6F757365706F696E7465723D22302220736E6170746F677269643D223122206175746F74797065616E6E6F746174696F6E3D2231222073686F777363726F6C6C626172733D223122207669657770616765627265616B733D22302220646F6E6F74666F726365636F6E6E6563746F7273626568696E647368617065733D2231223E3C666F6E743E3C646473786D6C6F626A65637473747265616D777261707065722062696E6172793D22303030303038303033303030303030303030303230303030222F3E3C2F666F6E743E3C6D6F75736569636F6E3E3C646473786D6C6F626A65637473747265616D777261707065722062696E6172793D2236633734303030303030303030303030222F3E3C2F6D6F75736569636F6E3E3C2F6469616772616D3E3C6C61796F75746D616E616765723E3C646473786D6C6F626A3E3C70726F7065727479206E616D653D227363685F6C6162656C735F76697369626C65222076616C75653D22302220766172747970653D223131222F3E3C2F646473786D6C6F626A3E3C2F6C61796F75746D616E616765723E3C646473636F6E74726F6C20636F6E74726F6C70726F6769643D227B36323341433037352D324337372D343837332D383833442D3933304234333634423442437D2220746F6F6C7469703D2241646A756E746F734368617422206C6566743D222D31313730302220746F703D22333639303022206C6F676963616C69643D22312220636F6E74726F6C69643D223122206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223537363822206865696768743D223433363622206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223022206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2231223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D223231343333343132303830303030303038383136303030303065313130303030373835363334313230373030303030303134303130303030343130303634303036613030373530303665303037343030366630303733303034333030363830303631303037343030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303031303030303030303530303030303035343030303030303263303030303030326330303030303032633030303030303334303030303030303030303030303030303030303030303232323930303030363531353030303030303030303030303264303130303030303730303030303030633030303030303037303030303030316330313030303030363039303030303632303730303030666530313030303037363032303030306233303130303030656330343030303062313033303030303361303230303030623130333030303062303034303030303339303330303030303030303030303030313030303030303838313630303030306531313030303030303030303030303035303030303030303530303030303030323030303030303032303030303030316330313030303062393061303030303030303030303030303130303030303033393133303030306330303730303030303030303030303030323030303030303032303030303030303230303030303030323030303030303163303130303030303630393030303030313030303030303030303030303030333931333030303033343033303030303030303030303030303030303030303030303030303030303032303030303030303230303030303031633031303030303036303930303030303030303030303030303030303030306431333130303030303932333030303030303030303030303030303030303030306430303030303030343030303030303034303030303030316330313030303030363039303030306161306130303030393030363030303037383536333431323034303030303030363230303030303030313030303030303031303030303030306230303030303030303030303030303031303030303030303230303030303030333030303030303034303030303030303530303030303030363030303030303037303030303030303830303030303030393030303030303061303030303030303430303030303036343030363230303666303030303030306430303030303034313030363430303661303037353030366530303734303036663030373330303433303036383030363130303734303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A3E3C70726F7065727479206E616D653D224163746976655461626C65566965774D6F6465222076616C75653D22312220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A30222076616C75653D22342C302C3238342C302C323331302C312C313839302C352C313236302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A31222076616C75653D22322C302C3238342C302C323734352220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A32222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A33222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A34222076616C75653D22342C302C3238342C302C323331302C31322C323733302C31312C313638302220766172747970653D2238222F3E3C2F646473786D6C6F626A3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C20636F6E74726F6C70726F6769643D227B36323341433037352D324337372D343837332D383833442D3933304234333634423442437D2220746F6F6C7469703D22426F6C65746F7322206C6566743D2232363535302220746F703D22333238353022206C6F676963616C69643D22322220636F6E74726F6C69643D223222206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223537363822206865696768743D223735343122206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223022206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2231223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D22323134333334313230383030303030303838313630303030373531643030303037383536333431323037303030303030313430313030303034323030366630303663303036353030373430303666303037333030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303130303030303030353030303030303534303030303030326330303030303032633030303030303263303030303030333430303030303030303030303030303030303030303030323232393030303063333230303030303030303030303030326430313030303030633030303030303063303030303030303730303030303031633031303030303036303930303030363230373030303066653031303030303736303230303030623330313030303065633034303030306231303330303030336130323030303062313033303030306230303430303030333930333030303030303030303030303031303030303030383831363030303037353164303030303030303030303030306130303030303030613030303030303032303030303030303230303030303031633031303030303234303930303030303030303030303030313030303030303339313330303030346430633030303030303030303030303034303030303030303430303030303030323030303030303032303030303030316330313030303030363039303030303031303030303030303030303030303033393133303030303334303330303030303030303030303030303030303030303030303030303030303230303030303030323030303030303163303130303030303630393030303030303030303030303030303030303030643133313030303030393233303030303030303030303030303030303030303030643030303030303034303030303030303430303030303031633031303030303036303930303030616130613030303039303036303030303738353633343132303430303030303035383030303030303031303030303030303130303030303030623030303030303030303030303030303130303030303030323030303030303033303030303030303430303030303030353030303030303036303030303030303730303030303030383030303030303039303030303030306130303030303030343030303030303634303036323030366630303030303030383030303030303432303036663030366330303635303037343030366630303733303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A3E3C70726F7065727479206E616D653D224163746976655461626C65566965774D6F6465222076616C75653D22312220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A30222076616C75653D22342C302C3238342C302C323331302C312C313839302C352C313236302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A31222076616C75653D22322C302C3238342C302C323334302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A32222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A33222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A34222076616C75653D22342C302C3238342C302C323331302C31322C323733302C31312C313638302220766172747970653D2238222F3E3C2F646473786D6C6F626A3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C20636F6E74726F6C70726F6769643D227B36323341433037352D324337372D343837332D383833442D3933304234333634423442437D2220746F6F6C7469703D224361736F7347616E61646F72657322206C6566743D2231373535302220746F703D22333133353022206C6F676963616C69643D22332220636F6E74726F6C69643D223322206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223537383322206865696768743D22313039323422206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223022206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2231223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D2232313433333431323038303030303030393731363030303061633261303030303738353633343132303730303030303031343031303030303433303036313030373330303666303037333030343730303631303036653030363130303634303036663030373230303635303037333030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030313030303030303035303030303030353430303030303032633030303030303263303030303030326330303030303033343030303030303030303030303030303030303030303032323239303030303039323330303030303030303030303032643031303030303064303030303030306330303030303030373030303030303163303130303030303630393030303036323037303030306665303130303030373630323030303062333031303030306563303430303030623130333030303033613032303030306231303330303030623030343030303033393033303030303030303030303030303130303030303039373136303030306163326130303030303030303030303030633030303030303063303030303030303230303030303030323030303030303163303130303030643730613030303030303030303030303031303030303030333931333030303064393130303030303030303030303030303630303030303030363030303030303032303030303030303230303030303031633031303030303036303930303030303130303030303030303030303030303339313330303030333430333030303030303030303030303030303030303030303030303030303030323030303030303032303030303030316330313030303030363039303030303030303030303030303030303030303064313331303030303039323330303030303030303030303030303030303030303064303030303030303430303030303030343030303030303163303130303030303630393030303061613061303030303930303630303030373835363334313230343030303030303636303030303030303130303030303030313030303030303062303030303030303030303030303030313030303030303032303030303030303330303030303030343030303030303035303030303030303630303030303030373030303030303038303030303030303930303030303030613030303030303034303030303030363430303632303036663030303030303066303030303030343330303631303037333030366630303733303034373030363130303665303036313030363430303666303037323030363530303733303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A3E3C70726F7065727479206E616D653D224163746976655461626C65566965774D6F6465222076616C75653D22312220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A30222076616C75653D22342C302C3238342C302C323331302C312C313839302C352C313236302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A31222076616C75653D22322C302C3238342C302C323737352220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A32222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A33222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A34222076616C75653D22342C302C3238342C302C323331302C31322C323733302C31312C313638302220766172747970653D2238222F3E3C2F646473786D6C6F626A3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D22303130303030303030313030303030303634303036323030366630303030303034363030346230303566303034333030363130303733303036663030373330303437303036313030366530303631303036343030366630303732303036353030373330303566303034323030366630303663303036353030373430303666303037333030303030302220636F6E74726F6C70726F6769643D224D534444532E506F6C796C696E652E3038302E312220746F6F6C7469703D2252656C616369C3B36E2027464B5F4361736F7347616E61646F7265735F426F6C65746F732720656E7472652027426F6C65746F7327207920274361736F7347616E61646F7265732722206C6566743D2232333033332220746F703D22333736393322206C6F676963616C69643D22342220636F6E74726F6C69643D223422206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223338313722206865696768743D2238313522206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A3E3C706F6C796C696E6520656E64747970656473743D22322220656E64747970657372633D2232222075736572636F6C6F723D22313537393033323022206C696E657374796C653D223022206C696E6572656E6465723D22302220637573746F6D656E647479706564737469643D22302220637573746F6D656E647479706573726369643D2230222061646F726E7376697369626C653D2231223E3C61646F726E6D656E742070657263656E74706F733D2235302E303039313839343837323236362220636F6E74726F6C69643D2235222077696474683D223430333722206865696768743D223334342220736964653D223022206265686176696F723D2233222068696D65747269633D223136303822206469737466726F6D6C696E653D22313735222073746172746F626A3D22302220783D2232323932322220793D223337353831222076697369626C653D22302220616C6C6F776F7665726C61703D2231222075736570657263656E743D2231222F3E3C2F706F6C796C696E653E3C2F646473786D6C6F626A3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C636F6E6E6563746F7220736F7572636569643D223222206465737469643D22332220736F75726365617474616368706F696E743D22313432222064657374617474616368706F696E743D2231363322207365676D656E74656469746D6F64653D2230222062656E64706F696E74656469746D6F64653D2230222062656E64706F696E747669736962696C6974793D2230222072656C6174656469643D223022207669727475616C3D2230223E3C706F696E7420783D2232363535302220793D223338313030222F3E3C706F696E7420783D2232333333332220793D223338313030222F3E3C2F636F6E6E6563746F723E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303030303030303030393061313934336161343031303030302220636F6E74726F6C70726F6769643D224D534444532E546578742E3038302E3122206C6566743D2232323932322220746F703D22333735383122206C6F676963616C69643D22352220636F6E74726F6C69643D223522206D617374657269643D2234222068696E74313D2230222068696E74323D2230222077696474683D223430333722206865696768743D2233343422206E6F726573697A653D223122206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2231222075736564656661756C7469646473686170653D2231222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22312220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2231222067726F7570636F6C6C61707365643D2230222074616273746F703D2230222076697369626C653D22302220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D22303030323030303063353066303030303538303130303030303330303030303030303030303530303030383030383030303038303031303030303030313530303031303030303030393030313434343230313030303635343631363836663664363131393030343630303462303035663030343330303631303037333030366630303733303034373030363130303665303036313030363430303666303037323030363530303733303035663030343230303666303036633030363530303734303036663030373330303030303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D22303137343264343630313030303030303634303036323030366630303030303034363030346230303566303034323030366630303663303036353030373430303666303037333030356630303433303036313030373330303666303037333030343730303631303036653030363130303634303036663030373230303635303037333030303030302220636F6E74726F6C70726F6769643D224D534444532E506F6C796C696E652E3038302E312220746F6F6C7469703D2252656C616369C3B36E2027464B5F426F6C65746F735F4361736F7347616E61646F7265732720656E74726520274361736F7347616E61646F7265732720792027426F6C65746F732722206C6566743D2232333033332220746F703D22333736393322206C6F676963616C69643D22362220636F6E74726F6C69643D223622206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223338313722206865696768743D2238313522206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A3E3C706F6C796C696E6520656E64747970656473743D22302220656E64747970657372633D2232222075736572636F6C6F723D22313537393033323022206C696E657374796C653D223022206C696E6572656E6465723D22302220637573746F6D656E647479706564737469643D22302220637573746F6D656E647479706573726369643D2230222061646F726E7376697369626C653D2231223E3C61646F726E6D656E742070657263656E74706F733D2234392E393732343331353338333230322220636F6E74726F6C69643D2237222077696474683D223430333722206865696768743D223334342220736964653D223022206265686176696F723D2233222068696D65747269633D223136303722206469737466726F6D6C696E653D22313735222073746172746F626A3D22302220783D2232323932332220793D223338323735222076697369626C653D22302220616C6C6F776F7665726C61703D2231222075736570657263656E743D2231222F3E3C2F706F6C796C696E653E3C2F646473786D6C6F626A3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C636F6E6E6563746F7220736F7572636569643D223322206465737469643D22322220736F75726365617474616368706F696E743D22313633222064657374617474616368706F696E743D2231343222207365676D656E74656469746D6F64653D2230222062656E64706F696E74656469746D6F64653D2230222062656E64706F696E747669736962696C6974793D2230222072656C6174656469643D223022207669727475616C3D2230223E3C706F696E7420783D2232333333332220793D223338313030222F3E3C706F696E7420783D2232363535302220793D223338313030222F3E3C2F636F6E6E6563746F723E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303030303030303030313062353934336161343031303030302220636F6E74726F6C70726F6769643D224D534444532E546578742E3038302E3122206C6566743D2232323932332220746F703D22333832373522206C6F676963616C69643D22372220636F6E74726F6C69643D223722206D617374657269643D2236222068696E74313D2230222068696E74323D2230222077696474683D223430333722206865696768743D2233343422206E6F726573697A653D223122206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2231222075736564656661756C7469646473686170653D2231222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22312220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2231222067726F7570636F6C6C61707365643D2230222074616273746F703D2230222076697369626C653D22302220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D22303030323030303063353066303030303538303130303030303330303030303030303030303530303030383030383030303038303031303030303030313530303031303030303030393030313434343230313030303635343631363836663664363131393030343630303462303035663030343230303666303036633030363530303734303036663030373330303566303034333030363130303733303036663030373330303437303036313030366530303631303036343030366630303732303036353030373330303030303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C20636F6E74726F6C70726F6769643D227B36323341433037352D324337372D343837332D383833442D3933304234333634423442437D2220746F6F6C7469703D22436C6176657356616C69646163696F6E426F6C65746F22206C6566743D2233343830302220746F703D22333232353022206C6F676963616C69643D22382220636F6E74726F6C69643D223822206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223537363822206865696768743D223530303122206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223022206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2231223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D22323134333334313230383030303030303838313630303030383931333030303037383536333431323037303030303030313430313030303034333030366330303631303037363030363530303733303035363030363130303663303036393030363430303631303036333030363930303666303036653030343230303666303036633030363530303734303036663030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303130303030303030353030303030303534303030303030326330303030303032633030303030303263303030303030333430303030303030303030303030303030303030303030323232393030303061623137303030303030303030303030326430313030303030383030303030303063303030303030303730303030303031633031303030303036303930303030363230373030303061333032303030303438303330303030343930323030303065633034303030306563303430303030656530323030303065633034303030303336303630303030343730343030303030303030303030303031303030303030383831363030303038393133303030303030303030303030303630303030303030363030303030303032303030303030303230303030303031633031303030306536306130303030303030303030303030313030303030303339313330303030303630613030303030303030303030303033303030303030303330303030303030323030303030303032303030303030316330313030303030363039303030303031303030303030303030303030303033393133303030303334303330303030303030303030303030303030303030303030303030303030303230303030303030323030303030303163303130303030303630393030303030303030303030303030303030303030643133313030303030393233303030303030303030303030303030303030303030643030303030303034303030303030303430303030303031633031303030303036303930303030616130613030303039303036303030303738353633343132303430303030303037363030303030303031303030303030303130303030303030623030303030303030303030303030303130303030303030323030303030303033303030303030303430303030303030353030303030303036303030303030303730303030303030383030303030303039303030303030306130303030303030343030303030303634303036323030366630303030303031373030303030303433303036633030363130303736303036353030373330303536303036313030366330303639303036343030363130303633303036393030366630303665303034323030366630303663303036353030373430303666303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A3E3C70726F7065727479206E616D653D224163746976655461626C65566965774D6F6465222076616C75653D22312220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A30222076616C75653D22342C302C3238342C302C323331302C312C313839302C352C313236302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A31222076616C75653D22322C302C3238342C302C323739302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A32222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A33222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A34222076616C75653D22342C302C3238342C302C323331302C31322C323733302C31312C313638302220766172747970653D2238222F3E3C2F646473786D6C6F626A3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D223031333532373433303130303030303036343030363230303666303030303030343630303462303035663030343330303663303036313030373630303635303037333030353630303631303036633030363930303634303036313030363330303639303036663030366530303432303036663030366330303635303037343030366630303566303034323030366630303663303036353030373430303666303037333030303030302220636F6E74726F6C70726F6769643D224D534444532E506F6C796C696E652E3038302E312220746F6F6C7469703D2252656C616369C3B36E2027464B5F436C6176657356616C69646163696F6E426F6C65746F5F426F6C65746F732720656E7472652027426F6C65746F732720792027436C6176657356616C69646163696F6E426F6C65746F2722206C6566743D2233323031382220746F703D22333430393322206C6F676963616C69643D22392220636F6E74726F6C69643D223922206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223330383222206865696768743D2238313522206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A3E3C706F6C796C696E6520656E64747970656473743D22322220656E64747970657372633D2232222075736572636F6C6F723D22313537393033323022206C696E657374796C653D223022206C696E6572656E6465723D22302220637573746F6D656E647479706564737469643D22302220637573746F6D656E647479706573726369643D2230222061646F726E7376697369626C653D2231223E3C61646F726E6D656E742070657263656E74706F733D2235302E303134333232353433363833382220636F6E74726F6C69643D223130222077696474683D223438343522206865696768743D223334342220736964653D223022206265686176696F723D2233222068696D65747269633D223132343122206469737466726F6D6C696E653D22313735222073746172746F626A3D22302220783D2233313133362220793D223334363735222076697369626C653D22302220616C6C6F776F7665726C61703D2231222075736570657263656E743D2231222F3E3C2F706F6C796C696E653E3C2F646473786D6C6F626A3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C636F6E6E6563746F7220736F7572636569643D223222206465737469643D22382220736F75726365617474616368706F696E743D223935222064657374617474616368706F696E743D2231303222207365676D656E74656469746D6F64653D2230222062656E64706F696E74656469746D6F64653D2230222062656E64706F696E747669736962696C6974793D2230222072656C6174656469643D223022207669727475616C3D2230223E3C706F696E7420783D2233323331382220793D223334353030222F3E3C706F696E7420783D2233343830302220793D223334353030222F3E3C2F636F6E6E6563746F723E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303030303030303030393062633934336161343031303030302220636F6E74726F6C70726F6769643D224D534444532E546578742E3038302E3122206C6566743D2233313133362220746F703D22333436373522206C6F676963616C69643D2231302220636F6E74726F6C69643D22313022206D617374657269643D2239222068696E74313D2230222068696E74323D2230222077696474683D223438343522206865696768743D2233343422206E6F726573697A653D223122206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2231222075736564656661756C7469646473686170653D2231222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22312220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2231222067726F7570636F6C6C61707365643D2230222074616273746F703D2230222076697369626C653D22302220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D223030303230303030656431323030303035383031303030303033303030303030303030303035303030303830303830303030383030313030303030303135303030313030303030303930303134343432303130303036353436313638366636643631323130303436303034623030356630303433303036633030363130303736303036353030373330303536303036313030366330303639303036343030363130303633303036393030366630303665303034323030366630303663303036353030373430303666303035663030343230303666303036633030363530303734303036663030373330303030303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C20636F6E74726F6C70726F6769643D227B36323341433037352D324337372D343837332D383833442D3933304234333634423442437D2220746F6F6C7469703D22436F6469676F7350726576656E74614F66666C696E6522206C6566743D2231393230302220746F703D22313836303022206C6F676963616C69643D2231312220636F6E74726F6C69643D22313122206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223537393122206865696768743D223839333722206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223022206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2231223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D22323134333334313230383030303030303966313630303030653932323030303037383536333431323037303030303030313430313030303034333030366630303634303036393030363730303666303037333030353030303732303036353030373630303635303036653030373430303631303034663030363630303636303036633030363930303665303036353030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303130303030303030353030303030303534303030303030326330303030303032633030303030303263303030303030333430303030303030303030303030303030303030303030323232393030303030393233303030303030303030303030326430313030303030643030303030303063303030303030303730303030303031633031303030303036303930303030363230373030303066653031303030303736303230303030623330313030303065633034303030306231303330303030336130323030303062313033303030306230303430303030333930333030303030303030303030303031303030303030396631363030303065393232303030303030303030303030306330303030303030633030303030303032303030303030303230303030303031633031303030303432303930303030303030303030303030313030303030303339313330303030643931303030303030303030303030303036303030303030303630303030303030323030303030303032303030303030316330313030303030363039303030303031303030303030303030303030303033393133303030303334303330303030303030303030303030303030303030303030303030303030303230303030303030323030303030303163303130303030303630393030303030303030303030303030303030303030643133313030303030393233303030303030303030303030303030303030303030643030303030303034303030303030303430303030303031633031303030303036303930303030616130613030303039303036303030303738353633343132303430303030303037363030303030303031303030303030303130303030303030623030303030303030303030303030303130303030303030323030303030303033303030303030303430303030303030353030303030303036303030303030303730303030303030383030303030303039303030303030306130303030303030343030303030303634303036323030366630303030303031373030303030303433303036663030363430303639303036373030366630303733303035303030373230303635303037363030363530303665303037343030363130303466303036363030363630303663303036393030366530303635303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A3E3C70726F7065727479206E616D653D224163746976655461626C65566965774D6F6465222076616C75653D22312220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A30222076616C75653D22342C302C3238342C302C323331302C312C313839302C352C313236302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A31222076616C75653D22322C302C3238342C302C323337302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A32222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A33222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A34222076616C75653D22342C302C3238342C302C323331302C31322C323733302C31312C313638302220766172747970653D2238222F3E3C2F646473786D6C6F626A3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C20636F6E74726F6C70726F6769643D227B36323341433037352D324337372D343837332D383833442D3933304234333634423442437D2220746F6F6C7469703D22436F6E66696775726163696F6E657322206C6566743D22383730302220746F703D223022206C6F676963616C69643D2231322220636F6E74726F6C69643D22313222206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223537363822206865696768743D223337333122206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223022206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2231223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D223231343333343132303830303030303038383136303030303933306530303030373835363334313230373030303030303134303130303030343330303666303036653030363630303639303036373030373530303732303036313030363330303639303036663030366530303635303037333030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303031303030303030303530303030303035343030303030303263303030303030326330303030303032633030303030303334303030303030303030303030303030303030303030303232323930303030363531353030303030303030303030303264303130303030303730303030303030633030303030303037303030303030316330313030303030363039303030303632303730303030666530313030303037363032303030306233303130303030656330343030303062313033303030303361303230303030623130333030303062303034303030303339303330303030303030303030303030313030303030303838313630303030393330653030303030303030303030303034303030303030303430303030303030323030303030303032303030303030316330313030303064373061303030303030303030303030303130303030303033393133303030306330303730303030303030303030303030323030303030303032303030303030303230303030303030323030303030303163303130303030303630393030303030313030303030303030303030303030333931333030303033343033303030303030303030303030303030303030303030303030303030303032303030303030303230303030303031633031303030303036303930303030303030303030303030303030303030306431333130303030303932333030303030303030303030303030303030303030306430303030303030343030303030303034303030303030316330313030303030363039303030306161306130303030393030363030303037383536333431323034303030303030363830303030303030313030303030303031303030303030306230303030303030303030303030303031303030303030303230303030303030333030303030303034303030303030303530303030303030363030303030303037303030303030303830303030303030393030303030303061303030303030303430303030303036343030363230303666303030303030313030303030303034333030366630303665303036363030363930303637303037353030373230303631303036333030363930303666303036653030363530303733303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A3E3C70726F7065727479206E616D653D224163746976655461626C65566965774D6F6465222076616C75653D22312220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A30222076616C75653D22342C302C3238342C302C323331302C312C313839302C352C313236302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A31222076616C75653D22322C302C3238342C302C323737352220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A32222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A33222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A34222076616C75653D22342C302C3238342C302C323331302C31322C323733302C31312C313638302220766172747970653D2238222F3E3C2F646473786D6C6F626A3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C20636F6E74726F6C70726F6769643D227B36323341433037352D324337372D343837332D383833442D3933304234333634423442437D2220746F6F6C7469703D22436F6E66696775726163696F6E65735469706F4170756573746122206C6566743D22302220746F703D223022206C6F676963616C69643D2231332220636F6E74726F6C69643D22313322206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223537363822206865696768743D223337333122206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223022206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2231223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D2232313433333431323038303030303030383831363030303039333065303030303738353633343132303730303030303031343031303030303433303036663030366530303636303036393030363730303735303037323030363130303633303036393030366630303665303036353030373330303534303036393030373030303666303034313030373030303735303036353030373330303734303036313030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030313030303030303035303030303030353430303030303032633030303030303263303030303030326330303030303033343030303030303030303030303030303030303030303032323239303030303635313530303030303030303030303032643031303030303037303030303030306330303030303030373030303030303163303130303030303630393030303036323037303030306665303130303030373630323030303062333031303030306563303430303030623130333030303033613032303030306231303330303030623030343030303033393033303030303030303030303030303130303030303038383136303030303933306530303030303030303030303030343030303030303034303030303030303230303030303030323030303030303163303130303030643730613030303030303030303030303031303030303030333931333030303063303037303030303030303030303030303230303030303030323030303030303032303030303030303230303030303031633031303030303036303930303030303130303030303030303030303030303339313330303030333430333030303030303030303030303030303030303030303030303030303030323030303030303032303030303030316330313030303030363039303030303030303030303030303030303030303064313331303030303039323330303030303030303030303030303030303030303064303030303030303430303030303030343030303030303163303130303030303630393030303061613061303030303930303630303030373835363334313230343030303030303765303030303030303130303030303030313030303030303062303030303030303030303030303030313030303030303032303030303030303330303030303030343030303030303035303030303030303630303030303030373030303030303038303030303030303930303030303030613030303030303034303030303030363430303632303036663030303030303162303030303030343330303666303036653030363630303639303036373030373530303732303036313030363330303639303036663030366530303635303037333030353430303639303037303030366630303431303037303030373530303635303037333030373430303631303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A3E3C70726F7065727479206E616D653D224163746976655461626C65566965774D6F6465222076616C75653D22312220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A30222076616C75653D22342C302C3238342C302C323331302C312C313839302C352C313236302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A31222076616C75653D22322C302C3238342C302C323737352220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A32222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A33222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A34222076616C75653D22342C302C3238342C302C323331302C31322C323733302C31312C313638302220766172747970653D2238222F3E3C2F646473786D6C6F626A3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C20636F6E74726F6C70726F6769643D227B36323341433037352D324337372D343837332D383833442D3933304234333634423442437D2220746F6F6C7469703D22436F6E766572736163696F6E657322206C6566743D222D3735302220746F703D22333030303022206C6F676963616C69643D2231342220636F6E74726F6C69643D22313422206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223731343422206865696768743D223439363122206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223022206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2231223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D2232313433333431323038303030303030653831623030303036313133303030303738353633343132303730303030303031343031303030303433303036663030366530303736303036353030373230303733303036313030363330303639303036663030366530303635303037333030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030313030303030303035303030303030353430303030303032633030303030303263303030303030326330303030303033343030303030303030303030303030303030303030303032323239303030306162313730303030303030303030303032643031303030303038303030303030306330303030303030373030303030303163303130303030303630393030303036323037303030306665303130303030373630323030303062333031303030306563303430303030623130333030303033613032303030306231303330303030623030343030303033393033303030303030303030303030303130303030303065383162303030303631313330303030303030303030303030363030303030303036303030303030303230303030303030323030303030303163303130303030333030633030303030303030303030303031303030303030333931333030303030363061303030303030303030303030303330303030303030333030303030303032303030303030303230303030303031633031303030303036303930303030303130303030303030303030303030303339313330303030333430333030303030303030303030303030303030303030303030303030303030323030303030303032303030303030316330313030303030363039303030303030303030303030303030303030303064313331303030303039323330303030303030303030303030303030303030303064303030303030303430303030303030343030303030303163303130303030303630393030303061613061303030303930303630303030373835363334313230343030303030303636303030303030303130303030303030313030303030303062303030303030303030303030303030313030303030303032303030303030303330303030303030343030303030303035303030303030303630303030303030373030303030303038303030303030303930303030303030613030303030303034303030303030363430303632303036663030303030303066303030303030343330303666303036653030373630303635303037323030373330303631303036333030363930303666303036653030363530303733303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A3E3C70726F7065727479206E616D653D224163746976655461626C65566965774D6F6465222076616C75653D22312220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A30222076616C75653D22342C302C3238342C302C323331302C312C313839302C352C313236302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A31222076616C75653D22322C302C3238342C302C333132302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A32222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A33222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A34222076616C75653D22342C302C3238342C302C323331302C31322C323733302C31312C313638302220766172747970653D2238222F3E3C2F646473786D6C6F626A3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C20636F6E74726F6C70726F6769643D227B36323341433037352D324337372D343837332D383833442D3933304234333634423442437D2220746F6F6C7469703D22446973706F73697469766F7322206C6566743D2232363430302220746F703D223933303022206C6F676963616C69643D2231352220636F6E74726F6C69643D22313522206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223537363822206865696768743D223632373122206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223022206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2231223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D223231343333343132303830303030303038383136303030303766313830303030373835363334313230373030303030303134303130303030343430303639303037333030373030303666303037333030363930303734303036393030373630303666303037333030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303031303030303030303530303030303035343030303030303263303030303030326330303030303032633030303030303334303030303030303030303030303030303030303030303232323930303030333731633030303030303030303030303264303130303030306130303030303030633030303030303037303030303030316330313030303030363039303030303632303730303030666530313030303037363032303030306233303130303030656330343030303062313033303030303361303230303030623130333030303062303034303030303339303330303030303030303030303030313030303030303838313630303030376631383030303030303030303030303038303030303030303830303030303030323030303030303032303030303030316330313030303062393061303030303030303030303030303130303030303033393133303030303036306130303030303030303030303030333030303030303033303030303030303230303030303030323030303030303163303130303030303630393030303030313030303030303030303030303030333931333030303033343033303030303030303030303030303030303030303030303030303030303032303030303030303230303030303031633031303030303036303930303030303030303030303030303030303030306431333130303030303932333030303030303030303030303030303030303030306430303030303030343030303030303034303030303030316330313030303030363039303030306161306130303030393030363030303037383536333431323034303030303030363230303030303030313030303030303031303030303030306230303030303030303030303030303031303030303030303230303030303030333030303030303034303030303030303530303030303030363030303030303037303030303030303830303030303030393030303030303061303030303030303430303030303036343030363230303666303030303030306430303030303034343030363930303733303037303030366630303733303036393030373430303639303037363030366630303733303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A3E3C70726F7065727479206E616D653D224163746976655461626C65566965774D6F6465222076616C75653D22312220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A30222076616C75653D22342C302C3238342C302C323331302C312C313839302C352C313236302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A31222076616C75653D22322C302C3238342C302C323734352220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A32222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A33222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A34222076616C75653D22342C302C3238342C302C323331302C31322C323733302C31312C313638302220766172747970653D2238222F3E3C2F646473786D6C6F626A3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230316135323464333031303030303030363430303632303036663030303030303436303034623030356630303433303036663030363430303639303036373030366630303733303035303030373230303635303037363030363530303665303037343030363130303466303036363030363630303663303036393030366530303635303035663030343430303639303037333030373030303666303037333030363930303734303036393030373630303666303037333030303030302220636F6E74726F6C70726F6769643D224D534444532E506F6C796C696E652E3038302E312220746F6F6C7469703D2252656C616369C3B36E2027464B5F436F6469676F7350726576656E74614F66666C696E655F446973706F73697469766F732720656E7472652027446973706F73697469766F732720792027436F6469676F7350726576656E74614F66666C696E652722206C6566743D2232343639312220746F703D22313438373622206C6F676963616C69643D2231362220636F6E74726F6C69643D22313622206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223435313722206865696768743D223732353422206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A3E3C706F6C796C696E6520656E64747970656473743D22302220656E64747970657372633D2232222075736572636F6C6F723D22313537393033323022206C696E657374796C653D223022206C696E6572656E6465723D22302220637573746F6D656E647479706564737469643D22302220637573746F6D656E647479706573726369643D2230222061646F726E7376697369626C653D2231223E3C61646F726E6D656E742070657263656E74706F733D2235302220636F6E74726F6C69643D223137222077696474683D223535393422206865696768743D223334342220736964653D223022206265686176696F723D2233222068696D65747269633D223439393422206469737466726F6D6C696E653D22313735222073746172746F626A3D22302220783D2232333033312220793D223230313435222076697369626C653D22302220616C6C6F776F7665726C61703D2231222075736570657263656E743D2231222F3E3C2F706F6C796C696E653E3C2F646473786D6C6F626A3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C636F6E6E6563746F7220736F7572636569643D22313522206465737469643D2231312220736F75726365617474616368706F696E743D223331222064657374617474616368706F696E743D2231313522207365676D656E74656469746D6F64653D2230222062656E64706F696E74656469746D6F64653D2230222062656E64706F696E747669736962696C6974793D2230222072656C6174656469643D223022207669727475616C3D2230223E3C706F696E7420783D2232383830302220793D223135353731222F3E3C706F696E7420783D2232383830302220793D223231373530222F3E3C706F696E7420783D2232343939312220793D223231373530222F3E3C2F636F6E6E6563746F723E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303030303030303030663039623934336161343031303030302220636F6E74726F6C70726F6769643D224D534444532E546578742E3038302E3122206C6566743D2232333033312220746F703D22323031343522206C6F676963616C69643D2231372220636F6E74726F6C69643D22313722206D617374657269643D223136222068696E74313D2230222068696E74323D2230222077696474683D223535393422206865696768743D2233343422206E6F726573697A653D223122206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2231222075736564656661756C7469646473686170653D2231222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22312220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2231222067726F7570636F6C6C61707365643D2230222074616273746F703D2230222076697369626C653D22302220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D2230303032303030306461313530303030353830313030303030333030303030303030303030353030303038303038303030303830303130303030303031353030303130303030303039303031343434323031303030363534363136383666366436313236303034363030346230303566303034333030366630303634303036393030363730303666303037333030353030303732303036353030373630303635303036653030373430303631303034663030363630303636303036633030363930303665303036353030356630303434303036393030373330303730303036663030373330303639303037343030363930303736303036663030373330303030303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C20636F6E74726F6C70726F6769643D227B36323341433037352D324337372D343837332D383833442D3933304234333634423442437D2220746F6F6C7469703D22446973706F73697469766F735573756172696F7322206C6566743D2231373235302220746F703D22313434303022206C6F676963616C69643D2231382220636F6E74726F6C69643D22313822206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223537363822206865696768743D223337333122206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223022206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2231223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D2232313433333431323038303030303030383831363030303039333065303030303738353633343132303730303030303031343031303030303434303036393030373330303730303036663030373330303639303037343030363930303736303036663030373330303535303037333030373530303631303037323030363930303666303037333030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030313030303030303035303030303030353430303030303032633030303030303263303030303030326330303030303033343030303030303030303030303030303030303030303032323239303030303635313530303030303030303030303032643031303030303037303030303030306330303030303030373030303030303163303130303030303630393030303036323037303030306665303130303030373630323030303062333031303030306563303430303030623130333030303033613032303030306231303330303030623030343030303033393033303030303030303030303030303130303030303038383136303030303933306530303030303030303030303030343030303030303034303030303030303230303030303030323030303030303163303130303030643730613030303030303030303030303031303030303030333931333030303063303037303030303030303030303030303230303030303030323030303030303032303030303030303230303030303031633031303030303036303930303030303130303030303030303030303030303339313330303030333430333030303030303030303030303030303030303030303030303030303030323030303030303032303030303030316330313030303030363039303030303030303030303030303030303030303064313331303030303039323330303030303030303030303030303030303030303064303030303030303430303030303030343030303030303163303130303030303630393030303061613061303030303930303630303030373835363334313230343030303030303732303030303030303130303030303030313030303030303062303030303030303030303030303030313030303030303032303030303030303330303030303030343030303030303035303030303030303630303030303030373030303030303038303030303030303930303030303030613030303030303034303030303030363430303632303036663030303030303135303030303030343430303639303037333030373030303666303037333030363930303734303036393030373630303666303037333030353530303733303037353030363130303732303036393030366630303733303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A3E3C70726F7065727479206E616D653D224163746976655461626C65566965774D6F6465222076616C75653D22312220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A30222076616C75653D22342C302C3238342C302C323331302C312C313839302C352C313236302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A31222076616C75653D22322C302C3238342C302C323737352220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A32222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A33222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A34222076616C75653D22342C302C3238342C302C323331302C31322C323733302C31312C313638302220766172747970653D2238222F3E3C2F646473786D6C6F626A3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D223031613532346433303130303030303036343030363230303666303030303030343630303462303035663030343430303639303037333030373030303666303037333030363930303734303036393030373630303666303037333030353530303733303037353030363130303732303036393030366630303733303035663030343430303639303037333030373030303666303037333030363930303734303036393030373630303666303037333030303030302220636F6E74726F6C70726F6769643D224D534444532E506F6C796C696E652E3038302E312220746F6F6C7469703D2252656C616369C3B36E2027464B5F446973706F73697469766F735573756172696F735F446973706F73697469766F732720656E7472652027446973706F73697469766F732720792027446973706F73697469766F735573756172696F732722206C6566743D2232323731382220746F703D22313431343322206C6F676963616C69643D2231392220636F6E74726F6C69643D22313922206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223339383222206865696768743D2238313522206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A3E3C706F6C796C696E6520656E64747970656473743D22302220656E64747970657372633D2232222075736572636F6C6F723D22313537393033323022206C696E657374796C653D223022206C696E6572656E6465723D22302220637573746F6D656E647479706564737469643D22302220637573746F6D656E647479706573726369643D2230222061646F726E7376697369626C653D2231223E3C61646F726E6D656E742070657263656E74706F733D2235302E303131353731333935353130332220636F6E74726F6C69643D223230222077696474683D223531303422206865696768743D223334342220736964653D223022206265686176696F723D2233222068696D65747269633D223136393122206469737466726F6D6C696E653D22313735222073746172746F626A3D22302220783D2232323135372220793D223134303331222076697369626C653D22302220616C6C6F776F7665726C61703D2231222075736570657263656E743D2231222F3E3C2F706F6C796C696E653E3C2F646473786D6C6F626A3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C636F6E6E6563746F7220736F7572636569643D22313522206465737469643D2231382220736F75726365617474616368706F696E743D22313432222064657374617474616368706F696E743D22373522207365676D656E74656469746D6F64653D2230222062656E64706F696E74656469746D6F64653D2230222062656E64706F696E747669736962696C6974793D2230222072656C6174656469643D223022207669727475616C3D2230223E3C706F696E7420783D2232363430302220793D223134353530222F3E3C706F696E7420783D2232333031382220793D223134353530222F3E3C2F636F6E6E6563746F723E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303030303030303030313034303134333261343031303030302220636F6E74726F6C70726F6769643D224D534444532E546578742E3038302E3122206C6566743D2232323135372220746F703D22313430333122206C6F676963616C69643D2232302220636F6E74726F6C69643D22323022206D617374657269643D223139222068696E74313D2230222068696E74323D2230222077696474683D223531303422206865696768743D2233343422206E6F726573697A653D223122206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2231222075736564656661756C7469646473686170653D2231222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22312220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2231222067726F7570636F6C6C61707365643D2230222074616273746F703D2230222076697369626C653D22302220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D223030303230303030663031333030303035383031303030303033303030303030303030303035303030303830303830303030383030313030303030303135303030313030303030303930303134343432303130303036353436313638366636643631323430303436303034623030356630303434303036393030373330303730303036663030373330303639303037343030363930303736303036663030373330303535303037333030373530303631303037323030363930303666303037333030356630303434303036393030373330303730303036663030373330303639303037343030363930303736303036663030373330303030303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C20636F6E74726F6C70726F6769643D227B36323341433037352D324337372D343837332D383833442D3933304234333634423442437D2220746F6F6C7469703D22456E74726567617347616E61646F72657322206C6566743D22353730302220746F703D22333631353022206C6F676963616C69643D2232312220636F6E74726F6C69643D22323122206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223537363822206865696768743D223735343122206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223022206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2231223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D2232313433333431323038303030303030383831363030303037353164303030303738353633343132303730303030303031343031303030303435303036653030373430303732303036353030363730303631303037333030343730303631303036653030363130303634303036663030373230303635303037333030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030313030303030303035303030303030353430303030303032633030303030303263303030303030326330303030303033343030303030303030303030303030303030303030303032323239303030306333323030303030303030303030303032643031303030303063303030303030306330303030303030373030303030303163303130303030303630393030303036323037303030306665303130303030373630323030303062333031303030306563303430303030623130333030303033613032303030306231303330303030623030343030303033393033303030303030303030303030303130303030303038383136303030303735316430303030303030303030303030613030303030303061303030303030303230303030303030323030303030303163303130303030323430393030303030303030303030303031303030303030333931333030303030363061303030303030303030303030303330303030303030333030303030303032303030303030303230303030303031633031303030303036303930303030303130303030303030303030303030303339313330303030333430333030303030303030303030303030303030303030303030303030303030323030303030303032303030303030316330313030303030363039303030303030303030303030303030303030303064313331303030303039323330303030303030303030303030303030303030303064303030303030303430303030303030343030303030303163303130303030303630393030303061613061303030303930303630303030373835363334313230343030303030303663303030303030303130303030303030313030303030303062303030303030303030303030303030313030303030303032303030303030303330303030303030343030303030303035303030303030303630303030303030373030303030303038303030303030303930303030303030613030303030303034303030303030363430303632303036663030303030303132303030303030343530303665303037343030373230303635303036373030363130303733303034373030363130303665303036313030363430303666303037323030363530303733303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A3E3C70726F7065727479206E616D653D224163746976655461626C65566965774D6F6465222076616C75653D22312220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A30222076616C75653D22342C302C3238342C302C323331302C312C313839302C352C313236302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A31222076616C75653D22322C302C3238342C302C323334302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A32222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A33222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A34222076616C75653D22342C302C3238342C302C323331302C31322C323733302C31312C313638302220766172747970653D2238222F3E3C2F646473786D6C6F626A3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313734326434363031303030303030363430303632303036663030303030303436303034623030356630303435303036653030373430303732303036353030363730303631303037333030343730303631303036653030363130303634303036663030373230303635303037333030356630303433303036313030373330303666303037333030303030302220636F6E74726F6C70726F6769643D224D534444532E506F6C796C696E652E3038302E312220746F6F6C7469703D2252656C616369C3B36E2027464B5F456E74726567617347616E61646F7265735F4361736F732720656E74726520274361736F7347616E61646F7265732720792027456E74726567617347616E61646F7265732722206C6566743D2231313136382220746F703D22343030393322206C6F676963616C69643D2232322220636F6E74726F6C69643D22323222206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223636383222206865696768743D2238313522206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A3E3C706F6C796C696E6520656E64747970656473743D22322220656E64747970657372633D2232222075736572636F6C6F723D22313537393033323022206C696E657374796C653D223022206C696E6572656E6465723D22302220637573746F6D656E647479706564737469643D22302220637573746F6D656E647479706573726369643D2230222061646F726E7376697369626C653D2231223E3C61646F726E6D656E742070657263656E74706F733D2235302220636F6E74726F6C69643D223233222077696474683D223432363822206865696768743D223334342220736964653D223022206265686176696F723D2233222068696D65747269633D223330343122206469737466726F6D6C696E653D22313735222073746172746F626A3D22302220783D2231323337352220793D223339393831222076697369626C653D22302220616C6C6F776F7665726C61703D2231222075736570657263656E743D2231222F3E3C2F706F6C796C696E653E3C2F646473786D6C6F626A3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C636F6E6E6563746F7220736F7572636569643D223322206465737469643D2232312220736F75726365617474616368706F696E743D22313934222064657374617474616368706F696E743D2231333122207365676D656E74656469746D6F64653D2230222062656E64706F696E74656469746D6F64653D2230222062656E64706F696E747669736962696C6974793D2230222072656C6174656469643D223022207669727475616C3D2230223E3C706F696E7420783D2231373535302220793D223430353030222F3E3C706F696E7420783D2231313436382220793D223430353030222F3E3C2F636F6E6E6563746F723E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303030303030303030383030326162336161343031303030302220636F6E74726F6C70726F6769643D224D534444532E546578742E3038302E3122206C6566743D2231323337352220746F703D22333939383122206C6F676963616C69643D2232332220636F6E74726F6C69643D22323322206D617374657269643D223232222068696E74313D2230222068696E74323D2230222077696474683D223432363822206865696768743D2233343422206E6F726573697A653D223122206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2231222075736564656661756C7469646473686170653D2231222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22312220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2231222067726F7570636F6C6C61707365643D2230222074616273746F703D2230222076697369626C653D22302220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D2230303032303030306163313030303030353830313030303030333030303030303030303030353030303038303038303030303830303130303030303031353030303130303030303039303031343434323031303030363534363136383666366436313161303034363030346230303566303034353030366530303734303037323030363530303637303036313030373330303437303036313030366530303631303036343030366630303732303036353030373330303566303034333030363130303733303036663030373330303030303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C20636F6E74726F6C70726F6769643D227B36323341433037352D324337372D343837332D383833442D3933304234333634423442437D2220746F6F6C7469703D2245737461646F73426F6C65746F22206C6566743D2231373535302220746F703D223022206C6F676963616C69643D2232342220636F6E74726F6C69643D22323422206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223537363822206865696768743D223234363122206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223022206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2231223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D22323134333334313230383030303030303838313630303030396430393030303037383536333431323037303030303030313430313030303034353030373330303734303036313030363430303666303037333030343230303666303036633030363530303734303036663030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303130303030303030353030303030303534303030303030326330303030303032633030303030303263303030303030333430303030303030303030303030303030303030303030323232393030303036353135303030303030303030303030326430313030303030373030303030303063303030303030303730303030303031633031303030303036303930303030363230373030303066653031303030303736303230303030623330313030303065633034303030306231303330303030336130323030303062313033303030306230303430303030333930333030303030303030303030303031303030303030383831363030303039643039303030303030303030303030303230303030303030323030303030303032303030303030303230303030303031633031303030306437306130303030303030303030303030313030303030303339313330303030633030373030303030303030303030303032303030303030303230303030303030323030303030303032303030303030316330313030303030363039303030303031303030303030303030303030303033393133303030303334303330303030303030303030303030303030303030303030303030303030303230303030303030323030303030303163303130303030303630393030303030303030303030303030303030303030643133313030303030393233303030303030303030303030303030303030303030643030303030303034303030303030303430303030303031633031303030303036303930303030616130613030303039303036303030303738353633343132303430303030303036343030303030303031303030303030303130303030303030623030303030303030303030303030303130303030303030323030303030303033303030303030303430303030303030353030303030303036303030303030303730303030303030383030303030303039303030303030306130303030303030343030303030303634303036323030366630303030303030653030303030303435303037333030373430303631303036343030366630303733303034323030366630303663303036353030373430303666303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A3E3C70726F7065727479206E616D653D224163746976655461626C65566965774D6F6465222076616C75653D22312220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A30222076616C75653D22342C302C3238342C302C323331302C312C313839302C352C313236302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A31222076616C75653D22322C302C3238342C302C323737352220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A32222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A33222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A34222076616C75653D22342C302C3238342C302C323331302C31322C323733302C31312C313638302220766172747970653D2238222F3E3C2F646473786D6C6F626A3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C20636F6E74726F6C70726F6769643D227B36323341433037352D324337372D343837332D383833442D3933304234333634423442437D2220746F6F6C7469703D2245766964656E6369617347616E61646F7222206C6566743D222D323535302220746F703D22333733353022206C6F676963616C69643D2232352220636F6E74726F6C69643D22323522206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223537363822206865696768743D223433363622206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223022206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2231223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D2232313433333431323038303030303030383831363030303030653131303030303738353633343132303730303030303031343031303030303435303037363030363930303634303036353030366530303633303036393030363130303733303034373030363130303665303036313030363430303666303037323030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030313030303030303035303030303030353430303030303032633030303030303263303030303030326330303030303033343030303030303030303030303030303030303030303032323239303030303635313530303030303030303030303032643031303030303037303030303030306330303030303030373030303030303163303130303030303630393030303036323037303030306665303130303030373630323030303062333031303030306563303430303030623130333030303033613032303030306231303330303030623030343030303033393033303030303030303030303030303130303030303038383136303030303065313130303030303030303030303030353030303030303035303030303030303230303030303030323030303030303163303130303030643730613030303030303030303030303031303030303030333931333030303063303037303030303030303030303030303230303030303030323030303030303032303030303030303230303030303031633031303030303036303930303030303130303030303030303030303030303339313330303030333430333030303030303030303030303030303030303030303030303030303030323030303030303032303030303030316330313030303030363039303030303030303030303030303030303030303064313331303030303039323330303030303030303030303030303030303030303064303030303030303430303030303030343030303030303163303130303030303630393030303061613061303030303930303630303030373835363334313230343030303030303663303030303030303130303030303030313030303030303062303030303030303030303030303030313030303030303032303030303030303330303030303030343030303030303035303030303030303630303030303030373030303030303038303030303030303930303030303030613030303030303034303030303030363430303632303036663030303030303132303030303030343530303736303036393030363430303635303036653030363330303639303036313030373330303437303036313030366530303631303036343030366630303732303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A3E3C70726F7065727479206E616D653D224163746976655461626C65566965774D6F6465222076616C75653D22312220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A30222076616C75653D22342C302C3238342C302C323331302C312C313839302C352C313236302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A31222076616C75653D22322C302C3238342C302C323737352220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A32222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A33222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A34222076616C75653D22342C302C3238342C302C323331302C31322C323733302C31312C313638302220766172747970653D2238222F3E3C2F646473786D6C6F626A3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313734326434363031303030303030363430303632303036663030303030303436303034623030356630303435303037363030363930303634303036353030366530303633303036393030363130303733303034373030363130303665303036313030363430303666303037323030356630303435303036653030373430303732303036353030363730303631303037333030303030302220636F6E74726F6C70726F6769643D224D534444532E506F6C796C696E652E3038302E312220746F6F6C7469703D2252656C616369C3B36E2027464B5F45766964656E6369617347616E61646F725F456E7472656761732720656E7472652027456E74726567617347616E61646F726573272079202745766964656E6369617347616E61646F722722206C6566743D22323931382220746F703D22333837343322206C6F676963616C69643D2232362220636F6E74726F6C69643D22323622206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223330383222206865696768743D2238313522206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A3E3C706F6C796C696E6520656E64747970656473743D22302220656E64747970657372633D2232222075736572636F6C6F723D22313537393033323022206C696E657374796C653D223022206C696E6572656E6465723D22302220637573746F6D656E647479706564737469643D22302220637573746F6D656E647479706573726369643D2230222061646F726E7376697369626C653D2231223E3C61646F726E6D656E742070657263656E74706F733D2235302E303134333232353433363833382220636F6E74726F6C69643D223237222077696474683D223435353622206865696768743D223334342220736964653D223022206265686176696F723D2233222068696D65747269633D223132343122206469737466726F6D6C696E653D22313735222073746172746F626A3D22302220783D22323138312220793D223338363331222076697369626C653D22302220616C6C6F776F7665726C61703D2231222075736570657263656E743D2231222F3E3C2F706F6C796C696E653E3C2F646473786D6C6F626A3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C636F6E6E6563746F7220736F7572636569643D22323122206465737469643D2232352220736F75726365617474616368706F696E743D22313132222064657374617474616368706F696E743D22393722207365676D656E74656469746D6F64653D2230222062656E64706F696E74656469746D6F64653D2230222062656E64706F696E747669736962696C6974793D2230222072656C6174656469643D223022207669727475616C3D2230223E3C706F696E7420783D22353730302220793D223339313530222F3E3C706F696E7420783D22333231382220793D223339313530222F3E3C2F636F6E6E6563746F723E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303030303030303030613030636162336161343031303030302220636F6E74726F6C70726F6769643D224D534444532E546578742E3038302E3122206C6566743D22323138312220746F703D22333836333122206C6F676963616C69643D2232372220636F6E74726F6C69643D22323722206D617374657269643D223236222068696E74313D2230222068696E74323D2230222077696474683D223435353622206865696768743D2233343422206E6F726573697A653D223122206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2231222075736564656661756C7469646473686170653D2231222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22312220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2231222067726F7570636F6C6C61707365643D2230222074616273746F703D2230222076697369626C653D22302220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D2230303032303030306363313130303030353830313030303030333030303030303030303030353030303038303038303030303830303130303030303031353030303130303030303039303031343434323031303030363534363136383666366436313164303034363030346230303566303034353030373630303639303036343030363530303665303036333030363930303631303037333030343730303631303036653030363130303634303036663030373230303566303034353030366530303734303037323030363530303637303036313030373330303030303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C20636F6E74726F6C70726F6769643D227B36323341433037352D324337372D343837332D383833442D3933304234333634423442437D2220746F6F6C7469703D22477275706F7322206C6566743D222D31343535302220746F703D22313536303022206C6F676963616C69643D2232382220636F6E74726F6C69643D22323822206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223537363822206865696768743D223337333122206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223022206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2231223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D223231343333343132303830303030303038383136303030303933306530303030373835363334313230373030303030303134303130303030343730303732303037353030373030303666303037333030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303031303030303030303530303030303035343030303030303263303030303030326330303030303032633030303030303334303030303030303030303030303030303030303030303232323930303030363531353030303030303030303030303264303130303030303730303030303030633030303030303037303030303030316330313030303030363039303030303632303730303030666530313030303037363032303030306233303130303030656330343030303062313033303030303361303230303030623130333030303062303034303030303339303330303030303030303030303030313030303030303838313630303030393330653030303030303030303030303034303030303030303430303030303030323030303030303032303030303030316330313030303064373061303030303030303030303030303130303030303033393133303030306330303730303030303030303030303030323030303030303032303030303030303230303030303030323030303030303163303130303030303630393030303030313030303030303030303030303030333931333030303033343033303030303030303030303030303030303030303030303030303030303032303030303030303230303030303031633031303030303036303930303030303030303030303030303030303030306431333130303030303932333030303030303030303030303030303030303030306430303030303030343030303030303034303030303030316330313030303030363039303030306161306130303030393030363030303037383536333431323034303030303030353630303030303030313030303030303031303030303030306230303030303030303030303030303031303030303030303230303030303030333030303030303034303030303030303530303030303030363030303030303037303030303030303830303030303030393030303030303061303030303030303430303030303036343030363230303666303030303030303730303030303034373030373230303735303037303030366630303733303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A3E3C70726F7065727479206E616D653D224163746976655461626C65566965774D6F6465222076616C75653D22312220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A30222076616C75653D22342C302C3238342C302C323331302C312C313839302C352C313236302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A31222076616C75653D22322C302C3238342C302C323737352220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A32222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A33222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A34222076616C75653D22342C302C3238342C302C323331302C31322C323733302C31312C313638302220766172747970653D2238222F3E3C2F646473786D6C6F626A3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C20636F6E74726F6C70726F6769643D227B36323341433037352D324337372D343837332D383833442D3933304234333634423442437D2220746F6F6C7469703D22496E74656E746F7346616C6C69646F7322206C6566743D222D383730302220746F703D22313135353022206C6F676963616C69643D2232392220636F6E74726F6C69643D22323922206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223537363822206865696768743D223337333122206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223022206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2231223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D22323134333334313230383030303030303838313630303030393330653030303037383536333431323037303030303030313430313030303034393030366530303734303036353030366530303734303036663030373330303436303036313030366330303663303036393030363430303666303037333030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303130303030303030353030303030303534303030303030326330303030303032633030303030303263303030303030333430303030303030303030303030303030303030303030323232393030303036353135303030303030303030303030326430313030303030373030303030303063303030303030303730303030303031633031303030303036303930303030363230373030303066653031303030303736303230303030623330313030303065633034303030306231303330303030336130323030303062313033303030306230303430303030333930333030303030303030303030303031303030303030383831363030303039333065303030303030303030303030303430303030303030343030303030303032303030303030303230303030303031633031303030306437306130303030303030303030303030313030303030303339313330303030633030373030303030303030303030303032303030303030303230303030303030323030303030303032303030303030316330313030303030363039303030303031303030303030303030303030303033393133303030303334303330303030303030303030303030303030303030303030303030303030303230303030303030323030303030303163303130303030303630393030303030303030303030303030303030303030643133313030303030393233303030303030303030303030303030303030303030643030303030303034303030303030303430303030303031633031303030303036303930303030616130613030303039303036303030303738353633343132303430303030303036613030303030303031303030303030303130303030303030623030303030303030303030303030303130303030303030323030303030303033303030303030303430303030303030353030303030303036303030303030303730303030303030383030303030303039303030303030306130303030303030343030303030303634303036323030366630303030303031313030303030303439303036653030373430303635303036653030373430303666303037333030343630303631303036633030366330303639303036343030366630303733303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A3E3C70726F7065727479206E616D653D224163746976655461626C65566965774D6F6465222076616C75653D22312220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A30222076616C75653D22342C302C3238342C302C323331302C312C313839302C352C313236302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A31222076616C75653D22322C302C3238342C302C323737352220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A32222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A33222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A34222076616C75653D22342C302C3238342C302C323331302C31322C323733302C31312C313638302220766172747970653D2238222F3E3C2F646473786D6C6F626A3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C20636F6E74726F6C70726F6769643D227B36323341433037352D324337372D343837332D383833442D3933304234333634423442437D2220746F6F6C7469703D224A7565676F4C6F746572696122206C6566743D2233343530302220746F703D22343435353022206C6F676963616C69643D2233302220636F6E74726F6C69643D22333022206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223537363822206865696768743D223234363122206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223022206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2231223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D223231343333343132303830303030303038383136303030303964303930303030373835363334313230373030303030303134303130303030346130303735303036353030363730303666303034633030366630303734303036353030373230303639303036313030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303031303030303030303530303030303035343030303030303263303030303030326330303030303032633030303030303334303030303030303030303030303030303030303030303232323930303030363531353030303030303030303030303264303130303030303730303030303030633030303030303037303030303030316330313030303030363039303030303632303730303030613330323030303034383033303030303439303230303030656330343030303065633034303030306565303230303030656330343030303033363036303030303437303430303030303030303030303030313030303030303838313630303030396430393030303030303030303030303032303030303030303230303030303030323030303030303032303030303030316330313030303065363061303030303030303030303030303130303030303033393133303030306330303730303030303030303030303030323030303030303032303030303030303230303030303030323030303030303163303130303030303630393030303030313030303030303030303030303030333931333030303033343033303030303030303030303030303030303030303030303030303030303032303030303030303230303030303031633031303030303036303930303030303030303030303030303030303030306431333130303030303932333030303030303030303030303030303030303030306430303030303030343030303030303034303030303030316330313030303030363039303030306161306130303030393030363030303037383536333431323034303030303030363230303030303030313030303030303031303030303030306230303030303030303030303030303031303030303030303230303030303030333030303030303034303030303030303530303030303030363030303030303037303030303030303830303030303030393030303030303061303030303030303430303030303036343030363230303666303030303030306430303030303034613030373530303635303036373030366630303463303036663030373430303635303037323030363930303631303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A3E3C70726F7065727479206E616D653D224163746976655461626C65566965774D6F6465222076616C75653D22312220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A30222076616C75653D22342C302C3238342C302C323331302C312C313839302C352C313236302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A31222076616C75653D22322C302C3238342C302C323739302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A32222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A33222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A34222076616C75653D22342C302C3238342C302C323331302C31322C323733302C31312C313638302220766172747970653D2238222F3E3C2F646473786D6C6F626A3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C20636F6E74726F6C70726F6769643D227B36323341433037352D324337372D343837332D383833442D3933304234333634423442437D2220746F6F6C7469703D224A7565676F7322206C6566743D2233343335302220746F703D22333837303022206C6F676963616C69643D2233312220636F6E74726F6C69643D22333122206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223537363822206865696768743D223433363622206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223022206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2231223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D223231343333343132303830303030303038383136303030303065313130303030373835363334313230373030303030303134303130303030346130303735303036353030363730303666303037333030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303031303030303030303530303030303035343030303030303263303030303030326330303030303032633030303030303334303030303030303030303030303030303030303030303232323930303030363531353030303030303030303030303264303130303030303730303030303030633030303030303037303030303030316330313030303030363039303030303632303730303030613330323030303034383033303030303439303230303030656330343030303065633034303030306565303230303030656330343030303033363036303030303437303430303030303030303030303030313030303030303838313630303030306531313030303030303030303030303035303030303030303530303030303030323030303030303032303030303030316330313030303064373061303030303030303030303030303130303030303033393133303030306330303730303030303030303030303030323030303030303032303030303030303230303030303030323030303030303163303130303030303630393030303030313030303030303030303030303030333931333030303033343033303030303030303030303030303030303030303030303030303030303032303030303030303230303030303031633031303030303036303930303030303030303030303030303030303030306431333130303030303932333030303030303030303030303030303030303030306430303030303030343030303030303034303030303030316330313030303030363039303030306161306130303030393030363030303037383536333431323034303030303030353630303030303030313030303030303031303030303030306230303030303030303030303030303031303030303030303230303030303030333030303030303034303030303030303530303030303030363030303030303037303030303030303830303030303030393030303030303061303030303030303430303030303036343030363230303666303030303030303730303030303034613030373530303635303036373030366630303733303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A3E3C70726F7065727479206E616D653D224163746976655461626C65566965774D6F6465222076616C75653D22312220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A30222076616C75653D22342C302C3238342C302C323331302C312C313839302C352C313236302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A31222076616C75653D22322C302C3238342C302C323737352220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A32222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A33222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A34222076616C75653D22342C302C3238342C302C323331302C31322C323733302C31312C313638302220766172747970653D2238222F3E3C2F646473786D6C6F626A3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230316233656234323031303030303030363430303632303036663030303030303436303034623030356630303461303037353030363530303637303036663030373330303566303034323030366630303663303036353030373430303666303037333030303030302220636F6E74726F6C70726F6769643D224D534444532E506F6C796C696E652E3038302E312220746F6F6C7469703D2252656C616369C3B36E2027464B5F4A7565676F735F426F6C65746F732720656E7472652027426F6C65746F7327207920274A7565676F732722206C6566743D2233323031382220746F703D22333931393322206C6F676963616C69643D2233322220636F6E74726F6C69643D22333222206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223236333222206865696768743D2238313522206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A3E3C706F6C796C696E6520656E64747970656473743D22302220656E64747970657372633D2232222075736572636F6C6F723D22313537393033323022206C696E657374796C653D223022206C696E6572656E6465723D22302220637573746F6D656E647479706564737469643D22302220637573746F6D656E647479706573726369643D2230222061646F726E7376697369626C653D2231223E3C61646F726E6D656E742070657263656E74706F733D2235302220636F6E74726F6C69643D223333222077696474683D223236383222206865696768743D223334342220736964653D223122206265686176696F723D2233222068696D65747269633D223130313622206469737466726F6D6C696E653D22313735222073746172746F626A3D22302220783D2233313939332220793D223339303831222076697369626C653D22302220616C6C6F776F7665726C61703D2231222075736570657263656E743D2231222F3E3C2F706F6C796C696E653E3C2F646473786D6C6F626A3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C636F6E6E6563746F7220736F7572636569643D223222206465737469643D2233312220736F75726365617474616368706F696E743D22313633222064657374617474616368706F696E743D22383422207365676D656E74656469746D6F64653D2230222062656E64706F696E74656469746D6F64653D2230222062656E64706F696E747669736962696C6974793D2230222072656C6174656469643D223022207669727475616C3D2230223E3C706F696E7420783D2233323331382220793D223339363030222F3E3C706F696E7420783D2233343335302220793D223339363030222F3E3C2F636F6E6E6563746F723E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303030303030303030333038393934336161343031303030302220636F6E74726F6C70726F6769643D224D534444532E546578742E3038302E3122206C6566743D2233313939332220746F703D22333930383122206C6F676963616C69643D2233332220636F6E74726F6C69643D22333322206D617374657269643D223332222068696E74313D2230222068696E74323D2230222077696474683D223236383222206865696768743D2233343422206E6F726573697A653D223122206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2231222075736564656661756C7469646473686170653D2231222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22312220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2231222067726F7570636F6C6C61707365643D2230222074616273746F703D2230222076697369626C653D22302220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D2230303032303030303761306130303030353830313030303030333030303030303030303030353030303038303038303030303830303130303030303031353030303130303030303039303031343434323031303030363534363136383666366436313131303034363030346230303566303034613030373530303635303036373030366630303733303035663030343230303666303036633030363530303734303036663030373330303030303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D22303161323234643330313030303030303634303036323030366630303030303034363030346230303566303034613030373530303635303036373030366630303463303036663030373430303635303037323030363930303631303035663030346130303735303036353030363730303666303037333030303030302220636F6E74726F6C70726F6769643D224D534444532E506F6C796C696E652E3038302E312220746F6F6C7469703D2252656C616369C3B36E2027464B5F4A7565676F4C6F74657269615F4A7565676F732720656E74726520274A7565676F7327207920274A7565676F4C6F74657269612722206C6566743D2233363739332220746F703D22343233373122206C6F676963616C69643D2233342220636F6E74726F6C69643D22333422206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D2238313522206865696768743D223238373922206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A3E3C706F6C796C696E6520656E64747970656473743D22302220656E64747970657372633D2232222075736572636F6C6F723D22313537393033323022206C696E657374796C653D223022206C696E6572656E6465723D22302220637573746F6D656E647479706564737469643D22302220637573746F6D656E647479706573726369643D2230222061646F726E7376697369626C653D2231223E3C61646F726E6D656E742070657263656E74706F733D2232352E383036343531363132393033322220636F6E74726F6C69643D223335222077696474683D223334363022206865696768743D223334342220736964653D223122206265686176696F723D2233222068696D65747269633D2233383222206469737466726F6D6C696E653D22313735222073746172746F626A3D22302220783D2233373337352220793D223433333539222076697369626C653D22302220616C6C6F776F7665726C61703D2231222075736570657263656E743D2231222F3E3C2F706F6C796C696E653E3C2F646473786D6C6F626A3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C636F6E6E6563746F7220736F7572636569643D22333122206465737469643D2233302220736F75726365617474616368706F696E743D223337222064657374617474616368706F696E743D22333422207365676D656E74656469746D6F64653D2230222062656E64706F696E74656469746D6F64653D2230222062656E64706F696E747669736962696C6974793D2230222072656C6174656469643D223022207669727475616C3D2230223E3C706F696E7420783D2233373230302220793D223433303636222F3E3C706F696E7420783D2233373230302220793D223434353530222F3E3C2F636F6E6E6563746F723E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303030303030303030373038653934336161343031303030302220636F6E74726F6C70726F6769643D224D534444532E546578742E3038302E3122206C6566743D2233373337352220746F703D22343333353922206C6F676963616C69643D2233352220636F6E74726F6C69643D22333522206D617374657269643D223334222068696E74313D2230222068696E74323D2230222077696474683D223334363022206865696768743D2233343422206E6F726573697A653D223122206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2231222075736564656661756C7469646473686170653D2231222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22312220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2231222067726F7570636F6C6C61707365643D2230222074616273746F703D2230222076697369626C653D22302220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D22303030323030303038343064303030303538303130303030303330303030303030303030303530303030383030383030303038303031303030303030313530303031303030303030393030313434343230313030303635343631363836663664363131363030343630303462303035663030346130303735303036353030363730303666303034633030366630303734303036353030373230303639303036313030356630303461303037353030363530303637303036663030373330303030303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C20636F6E74726F6C70726F6769643D227B36323341433037352D324337372D343837332D383833442D3933304234333634423442437D2220746F6F6C7469703D224C6F74657269617322206C6566743D2233333735302220746F703D22343833303022206C6F676963616C69643D2233362220636F6E74726F6C69643D22333622206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223537363822206865696768743D223337333122206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223022206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2231223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D2232313433333431323038303030303030383831363030303039333065303030303738353633343132303730303030303031343031303030303463303036663030373430303635303037323030363930303631303037333030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030313030303030303035303030303030353430303030303032633030303030303263303030303030326330303030303033343030303030303030303030303030303030303030303032323239303030303635313530303030303030303030303032643031303030303037303030303030306330303030303030373030303030303163303130303030303630393030303036323037303030306133303230303030343830333030303034393032303030306563303430303030656330343030303065653032303030306563303430303030333630363030303034373034303030303030303030303030303130303030303038383136303030303933306530303030303030303030303030343030303030303034303030303030303230303030303030323030303030303163303130303030653630613030303030303030303030303031303030303030333931333030303063303037303030303030303030303030303230303030303030323030303030303032303030303030303230303030303031633031303030303036303930303030303130303030303030303030303030303339313330303030333430333030303030303030303030303030303030303030303030303030303030323030303030303032303030303030316330313030303030363039303030303030303030303030303030303030303064313331303030303039323330303030303030303030303030303030303030303064303030303030303430303030303030343030303030303163303130303030303630393030303061613061303030303930303630303030373835363334313230343030303030303561303030303030303130303030303030313030303030303062303030303030303030303030303030313030303030303032303030303030303330303030303030343030303030303035303030303030303630303030303030373030303030303038303030303030303930303030303030613030303030303034303030303030363430303632303036663030303030303039303030303030346330303666303037343030363530303732303036393030363130303733303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A3E3C70726F7065727479206E616D653D224163746976655461626C65566965774D6F6465222076616C75653D22312220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A30222076616C75653D22342C302C3238342C302C323331302C312C313839302C352C313236302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A31222076616C75653D22322C302C3238342C302C323739302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A32222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A33222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A34222076616C75653D22342C302C3238342C302C323331302C31322C323733302C31312C313638302220766172747970653D2238222F3E3C2F646473786D6C6F626A3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D223031373432643436303130303030303036343030363230303666303030303030343630303462303035663030346130303735303036353030363730303666303034633030366630303734303036353030373230303639303036313030356630303463303036663030373430303635303037323030363930303631303037333030303030302220636F6E74726F6C70726F6769643D224D534444532E506F6C796C696E652E3038302E312220746F6F6C7469703D2252656C616369C3B36E2027464B5F4A7565676F4C6F74657269615F4C6F7465726961732720656E74726520274C6F74657269617327207920274A7565676F4C6F74657269612722206C6566743D2233373339332220746F703D22343633313222206C6F676963616C69643D2233372220636F6E74726F6C69643D22333722206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D2238313522206865696768743D223236383422206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A3E3C706F6C796C696E6520656E64747970656473743D22302220656E64747970657372633D2232222075736572636F6C6F723D22313537393033323022206C696E657374796C653D223022206C696E6572656E6465723D22302220637573746F6D656E647479706564737469643D22302220637573746F6D656E647479706573726369643D2230222061646F726E7376697369626C653D2231223E3C61646F726E6D656E742070657263656E74706F733D2235302E303331343636333331303235382220636F6E74726F6C69643D223338222077696474683D223335373622206865696768743D223334342220736964653D223022206265686176696F723D2233222068696D65747269633D2236343422206469737466726F6D6C696E653D22313735222073746172746F626A3D22302220783D2233373937352220793D223437343833222076697369626C653D22302220616C6C6F776F7665726C61703D2231222075736570657263656E743D2231222F3E3C2F706F6C796C696E653E3C2F646473786D6C6F626A3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C636F6E6E6563746F7220736F7572636569643D22333622206465737469643D2233302220736F75726365617474616368706F696E743D223532222064657374617474616368706F696E743D22343322207365676D656E74656469746D6F64653D2230222062656E64706F696E74656469746D6F64653D2230222062656E64706F696E747669736962696C6974793D2230222072656C6174656469643D223022207669727475616C3D2230223E3C706F696E7420783D2233373830302220793D223438333030222F3E3C706F696E7420783D2233373830302220793D223437303131222F3E3C2F636F6E6E6563746F723E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303030303030303030643039343934336161343031303030302220636F6E74726F6C70726F6769643D224D534444532E546578742E3038302E3122206C6566743D2233373937352220746F703D22343734383322206C6F676963616C69643D2233382220636F6E74726F6C69643D22333822206D617374657269643D223337222068696E74313D2230222068696E74323D2230222077696474683D223335373622206865696768743D2233343422206E6F726573697A653D223122206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2231222075736564656661756C7469646473686170653D2231222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22312220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2231222067726F7570636F6C6C61707365643D2230222074616273746F703D2230222076697369626C653D22302220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D223030303230303030663830643030303035383031303030303033303030303030303030303035303030303830303830303030383030313030303030303135303030313030303030303930303134343432303130303036353436313638366636643631313830303436303034623030356630303461303037353030363530303637303036663030346330303666303037343030363530303732303036393030363130303566303034633030366630303734303036353030373230303639303036313030373330303030303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C20636F6E74726F6C70726F6769643D227B36323341433037352D324337372D343837332D383833442D3933304234333634423442437D2220746F6F6C7469703D224D656E73616A657322206C6566743D222D31313430302220746F703D22323832303022206C6F676963616C69643D2233392220636F6E74726F6C69643D22333922206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223537363822206865696768743D223530303122206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223022206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2231223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D2232313433333431323038303030303030383831363030303038393133303030303738353633343132303730303030303031343031303030303464303036353030366530303733303036313030366130303635303037333030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030313030303030303035303030303030353430303030303032633030303030303263303030303030326330303030303033343030303030303030303030303030303030303030303032323239303030306162313730303030303030303030303032643031303030303038303030303030306330303030303030373030303030303163303130303030303630393030303036323037303030306665303130303030373630323030303062333031303030306563303430303030623130333030303033613032303030306231303330303030623030343030303033393033303030303030303030303030303130303030303038383136303030303839313330303030303030303030303030363030303030303036303030303030303230303030303030323030303030303163303130303030643730613030303030303030303030303031303030303030333931333030303030363061303030303030303030303030303330303030303030333030303030303032303030303030303230303030303031633031303030303036303930303030303130303030303030303030303030303339313330303030333430333030303030303030303030303030303030303030303030303030303030323030303030303032303030303030316330313030303030363039303030303030303030303030303030303030303064313331303030303039323330303030303030303030303030303030303030303064303030303030303430303030303030343030303030303163303130303030303630393030303061613061303030303930303630303030373835363334313230343030303030303561303030303030303130303030303030313030303030303062303030303030303030303030303030313030303030303032303030303030303330303030303030343030303030303035303030303030303630303030303030373030303030303038303030303030303930303030303030613030303030303034303030303030363430303632303036663030303030303039303030303030346430303635303036653030373330303631303036613030363530303733303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A3E3C70726F7065727479206E616D653D224163746976655461626C65566965774D6F6465222076616C75653D22312220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A30222076616C75653D22342C302C3238342C302C323331302C312C313839302C352C313236302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A31222076616C75653D22322C302C3238342C302C323737352220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A32222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A33222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A34222076616C75653D22342C302C3238342C302C323331302C31322C323733302C31312C313638302220766172747970653D2238222F3E3C2F646473786D6C6F626A3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313734326434363031303030303030363430303632303036663030303030303436303034623030356630303464303036353030366530303733303036313030366130303635303037333030356630303433303036663030366530303736303036353030373230303733303036313030363330303639303036663030366530303635303037333030303030302220636F6E74726F6C70726F6769643D224D534444532E506F6C796C696E652E3038302E312220746F6F6C7469703D2252656C616369C3B36E2027464B5F4D656E73616A65735F436F6E766572736163696F6E65732720656E7472652027436F6E766572736163696F6E657327207920274D656E73616A65732722206C6566743D222D353933322220746F703D22333130393322206C6F676963616C69643D2234302220636F6E74726F6C69643D22343022206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223534383222206865696768743D2238313522206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A3E3C706F6C796C696E6520656E64747970656473743D22302220656E64747970657372633D2232222075736572636F6C6F723D22313537393033323022206C696E657374796C653D223022206C696E6572656E6465723D22302220637573746F6D656E647479706564737469643D22302220637573746F6D656E647479706573726369643D2230222061646F726E7376697369626C653D2231223E3C61646F726E6D656E742070657263656E74706F733D2235332E393336333138353835313231322220636F6E74726F6C69643D223431222077696474683D223431383122206865696768743D223334342220736964653D223022206265686176696F723D2233222068696D65747269633D223236333322206469737466726F6D6C696E653D22313735222073746172746F626A3D22302220783D222D353330392220793D223330393831222076697369626C653D22302220616C6C6F776F7665726C61703D2231222075736570657263656E743D2231222F3E3C2F706F6C796C696E653E3C2F646473786D6C6F626A3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C636F6E6E6563746F7220736F7572636569643D22313422206465737469643D2233392220736F75726365617474616368706F696E743D22313130222064657374617474616368706F696E743D2231313722207365676D656E74656469746D6F64653D2230222062656E64706F696E74656469746D6F64653D2230222062656E64706F696E747669736962696C6974793D2230222072656C6174656469643D223022207669727475616C3D2230223E3C706F696E7420783D222D3735302220793D223331353030222F3E3C706F696E7420783D222D353633322220793D223331353030222F3E3C2F636F6E6E6563746F723E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303030303030303030373035346230336161343031303030302220636F6E74726F6C70726F6769643D224D534444532E546578742E3038302E3122206C6566743D222D353330392220746F703D22333039383122206C6F676963616C69643D2234312220636F6E74726F6C69643D22343122206D617374657269643D223430222068696E74313D2230222068696E74323D2230222077696474683D223431383122206865696768743D2233343422206E6F726573697A653D223122206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2231222075736564656661756C7469646473686170653D2231222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22312220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2231222067726F7570636F6C6C61707365643D2230222074616273746F703D2230222076697369626C653D22302220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D2230303032303030303535313030303030353830313030303030333030303030303030303030353030303038303038303030303830303130303030303031353030303130303030303039303031343434323031303030363534363136383666366436313161303034363030346230303566303034643030363530303665303037333030363130303661303036353030373330303566303034333030366630303665303037363030363530303732303037333030363130303633303036393030366630303665303036353030373330303030303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D223031373432643436303130303030303036343030363230303666303030303030343630303462303035663030343130303634303036613030373530303665303037343030366630303733303034333030363830303631303037343030356630303464303036353030366530303733303036313030366130303635303037333030303030302220636F6E74726F6C70726F6769643D224D534444532E506F6C796C696E652E3038302E312220746F6F6C7469703D2252656C616369C3B36E2027464B5F41646A756E746F73436861745F4D656E73616A65732720656E74726520274D656E73616A6573272079202741646A756E746F73436861742722206C6566743D222D383830372220746F703D22333235303622206C6F676963616C69643D2234322220636F6E74726F6C69643D22343222206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D2238313522206865696768743D223530393422206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A3E3C706F6C796C696E6520656E64747970656473743D22302220656E64747970657372633D2232222075736572636F6C6F723D22313537393033323022206C696E657374796C653D223022206C696E6572656E6465723D22302220637573746F6D656E647479706564737469643D22302220637573746F6D656E647479706573726369643D2230222061646F726E7376697369626C653D2231223E3C61646F726E6D656E742070657263656E74706F733D2235312E383934373136353933393938352220636F6E74726F6C69643D223433222077696474683D223338393322206865696768743D223334342220736964653D223022206265686176696F723D2233222068696D65747269633D223139313922206469737466726F6D6C696E653D22313735222073746172746F626A3D22302220783D222D31323436382220793D223334393431222076697369626C653D22302220616C6C6F776F7665726C61703D2231222075736570657263656E743D2231222F3E3C2F706F6C796C696E653E3C2F646473786D6C6F626A3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C636F6E6E6563746F7220736F7572636569643D22333922206465737469643D22312220736F75726365617474616368706F696E743D223339222064657374617474616368706F696E743D22343222207365676D656E74656469746D6F64653D2230222062656E64706F696E74656469746D6F64653D2230222062656E64706F696E747669736962696C6974793D2230222072656C6174656469643D223022207669727475616C3D2230223E3C706F696E7420783D222D383430302220793D223333323031222F3E3C706F696E7420783D222D383430302220793D223336393030222F3E3C2F636F6E6E6563746F723E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303030303030303030663034666230336161343031303030302220636F6E74726F6C70726F6769643D224D534444532E546578742E3038302E3122206C6566743D222D31323436382220746F703D22333439343122206C6F676963616C69643D2234332220636F6E74726F6C69643D22343322206D617374657269643D223432222068696E74313D2230222068696E74323D2230222077696474683D223338393322206865696768743D2233343422206E6F726573697A653D223122206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2231222075736564656661756C7469646473686170653D2231222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22312220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2231222067726F7570636F6C6C61707365643D2230222074616273746F703D2230222076697369626C653D22302220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D223030303230303030333530663030303035383031303030303033303030303030303030303035303030303830303830303030383030313030303030303135303030313030303030303930303134343432303130303036353436313638366636643631313830303436303034623030356630303431303036343030366130303735303036653030373430303666303037333030343330303638303036313030373430303566303034643030363530303665303037333030363130303661303036353030373330303030303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C20636F6E74726F6C70726F6769643D227B36323341433037352D324337372D343837332D383833442D3933304234333634423442437D2220746F6F6C7469703D224E6F74696669636163696F6E657322206C6566743D222D31353135302220746F703D22323035353022206C6F676963616C69643D2234342220636F6E74726F6C69643D22343422206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223537363822206865696768743D223530303122206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223022206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2231223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D2232313433333431323038303030303030383831363030303038393133303030303738353633343132303730303030303031343031303030303465303036663030373430303639303036363030363930303633303036313030363330303639303036663030366530303635303037333030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030313030303030303035303030303030353430303030303032633030303030303263303030303030326330303030303033343030303030303030303030303030303030303030303032323239303030306162313730303030303030303030303032643031303030303038303030303030306330303030303030373030303030303163303130303030303630393030303036323037303030306665303130303030373630323030303062333031303030306563303430303030623130333030303033613032303030306231303330303030623030343030303033393033303030303030303030303030303130303030303038383136303030303839313330303030303030303030303030363030303030303036303030303030303230303030303030323030303030303163303130303030323430393030303030303030303030303031303030303030333931333030303063303037303030303030303030303030303230303030303030323030303030303032303030303030303230303030303031633031303030303036303930303030303130303030303030303030303030303339313330303030333430333030303030303030303030303030303030303030303030303030303030323030303030303032303030303030316330313030303030363039303030303030303030303030303030303030303064313331303030303039323330303030303030303030303030303030303030303064303030303030303430303030303030343030303030303163303130303030303630393030303061613061303030303930303630303030373835363334313230343030303030303636303030303030303130303030303030313030303030303062303030303030303030303030303030313030303030303032303030303030303330303030303030343030303030303035303030303030303630303030303030373030303030303038303030303030303930303030303030613030303030303034303030303030363430303632303036663030303030303066303030303030346530303666303037343030363930303636303036393030363330303631303036333030363930303666303036653030363530303733303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A3E3C70726F7065727479206E616D653D224163746976655461626C65566965774D6F6465222076616C75653D22312220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A30222076616C75653D22342C302C3238342C302C323331302C312C313839302C352C313236302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A31222076616C75653D22322C302C3238342C302C323334302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A32222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A33222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A34222076616C75653D22342C302C3238342C302C323331302C31322C323733302C31312C313638302220766172747970653D2238222F3E3C2F646473786D6C6F626A3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C20636F6E74726F6C70726F6769643D227B36323341433037352D324337372D343837332D383833442D3933304234333634423442437D2220746F6F6C7469703D224E756D65726F7347616E61646F72657322206C6566743D2233333735302220746F703D22353430303022206C6F676963616C69643D2234352220636F6E74726F6C69643D22343522206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223537363822206865696768743D223433363622206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223022206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2231223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D22323134333334313230383030303030303838313630303030306531313030303037383536333431323037303030303030313430313030303034653030373530303664303036353030373230303666303037333030343730303631303036653030363130303634303036663030373230303635303037333030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303130303030303030353030303030303534303030303030326330303030303032633030303030303263303030303030333430303030303030303030303030303030303030303030323232393030303036353135303030303030303030303030326430313030303030373030303030303063303030303030303730303030303031633031303030303036303930303030363230373030303061333032303030303438303330303030343930323030303065633034303030306563303430303030656530323030303065633034303030303336303630303030343730343030303030303030303030303031303030303030383831363030303030653131303030303030303030303030303530303030303030353030303030303032303030303030303230303030303031633031303030306536306130303030303030303030303030313030303030303339313330303030303630613030303030303030303030303033303030303030303330303030303030323030303030303032303030303030316330313030303030363039303030303031303030303030303030303030303033393133303030303334303330303030303030303030303030303030303030303030303030303030303230303030303030323030303030303163303130303030303630393030303030303030303030303030303030303030643133313030303030393233303030303030303030303030303030303030303030643030303030303034303030303030303430303030303031633031303030303036303930303030616130613030303039303036303030303738353633343132303430303030303036613030303030303031303030303030303130303030303030623030303030303030303030303030303130303030303030323030303030303033303030303030303430303030303030353030303030303036303030303030303730303030303030383030303030303039303030303030306130303030303030343030303030303634303036323030366630303030303031313030303030303465303037353030366430303635303037323030366630303733303034373030363130303665303036313030363430303666303037323030363530303733303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A3E3C70726F7065727479206E616D653D224163746976655461626C65566965774D6F6465222076616C75653D22312220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A30222076616C75653D22342C302C3238342C302C323331302C312C313839302C352C313236302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A31222076616C75653D22322C302C3238342C302C323739302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A32222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A33222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A34222076616C75653D22342C302C3238342C302C323331302C31322C323733302C31312C313638302220766172747970653D2238222F3E3C2F646473786D6C6F626A3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D22303130303030303030313030303030303634303036323030366630303030303034363030346230303566303034653030373530303664303036353030373230303666303037333030343730303631303036653030363130303634303036663030373230303635303037333030356630303463303036663030373430303635303037323030363930303631303037333030303030302220636F6E74726F6C70726F6769643D224D534444532E506F6C796C696E652E3038302E312220746F6F6C7469703D2252656C616369C3B36E2027464B5F4E756D65726F7347616E61646F7265735F4C6F7465726961732720656E74726520274C6F74657269617327207920274E756D65726F7347616E61646F7265732722206C6566743D2233353839332220746F703D22353133333622206C6F676963616C69643D2234362220636F6E74726F6C69643D22343622206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D2238313522206865696768743D223333363422206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A3E3C706F6C796C696E6520656E64747970656473743D22302220656E64747970657372633D2232222075736572636F6C6F723D22313537393033323022206C696E657374796C653D223022206C696E6572656E6465723D22302220637573746F6D656E647479706564737469643D22302220637573746F6D656E647479706573726369643D2230222061646F726E7376697369626C653D2231223E3C61646F726E6D656E742070657263656E74706F733D2236302E3433393137373431333733332220636F6E74726F6C69643D223437222077696474683D223434393922206865696768743D223334342220736964653D223122206265686176696F723D2233222068696D65747269633D223131393022206469737466726F6D6C696E653D22313735222073746172746F626A3D22302220783D2233363437352220793D223533303133222076697369626C653D22302220616C6C6F776F7665726C61703D2231222075736570657263656E743D2231222F3E3C2F706F6C796C696E653E3C2F646473786D6C6F626A3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C636F6E6E6563746F7220736F7572636569643D22333622206465737469643D2234352220736F75726365617474616368706F696E743D223333222064657374617474616368706F696E743D22333222207365676D656E74656469746D6F64653D2230222062656E64706F696E74656469746D6F64653D2230222062656E64706F696E747669736962696C6974793D2230222072656C6174656469643D223022207669727475616C3D2230223E3C706F696E7420783D2233363330302220793D223532303331222F3E3C706F696E7420783D2233363330302220793D223534303030222F3E3C2F636F6E6E6563746F723E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303030303030303030663034636230336161343031303030302220636F6E74726F6C70726F6769643D224D534444532E546578742E3038302E3122206C6566743D2233363437352220746F703D22353330313322206C6F676963616C69643D2234372220636F6E74726F6C69643D22343722206D617374657269643D223436222068696E74313D2230222068696E74323D2230222077696474683D223434393922206865696768743D2233343422206E6F726573697A653D223122206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2231222075736564656661756C7469646473686170653D2231222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22312220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2231222067726F7570636F6C6C61707365643D2230222074616273746F703D2230222076697369626C653D22302220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D22303030323030303039333131303030303538303130303030303330303030303030303030303530303030383030383030303038303031303030303030313530303031303030303030393030313434343230313030303635343631363836663664363131633030343630303462303035663030346530303735303036643030363530303732303036663030373330303437303036313030366530303631303036343030366630303732303036353030373330303566303034633030366630303734303036353030373230303639303036313030373330303030303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C20636F6E74726F6C70726F6769643D227B36323341433037352D324337372D343837332D383833442D3933304234333634423442437D2220746F6F6C7469703D22526F6C657322206C6566743D222D333735302220746F703D223639303022206C6F676963616C69643D2234382220636F6E74726F6C69643D22343822206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223537363822206865696768743D223330393622206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223022206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2231223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D2232313433333431323038303030303030383831363030303031383063303030303738353633343132303730303030303031343031303030303532303036663030366330303635303037333030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030313030303030303035303030303030353430303030303032633030303030303263303030303030326330303030303033343030303030303030303030303030303030303030303032323239303030303635313530303030303030303030303032643031303030303037303030303030306330303030303030373030303030303163303130303030303630393030303036323037303030306665303130303030373630323030303062333031303030306563303430303030623130333030303033613032303030306231303330303030623030343030303033393033303030303030303030303030303130303030303038383136303030303138306330303030303030303030303030333030303030303033303030303030303230303030303030323030303030303163303130303030643730613030303030303030303030303031303030303030333931333030303063303037303030303030303030303030303230303030303030323030303030303032303030303030303230303030303031633031303030303036303930303030303130303030303030303030303030303339313330303030333430333030303030303030303030303030303030303030303030303030303030323030303030303032303030303030316330313030303030363039303030303030303030303030303030303030303064313331303030303039323330303030303030303030303030303030303030303064303030303030303430303030303030343030303030303163303130303030303630393030303061613061303030303930303630303030373835363334313230343030303030303534303030303030303130303030303030313030303030303062303030303030303030303030303030313030303030303032303030303030303330303030303030343030303030303035303030303030303630303030303030373030303030303038303030303030303930303030303030613030303030303034303030303030363430303632303036663030303030303036303030303030353230303666303036633030363530303733303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A3E3C70726F7065727479206E616D653D224163746976655461626C65566965774D6F6465222076616C75653D22312220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A30222076616C75653D22342C302C3238342C302C323331302C312C313839302C352C313236302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A31222076616C75653D22322C302C3238342C302C323737352220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A32222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A33222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A34222076616C75653D22342C302C3238342C302C323331302C31322C323733302C31312C313638302220766172747970653D2238222F3E3C2F646473786D6C6F626A3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C20636F6E74726F6C70726F6769643D227B36323341433037352D324337372D343837332D383833442D3933304234333634423442437D2220746F6F6C7469703D22536573696F6E657322206C6566743D2231353135302220746F703D223639303022206C6F676963616C69643D2234392220636F6E74726F6C69643D22343922206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223537363822206865696768743D223536333622206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223022206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2231223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D2232313433333431323038303030303030383831363030303030343136303030303738353633343132303730303030303031343031303030303533303036353030373330303639303036663030366530303635303037333030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030313030303030303035303030303030353430303030303032633030303030303263303030303030326330303030303033343030303030303030303030303030303030303030303032323239303030306631313930303030303030303030303032643031303030303039303030303030306330303030303030373030303030303163303130303030303630393030303036323037303030306665303130303030373630323030303062333031303030306563303430303030623130333030303033613032303030306231303330303030623030343030303033393033303030303030303030303030303130303030303038383136303030303034313630303030303030303030303030373030303030303037303030303030303230303030303030323030303030303163303130303030313530393030303030303030303030303031303030303030333931333030303030363061303030303030303030303030303330303030303030333030303030303032303030303030303230303030303031633031303030303036303930303030303130303030303030303030303030303339313330303030333430333030303030303030303030303030303030303030303030303030303030323030303030303032303030303030316330313030303030363039303030303030303030303030303030303030303064313331303030303039323330303030303030303030303030303030303030303064303030303030303430303030303030343030303030303163303130303030303630393030303061613061303030303930303630303030373835363334313230343030303030303561303030303030303130303030303030313030303030303062303030303030303030303030303030313030303030303032303030303030303330303030303030343030303030303035303030303030303630303030303030373030303030303038303030303030303930303030303030613030303030303034303030303030363430303632303036663030303030303039303030303030353330303635303037333030363930303666303036653030363530303733303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A3E3C70726F7065727479206E616D653D224163746976655461626C65566965774D6F6465222076616C75653D22312220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A30222076616C75653D22342C302C3238342C302C323331302C312C313839302C352C313236302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A31222076616C75653D22322C302C3238342C302C323332352220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A32222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A33222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A34222076616C75653D22342C302C3238342C302C323331302C31322C323733302C31312C313638302220766172747970653D2238222F3E3C2F646473786D6C6F626A3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D223031373432643436303130303030303036343030363230303666303030303030343630303462303035663030353330303635303037333030363930303666303036653030363530303733303035663030343430303639303037333030373030303666303037333030363930303734303036393030373630303666303037333030303030302220636F6E74726F6C70726F6769643D224D534444532E506F6C796C696E652E3038302E312220746F6F6C7469703D2252656C616369C3B36E2027464B5F536573696F6E65735F446973706F73697469766F732720656E7472652027446973706F73697469766F732720792027536573696F6E65732722206C6566743D2232303631382220746F703D22313033393322206C6F676963616C69643D2235302220636F6E74726F6C69643D22353022206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223630383222206865696768743D2238313522206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A3E3C706F6C796C696E6520656E64747970656473743D22302220656E64747970657372633D2232222075736572636F6C6F723D22313537393033323022206C696E657374796C653D223022206C696E6572656E6465723D22302220637573746F6D656E647479706564737469643D22302220637573746F6D656E647479706573726369643D2230222061646F726E7376697369626C653D2231223E3C61646F726E6D656E742070657263656E74706F733D2235302220636F6E74726F6C69643D223531222077696474683D223335313822206865696768743D223334342220736964653D223122206265686176696F723D2233222068696D65747269633D223237343122206469737466726F6D6C696E653D22313735222073746172746F626A3D22302220783D2232313930302220793D223130393735222076697369626C653D22302220616C6C6F776F7665726C61703D2231222075736570657263656E743D2231222F3E3C2F706F6C796C696E653E3C2F646473786D6C6F626A3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C636F6E6E6563746F7220736F7572636569643D22313522206465737469643D2234392220736F75726365617474616368706F696E743D223932222064657374617474616368706F696E743D2231323522207365676D656E74656469746D6F64653D2230222062656E64706F696E74656469746D6F64653D2230222062656E64706F696E747669736962696C6974793D2230222072656C6174656469643D223022207669727475616C3D2230223E3C706F696E7420783D2232363430302220793D223130383030222F3E3C706F696E7420783D2232303931382220793D223130383030222F3E3C2F636F6E6E6563746F723E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303030303030303030313036366230336161343031303030302220636F6E74726F6C70726F6769643D224D534444532E546578742E3038302E3122206C6566743D2232313930302220746F703D22313039373522206C6F676963616C69643D2235312220636F6E74726F6C69643D22353122206D617374657269643D223530222068696E74313D2230222068696E74323D2230222077696474683D223335313822206865696768743D2233343422206E6F726573697A653D223122206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2231222075736564656661756C7469646473686170653D2231222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22312220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2231222067726F7570636F6C6C61707365643D2230222074616273746F703D2230222076697369626C653D22302220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D223030303230303030626530643030303035383031303030303033303030303030303030303035303030303830303830303030383030313030303030303135303030313030303030303930303134343432303130303036353436313638366636643631313830303436303034623030356630303533303036353030373330303639303036663030366530303635303037333030356630303434303036393030373330303730303036663030373330303639303037343030363930303736303036663030373330303030303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C20636F6E74726F6C70726F6769643D227B36323341433037352D324337372D343837332D383833442D3933304234333634423442437D2220746F6F6C7469703D2253696E63726F6E697A6163696F6E657322206C6566743D2232363535302220746F703D223238353022206C6F676963616C69643D2235322220636F6E74726F6C69643D22353222206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223537363822206865696768743D223433363622206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223022206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2231223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D22323134333334313230383030303030303838313630303030306531313030303037383536333431323037303030303030313430313030303035333030363930303665303036333030373230303666303036653030363930303761303036313030363330303639303036663030366530303635303037333030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303130303030303030353030303030303534303030303030326330303030303032633030303030303263303030303030333430303030303030303030303030303030303030303030323232393030303036353135303030303030303030303030326430313030303030373030303030303063303030303030303730303030303031633031303030303036303930303030363230373030303066653031303030303736303230303030623330313030303065633034303030306231303330303030336130323030303062313033303030306230303430303030333930333030303030303030303030303031303030303030383831363030303030653131303030303030303030303030303530303030303030353030303030303032303030303030303230303030303031633031303030306437306130303030303030303030303030313030303030303339313330303030633030373030303030303030303030303032303030303030303230303030303030323030303030303032303030303030316330313030303030363039303030303031303030303030303030303030303033393133303030303334303330303030303030303030303030303030303030303030303030303030303230303030303030323030303030303163303130303030303630393030303030303030303030303030303030303030643133313030303030393233303030303030303030303030303030303030303030643030303030303034303030303030303430303030303031633031303030303036303930303030616130613030303039303036303030303738353633343132303430303030303036613030303030303031303030303030303130303030303030623030303030303030303030303030303130303030303030323030303030303033303030303030303430303030303030353030303030303036303030303030303730303030303030383030303030303039303030303030306130303030303030343030303030303634303036323030366630303030303031313030303030303533303036393030366530303633303037323030366630303665303036393030376130303631303036333030363930303666303036653030363530303733303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A3E3C70726F7065727479206E616D653D224163746976655461626C65566965774D6F6465222076616C75653D22312220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A30222076616C75653D22342C302C3238342C302C323331302C312C313839302C352C313236302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A31222076616C75653D22322C302C3238342C302C323737352220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A32222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A33222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A34222076616C75653D22342C302C3238342C302C323331302C31322C323733302C31312C313638302220766172747970653D2238222F3E3C2F646473786D6C6F626A3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303031303030303030363430303632303036663030303030303436303034623030356630303533303036393030366530303633303037323030366630303665303036393030376130303631303036333030363930303666303036653030363530303733303035663030343430303639303037333030373030303666303037333030363930303734303036393030373630303666303037333030303030302220636F6E74726F6C70726F6769643D224D534444532E506F6C796C696E652E3038302E312220746F6F6C7469703D2252656C616369C3B36E2027464B5F53696E63726F6E697A6163696F6E65735F446973706F73697469766F732720656E7472652027446973706F73697469766F73272079202753696E63726F6E697A6163696F6E65732722206C6566743D2232383639332220746F703D223635313722206C6F676963616C69643D2235332220636F6E74726F6C69643D22353322206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D2238313522206865696768743D223334373922206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A3E3C706F6C796C696E6520656E64747970656473743D22302220656E64747970657372633D2232222075736572636F6C6F723D22313537393033323022206C696E657374796C653D223022206C696E6572656E6465723D22302220637573746F6D656E647479706564737469643D22302220637573746F6D656E647479706573726369643D2230222061646F726E7376697369626C653D2231223E3C61646F726E6D656E742070657263656E74706F733D2235302220636F6E74726F6C69643D223534222077696474683D223435353622206865696768743D223334342220736964653D223022206265686176696F723D2233222068696D65747269633D223130343222206469737466726F6D6C696E653D22313735222073746172746F626A3D22302220783D2232393237352220793D2238303836222076697369626C653D22302220616C6C6F776F7665726C61703D2231222075736570657263656E743D2231222F3E3C2F706F6C796C696E653E3C2F646473786D6C6F626A3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C636F6E6E6563746F7220736F7572636569643D22313522206465737469643D2235322220736F75726365617474616368706F696E743D223334222064657374617474616368706F696E743D22333322207365676D656E74656469746D6F64653D2230222062656E64706F696E74656469746D6F64653D2230222062656E64706F696E747669736962696C6974793D2230222072656C6174656469643D223022207669727475616C3D2230223E3C706F696E7420783D2232393130302220793D2239333030222F3E3C706F696E7420783D2232393130302220793D2237323136222F3E3C2F636F6E6E6563746F723E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303030303030303030663036346230336161343031303030302220636F6E74726F6C70726F6769643D224D534444532E546578742E3038302E3122206C6566743D2232393237352220746F703D223830383622206C6F676963616C69643D2235342220636F6E74726F6C69643D22353422206D617374657269643D223533222068696E74313D2230222068696E74323D2230222077696474683D223435353622206865696768743D2233343422206E6F726573697A653D223122206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2231222075736564656661756C7469646473686170653D2231222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22312220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2231222067726F7570636F6C6C61707365643D2230222074616273746F703D2230222076697369626C653D22302220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D2230303032303030306363313130303030353830313030303030333030303030303030303030353030303038303038303030303830303130303030303031353030303130303030303039303031343434323031303030363534363136383666366436313230303034363030346230303566303035333030363930303665303036333030373230303666303036653030363930303761303036313030363330303639303036663030366530303635303037333030356630303434303036393030373330303730303036663030373330303639303037343030363930303736303036663030373330303030303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C20636F6E74726F6C70726F6769643D227B36323341433037352D324337372D343837332D383833442D3933304234333634423442437D2220746F6F6C7469703D225573756172696F7322206C6566743D22333330302220746F703D22313237353022206C6F676963616C69643D2235352220636F6E74726F6C69643D22353522206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223538323122206865696768743D22313338343722206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223022206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2231223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D2232313433333431323038303030303030626431363030303031373336303030303738353633343132303730303030303031343031303030303535303037333030373530303631303037323030363930303666303037333030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030313030303030303035303030303030353430303030303032633030303030303263303030303030326330303030303033343030303030303030303030303030303030303030303032323239303030303039323330303030303030303030303032643031303030303064303030303030306330303030303030373030303030303163303130303030303630393030303036323037303030306665303130303030373630323030303062333031303030306563303430303030623130333030303033613032303030306231303330303030623030343030303033393033303030303030303030303030303130303030303062643136303030303137333630303030303030303030303031303030303030303063303030303030303230303030303030323030303030303163303130303030653630613030303030303030303030303031303030303030333931333030303030363061303030303030303030303030303330303030303030333030303030303032303030303030303230303030303031633031303030303036303930303030303130303030303030303030303030303339313330303030333430333030303030303030303030303030303030303030303030303030303030323030303030303032303030303030316330313030303030363039303030303030303030303030303030303030303064313331303030303039323330303030303030303030303030303030303030303064303030303030303430303030303030343030303030303163303130303030303630393030303061613061303030303930303630303030373835363334313230343030303030303561303030303030303130303030303030313030303030303062303030303030303030303030303030313030303030303032303030303030303330303030303030343030303030303035303030303030303630303030303030373030303030303038303030303030303930303030303030613030303030303034303030303030363430303632303036663030303030303039303030303030353530303733303037353030363130303732303036393030366630303733303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A3E3C70726F7065727479206E616D653D224163746976655461626C65566965774D6F6465222076616C75653D22312220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A30222076616C75653D22342C302C3238342C302C323331302C312C313839302C352C313236302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A31222076616C75653D22322C302C3238342C302C323739302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A32222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A33222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A34222076616C75653D22342C302C3238342C302C323331302C31322C323733302C31312C313638302220766172747970653D2238222F3E3C2F646473786D6C6F626A3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D22303137343264343630313030303030303634303036323030366630303030303034363030346230303566303034333030366630303634303036393030363730303666303037333030353030303732303036353030373630303635303036653030373430303631303034663030363630303636303036633030363930303665303036353030356630303535303037333030373530303631303037323030363930303666303037333030303030302220636F6E74726F6C70726F6769643D224D534444532E506F6C796C696E652E3038302E312220746F6F6C7469703D2252656C616369C3B36E2027464B5F436F6469676F7350726576656E74614F66666C696E655F5573756172696F732720656E74726520275573756172696F732720792027436F6469676F7350726576656E74614F66666C696E652722206C6566743D22383832312220746F703D22313938343322206C6F676963616C69643D2235362220636F6E74726F6C69643D22353622206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D22313036373922206865696768743D2238313522206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A3E3C706F6C796C696E6520656E64747970656473743D22302220656E64747970657372633D2232222075736572636F6C6F723D22313537393033323022206C696E657374796C653D223022206C696E6572656E6465723D22302220637573746F6D656E647479706564737469643D22302220637573746F6D656E647479706573726369643D2230222061646F726E7376697369626C653D2231223E3C61646F726E6D656E742070657263656E74706F733D2235302220636F6E74726F6C69643D223537222077696474683D223531363222206865696768743D223334342220736964653D223022206265686176696F723D2233222068696D65747269633D223530333922206469737466726F6D6C696E653D22313735222073746172746F626A3D22302220783D2231313537392220793D223230343235222076697369626C653D22302220616C6C6F776F7665726C61703D2231222075736570657263656E743D2231222F3E3C2F706F6C796C696E653E3C2F646473786D6C6F626A3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C636F6E6E6563746F7220736F7572636569643D22353522206465737469643D2231312220736F75726365617474616368706F696E743D22313735222064657374617474616368706F696E743D22393422207365676D656E74656469746D6F64653D2230222062656E64706F696E74656469746D6F64653D2230222062656E64706F696E747669736962696C6974793D2230222072656C6174656469643D223022207669727475616C3D2230223E3C706F696E7420783D22393132312220793D223230323530222F3E3C706F696E7420783D2231393230302220793D223230323530222F3E3C2F636F6E6E6563746F723E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303030303030303030623033646237336161343031303030302220636F6E74726F6C70726F6769643D224D534444532E546578742E3038302E3122206C6566743D2231313537392220746F703D22323034323522206C6F676963616C69643D2235372220636F6E74726F6C69643D22353722206D617374657269643D223536222068696E74313D2230222068696E74323D2230222077696474683D223531363222206865696768743D2233343422206E6F726573697A653D223122206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2231222075736564656661756C7469646473686170653D2231222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22312220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2231222067726F7570636F6C6C61707365643D2230222074616273746F703D2230222076697369626C653D22302220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D22303030323030303032613134303030303538303130303030303330303030303030303030303530303030383030383030303038303031303030303030313530303031303030303030393030313434343230313030303635343631363836663664363132323030343630303462303035663030343330303666303036343030363930303637303036663030373330303530303037323030363530303736303036353030366530303734303036313030346630303636303036363030366330303639303036653030363530303566303035353030373330303735303036313030373230303639303036663030373330303030303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D22303137343264343630313030303030303634303036323030366630303030303034363030346230303566303034333030366630303634303036393030363730303666303037333030353030303732303036353030373630303635303036653030373430303631303034663030363630303636303036633030363930303665303036353030356630303431303036343030366430303639303036653030303030302220636F6E74726F6C70726F6769643D224D534444532E506F6C796C696E652E3038302E312220746F6F6C7469703D2252656C616369C3B36E2027464B5F436F6469676F7350726576656E74614F66666C696E655F41646D696E2720656E74726520275573756172696F732720792027436F6469676F7350726576656E74614F66666C696E652722206C6566743D22383832312220746F703D22313539343322206C6F676963616C69643D2235382220636F6E74726F6C69643D22353822206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D22313036373922206865696768743D223336333722206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A3E3C706F6C796C696E6520656E64747970656473743D22302220656E64747970657372633D2232222075736572636F6C6F723D22313537393033323022206C696E657374796C653D223022206C696E6572656E6465723D22302220637573746F6D656E647479706564737469643D22302220637573746F6D656E647479706573726369643D2230222061646F726E7376697369626C653D2231223E3C61646F726E6D656E742070657263656E74706F733D2235302220636F6E74726F6C69643D223539222077696474683D223438313622206865696768743D223334342220736964653D223022206265686176696F723D2233222068696D65747269633D223634363422206469737466726F6D6C696E653D22313735222073746172746F626A3D22302220783D2231303537352220793D223136353434222076697369626C653D22302220616C6C6F776F7665726C61703D2231222075736570657263656E743D2231222F3E3C2F706F6C796C696E653E3C2F646473786D6C6F626A3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C636F6E6E6563746F7220736F7572636569643D22353522206465737469643D2231312220736F75726365617474616368706F696E743D22313233222064657374617474616368706F696E743D22383022207365676D656E74656469746D6F64653D2230222062656E64706F696E74656469746D6F64653D2230222062656E64706F696E747669736962696C6974793D2230222072656C6174656469643D223022207669727475616C3D2230223E3C706F696E7420783D22393132312220793D223136333530222F3E3C706F696E7420783D2231323430342220793D223136333530222F3E3C706F696E7420783D2231323430342220793D223136333639222F3E3C706F696E7420783D2231363437362220793D223136333639222F3E3C706F696E7420783D2231363437362220793D223139323030222F3E3C706F696E7420783D2231393230302220793D223139323030222F3E3C2F636F6E6E6563746F723E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303030303030303030623034336237336161343031303030302220636F6E74726F6C70726F6769643D224D534444532E546578742E3038302E3122206C6566743D2231303537352220746F703D22313635343422206C6F676963616C69643D2235392220636F6E74726F6C69643D22353922206D617374657269643D223538222068696E74313D2230222068696E74323D2230222077696474683D223438313622206865696768743D2233343422206E6F726573697A653D223122206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2231222075736564656661756C7469646473686170653D2231222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22312220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2231222067726F7570636F6C6C61707365643D2230222074616273746F703D2230222076697369626C653D22302220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D22303030323030303064303132303030303538303130303030303330303030303030303030303530303030383030383030303038303031303030303030313530303031303030303030393030313434343230313030303635343631363836663664363131663030343630303462303035663030343330303666303036343030363930303637303036663030373330303530303037323030363530303736303036353030366530303734303036313030346630303636303036363030366330303639303036653030363530303566303034313030363430303664303036393030366530303030303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313734326434363031303030303030363430303632303036663030303030303436303034623030356630303465303036663030373430303639303036363030363930303633303036313030363330303639303036663030366530303635303037333030356630303535303037333030373530303631303037323030363930303666303037333030303030302220636F6E74726F6C70726F6769643D224D534444532E506F6C796C696E652E3038302E312220746F6F6C7469703D2252656C616369C3B36E2027464B5F4E6F74696669636163696F6E65735F5573756172696F732720656E74726520275573756172696F7327207920274E6F74696669636163696F6E65732722206C6566743D222D393638322220746F703D22323239393322206C6F676963616C69643D2236302220636F6E74726F6C69643D22363022206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D22313332383222206865696768743D2238313522206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A3E3C706F6C796C696E6520656E64747970656473743D22302220656E64747970657372633D2232222075736572636F6C6F723D22313537393033323022206C696E657374796C653D223022206C696E6572656E6465723D22302220637573746F6D656E647479706564737469643D22302220637573746F6D656E647479706573726369643D2230222061646F726E7376697369626C653D2231223E3C61646F726E6D656E742070657263656E74706F733D2236312E353833363638343139343234372220636F6E74726F6C69643D223631222077696474683D223337373722206865696768743D223334342220736964653D223022206265686176696F723D2233222068696D65747269633D223738313022206469737466726F6D6C696E653D22313735222073746172746F626A3D22302220783D222D353936302220793D223232383831222076697369626C653D22302220616C6C6F776F7665726C61703D2231222075736570657263656E743D2231222F3E3C2F706F6C796C696E653E3C2F646473786D6C6F626A3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C636F6E6E6563746F7220736F7572636569643D22353522206465737469643D2234342220736F75726365617474616368706F696E743D22323136222064657374617474616368706F696E743D2231313122207365676D656E74656469746D6F64653D2230222062656E64706F696E74656469746D6F64653D2230222062656E64706F696E747669736962696C6974793D2230222072656C6174656469643D223022207669727475616C3D2230223E3C706F696E7420783D22333330302220793D223233343030222F3E3C706F696E7420783D222D393338322220793D223233343030222F3E3C2F636F6E6E6563746F723E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303030303030303030333034326237336161343031303030302220636F6E74726F6C70726F6769643D224D534444532E546578742E3038302E3122206C6566743D222D353936302220746F703D22323238383122206C6F676963616C69643D2236312220636F6E74726F6C69643D22363122206D617374657269643D223630222068696E74313D2230222068696E74323D2230222077696474683D223337373722206865696768743D2233343422206E6F726573697A653D223122206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2231222075736564656661756C7469646473686170653D2231222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22312220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2231222067726F7570636F6C6C61707365643D2230222074616273746F703D2230222076697369626C653D22302220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D2230303032303030306331306530303030353830313030303030333030303030303030303030353030303038303038303030303830303130303030303031353030303130303030303039303031343434323031303030363534363136383666366436313161303034363030346230303566303034653030366630303734303036393030363630303639303036333030363130303633303036393030366630303665303036353030373330303566303035353030373330303735303036313030373230303639303036663030373330303030303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D223031373432643436303130303030303036343030363230303666303030303030343630303462303035663030343330303666303036653030373630303635303037323030373330303631303036333030363930303666303036653030363530303733303035663030343930303665303036393030363330303639303036313030363430303666303037323030303030302220636F6E74726F6C70726F6769643D224D534444532E506F6C796C696E652E3038302E312220746F6F6C7469703D2252656C616369C3B36E2027464B5F436F6E766572736163696F6E65735F496E69636961646F722720656E74726520275573756172696F732720792027436F6E766572736163696F6E65732722206C6566743D22333739332220746F703D22323539303222206C6F676963616C69643D2236322220636F6E74726F6C69643D22363222206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D2238313522206865696768743D223437393822206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A3E3C706F6C796C696E6520656E64747970656473743D22302220656E64747970657372633D2232222075736572636F6C6F723D22313537393033323022206C696E657374796C653D223022206C696E6572656E6465723D22302220637573746F6D656E647479706564737469643D22302220637573746F6D656E647479706573726369643D2230222061646F726E7376697369626C653D2231223E3C61646F726E6D656E742070657263656E74706F733D2235322E3138373130363637343235332220636F6E74726F6C69643D223633222077696474683D223430363622206865696768743D223334342220736964653D223022206265686176696F723D2233222068696D65747269633D223137373522206469737466726F6D6C696E653D22313735222073746172746F626A3D22302220783D222D34312220793D223238313932222076697369626C653D22302220616C6C6F776F7665726C61703D2231222075736570657263656E743D2231222F3E3C2F706F6C796C696E653E3C2F646473786D6C6F626A3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C636F6E6E6563746F7220736F7572636569643D22353522206465737469643D2231342220736F75726365617474616368706F696E743D223131222064657374617474616368706F696E743D22363422207365676D656E74656469746D6F64653D2230222062656E64706F696E74656469746D6F64653D2230222062656E64706F696E747669736962696C6974793D2230222072656C6174656469643D223022207669727475616C3D2230223E3C706F696E7420783D22343230302220793D223236353937222F3E3C706F696E7420783D22343230302220793D223330303030222F3E3C2F636F6E6E6563746F723E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303030303030303030373034346237336161343031303030302220636F6E74726F6C70726F6769643D224D534444532E546578742E3038302E3122206C6566743D222D34312220746F703D22323831393222206C6F676963616C69643D2236332220636F6E74726F6C69643D22363322206D617374657269643D223632222068696E74313D2230222068696E74323D2230222077696474683D223430363622206865696768743D2233343422206E6F726573697A653D223122206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2231222075736564656661756C7469646473686170653D2231222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22312220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2231222067726F7570636F6C6C61707365643D2230222074616273746F703D2230222076697369626C653D22302220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D223030303230303030653230663030303035383031303030303033303030303030303030303035303030303830303830303030383030313030303030303135303030313030303030303930303134343432303130303036353436313638366636643631316230303436303034623030356630303433303036663030366530303736303036353030373230303733303036313030363330303639303036663030366530303635303037333030356630303439303036653030363930303633303036393030363130303634303036663030373230303030303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D22303137343264343630313030303030303634303036323030366630303030303034363030346230303566303034333030366630303665303037363030363530303732303037333030363130303633303036393030366630303665303036353030373330303566303034343030363530303733303037343030363930303665303036663030303030302220636F6E74726F6C70726F6769643D224D534444532E506F6C796C696E652E3038302E312220746F6F6C7469703D2252656C616369C3B36E2027464B5F436F6E766572736163696F6E65735F44657374696E6F2720656E74726520275573756172696F732720792027436F6E766572736163696F6E65732722206C6566743D22353134332220746F703D22323539303222206C6F676963616C69643D2236342220636F6E74726F6C69643D22363422206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D2238313522206865696768743D223437393822206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A3E3C706F6C796C696E6520656E64747970656473743D22302220656E64747970657372633D2232222075736572636F6C6F723D22313537393033323022206C696E657374796C653D223022206C696E6572656E6465723D22302220637573746F6D656E647479706564737469643D22302220637573746F6D656E647479706573726369643D2230222061646F726E7376697369626C653D2231223E3C61646F726E6D656E742070657263656E74706F733D2235322E303530363335353136393034322220636F6E74726F6C69643D223635222077696474683D223339323122206865696768743D223334342220736964653D223022206265686176696F723D2233222068696D65747269633D223137373122206469737466726F6D6C696E653D22313735222073746172746F626A3D22302220783D22313435342220793D223238313838222076697369626C653D22302220616C6C6F776F7665726C61703D2231222075736570657263656E743D2231222F3E3C2F706F6C796C696E653E3C2F646473786D6C6F626A3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C636F6E6E6563746F7220736F7572636569643D22353522206465737469643D2231342220736F75726365617474616368706F696E743D223239222064657374617474616368706F696E743D22383222207365676D656E74656469746D6F64653D2230222062656E64706F696E74656469746D6F64653D2230222062656E64706F696E747669736962696C6974793D2230222072656C6174656469643D223022207669727475616C3D2230223E3C706F696E7420783D22353535302220793D223236353937222F3E3C706F696E7420783D22353535302220793D223330303030222F3E3C2F636F6E6E6563746F723E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303030303030303030643034376237336161343031303030302220636F6E74726F6C70726F6769643D224D534444532E546578742E3038302E3122206C6566743D22313435342220746F703D22323831383822206C6F676963616C69643D2236352220636F6E74726F6C69643D22363522206D617374657269643D223634222068696E74313D2230222068696E74323D2230222077696474683D223339323122206865696768743D2233343422206E6F726573697A653D223122206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2231222075736564656661756C7469646473686170653D2231222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22312220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2231222067726F7570636F6C6C61707365643D2230222074616273746F703D2230222076697369626C653D22302220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D22303030323030303035313066303030303538303130303030303330303030303030303030303530303030383030383030303038303031303030303030313530303031303030303030393030313434343230313030303635343631363836663664363131393030343630303462303035663030343330303666303036653030373630303635303037323030373330303631303036333030363930303666303036653030363530303733303035663030343430303635303037333030373430303639303036653030366630303030303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230316132323464333031303030303030363430303632303036663030303030303436303034623030356630303464303036353030366530303733303036313030366130303635303037333030356630303535303037333030373530303631303037323030363930303666303037333030303030302220636F6E74726F6C70726F6769643D224D534444532E506F6C796C696E652E3038302E312220746F6F6C7469703D2252656C616369C3B36E2027464B5F4D656E73616A65735F5573756172696F732720656E74726520275573756172696F7327207920274D656E73616A65732722206C6566743D222D383632392220746F703D22323533393322206C6F676963616C69643D2236362220636F6E74726F6C69643D22363622206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D22313232323922206865696768743D223335303722206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A3E3C706F6C796C696E6520656E64747970656473743D22302220656E64747970657372633D2232222075736572636F6C6F723D22313537393033323022206C696E657374796C653D223022206C696E6572656E6465723D22302220637573746F6D656E647479706564737469643D22302220637573746F6D656E647479706573726369643D2230222061646F726E7376697369626C653D2231223E3C61646F726E6D656E742070657263656E74706F733D2235352E393637373036373432333038352220636F6E74726F6C69643D223637222077696474683D223331373122206865696768743D223334342220736964653D223022206265686176696F723D2233222068696D65747269633D223738303722206469737466726F6D6C696E653D22313735222073746172746F626A3D22302220783D222D373739362220793D223235323831222076697369626C653D22302220616C6C6F776F7665726C61703D2231222075736570657263656E743D2231222F3E3C2F706F6C796C696E653E3C2F646473786D6C6F626A3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C636F6E6E6563746F7220736F7572636569643D22353522206465737469643D2233392220736F75726365617474616368706F696E743D22323438222064657374617474616368706F696E743D22343022207365676D656E74656469746D6F64653D2230222062656E64706F696E74656469746D6F64653D2230222062656E64706F696E747669736962696C6974793D2230222072656C6174656469643D223022207669727475616C3D2230223E3C706F696E7420783D22333330302220793D223235383030222F3E3C706F696E7420783D222D383235302220793D223235383030222F3E3C706F696E7420783D222D383235302220793D223238323030222F3E3C2F636F6E6E6563746F723E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303030303030303030353033646237336161343031303030302220636F6E74726F6C70726F6769643D224D534444532E546578742E3038302E3122206C6566743D222D373739362220746F703D22323532383122206C6F676963616C69643D2236372220636F6E74726F6C69643D22363722206D617374657269643D223636222068696E74313D2230222068696E74323D2230222077696474683D223331373122206865696768743D2233343422206E6F726573697A653D223122206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2231222075736564656661756C7469646473686170653D2231222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22312220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2231222067726F7570636F6C6C61707365643D2230222074616273746F703D2230222076697369626C653D22302220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D2230303032303030303633306330303030353830313030303030333030303030303030303030353030303038303038303030303830303130303030303031353030303130303030303039303031343434323031303030363534363136383666366436313134303034363030346230303566303034643030363530303665303037333030363130303661303036353030373330303566303035353030373330303735303036313030373230303639303036663030373330303030303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D22303130303030303030313030303030303634303036323030366630303030303034363030346230303566303034393030366530303734303036353030366530303734303036663030373330303436303036313030366330303663303036393030363430303666303037333030356630303535303037333030373530303631303037323030363930303666303037333030303030302220636F6E74726F6C70726F6769643D224D534444532E506F6C796C696E652E3038302E312220746F6F6C7469703D2252656C616369C3B36E2027464B5F496E74656E746F7346616C6C69646F735F5573756172696F732720656E74726520275573756172696F732720792027496E74656E746F7346616C6C69646F732722206C6566743D222D333233322220746F703D22313335343322206C6F676963616C69643D2236382220636F6E74726F6C69643D22363822206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223638333222206865696768743D2238313522206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A3E3C706F6C796C696E6520656E64747970656473743D22302220656E64747970657372633D2232222075736572636F6C6F723D22313537393033323022206C696E657374796C653D223022206C696E6572656E6465723D22302220637573746F6D656E647479706564737469643D22302220637573746F6D656E647479706573726369643D2230222061646F726E7376697369626C653D2231223E3C61646F726E6D656E742070657263656E74706F733D2235342E303832383437383534373734392220636F6E74726F6C69643D223639222077696474683D223430363622206865696768743D223334342220736964653D223022206265686176696F723D2233222068696D65747269633D223333373022206469737466726F6D6C696E653D22313735222073746172746F626A3D22302220783D222D313933372220793D223133343331222076697369626C653D22302220616C6C6F776F7665726C61703D2231222075736570657263656E743D2231222F3E3C2F706F6C796C696E653E3C2F646473786D6C6F626A3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C636F6E6E6563746F7220736F7572636569643D22353522206465737469643D2232392220736F75726365617474616368706F696E743D223930222064657374617474616368706F696E743D2231303522207365676D656E74656469746D6F64653D2230222062656E64706F696E74656469746D6F64653D2230222062656E64706F696E747669736962696C6974793D2230222072656C6174656469643D223022207669727475616C3D2230223E3C706F696E7420783D22333330302220793D223133393530222F3E3C706F696E7420783D222D323933322220793D223133393530222F3E3C2F636F6E6E6563746F723E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303030303030303030663034386237336161343031303030302220636F6E74726F6C70726F6769643D224D534444532E546578742E3038302E3122206C6566743D222D313933372220746F703D22313334333122206C6F676963616C69643D2236392220636F6E74726F6C69643D22363922206D617374657269643D223638222068696E74313D2230222068696E74323D2230222077696474683D223430363622206865696768743D2233343422206E6F726573697A653D223122206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2231222075736564656661756C7469646473686170653D2231222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22312220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2231222067726F7570636F6C6C61707365643D2230222074616273746F703D2230222076697369626C653D22302220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D22303030323030303065323066303030303538303130303030303330303030303030303030303530303030383030383030303038303031303030303030313530303031303030303030393030313434343230313030303635343631363836663664363131633030343630303462303035663030343930303665303037343030363530303665303037343030366630303733303034363030363130303663303036633030363930303634303036663030373330303566303035353030373330303735303036313030373230303639303036663030373330303030303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313734326434363031303030303030363430303632303036663030303030303436303034623030356630303433303036313030373330303666303037333030343730303631303036653030363130303634303036663030373230303635303037333030356630303536303036353030366530303634303036353030363430303666303037323030303030302220636F6E74726F6C70726F6769643D224D534444532E506F6C796C696E652E3038302E312220746F6F6C7469703D2252656C616369C3B36E2027464B5F4361736F7347616E61646F7265735F56656E6465646F722720656E74726520275573756172696F7327207920274361736F7347616E61646F7265732722206C6566743D22383832312220746F703D22323238343322206C6F676963616C69643D2237302220636F6E74726F6C69643D22373022206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223930323922206865696768743D22313336383722206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A3E3C706F6C796C696E6520656E64747970656473743D22302220656E64747970657372633D2232222075736572636F6C6F723D22313537393033323022206C696E657374796C653D223022206C696E6572656E6465723D22302220637573746F6D656E647479706564737469643D22302220637573746F6D656E647479706573726369643D2230222061646F726E7376697369626C653D2231223E3C61646F726E6D656E742070657263656E74706F733D2235302220636F6E74726F6C69643D223731222077696474683D223433353422206865696768743D223334342220736964653D223022206265686176696F723D2233222068696D65747269633D22313036363422206469737466726F6D6C696E653D22313735222073746172746F626A3D22302220783D2231303436382220793D223238323133222076697369626C653D22302220616C6C6F776F7665726C61703D2231222075736570657263656E743D2231222F3E3C2F706F6C796C696E653E3C2F646473786D6C6F626A3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C636F6E6E6563746F7220736F7572636569643D22353522206465737469643D22332220736F75726365617474616368706F696E743D22323135222064657374617474616368706F696E743D2231333622207365676D656E74656469746D6F64653D2230222062656E64706F696E74656469746D6F64653D2230222062656E64706F696E747669736962696C6974793D2230222072656C6174656469643D223022207669727475616C3D2230223E3C706F696E7420783D22393132312220793D223233323530222F3E3C706F696E7420783D2231343939372220793D223233323530222F3E3C706F696E7420783D2231343939372220793D223336313530222F3E3C706F696E7420783D2231373535302220793D223336313530222F3E3C2F636F6E6E6563746F723E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303030303030303030313034346237336161343031303030302220636F6E74726F6C70726F6769643D224D534444532E546578742E3038302E3122206C6566743D2231303436382220746F703D22323832313322206C6F676963616C69643D2237312220636F6E74726F6C69643D22373122206D617374657269643D223730222068696E74313D2230222068696E74323D2230222077696474683D223433353422206865696768743D2233343422206E6F726573697A653D223122206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2231222075736564656661756C7469646473686170653D2231222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22312220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2231222067726F7570636F6C6C61707365643D2230222074616273746F703D2230222076697369626C653D22302220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D2230303032303030303032313130303030353830313030303030333030303030303030303030353030303038303038303030303830303130303030303031353030303130303030303039303031343434323031303030363534363136383666366436313161303034363030346230303566303034333030363130303733303036663030373330303437303036313030366530303631303036343030366630303732303036353030373330303566303035363030363530303665303036343030363530303634303036663030373230303030303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313734326434363031303030303030363430303632303036663030303030303436303034623030356630303433303036313030373330303666303037333030343730303631303036653030363130303634303036663030373230303635303037333030356630303431303036343030366430303639303036653030353630303631303036633030363930303634303036663030303030302220636F6E74726F6C70726F6769643D224D534444532E506F6C796C696E652E3038302E312220746F6F6C7469703D2252656C616369C3B36E2027464B5F4361736F7347616E61646F7265735F41646D696E56616C69646F2720656E74726520275573756172696F7327207920274361736F7347616E61646F7265732722206C6566743D22383832312220746F703D22323431393322206C6F676963616C69643D2237322220636F6E74726F6C69643D22373222206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223930323922206865696768743D22313339383722206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A3E3C706F6C796C696E6520656E64747970656473743D22302220656E64747970657372633D2232222075736572636F6C6F723D22313537393033323022206C696E657374796C653D223022206C696E6572656E6465723D22302220637573746F6D656E647479706564737469643D22302220637573746F6D656E647479706573726369643D2230222061646F726E7376697369626C653D2231223E3C61646F726E6D656E742070657263656E74706F733D2235302220636F6E74726F6C69643D223733222077696474683D223436373122206865696768743D223334342220736964653D223022206265686176696F723D2233222068696D65747269633D22313038313422206469737466726F6D6C696E653D22313735222073746172746F626A3D22302220783D22393434322220793D223330343232222076697369626C653D22302220616C6C6F776F7665726C61703D2231222075736570657263656E743D2231222F3E3C2F706F6C796C696E653E3C2F646473786D6C6F626A3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C636F6E6E6563746F7220736F7572636569643D22353522206465737469643D22332220736F75726365617474616368706F696E743D22323333222064657374617474616368706F696E743D2231353822207365676D656E74656469746D6F64653D2230222062656E64706F696E74656469746D6F64653D2230222062656E64706F696E747669736962696C6974793D2230222072656C6174656469643D223022207669727475616C3D2230223E3C706F696E7420783D22393132312220793D223234363030222F3E3C706F696E7420783D2231343238382220793D223234363030222F3E3C706F696E7420783D2231343238382220793D223337383030222F3E3C706F696E7420783D2231373535302220793D223337383030222F3E3C2F636F6E6E6563746F723E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303030303030303030313034316237336161343031303030302220636F6E74726F6C70726F6769643D224D534444532E546578742E3038302E3122206C6566743D22393434322220746F703D22333034323222206C6F676963616C69643D2237332220636F6E74726F6C69643D22373322206D617374657269643D223732222068696E74313D2230222068696E74323D2230222077696474683D223436373122206865696768743D2233343422206E6F726573697A653D223122206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2231222075736564656661756C7469646473686170653D2231222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22312220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2231222067726F7570636F6C6C61707365643D2230222074616273746F703D2230222076697369626C653D22302220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D2230303032303030303366313230303030353830313030303030333030303030303030303030353030303038303038303030303830303130303030303031353030303130303030303039303031343434323031303030363534363136383666366436313164303034363030346230303566303034333030363130303733303036663030373330303437303036313030366530303631303036343030366630303732303036353030373330303566303034313030363430303664303036393030366530303536303036313030366330303639303036343030366630303030303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303031303030303030363430303632303036663030303030303436303034623030356630303433303036313030373330303666303037333030343730303631303036653030363130303634303036663030373230303635303037333030356630303431303036343030366430303639303036653030343130303733303036393030363730303665303036663030303030302220636F6E74726F6C70726F6769643D224D534444532E506F6C796C696E652E3038302E312220746F6F6C7469703D2252656C616369C3B36E2027464B5F4361736F7347616E61646F7265735F41646D696E417369676E6F2720656E74726520275573756172696F7327207920274361736F7347616E61646F7265732722206C6566743D22383832312220746F703D22323134393322206C6F676963616C69643D2237342220636F6E74726F6C69643D22373422206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223930323922206865696768743D22313131333722206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A3E3C706F6C796C696E6520656E64747970656473743D22302220656E64747970657372633D2232222075736572636F6C6F723D22313537393033323022206C696E657374796C653D223022206C696E6572656E6465723D22302220637573746F6D656E647479706564737469643D22302220637573746F6D656E647479706573726369643D2230222061646F726E7376697369626C653D2231223E3C61646F726E6D656E742070657263656E74706F733D2235302220636F6E74726F6C69643D223735222077696474683D223437383722206865696768743D223334342220736964653D223022206265686176696F723D2233222068696D65747269633D223933383922206469737466726F6D6C696E653D22313735222073746172746F626A3D22302220783D2231313638382220793D223233393335222076697369626C653D22302220616C6C6F776F7665726C61703D2231222075736570657263656E743D2231222F3E3C2F706F6C796C696E653E3C2F646473786D6C6F626A3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C636F6E6E6563746F7220736F7572636569643D22353522206465737469643D22332220736F75726365617474616368706F696E743D22313937222064657374617474616368706F696E743D22383422207365676D656E74656469746D6F64653D2230222062656E64706F696E74656469746D6F64653D2230222062656E64706F696E747669736962696C6974793D2230222072656C6174656469643D223022207669727475616C3D2230223E3C706F696E7420783D22393132312220793D223231393030222F3E3C706F696E7420783D2231363635302220793D223231393030222F3E3C706F696E7420783D2231363635302220793D223332323530222F3E3C706F696E7420783D2231373535302220793D223332323530222F3E3C2F636F6E6E6563746F723E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303030303030303030623034636237336161343031303030302220636F6E74726F6C70726F6769643D224D534444532E546578742E3038302E3122206C6566743D2231313638382220746F703D22323339333522206C6F676963616C69643D2237352220636F6E74726F6C69643D22373522206D617374657269643D223734222068696E74313D2230222068696E74323D2230222077696474683D223437383722206865696768743D2233343422206E6F726573697A653D223122206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2231222075736564656661756C7469646473686170653D2231222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22312220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2231222067726F7570636F6C6C61707365643D2230222074616273746F703D2230222076697369626C653D22302220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D2230303032303030306233313230303030353830313030303030333030303030303030303066666666666630303038303030303830303130303030303031353030303130303030303039303031343434323031303030363534363136383666366436313164303034363030346230303566303034333030363130303733303036663030373330303437303036313030366530303631303036343030366630303732303036353030373330303566303034313030363430303664303036393030366530303431303037333030363930303637303036653030366630303030303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D22303130303030303030313030303030303634303036323030366630303030303034363030346230303566303034333030363130303733303036663030373330303437303036313030366530303631303036343030366630303732303036353030373330303566303034663030363230303733303036353030373230303736303036313030363430303666303037323030303030302220636F6E74726F6C70726F6769643D224D534444532E506F6C796C696E652E3038302E312220746F6F6C7469703D2252656C616369C3B36E2027464B5F4361736F7347616E61646F7265735F4F627365727661646F722720656E74726520275573756172696F7327207920274361736F7347616E61646F7265732722206C6566743D22383832312220746F703D22323232343322206C6F676963616C69643D2237362220636F6E74726F6C69643D22373622206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223930323922206865696768743D22313231383722206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A3E3C706F6C796C696E6520656E64747970656473743D22302220656E64747970657372633D2232222075736572636F6C6F723D22313537393033323022206C696E657374796C653D223022206C696E6572656E6465723D22302220637573746F6D656E647479706564737469643D22302220637573746F6D656E647479706573726369643D2230222061646F726E7376697369626C653D2231223E3C61646F726E6D656E742070657263656E74706F733D2235302220636F6E74726F6C69643D223737222077696474683D223436373122206865696768743D223334342220736964653D223022206265686176696F723D2233222068696D65747269633D223939313422206469737466726F6D6C696E653D22313735222073746172746F626A3D22302220783D2231303932372220793D223236303837222076697369626C653D22302220616C6C6F776F7665726C61703D2231222075736570657263656E743D2231222F3E3C2F706F6C796C696E653E3C2F646473786D6C6F626A3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C636F6E6E6563746F7220736F7572636569643D22353522206465737469643D22332220736F75726365617474616368706F696E743D22323037222064657374617474616368706F696E743D2231303822207365676D656E74656469746D6F64653D2230222062656E64706F696E74656469746D6F64653D2230222062656E64706F696E747669736962696C6974793D2230222072656C6174656469643D223022207669727475616C3D2230223E3C706F696E7420783D22393132312220793D223232363530222F3E3C706F696E7420783D2231353737332220793D223232363530222F3E3C706F696E7420783D2231353737332220793D223334303530222F3E3C706F696E7420783D2231373535302220793D223334303530222F3E3C2F636F6E6E6563746F723E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303030303030303030643033656237336161343031303030302220636F6E74726F6C70726F6769643D224D534444532E546578742E3038302E3122206C6566743D2231303932372220746F703D22323630383722206C6F676963616C69643D2237372220636F6E74726F6C69643D22373722206D617374657269643D223736222068696E74313D2230222068696E74323D2230222077696474683D223436373122206865696768743D2233343422206E6F726573697A653D223122206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2231222075736564656661756C7469646473686170653D2231222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22312220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2231222067726F7570636F6C6C61707365643D2230222074616273746F703D2230222076697369626C653D22302220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D22303030323030303033663132303030303538303130303030303330303030303030303030666666666666303030383030303038303031303030303030313530303031303030303030393030313434343230313030303635343631363836663664363131633030343630303462303035663030343330303631303037333030366630303733303034373030363130303665303036313030363430303666303037323030363530303733303035663030346630303632303037333030363530303732303037363030363130303634303036663030373230303030303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303031303030303030363430303632303036663030303030303436303034623030356630303435303036653030373430303732303036353030363730303631303037333030343730303631303036653030363130303634303036663030373230303635303037333030356630303535303037333030373530303631303037323030363930303666303037333030303030302220636F6E74726F6C70726F6769643D224D534444532E506F6C796C696E652E3038302E312220746F6F6C7469703D2252656C616369C3B36E2027464B5F456E74726567617347616E61646F7265735F5573756172696F732720656E74726520275573756172696F732720792027456E74726567617347616E61646F7265732722206C6566743D22373639332220746F703D22323539303222206C6F676963616C69643D2237382220636F6E74726F6C69643D22373822206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D2238313522206865696768743D22313039343822206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A3E3C706F6C796C696E6520656E64747970656473743D22302220656E64747970657372633D2232222075736572636F6C6F723D22313537393033323022206C696E657374796C653D223022206C696E6572656E6465723D22302220637573746F6D656E647479706564737469643D22302220637573746F6D656E647479706573726369643D2230222061646F726E7376697369626C653D2231223E3C61646F726E6D656E742070657263656E74706F733D2235302220636F6E74726F6C69643D223739222077696474683D223436313322206865696768743D223334342220736964653D223022206265686176696F723D2233222068696D65747269633D223437373622206469737466726F6D6C696E653D22313735222073746172746F626A3D22302220783D22333331322220793D223331323031222076697369626C653D22302220616C6C6F776F7665726C61703D2231222075736570657263656E743D2231222F3E3C2F706F6C796C696E653E3C2F646473786D6C6F626A3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C636F6E6E6563746F7220736F7572636569643D22353522206465737469643D2232312220736F75726365617474616368706F696E743D223633222064657374617474616368706F696E743D22333022207365676D656E74656469746D6F64653D2230222062656E64706F696E74656469746D6F64653D2230222062656E64706F696E747669736962696C6974793D2230222072656C6174656469643D223022207669727475616C3D2230223E3C706F696E7420783D22383130302220793D223236353937222F3E3C706F696E7420783D22383130302220793D223336313530222F3E3C2F636F6E6E6563746F723E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303030303030303030663033666237336161343031303030302220636F6E74726F6C70726F6769643D224D534444532E546578742E3038302E3122206C6566743D22333331322220746F703D22333132303122206C6F676963616C69643D2237392220636F6E74726F6C69643D22373922206D617374657269643D223738222068696E74313D2230222068696E74323D2230222077696474683D223436313322206865696768743D2233343422206E6F726573697A653D223122206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2231222075736564656661756C7469646473686170653D2231222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22312220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2231222067726F7570636F6C6C61707365643D2230222074616273746F703D2230222076697369626C653D22302220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D2230303032303030303035313230303030353830313030303030333030303030303030303066666666666630303038303030303830303130303030303031353030303130303030303039303031343434323031303030363534363136383666366436313164303034363030346230303566303034353030366530303734303037323030363530303637303036313030373330303437303036313030366530303631303036343030366630303732303036353030373330303566303035353030373330303735303036313030373230303639303036663030373330303030303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313734326434363031303030303030363430303632303036663030303030303436303034623030356630303434303036393030373330303730303036663030373330303639303037343030363930303736303036663030373330303535303037333030373530303631303037323030363930303666303037333030356630303535303037333030373530303631303037323030363930303666303037333030303030302220636F6E74726F6C70726F6769643D224D534444532E506F6C796C696E652E3038302E312220746F6F6C7469703D2252656C616369C3B36E2027464B5F446973706F73697469766F735573756172696F735F5573756172696F732720656E74726520275573756172696F732720792027446973706F73697469766F735573756172696F732722206C6566743D22383832312220746F703D22313531393322206C6F676963616C69643D2238302220636F6E74726F6C69643D22383022206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223837323922206865696768743D2238313522206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A3E3C706F6C796C696E6520656E64747970656473743D22302220656E64747970657372633D2232222075736572636F6C6F723D22313537393033323022206C696E657374796C653D223022206C696E6572656E6465723D22302220637573746F6D656E647479706564737469643D22302220637573746F6D656E647479706573726369643D2230222061646F726E7376697369626C653D2231223E3C61646F726E6D656E742070657263656E74706F733D2235332E303630323730303735343130372220636F6E74726F6C69643D223831222077696474683D223436373122206865696768743D223334342220736964653D223022206265686176696F723D2233222068696D65747269633D223433313322206469737466726F6D6C696E653D22313735222073746172746F626A3D22302220783D2231303935352220793D223135373735222076697369626C653D22302220616C6C6F776F7665726C61703D2231222075736570657263656E743D2231222F3E3C2F706F6C796C696E653E3C2F646473786D6C6F626A3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C636F6E6E6563746F7220736F7572636569643D22353522206465737469643D2231382220736F75726365617474616368706F696E743D22313133222064657374617474616368706F696E743D22383822207365676D656E74656469746D6F64653D2230222062656E64706F696E74656469746D6F64653D2230222062656E64706F696E747669736962696C6974793D2230222072656C6174656469643D223022207669727475616C3D2230223E3C706F696E7420783D22393132312220793D223135363030222F3E3C706F696E7420783D2231373235302220793D223135363030222F3E3C2F636F6E6E6563746F723E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303030303030303030623036316237336161343031303030302220636F6E74726F6C70726F6769643D224D534444532E546578742E3038302E3122206C6566743D2231303935352220746F703D22313537373522206C6F676963616C69643D2238312220636F6E74726F6C69643D22383122206D617374657269643D223830222068696E74313D2230222068696E74323D2230222077696474683D223436373122206865696768743D2233343422206E6F726573697A653D223122206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2231222075736564656661756C7469646473686170653D2231222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22312220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2231222067726F7570636F6C6C61707365643D2230222074616273746F703D2230222076697369626C653D22302220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D2230303032303030303366313230303030353830313030303030333030303030303030303066666666666630303038303030303830303130303030303031353030303130303030303039303031343434323031303030363534363136383666366436313230303034363030346230303566303034343030363930303733303037303030366630303733303036393030373430303639303037363030366630303733303035353030373330303735303036313030373230303639303036663030373330303566303035353030373330303735303036313030373230303639303036663030373330303030303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230316132323464333031303030303030363430303632303036663030303030303436303034623030356630303533303036353030373330303639303036663030366530303635303037333030356630303535303037333030373530303631303037323030363930303666303037333030303030302220636F6E74726F6C70726F6769643D224D534444532E506F6C796C696E652E3038302E312220746F6F6C7469703D2252656C616369C3B36E2027464B5F536573696F6E65735F5573756172696F732720656E74726520275573756172696F732720792027536573696F6E65732722206C6566743D22383832312220746F703D22313138333722206C6F676963616C69643D2238322220636F6E74726F6C69643D22383222206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223736303922206865696768743D223239373122206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A3E3C706F6C796C696E6520656E64747970656473743D22302220656E64747970657372633D2232222075736572636F6C6F723D22313537393033323022206C696E657374796C653D223022206C696E6572656E6465723D22302220637573746F6D656E647479706564737469643D22302220637573746F6D656E647479706573726369643D2230222061646F726E7376697369626C653D2231223E3C61646F726E6D656E742070657263656E74706F733D2234362E393133353830323436393133362220636F6E74726F6C69643D223833222077696474683D223330383522206865696768743D223334342220736964653D223122206265686176696F723D2233222068696D65747269633D223431323522206469737466726F6D6C696E653D22313735222073746172746F626A3D22302220783D2231313330352220793D223133383831222076697369626C653D22302220616C6C6F776F7665726C61703D2231222075736570657263656E743D2231222F3E3C2F706F6C796C696E653E3C2F646473786D6C6F626A3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C636F6E6E6563746F7220736F7572636569643D22353522206465737469643D2234392220736F75726365617474616368706F696E743D223937222064657374617474616368706F696E743D22313122207365676D656E74656469746D6F64653D2230222062656E64706F696E74656469746D6F64653D2230222062656E64706F696E747669736962696C6974793D2230222072656C6174656469643D223022207669727475616C3D2230223E3C706F696E7420783D22393132312220793D223134343030222F3E3C706F696E7420783D2231363035302220793D223134343030222F3E3C706F696E7420783D2231363035302220793D223132353336222F3E3C2F636F6E6E6563746F723E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303030303030303030373035666237336161343031303030302220636F6E74726F6C70726F6769643D224D534444532E546578742E3038302E3122206C6566743D2231313330352220746F703D22313338383122206C6F676963616C69643D2238332220636F6E74726F6C69643D22383322206D617374657269643D223832222068696E74313D2230222068696E74323D2230222077696474683D223330383522206865696768743D2233343422206E6F726573697A653D223122206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2231222075736564656661756C7469646473686170653D2231222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22312220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2231222067726F7570636F6C6C61707365643D2230222074616273746F703D2230222076697369626C653D22302220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D2230303032303030303064306330303030353830313030303030333030303030303030303066666666666630303038303030303830303130303030303031353030303130303030303039303031343434323031303030363534363136383666366436313134303034363030346230303566303035333030363530303733303036393030366630303665303036353030373330303566303035353030373330303735303036313030373230303639303036663030373330303030303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C20636F6E74726F6C70726F6769643D227B36323341433037352D324337372D343837332D383833442D3933304234333634423442437D2220746F6F6C7469703D225573756172696F73477275706F7322206C6566743D222D343635302220746F703D22313636353022206C6F676963616C69643D2238342220636F6E74726F6C69643D22383422206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223537363822206865696768743D223234363122206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223022206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2231223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D2232313433333431323038303030303030383831363030303039643039303030303738353633343132303730303030303031343031303030303535303037333030373530303631303037323030363930303666303037333030343730303732303037353030373030303666303037333030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030313030303030303035303030303030353430303030303032633030303030303263303030303030326330303030303033343030303030303030303030303030303030303030303032323239303030303635313530303030303030303030303032643031303030303037303030303030306330303030303030373030303030303163303130303030303630393030303036323037303030306665303130303030373630323030303062333031303030306563303430303030623130333030303033613032303030306231303330303030623030343030303033393033303030303030303030303030303130303030303038383136303030303964303930303030303030303030303030323030303030303032303030303030303230303030303030323030303030303163303130303030623930613030303030303030303030303031303030303030333931333030303063303037303030303030303030303030303230303030303030323030303030303032303030303030303230303030303031633031303030303036303930303030303130303030303030303030303030303339313330303030333430333030303030303030303030303030303030303030303030303030303030323030303030303032303030303030316330313030303030363039303030303030303030303030303030303030303064313331303030303039323330303030303030303030303030303030303030303064303030303030303430303030303030343030303030303163303130303030303630393030303061613061303030303930303630303030373835363334313230343030303030303636303030303030303130303030303030313030303030303062303030303030303030303030303030313030303030303032303030303030303330303030303030343030303030303035303030303030303630303030303030373030303030303038303030303030303930303030303030613030303030303034303030303030363430303632303036663030303030303066303030303030353530303733303037353030363130303732303036393030366630303733303034373030373230303735303037303030366630303733303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A3E3C70726F7065727479206E616D653D224163746976655461626C65566965774D6F6465222076616C75653D22312220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A30222076616C75653D22342C302C3238342C302C323331302C312C313839302C352C313236302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A31222076616C75653D22322C302C3238342C302C323734352220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A32222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A33222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A34222076616C75653D22342C302C3238342C302C323331302C31322C323733302C31312C313638302220766172747970653D2238222F3E3C2F646473786D6C6F626A3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313734326434363031303030303030363430303632303036663030303030303436303034623030356630303535303037333030373530303631303037323030363930303666303037333030343730303732303037353030373030303666303037333030356630303535303037333030373530303631303037323030363930303666303037333030303030302220636F6E74726F6C70726F6769643D224D534444532E506F6C796C696E652E3038302E312220746F6F6C7469703D2252656C616369C3B36E2027464B5F5573756172696F73477275706F735F5573756172696F732720656E74726520275573756172696F7327207920275573756172696F73477275706F732722206C6566743D223831382220746F703D22313734343322206C6F676963616C69643D2238352220636F6E74726F6C69643D22383522206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223237383222206865696768743D2238313522206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A3E3C706F6C796C696E6520656E64747970656473743D22302220656E64747970657372633D2232222075736572636F6C6F723D22313537393033323022206C696E657374796C653D223022206C696E6572656E6465723D22302220637573746F6D656E647479706564737469643D22302220637573746F6D656E647479706573726369643D2230222061646F726E7376697369626C653D2231223E3C61646F726E6D656E742070657263656E74706F733D2235302220636F6E74726F6C69643D223836222077696474683D223430333722206865696768743D223334342220736964653D223122206265686176696F723D2233222068696D65747269633D223130393122206469737466726F6D6C696E653D22313735222073746172746F626A3D22302220783D223139302220793D223138303235222076697369626C653D22302220616C6C6F776F7665726C61703D2231222075736570657263656E743D2231222F3E3C2F706F6C796C696E653E3C2F646473786D6C6F626A3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C636F6E6E6563746F7220736F7572636569643D22353522206465737469643D2238342220736F75726365617474616368706F696E743D22313432222064657374617474616368706F696E743D22383922207365676D656E74656469746D6F64653D2230222062656E64706F696E74656469746D6F64653D2230222062656E64706F696E747669736962696C6974793D2230222072656C6174656469643D223022207669727475616C3D2230223E3C706F696E7420783D22333330302220793D223137383530222F3E3C706F696E7420783D22313131382220793D223137383530222F3E3C2F636F6E6E6563746F723E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303030303030303030313038386566333961343031303030302220636F6E74726F6C70726F6769643D224D534444532E546578742E3038302E3122206C6566743D223139302220746F703D22313830323522206C6F676963616C69643D2238362220636F6E74726F6C69643D22383622206D617374657269643D223835222068696E74313D2230222068696E74323D2230222077696474683D223430333722206865696768743D2233343422206E6F726573697A653D223122206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2231222075736564656661756C7469646473686170653D2231222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22312220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2231222067726F7570636F6C6C61707365643D2230222074616273746F703D2230222076697369626C653D22302220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D2230303032303030306335306630303030353830313030303030333030303030303030303066666666666630303038303030303830303130303030303031353030303130303030303039303031343434323031303030363534363136383666366436313161303034363030346230303566303035353030373330303735303036313030373230303639303036663030373330303437303037323030373530303730303036663030373330303566303035353030373330303735303036313030373230303639303036663030373330303030303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D223031373432643436303130303030303036343030363230303666303030303030343630303462303035663030353530303733303037353030363130303732303036393030366630303733303034373030373230303735303037303030366630303733303035663030343730303732303037353030373030303666303037333030303030302220636F6E74726F6C70726F6769643D224D534444532E506F6C796C696E652E3038302E312220746F6F6C7469703D2252656C616369C3B36E2027464B5F5573756172696F73477275706F735F477275706F732720656E7472652027477275706F7327207920275573756172696F73477275706F732722206C6566743D222D393038322220746F703D22313732393322206C6F676963616C69643D2238372220636F6E74726F6C69643D22383722206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223437333222206865696768743D2238313522206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A3E3C706F6C796C696E6520656E64747970656473743D22302220656E64747970657372633D2232222075736572636F6C6F723D22313537393033323022206C696E657374796C653D223022206C696E6572656E6465723D22302220637573746F6D656E647479706564737469643D22302220637573746F6D656E647479706573726369643D2230222061646F726E7376697369626C653D2231223E3C61646F726E6D656E742070657263656E74706F733D2235322E393637363630363033353635382220636F6E74726F6C69643D223838222077696474683D223338333522206865696768743D223334342220736964653D223022206265686176696F723D2233222068696D65747269633D223231383822206469737466726F6D6C696E653D22313735222073746172746F626A3D22302220783D222D383632342220793D223137383735222076697369626C653D22302220616C6C6F776F7665726C61703D2231222075736570657263656E743D2231222F3E3C2F706F6C796C696E653E3C2F646473786D6C6F626A3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C636F6E6E6563746F7220736F7572636569643D22323822206465737469643D2238342220736F75726365617474616368706F696E743D22313031222064657374617474616368706F696E743D22383622207365676D656E74656469746D6F64653D2230222062656E64706F696E74656469746D6F64653D2230222062656E64706F696E747669736962696C6974793D2230222072656C6174656469643D223022207669727475616C3D2230223E3C706F696E7420783D222D383738322220793D223137373030222F3E3C706F696E7420783D222D343635302220793D223137373030222F3E3C2F636F6E6E6563746F723E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303030303030303030643038326566333961343031303030302220636F6E74726F6C70726F6769643D224D534444532E546578742E3038302E3122206C6566743D222D383632342220746F703D22313738373522206C6F676963616C69643D2238382220636F6E74726F6C69643D22383822206D617374657269643D223837222068696E74313D2230222068696E74323D2230222077696474683D223338333522206865696768743D2233343422206E6F726573697A653D223122206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2231222075736564656661756C7469646473686170653D2231222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22312220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2231222067726F7570636F6C6C61707365643D2230222074616273746F703D2230222076697369626C653D22302220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D223030303230303030666230653030303035383031303030303033303030303030303030306666666666663030303830303030383030313030303030303135303030313030303030303930303134343432303130303036353436313638366636643631313830303436303034623030356630303535303037333030373530303631303037323030363930303666303037333030343730303732303037353030373030303666303037333030356630303437303037323030373530303730303036663030373330303030303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C20636F6E74726F6C70726F6769643D227B36323341433037352D324337372D343837332D383833442D3933304234333634423442437D2220746F6F6C7469703D225573756172696F73526F6C657322206C6566743D22333735302220746F703D223736353022206C6F676963616C69643D2238392220636F6E74726F6C69643D22383922206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223537363822206865696768743D223234363122206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223022206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2231223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D22323134333334313230383030303030303838313630303030396430393030303037383536333431323037303030303030313430313030303035353030373330303735303036313030373230303639303036663030373330303532303036663030366330303635303037333030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303130303030303030353030303030303534303030303030326330303030303032633030303030303263303030303030333430303030303030303030303030303030303030303030323232393030303036353135303030303030303030303030326430313030303030373030303030303063303030303030303730303030303031633031303030303036303930303030363230373030303066653031303030303736303230303030623330313030303065633034303030306231303330303030336130323030303062313033303030306230303430303030333930333030303030303030303030303031303030303030383831363030303039643039303030303030303030303030303230303030303030323030303030303032303030303030303230303030303031633031303030306437306130303030303030303030303030313030303030303339313330303030633030373030303030303030303030303032303030303030303230303030303030323030303030303032303030303030316330313030303030363039303030303031303030303030303030303030303033393133303030303334303330303030303030303030303030303030303030303030303030303030303230303030303030323030303030303163303130303030303630393030303030303030303030303030303030303030643133313030303030393233303030303030303030303030303030303030303030643030303030303034303030303030303430303030303031633031303030303036303930303030616130613030303039303036303030303738353633343132303430303030303036343030303030303031303030303030303130303030303030623030303030303030303030303030303130303030303030323030303030303033303030303030303430303030303030353030303030303036303030303030303730303030303030383030303030303039303030303030306130303030303030343030303030303634303036323030366630303030303030653030303030303535303037333030373530303631303037323030363930303666303037333030353230303666303036633030363530303733303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A3E3C70726F7065727479206E616D653D224163746976655461626C65566965774D6F6465222076616C75653D22312220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A30222076616C75653D22342C302C3238342C302C323331302C312C313839302C352C313236302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A31222076616C75653D22322C302C3238342C302C323737352220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A32222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A33222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A34222076616C75653D22342C302C3238342C302C323331302C31322C323733302C31312C313638302220766172747970653D2238222F3E3C2F646473786D6C6F626A3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D22303137343264343630313030303030303634303036323030366630303030303034363030346230303566303035353030373330303735303036313030373230303639303036663030373330303532303036663030366330303635303037333030356630303535303037333030373530303631303037323030363930303666303037333030303030302220636F6E74726F6C70726F6769643D224D534444532E506F6C796C696E652E3038302E312220746F6F6C7469703D2252656C616369C3B36E2027464B5F5573756172696F73526F6C65735F5573756172696F732720656E74726520275573756172696F7327207920275573756172696F73526F6C65732722206C6566743D22343939332220746F703D223934313222206C6F676963616C69643D2239302220636F6E74726F6C69643D22393022206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D2238313522206865696768743D223430333422206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A3E3C706F6C796C696E6520656E64747970656473743D22302220656E64747970657372633D2232222075736572636F6C6F723D22313537393033323022206C696E657374796C653D223022206C696E6572656E6465723D22302220637573746F6D656E647479706564737469643D22302220637573746F6D656E647479706573726369643D2230222061646F726E7376697369626C653D2231223E3C61646F726E6D656E742070657263656E74706F733D2235302E303036383438333736393334372220636F6E74726F6C69643D223931222077696474683D223338303722206865696768743D223334342220736964653D223022206265686176696F723D2233222068696D65747269633D223133313922206469737466726F6D6C696E653D22313735222073746172746F626A3D22302220783D22353537352220793D223131323538222076697369626C653D22302220616C6C6F776F7665726C61703D2231222075736570657263656E743D2231222F3E3C2F706F6C796C696E653E3C2F646473786D6C6F626A3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C636F6E6E6563746F7220736F7572636569643D22353522206465737469643D2238392220736F75726365617474616368706F696E743D223236222064657374617474616368706F696E743D22323122207365676D656E74656469746D6F64653D2230222062656E64706F696E74656469746D6F64653D2230222062656E64706F696E747669736962696C6974793D2230222072656C6174656469643D223022207669727475616C3D2230223E3C706F696E7420783D22353430302220793D223132373530222F3E3C706F696E7420783D22353430302220793D223130313131222F3E3C2F636F6E6E6563746F723E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303030303030303030663038336566333961343031303030302220636F6E74726F6C70726F6769643D224D534444532E546578742E3038302E3122206C6566743D22353537352220746F703D22313132353822206C6F676963616C69643D2239312220636F6E74726F6C69643D22393122206D617374657269643D223930222068696E74313D2230222068696E74323D2230222077696474683D223338303722206865696768743D2233343422206E6F726573697A653D223122206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2231222075736564656661756C7469646473686170653D2231222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22312220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2231222067726F7570636F6C6C61707365643D2230222074616273746F703D2230222076697369626C653D22302220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D22303030323030303064663065303030303538303130303030303330303030303030303030666666666666303030383030303038303031303030303030313530303031303030303030393030313434343230313030303635343631363836663664363131393030343630303462303035663030353530303733303037353030363130303732303036393030366630303733303035323030366630303663303036353030373330303566303035353030373330303735303036313030373230303639303036663030373330303030303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D22303161616538333130313030303030303634303036323030366630303030303034363030346230303566303035353030373330303735303036313030373230303639303036663030373330303532303036663030366330303635303037333030356630303532303036663030366330303635303037333030303030302220636F6E74726F6C70726F6769643D224D534444532E506F6C796C696E652E3038302E312220746F6F6C7469703D2252656C616369C3B36E2027464B5F5573756172696F73526F6C65735F526F6C65732720656E7472652027526F6C657327207920275573756172696F73526F6C65732722206C6566743D22313731382220746F703D223832393322206C6F676963616C69643D2239322220636F6E74726F6C69643D22393222206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223233333222206865696768743D2238313522206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A3E3C706F6C796C696E6520656E64747970656473743D22302220656E64747970657372633D2232222075736572636F6C6F723D22313537393033323022206C696E657374796C653D223022206C696E6572656E6465723D22302220637573746F6D656E647479706564737469643D22302220637573746F6D656E647479706573726369643D2230222061646F726E7376697369626C653D2231223E3C61646F726E6D656E742070657263656E74706F733D2235372E393534313533373430303839362220636F6E74726F6C69643D223933222077696474683D223333373422206865696768743D223334342220736964653D223122206265686176696F723D2233222068696D65747269633D223130303322206469737466726F6D6C696E653D22313735222073746172746F626A3D22302220783D22313036372220793D2238313831222076697369626C653D22302220616C6C6F776F7665726C61703D2231222075736570657263656E743D2231222F3E3C2F706F6C796C696E653E3C2F646473786D6C6F626A3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C636F6E6E6563746F7220736F7572636569643D22343822206465737469643D2238392220736F75726365617474616368706F696E743D223937222064657374617474616368706F696E743D22383622207365676D656E74656469746D6F64653D2230222062656E64706F696E74656469746D6F64653D2230222062656E64706F696E747669736962696C6974793D2230222072656C6174656469643D223022207669727475616C3D2230223E3C706F696E7420783D22323031382220793D2238373030222F3E3C706F696E7420783D22333735302220793D2238373030222F3E3C2F636F6E6E6563746F723E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303030303030303030353037656566333961343031303030302220636F6E74726F6C70726F6769643D224D534444532E546578742E3038302E3122206C6566743D22313036372220746F703D223831383122206C6F676963616C69643D2239332220636F6E74726F6C69643D22393322206D617374657269643D223932222068696E74313D2230222068696E74323D2230222077696474683D223333373422206865696768743D2233343422206E6F726573697A653D223122206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2231222075736564656661756C7469646473686170653D2231222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22312220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2231222067726F7570636F6C6C61707365643D2230222074616273746F703D2230222076697369626C653D22302220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D22303030323030303032653064303030303538303130303030303330303030303030303030666666666666303030383030303038303031303030303030313530303031303030303030393030313434343230313030303635343631363836663664363131363030343630303462303035663030353530303733303037353030363130303732303036393030366630303733303035323030366630303663303036353030373330303566303035323030366630303663303036353030373330303030303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C20636F6E74726F6C70726F6769643D227B36323341433037352D324337372D343837332D383833442D3933304234333634423442437D2220746F6F6C7469703D2256656E74617322206C6566743D2232393235302220746F703D22323335353022206C6F676963616C69643D2239342220636F6E74726F6C69643D22393422206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223537363822206865696768743D223639303622206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223022206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2231223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D223231343333343132303830303030303038383136303030306661316130303030373835363334313230373030303030303134303130303030353630303635303036653030373430303631303037333030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303031303030303030303530303030303035343030303030303263303030303030326330303030303032633030303030303334303030303030303030303030303030303030303030303232323930303030376431653030303030303030303030303264303130303030306230303030303030633030303030303037303030303030316330313030303030363039303030303632303730303030666530313030303037363032303030306233303130303030656330343030303062313033303030303361303230303030623130333030303062303034303030303339303330303030303030303030303030313030303030303838313630303030666131613030303030303030303030303039303030303030303930303030303030323030303030303032303030303030316330313030303032343039303030303030303030303030303130303030303033393133303030303036306130303030303030303030303030333030303030303033303030303030303230303030303030323030303030303163303130303030303630393030303030313030303030303030303030303030333931333030303033343033303030303030303030303030303030303030303030303030303030303032303030303030303230303030303031633031303030303036303930303030303030303030303030303030303030306431333130303030303932333030303030303030303030303030303030303030306430303030303030343030303030303034303030303030316330313030303030363039303030306161306130303030393030363030303037383536333431323034303030303030353630303030303030313030303030303031303030303030306230303030303030303030303030303031303030303030303230303030303030333030303030303034303030303030303530303030303030363030303030303037303030303030303830303030303030393030303030303061303030303030303430303030303036343030363230303666303030303030303730303030303035363030363530303665303037343030363130303733303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A3E3C70726F7065727479206E616D653D224163746976655461626C65566965774D6F6465222076616C75653D22312220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A30222076616C75653D22342C302C3238342C302C323331302C312C313839302C352C313236302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A31222076616C75653D22322C302C3238342C302C323334302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A32222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A33222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A34222076616C75653D22342C302C3238342C302C323331302C31322C323733302C31312C313638302220766172747970653D2238222F3E3C2F646473786D6C6F626A3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D223031626165623432303130303030303036343030363230303666303030303030343630303462303035663030353630303635303036653030373430303631303037333030356630303535303037333030373530303631303037323030363930303666303037333030303030302220636F6E74726F6C70726F6769643D224D534444532E506F6C796C696E652E3038302E312220746F6F6C7469703D2252656C616369C3B36E2027464B5F56656E7461735F5573756172696F732720656E74726520275573756172696F73272079202756656E7461732722206C6566743D22383832312220746F703D22323038393322206C6F676963616C69643D2239352220636F6E74726F6C69643D22393522206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D22323037323922206865696768743D223738333722206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A3E3C706F6C796C696E6520656E64747970656473743D22302220656E64747970657372633D2232222075736572636F6C6F723D22313537393033323022206C696E657374796C653D223022206C696E6572656E6465723D22302220637573746F6D656E647479706564737469643D22302220637573746F6D656E647479706573726369643D2230222061646F726E7376697369626C653D2231223E3C61646F726E6D656E742070657263656E74706F733D2235302220636F6E74726F6C69643D223936222077696474683D223238323622206865696768743D223334342220736964653D223022206265686176696F723D2233222068696D65747269633D22313335383922206469737466726F6D6C696E653D22313735222073746172746F626A3D22302220783D2231353134332220793D223236303431222076697369626C653D22302220616C6C6F776F7665726C61703D2231222075736570657263656E743D2231222F3E3C2F706F6C796C696E653E3C2F646473786D6C6F626A3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C636F6E6E6563746F7220736F7572636569643D22353522206465737469643D2239342220736F75726365617474616368706F696E743D22313839222064657374617474616368706F696E743D2231333622207365676D656E74656469746D6F64653D2230222062656E64706F696E74656469746D6F64653D2230222062656E64706F696E747669736962696C6974793D2230222072656C6174656469643D223022207669727475616C3D2230223E3C706F696E7420783D22393132312220793D223231333030222F3E3C706F696E7420783D2231383134342220793D223231333030222F3E3C706F696E7420783D2231383134342220793D223238333530222F3E3C706F696E7420783D2232393235302220793D223238333530222F3E3C2F636F6E6E6563746F723E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303030303030303030623035386237336161343031303030302220636F6E74726F6C70726F6769643D224D534444532E546578742E3038302E3122206C6566743D2231353134332220746F703D22323630343122206C6F676963616C69643D2239362220636F6E74726F6C69643D22393622206D617374657269643D223935222068696E74313D2230222068696E74323D2230222077696474683D223238323622206865696768743D2233343422206E6F726573697A653D223122206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2231222075736564656661756C7469646473686170653D2231222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22312220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2231222067726F7570636F6C6C61707365643D2230222074616273746F703D2230222076697369626C653D22302220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D223030303230303030306130623030303035383031303030303033303030303030303030306666666666663030303830303030383030313030303030303135303030313030303030303930303134343432303130303036353436313638366636643631313230303436303034623030356630303536303036353030366530303734303036313030373330303566303035353030373330303735303036313030373230303639303036663030373330303030303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D22303161616538333130313030303030303634303036323030366630303030303034363030346230303566303035363030363530303665303037343030363130303733303035663030343430303639303037333030373030303666303037333030363930303734303036393030373630303666303037333030303030302220636F6E74726F6C70726F6769643D224D534444532E506F6C796C696E652E3038302E312220746F6F6C7469703D2252656C616369C3B36E2027464B5F56656E7461735F446973706F73697469766F732720656E7472652027446973706F73697469766F73272079202756656E7461732722206C6566743D2233313534332220746F703D22313438373622206C6F676963616C69643D2239372220636F6E74726F6C69643D22393722206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D2238313522206865696768743D223933373422206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A3E3C706F6C796C696E6520656E64747970656473743D22302220656E64747970657372633D2232222075736572636F6C6F723D22313537393033323022206C696E657374796C653D223022206C696E6572656E6465723D22302220637573746F6D656E647479706564737469643D22302220637573746F6D656E647479706573726369643D2230222061646F726E7376697369626C653D2231223E3C61646F726E6D656E742070657263656E74706F733D2235302220636F6E74726F6C69643D223938222077696474683D223332353922206865696768743D223334342220736964653D223022206265686176696F723D2233222068696D65747269633D223339383922206469737466726F6D6C696E653D22313735222073746172746F626A3D22302220783D2232383531362220793D223139333838222076697369626C653D22302220616C6C6F776F7665726C61703D2231222075736570657263656E743D2231222F3E3C2F706F6C796C696E653E3C2F646473786D6C6F626A3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C636F6E6E6563746F7220736F7572636569643D22313522206465737469643D2239342220736F75726365617474616368706F696E743D223733222064657374617474616368706F696E743D22333422207365676D656E74656469746D6F64653D2230222062656E64706F696E74656469746D6F64653D2230222062656E64706F696E747669736962696C6974793D2230222072656C6174656469643D223022207669727475616C3D2230223E3C706F696E7420783D2233313935302220793D223135353731222F3E3C706F696E7420783D2233313935302220793D223233353530222F3E3C2F636F6E6E6563746F723E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303030303030303030333035346237336161343031303030302220636F6E74726F6C70726F6769643D224D534444532E546578742E3038302E3122206C6566743D2232383531362220746F703D22313933383822206C6F676963616C69643D2239382220636F6E74726F6C69643D22393822206D617374657269643D223937222068696E74313D2230222068696E74323D2230222077696474683D223332353922206865696768743D2233343422206E6F726573697A653D223122206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2231222075736564656661756C7469646473686170653D2231222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22312220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2231222067726F7570636F6C6C61707365643D2230222074616273746F703D2230222076697369626C653D22302220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D22303030323030303062623063303030303538303130303030303330303030303030303030666666666666303030383030303038303031303030303030313530303031303030303030393030313434343230313030303635343631363836663664363131363030343630303462303035663030353630303635303036653030373430303631303037333030356630303434303036393030373330303730303036663030373330303639303037343030363930303736303036663030373330303030303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303031303030303030363430303632303036663030303030303436303034623030356630303432303036663030366330303635303037343030366630303733303035663030353630303635303036653030373430303631303037333030303030302220636F6E74726F6C70726F6769643D224D534444532E506F6C796C696E652E3038302E312220746F6F6C7469703D2252656C616369C3B36E2027464B5F426F6C65746F735F56656E7461732720656E747265202756656E7461732720792027426F6C65746F732722206C6566743D2233303634332220746F703D22323937363122206C6F676963616C69643D2239392220636F6E74726F6C69643D22393922206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D2238313522206865696768743D223337383922206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A3E3C706F6C796C696E6520656E64747970656473743D22302220656E64747970657372633D2232222075736572636F6C6F723D22313537393033323022206C696E657374796C653D223022206C696E6572656E6465723D22302220637573746F6D656E647479706564737469643D22302220637573746F6D656E647479706573726369643D2230222061646F726E7376697369626C653D2231223E3C61646F726E6D656E742070657263656E74706F733D2235302220636F6E74726F6C69643D22313030222077696474683D223236353322206865696768743D223334342220736964653D223022206265686176696F723D2233222068696D65747269633D223131393722206469737466726F6D6C696E653D22313735222073746172746F626A3D22302220783D2232383232322220793D223331343831222076697369626C653D22302220616C6C6F776F7665726C61703D2231222075736570657263656E743D2231222F3E3C2F706F6C796C696E653E3C2F646473786D6C6F626A3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C636F6E6E6563746F7220736F7572636569643D22393422206465737469643D22322220736F75726365617474616368706F696E743D223233222064657374617474616368706F696E743D22353822207365676D656E74656469746D6F64653D2230222062656E64706F696E74656469746D6F64653D2230222062656E64706F696E747669736962696C6974793D2230222072656C6174656469643D223022207669727475616C3D2230223E3C706F696E7420783D2233313035302220793D223330343536222F3E3C706F696E7420783D2233313035302220793D223332383530222F3E3C2F636F6E6E6563746F723E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303030303030303030393035646237336161343031303030302220636F6E74726F6C70726F6769643D224D534444532E546578742E3038302E3122206C6566743D2232383232322220746F703D22333134383122206C6F676963616C69643D223130302220636F6E74726F6C69643D2231303022206D617374657269643D223939222068696E74313D2230222068696E74323D2230222077696474683D223236353322206865696768743D2233343422206E6F726573697A653D223122206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2231222075736564656661756C7469646473686170653D2231222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22312220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2231222067726F7570636F6C6C61707365643D2230222074616273746F703D2230222076697369626C653D22302220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D2230303032303030303564306130303030353830313030303030333030303030303030303066666666666630303038303030303830303130303030303031353030303130303030303039303031343434323031303030363534363136383666366436313131303034363030346230303566303034323030366630303663303036353030373430303666303037333030356630303536303036353030366530303734303036313030373330303030303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313734326434363031303030303030363430303632303036663030303030303436303034623030356630303433303036663030363430303639303036373030366630303733303035303030373230303635303037363030363530303665303037343030363130303466303036363030363630303663303036393030366530303635303035663030353630303635303036653030373430303631303037333030303030302220636F6E74726F6C70726F6769643D224D534444532E506F6C796C696E652E3038302E312220746F6F6C7469703D2252656C616369C3B36E2027464B5F436F6469676F7350726576656E74614F66666C696E655F56656E7461732720656E747265202756656E7461732720792027436F6469676F7350726576656E74614F66666C696E652722206C6566743D2232343639312220746F703D22323535343322206C6F676963616C69643D223130312220636F6E74726F6C69643D2231303122206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223438353922206865696768743D2238313522206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A3E3C706F6C796C696E6520656E64747970656473743D22302220656E64747970657372633D2232222075736572636F6C6F723D22313537393033323022206C696E657374796C653D223022206C696E6572656E6465723D22302220637573746F6D656E647479706564737469643D22302220637573746F6D656E647479706573726369643D2230222061646F726E7376697369626C653D2231223E3C61646F726E6D656E742070657263656E74706F733D2235302220636F6E74726F6C69643D22313032222077696474683D223439333122206865696768743D223334342220736964653D223122206265686176696F723D2233222068696D65747269633D223231323922206469737466726F6D6C696E653D22313735222073746172746F626A3D22302220783D2232343635342220793D223236313235222076697369626C653D22302220616C6C6F776F7665726C61703D2231222075736570657263656E743D2231222F3E3C2F706F6C796C696E653E3C2F646473786D6C6F626A3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C636F6E6E6563746F7220736F7572636569643D22393422206465737469643D2231312220736F75726365617474616368706F696E743D22313034222064657374617474616368706F696E743D2231373122207365676D656E74656469746D6F64653D2230222062656E64706F696E74656469746D6F64653D2230222062656E64706F696E747669736962696C6974793D2230222072656C6174656469643D223022207669727475616C3D2230223E3C706F696E7420783D2232393235302220793D223235393530222F3E3C706F696E7420783D2232343939312220793D223235393530222F3E3C2F636F6E6E6563746F723E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D2230313030303030303030303030303030393035376237336161343031303030302220636F6E74726F6C70726F6769643D224D534444532E546578742E3038302E3122206C6566743D2232343635342220746F703D22323631323522206C6F676963616C69643D223130322220636F6E74726F6C69643D2231303222206D617374657269643D22313031222068696E74313D2230222068696E74323D2230222077696474683D223439333122206865696768743D2233343422206E6F726573697A653D223122206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2231222075736564656661756C7469646473686170653D2231222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22312220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2231222067726F7570636F6C6C61707365643D2230222074616273746F703D2230222076697369626C653D22302220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D2230303032303030303433313330303030353830313030303030333030303030303030303066666666666630303038303030303830303130303030303031353030303130303030303039303031343434323031303030363534363136383666366436313230303034363030346230303566303034333030366630303634303036393030363730303666303037333030353030303732303036353030373630303635303036653030373430303631303034663030363630303636303036633030363930303665303036353030356630303536303036353030366530303734303036313030373330303030303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C20636F6E74726F6C70726F6769643D227B36323341433037352D324337372D343837332D383833442D3933304234333634FEFFFFFF02000000030000000400000005000000060000000700000008000000090000000A0000000B0000000C0000000D0000000E0000000F000000100000001100000012000000130000001400000015000000160000001700000018000000190000001A0000001B0000001C0000001D0000001E0000001F000000200000002100000022000000FEFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF010003000000000000000C0000000B0000004E61BC00000000000000000000000000000000000000000000000000000000000000000000000000000000000000DBE6B0E91C81D011AD5100A0C90F573900000200000615FEA43FDD01020200001048450000000000000000000000000000000000880100004400610074006100200053006F0075007200630065003D006C006F00630061006C0068006F00730074003B0049006E0069007400690061006C00200043006100740061006C006F0067003D004E006500770052006900630068003B0049006E00740065006700720061007400650064002000530065006300750072006900740079003D0054007200750065003B004D0075006C007400690070006C0065002000410063007400690076006500200052006500730075006C007400200053006500740073003D00460061006C00730065003B0045006E00630072007900700074003D0054007200750065003B005400720075007300740020005300650072007600650072002000430065007200740069006600690063006100740065003D0054007200750065003B004100700070006C00690063006100740069006F006E0020004E0061006D0065003D002200530051004C00200053006500720076006500720020004D0061006E006100670065006D0065006E0074002000530074007500640069006F002200000000800500140000004400690061006700720061006D005F0030000000000226001A000000410064006A0075006E0074006F0073004300680061007400000008000000640062006F000000000226001000000042006F006C00650074006F007300000008000000640062006F000000000226001E0000004300610073006F007300470061006E00610064006F00720065007300000008000000640062006F000000000226002E00000043006C006100760065007300560061006C00690064006100630069006F006E0042006F006C00650074006F00000008000000640062006F000000000226002E00000043006F006400690067006F007300500072006500760065006E00740061004F00660066006C0069006E006500000008000000640062006F000000000226002000000043006F006E00660069006700750072006100630069006F006E0065007300000008000000640062006F000000000226003600000043006F006E00660069006700750072006100630069006F006E00650073005400690070006F004100700075006500730074006100000008000000640062006F000000000226001E00000043006F006E0076006500720073006100630069006F006E0065007300000008000000640062006F000000000226001A00000044006900730070006F00730069007400690076006F007300000008000000640062006F000000000226002A00000044006900730070006F00730069007400690076006F0073005500730075006100720069006F007300000008000000640062006F000000000226002400000045006E00740072006500670061007300470061006E00610064006F00720065007300000008000000640062006F000000000226001C000000450073007400610064006F00730042006F006C00650074006F00000008000000640062006F0000000002260024000000450076006900640065006E006300690061007300470061006E00610064006F007200000008000000640062006F000000000226000E00000047007200750070006F007300000008000000640062006F000000000226002200000049006E00740065006E0074006F007300460061006C006C00690064006F007300000008000000640062006F000000000226001A0000004A007500650067006F004C006F0074006500720069006100000008000000640062006F000000000226000E0000004A007500650067006F007300000008000000640062006F00000000022600120000004C006F00740065007200690061007300000008000000640062006F00000000022600120000004D0065006E00730061006A0065007300000008000000640062006F000000000226001E0000004E006F00740069006600690063006100630069006F006E0065007300000008000000640062006F00000000022600220000004E0075006D00650072006F007300470061006E00610064006F00720065007300000008000000640062006F000000000226000C00000052006F006C0065007300000008000000640062006F000000000226001200000053006500730069006F006E0065007300000008000000640062006F0000000002260022000000530069006E00630072006F006E0069007A006100630069006F006E0065007300000008000000640062006F00000000022600120000005500730075006100720069006F007300000008000000640062006F000000000226001E0000005500730075006100720069006F00730047007200750070006F007300000008000000640062006F000000000226001C0000005500730075006100720069006F00730052006F006C0065007300000008000000640062006F000000000224000E000000560065006E00740061007300000008000000640062006F00000000022600280000004C006C006100760065007300410064006D0069006E006900730074007200610064006F007200000008000000640062006F00000000022600260000004C006F007400650072006900610073004400690061007300530065006D0061006E006100000008000000640062006F00000000022600280000004E0075006D00650072006F0073005200650073007400720069006E006700690053006300680065006D00610020005500440056002000440065006600610075006C007400200050006F007300740020005600360000000000000000000000000036000200FFFFFFFFFFFFFFFFFFFFFFFF0000000000000000000000000000000000000000000000000000000000000000000000002000000012000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFF0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFF0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFF00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000064006F007300000008000000640062006F0000000002260028000000560065007200730069006F006E0065007300410070006C00690063006100630069006F006E00000008000000640062006F00000001000000D68509B3BB6BF2459AB8371664F0327008004E0000007B00310036003300340043004400440037002D0030003800380038002D0034003200450033002D0039004600410032002D004200360044003300320035003600330042003900310044007D00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000423442437D2220746F6F6C7469703D2256657273696F6E657341706C69636163696F6E22206C6566743D2234353230302220746F703D223022206C6F676963616C69643D223130332220636F6E74726F6C69643D2231303322206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223537363822206865696768743D223234363122206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223022206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2231223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D22323134333334313230383030303030303838313630303030396430393030303037383536333431323037303030303030313430313030303035363030363530303732303037333030363930303666303036653030363530303733303034313030373030303663303036393030363330303631303036333030363930303666303036653030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303130303030303030353030303030303534303030303030326330303030303032633030303030303263303030303030333430303030303030303030303030303030303030303030323232393030303036353135303030303030303030303030326430313030303030373030303030303063303030303030303730303030303031633031303030303036303930303030363230373030303066653031303030303736303230303030623330313030303065633034303030306231303330303030336130323030303062313033303030306230303430303030333930333030303030303030303030303031303030303030383831363030303039643039303030303030303030303030303230303030303030323030303030303032303030303030303230303030303031633031303030306437306130303030303030303030303030313030303030303339313330303030633030373030303030303030303030303032303030303030303230303030303030323030303030303032303030303030316330313030303030363039303030303031303030303030303030303030303033393133303030303334303330303030303030303030303030303030303030303030303030303030303230303030303030323030303030303163303130303030303630393030303030303030303030303030303030303030643133313030303030393233303030303030303030303030303030303030303030643030303030303034303030303030303430303030303031633031303030303036303930303030616130613030303039303036303030303738353633343132303430303030303036343030303030303031303030303030303130303030303030623030303030303030303030303030303130303030303030323030303030303033303030303030303430303030303030353030303030303036303030303030303730303030303030383030303030303039303030303030306130303030303030343030303030303634303036323030366630303030303031343030303030303536303036353030373230303733303036393030366630303665303036353030373330303431303037303030366330303639303036333030363130303633303036393030366630303665303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A3E3C70726F7065727479206E616D653D224163746976655461626C65566965774D6F6465222076616C75653D22312220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A30222076616C75653D22342C302C3238342C302C323331302C312C313839302C352C313236302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A31222076616C75653D22322C302C3238342C302C323737352220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A32222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A33222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A34222076616C75653D22342C302C3238342C302C323331302C31322C323733302C31312C313638302220766172747970653D2238222F3E3C2F646473786D6C6F626A3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C20636F6E74726F6C70726F6769643D227B36323341433037352D324337372D343837332D383833442D3933304234333634423442437D2220746F6F6C7469703D224E756D65726F735265737472696E6769646F7322206C6566743D2234353230302220746F703D223930303022206C6F676963616C69643D223130342220636F6E74726F6C69643D2231303422206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223537363822206865696768743D223234363122206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223022206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2231223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D22323134333334313230383030303030303838313630303030396430393030303037383536333431323037303030303030313430313030303034653030373530303664303036353030373230303666303037333030353230303635303037333030373430303732303036393030366530303637303036393030363430303666303037333030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303130303030303030353030303030303534303030303030326330303030303032633030303030303263303030303030333430303030303030303030303030303030303030303030323232393030303036353135303030303030303030303030326430313030303030373030303030303063303030303030303730303030303031633031303030303036303930303030363230373030303066653031303030303736303230303030623330313030303065633034303030306231303330303030336130323030303062313033303030306230303430303030333930333030303030303030303030303031303030303030383831363030303039643039303030303030303030303030303230303030303030323030303030303032303030303030303230303030303031633031303030306437306130303030303030303030303030313030303030303339313330303030633030373030303030303030303030303032303030303030303230303030303030323030303030303032303030303030316330313030303030363039303030303031303030303030303030303030303033393133303030303334303330303030303030303030303030303030303030303030303030303030303230303030303030323030303030303163303130303030303630393030303030303030303030303030303030303030643133313030303030393233303030303030303030303030303030303030303030643030303030303034303030303030303430303030303031633031303030303036303930303030616130613030303039303036303030303738353633343132303430303030303036343030303030303031303030303030303130303030303030623030303030303030303030303030303130303030303030323030303030303033303030303030303430303030303030353030303030303036303030303030303730303030303030383030303030303039303030303030306130303030303030343030303030303634303036323030366630303030303031343030303030303465303037353030366430303635303037323030366630303733303035323030363530303733303037343030373230303639303036653030363730303639303036343030366630303733303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A3E3C70726F7065727479206E616D653D224163746976655461626C65566965774D6F6465222076616C75653D22312220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A30222076616C75653D22342C302C3238342C302C323331302C312C313839302C352C313236302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A31222076616C75653D22322C302C3238342C302C323737352220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A32222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A33222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A34222076616C75653D22342C302C3238342C302C323331302C31322C323733302C31312C313638302220766172747970653D2238222F3E3C2F646473786D6C6F626A3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C20636F6E74726F6C70726F6769643D227B36323341433037352D324337372D343837332D383833442D3933304234333634423442437D2220746F6F6C7469703D224C6C6176657341646D696E6973747261646F7222206C6566743D2231353030302220746F703D22323130303022206C6F676963616C69643D223130352220636F6E74726F6C69643D2231303522206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223537363822206865696768743D223234363122206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223022206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2231223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D22323134333334313230383030303030303838313630303030396430393030303037383536333431323037303030303030313430313030303034633030366330303631303037363030363530303733303034313030363430303664303036393030366530303639303037333030373430303732303036313030363430303666303037323030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303130303030303030353030303030303534303030303030326330303030303032633030303030303263303030303030333430303030303030303030303030303030303030303030323232393030303036353135303030303030303030303030326430313030303030373030303030303063303030303030303730303030303031633031303030303036303930303030363230373030303066653031303030303736303230303030623330313030303065633034303030306231303330303030336130323030303062313033303030306230303430303030333930333030303030303030303030303031303030303030383831363030303039643039303030303030303030303030303230303030303030323030303030303032303030303030303230303030303031633031303030306437306130303030303030303030303030313030303030303339313330303030633030373030303030303030303030303032303030303030303230303030303030323030303030303032303030303030316330313030303030363039303030303031303030303030303030303030303033393133303030303334303330303030303030303030303030303030303030303030303030303030303230303030303030323030303030303163303130303030303630393030303030303030303030303030303030303030643133313030303030393233303030303030303030303030303030303030303030643030303030303034303030303030303430303030303031633031303030303036303930303030616130613030303039303036303030303738353633343132303430303030303036343030303030303031303030303030303130303030303030623030303030303030303030303030303130303030303030323030303030303033303030303030303430303030303030353030303030303036303030303030303730303030303030383030303030303039303030303030306130303030303030343030303030303634303036323030366630303030303031343030303030303463303036633030363130303736303036353030373330303431303036343030366430303639303036653030363930303733303037343030373230303631303036343030366630303732303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A3E3C70726F7065727479206E616D653D224163746976655461626C65566965774D6F6465222076616C75653D22312220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A30222076616C75653D22342C302C3238342C302C323331302C312C313839302C352C313236302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A31222076616C75653D22322C302C3238342C302C323737352220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A32222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A33222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A34222076616C75653D22342C302C3238342C302C323331302C31322C323733302C31312C313638302220766172747970653D2238222F3E3C2F646473786D6C6F626A3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D22303130303030303030313030303030303634303036323030366630303030303034363030346230303566303034633030366330303631303037363030363530303733303034313030363430303664303036393030366530303639303037333030373430303732303036313030363430303666303037323030356630303535303037333030373530303631303037323030363930303666303037333030303030302220636F6E74726F6C70726F6769643D224D534444532E506F6C796C696E652E3038302E312220746F6F6C7469703D2252656C616369C3B36E2027464B5F4C6C6176657341646D696E6973747261646F725F5573756172696F732720656E74726520275573756172696F7327207920274C6C6176657341646D696E6973747261646F722722206C6566743D22393030302220746F703D22313735303022206C6F676963616C69643D223130362220636F6E74726F6C69643D2231303622206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223638333222206865696768743D2238313522206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A3E3C706F6C796C696E6520656E64747970656473743D22302220656E64747970657372633D2232222075736572636F6C6F723D22313537393033323022206C696E657374796C653D223022206C696E6572656E6465723D22302220637573746F6D656E647479706564737469643D22302220637573746F6D656E647479706573726369643D2230222061646F726E7376697369626C653D2231223E3C61646F726E6D656E742070657263656E74706F733D2235342E303832383437383534373734392220636F6E74726F6C69643D22313037222077696474683D223430363622206865696768743D223334342220736964653D223022206265686176696F723D2233222068696D65747269633D223333373022206469737466726F6D6C696E653D22313735222073746172746F626A3D22302220783D222D313933372220793D223133343331222076697369626C653D22302220616C6C6F776F7665726C61703D2231222075736570657263656E743D2231222F3E3C2F706F6C796C696E653E3C2F646473786D6C6F626A3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C636F6E6E6563746F7220736F7572636569643D22353522206465737469643D223130352220736F75726365617474616368706F696E743D223930222064657374617474616368706F696E743D2231303522207365676D656E74656469746D6F64653D2230222062656E64706F696E74656469746D6F64653D2230222062656E64706F696E747669736962696C6974793D2230222072656C6174656469643D223022207669727475616C3D2230223E3C706F696E7420783D22333330302220793D223133393530222F3E3C706F696E7420783D222D323933322220793D223133393530222F3E3C2F636F6E6E6563746F723E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C20636F6E74726F6C70726F6769643D227B36323341433037352D324337372D343837332D383833442D3933304234333634423442437D2220746F6F6C7469703D224C6F7465726961734469617353656D616E6122206C6566743D2234353230302220746F703D22343730303022206C6F676963616C69643D223130382220636F6E74726F6C69643D2231303822206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D223537363822206865696768743D223234363122206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223022206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2231223E3C636F6E74726F6C3E3C646473786D6C6F626A65637473747265616D696E6974777261707065722062696E6172793D223231343333343132303830303030303038383136303030303964303930303030373835363334313230373030303030303134303130303030346330303666303037343030363530303732303036393030363130303733303034343030363930303631303037333030353330303635303036643030363130303665303036313030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303031303030303030303530303030303035343030303030303263303030303030326330303030303032633030303030303334303030303030303030303030303030303030303030303232323930303030363531353030303030303030303030303264303130303030303730303030303030633030303030303037303030303030316330313030303030363039303030303632303730303030666530313030303037363032303030306233303130303030656330343030303062313033303030303361303230303030623130333030303062303034303030303339303330303030303030303030303030313030303030303838313630303030396430393030303030303030303030303032303030303030303230303030303030323030303030303032303030303030316330313030303064373061303030303030303030303030303130303030303033393133303030306330303730303030303030303030303030323030303030303032303030303030303230303030303030323030303030303163303130303030303630393030303030313030303030303030303030303030333931333030303033343033303030303030303030303030303030303030303030303030303030303032303030303030303230303030303031633031303030303036303930303030303030303030303030303030303030306431333130303030303932333030303030303030303030303030303030303030306430303030303030343030303030303034303030303030316330313030303030363039303030306161306130303030393030363030303037383536333431323034303030303030363430303030303030313030303030303031303030303030306230303030303030303030303030303031303030303030303230303030303030333030303030303034303030303030303530303030303030363030303030303037303030303030303830303030303030393030303030303061303030303030303430303030303036343030363230303666303030303030313330303030303034633030366630303734303036353030373230303639303036313030373330303434303036393030363130303733303035333030363530303664303036313030366530303631303030303030222F3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A3E3C70726F7065727479206E616D653D224163746976655461626C65566965774D6F6465222076616C75653D22312220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A30222076616C75653D22342C302C3238342C302C323331302C312C313839302C352C313236302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A31222076616C75653D22322C302C3238342C302C323737352220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A32222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A33222076616C75653D22322C302C3238342C302C323331302220766172747970653D2238222F3E3C70726F7065727479206E616D653D225461626C65566965774D6F64653A34222076616C75653D22342C302C3238342C302C323331302C31322C323733302C31312C313638302220766172747970653D2238222F3E3C2F646473786D6C6F626A3E3C2F6C61796F75746F626A6563743E3C73686170652067726F7570736861706569643D2230222067726F75706E6F64653D2230222F3E3C2F646473636F6E74726F6C3E3C646473636F6E74726F6C2073656D616E746963636F6F6B69653D223031303030303030303130303030303036343030363230303666303030303030343630303462303035663030346330303666303037343030363530303732303036393030363130303733303034343030363930303631303037333030353330303635303036643030363130303665303036313030356630303463303036663030373430303635303037323030363930303631303037333030303030302220636F6E74726F6C70726F6769643D224D534444532E506F6C796C696E652E3038302E312220746F6F6C7469703D2252656C616369C3B36E2027464B5F4C6F7465726961734469617353656D616E615F4C6F7465726961732720656E74726520274C6F74657269617327207920274C6F7465726961734469617353656D616E612722206C6566743D2234303030302220746F703D22343930303022206C6F676963616C69643D223130392220636F6E74726F6C69643D2231303922206D617374657269643D2230222068696E74313D2230222068696E74323D2230222077696474683D2238313522206865696768743D223333363422206E6F726573697A653D223022206E6F6D6F76653D223022206E6F64656661756C74617474616368706F696E74733D223122206175746F647261673D2230222075736564656661756C7469646473686170653D2230222073656C65637461626C653D2231222073686F7773656C656374696F6E68616E646C65733D22302220616C6C6F776E756467696E673D223122206973616E6E6F746174696F6E3D22302220646F6E746175746F6C61796F75743D2230222067726F7570636F6C6C61707365643D2230222074616273746F703D2231222076697369626C653D22312220736E6170746F677269643D2230223E3C636F6E74726F6C3E3C646473786D6C6F626A3E3C706F6C796C696E6520656E64747970656473743D22302220656E64747970657372633D2232222075736572636F6C6F723D22313537393033323022206C696E657374796C653D223022206C696E6572656E6465723D22302220637573746F6D656E647479706564737469643D22302220637573746F6D656E647479706573726369643D2230222061646F726E7376697369626C653D2231223E3C61646F726E6D656E742070657263656E74706F733D2236302E3433393137373431333733332220636F6E74726F6C69643D22313130222077696474683D223434393922206865696768743D223334342220736964653D223122206265686176696F723D2233222068696D65747269633D223131393022206469737466726F6D6C696E653D22313735222073746172746F626A3D22302220783D2233363437352220793D223533303133222076697369626C653D22302220616C6C6F776F7665726C61703D2231222075736570657263656E743D2231222F3E3C2F706F6C796C696E653E3C2F646473786D6C6F626A3E3C2F636F6E74726F6C3E3C6C61796F75746F626A6563743E3C646473786D6C6F626A2F3E3C2F6C61796F75746F626A6563743E3C636F6E6E6563746F7220736F7572636569643D22333622206465737469643D223130382220736F75726365617474616368706F696E743D223333222064657374617474616368706F696E743D22333222207365676D656E74656469746D6F64653D2230222062656E64706F696E74656469746D6F64653D2230222062656E64706F696E747669736962696C6974793D2230222072656C6174656469643D223022207669727475616C3D2230223E3C706F696E7420783D2233363330302220793D223532303331222F3E3C706F696E7420783D2233363330302220793D223534303030222F3E3C2F636F6E6E6563746F723E3C2F646473636F6E74726F6C3E3C2F6464733E0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000);
@@ -7811,12 +8437,12 @@ SET IDENTITY_INSERT [dbo].[sysdiagrams] OFF;
 GO
 PRINT N'Datos de dbo.Usuarios';
 INSERT INTO [dbo].[Usuarios] ([UsuarioId], [NombreCompleto], [Usuario], [Alias], [Documento], [Celular], [Email], [PasswordHash], [PasswordSalt], [Rol], [Estado], [EstadoValidado], [EstadoBloqueado], [IntentosFallidos], [FechaCreacion], [FechaUltimoAcceso]) VALUES (N'fd4d77af-08d9-4cd1-868f-0d82e183a1d1', N'vendedor', N'vendedor', N'vendedor', N'213416548', NULL, NULL, N'34F899D0C87E6323A15AA6A8A4087B16A7F524F245C4353CDB975906BEB3835D', N'02E1FA0C0A7036929F9106BEF652B778', N'Vendedor', N'Activo', 0, 0, 0, N'2026-10-02T15:31:08.1985592', N'2026-10-15T10:09:12.1012945');
-INSERT INTO [dbo].[Usuarios] ([UsuarioId], [NombreCompleto], [Usuario], [Alias], [Documento], [Celular], [Email], [PasswordHash], [PasswordSalt], [Rol], [Estado], [EstadoValidado], [EstadoBloqueado], [IntentosFallidos], [FechaCreacion], [FechaUltimoAcceso]) VALUES (N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'Vendedor Web', N'vendedorweb', N'Web', NULL, NULL, NULL, N'00E36D6C220CDB03654E2CD444962B4E92B42DF2983DD5A5D1F5C9F63708A5B0', N'BEC4407A3C858487DD102B553223E15C', N'Vendedor', N'Activo', 0, 0, 0, N'2026-10-16T17:23:09.3066425', N'2026-10-18T13:25:34.5541187');
+INSERT INTO [dbo].[Usuarios] ([UsuarioId], [NombreCompleto], [Usuario], [Alias], [Documento], [Celular], [Email], [PasswordHash], [PasswordSalt], [Rol], [Estado], [EstadoValidado], [EstadoBloqueado], [IntentosFallidos], [FechaCreacion], [FechaUltimoAcceso]) VALUES (N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'Vendedor Web', N'vendedorweb', N'Web', NULL, NULL, NULL, N'00E36D6C220CDB03654E2CD444962B4E92B42DF2983DD5A5D1F5C9F63708A5B0', N'BEC4407A3C858487DD102B553223E15C', N'Vendedor', N'Activo', 0, 0, 0, N'2026-10-16T17:23:09.3066425', N'2026-10-26T23:43:56.4341052');
 INSERT INTO [dbo].[Usuarios] ([UsuarioId], [NombreCompleto], [Usuario], [Alias], [Documento], [Celular], [Email], [PasswordHash], [PasswordSalt], [Rol], [Estado], [EstadoValidado], [EstadoBloqueado], [IntentosFallidos], [FechaCreacion], [FechaUltimoAcceso]) VALUES (N'521949af-a65a-4585-8d8f-74e2598eac12', N'laura', N'laura', N'laura', N'456123', NULL, NULL, N'D2E203B7BCCA0786E86D9CF90A2A34CAA6FC05C1FAB1030A4B8D19DD630E77B0', N'3110A49D59567881D8D0AC9FF9F28177', N'Vendedor', N'Activo', 0, 0, 0, N'2026-10-04T19:47:48.0690202', N'2026-10-17T22:36:53.4652137');
 INSERT INTO [dbo].[Usuarios] ([UsuarioId], [NombreCompleto], [Usuario], [Alias], [Documento], [Celular], [Email], [PasswordHash], [PasswordSalt], [Rol], [Estado], [EstadoValidado], [EstadoBloqueado], [IntentosFallidos], [FechaCreacion], [FechaUltimoAcceso]) VALUES (N'fded5304-5978-45ec-ae54-87b15825d76b', N'rafael', N'rafael', N'rafael', N'4532156', NULL, NULL, N'00AE4BBCD9B99BA2498064BF785A6E0F80AB4B5961109965632FB21FB0F5D4AA', N'F5F395C5FC77D163FB27A475207EA0A4', N'Observador', N'Activo', 0, 0, 0, N'2026-10-04T19:48:32.9769311', N'2026-10-04T19:51:42.2266920');
 INSERT INTO [dbo].[Usuarios] ([UsuarioId], [NombreCompleto], [Usuario], [Alias], [Documento], [Celular], [Email], [PasswordHash], [PasswordSalt], [Rol], [Estado], [EstadoValidado], [EstadoBloqueado], [IntentosFallidos], [FechaCreacion], [FechaUltimoAcceso]) VALUES (N'5e991d00-0fb0-4f16-8968-9531c583d4a9', N'Administrador Principal', N'admin', N'Admin', NULL, NULL, N'admin@newrich.com', N'CE1569D83327DDD720B1F833BA42BD7B80E366A867F81E3CBC98AC712750A5BC', N'923D63EBBE3A66CF7E3143639F62ADF8', N'Administrador', N'Activo', 0, 0, 1, N'2026-09-08T14:48:30.7164230', N'2026-09-27T20:53:38.0855009');
-INSERT INTO [dbo].[Usuarios] ([UsuarioId], [NombreCompleto], [Usuario], [Alias], [Documento], [Celular], [Email], [PasswordHash], [PasswordSalt], [Rol], [Estado], [EstadoValidado], [EstadoBloqueado], [IntentosFallidos], [FechaCreacion], [FechaUltimoAcceso]) VALUES (N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'Super usuario', N'super', N'super', N'SUPER', NULL, N'super@newrich.local', N'5C22FF5C2C7D237563EF9D4F91959E4379234E25E7A8D26D827E0CCB306E706A', N'EC0374A288D2AA84E0115DB9EDBFE0B3', N'Super', N'Activo', 0, 0, 0, N'2026-09-21T15:34:15.3726925', N'2026-10-18T12:08:57.3073930');
-INSERT INTO [dbo].[Usuarios] ([UsuarioId], [NombreCompleto], [Usuario], [Alias], [Documento], [Celular], [Email], [PasswordHash], [PasswordSalt], [Rol], [Estado], [EstadoValidado], [EstadoBloqueado], [IntentosFallidos], [FechaCreacion], [FechaUltimoAcceso]) VALUES (N'dca750a8-5821-4ff0-bec6-eb2b23d32d7b', N'Hugo', N'hugo', N'hg', N'26573576', N'53272682682', NULL, N'AB3E0FC5220BE5B0B6CBF101951BBD58DB294DFB2B5689AACA6D73121D20FB98', N'EF0683862B9C3496059DEF2884B61B3F', N'Recaudador', N'Activo', 0, 0, 0, N'2026-10-15T09:51:55.4512595', N'2026-10-15T10:51:05.9281486');
+INSERT INTO [dbo].[Usuarios] ([UsuarioId], [NombreCompleto], [Usuario], [Alias], [Documento], [Celular], [Email], [PasswordHash], [PasswordSalt], [Rol], [Estado], [EstadoValidado], [EstadoBloqueado], [IntentosFallidos], [FechaCreacion], [FechaUltimoAcceso]) VALUES (N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'Super usuario', N'super', N'super', N'SUPER', NULL, N'super@newrich.local', N'5C22FF5C2C7D237563EF9D4F91959E4379234E25E7A8D26D827E0CCB306E706A', N'EC0374A288D2AA84E0115DB9EDBFE0B3', N'Super', N'Activo', 0, 0, 0, N'2026-09-21T15:34:15.3726925', N'2026-10-26T23:43:41.1437211');
+INSERT INTO [dbo].[Usuarios] ([UsuarioId], [NombreCompleto], [Usuario], [Alias], [Documento], [Celular], [Email], [PasswordHash], [PasswordSalt], [Rol], [Estado], [EstadoValidado], [EstadoBloqueado], [IntentosFallidos], [FechaCreacion], [FechaUltimoAcceso]) VALUES (N'dca750a8-5821-4ff0-bec6-eb2b23d32d7b', N'Hugo', N'hugo', N'hg', N'26573576', N'53272682682', NULL, N'D4432CFD849E96411847D472CB06153AB16F29DC2337A2D08524D24B9FBDE5EC', N'C5269A51914A887E1084EE0064525752', N'Recaudador', N'Activo', 0, 0, 0, N'2026-10-15T09:51:55.4512595', N'2026-10-21T09:09:10.9194958');
 GO
 PRINT N'Datos de dbo.UsuariosGrupos';
 INSERT INTO [dbo].[UsuariosGrupos] ([UsuarioId], [GrupoId]) VALUES (N'fd4d77af-08d9-4cd1-868f-0d82e183a1d1', N'5893f9c5-3950-42c8-bf75-275063f914c4');
@@ -7851,101 +8477,61 @@ INSERT INTO [dbo].[Ventas] ([VentaId], [UsuarioId], [DispositivoId], [FechaVenta
 INSERT INTO [dbo].[Ventas] ([VentaId], [UsuarioId], [DispositivoId], [FechaVenta], [Total], [TipoApuesta], [EstadoSincronizacion], [IdempotencyKey], [FechaSincronizacion]) VALUES (N'e3137420-5669-4592-aaef-ed2c3af98360', N'fd4d77af-08d9-4cd1-868f-0d82e183a1d1', NULL, N'2026-10-03T18:41:15.5647004', 17000.00, N'COMBINADO', N'Online', N'a4f8c8f9b14048a79bf82d593d94c9c0', N'2026-10-03T18:41:15.5651723');
 INSERT INTO [dbo].[Ventas] ([VentaId], [UsuarioId], [DispositivoId], [FechaVenta], [Total], [TipoApuesta], [EstadoSincronizacion], [IdempotencyKey], [FechaSincronizacion]) VALUES (N'762fe1b4-0f73-46e8-93d6-f2cee5152d21', N'fd4d77af-08d9-4cd1-868f-0d82e183a1d1', N'1e6d9ce5-141a-4cae-9b08-6089baae8d99', N'2026-10-03T19:22:25.8963146', 50000.00, N'INDIVIDUAL', N'Online', N'c6f451d4e6d74ce9b8c8665b91b4702c', N'2026-10-03T19:22:25.8963165');
 GO
+PRINT N'Datos de informes.ConfiguracionesInforme';
+INSERT INTO [informes].[ConfiguracionesInforme] ([ConfiguracionId], [UsuarioId], [Categoria], [Filtros], [FechaActualizacionUtc]) VALUES (N'4d8437fb-59a7-496e-9f71-0a0f1688f13e', N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'egresos', N'{"periodo":"7","desde":null,"hasta":null,"grupos":null}', N'2026-10-21T02:58:31.4737449');
+INSERT INTO [informes].[ConfiguracionesInforme] ([ConfiguracionId], [UsuarioId], [Categoria], [Filtros], [FechaActualizacionUtc]) VALUES (N'01f07f51-d8c7-464a-9f25-75ad71a7eb77', N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'vendedores', N'{"grupos":null,"usuarios":null,"tipos":null}', N'2026-10-23T00:02:31.6324312');
+INSERT INTO [informes].[ConfiguracionesInforme] ([ConfiguracionId], [UsuarioId], [Categoria], [Filtros], [FechaActualizacionUtc]) VALUES (N'20437afe-fed6-440b-83ed-762029d044e5', N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'recaudo', N'{"periodo":"7","desde":null,"hasta":null,"grupos":null}', N'2026-10-21T02:57:16.9151546');
+INSERT INTO [informes].[ConfiguracionesInforme] ([ConfiguracionId], [UsuarioId], [Categoria], [Filtros], [FechaActualizacionUtc]) VALUES (N'06026011-94b2-4854-aef9-ed1d6b872919', N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'ventas', N'{"periodo":"7","desde":null,"hasta":null,"grupos":null,"secciones":null}', N'2026-10-21T01:04:43.9429089');
+GO
+PRINT N'Datos de manual.ParametrosRevisadaManual';
+INSERT INTO [manual].[ParametrosRevisadaManual] ([ParametroId], [ComisionPorcentaje], [DescuentoPorcentaje]) VALUES (N'8f4e2c1a-6b7d-4e9a-9c3d-1a2b3c4d5e6f', 20.00, 10.00);
+GO
+PRINT N'Datos de manual.PremiosEntregadosWeb';
+INSERT INTO [manual].[PremiosEntregadosWeb] ([PremioEntregadoWebId], [VendedorId], [LoteriaId], [Numero], [ValorApostado], [ValorPremio], [FechaPremio], [FechaRegistro]) VALUES (N'faae9407-dc1b-465e-8fc3-8a85637d098b', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'55250655-979d-4672-aa10-be287eba5600', N'1234', 4321.00, 489500.00, N'2026-10-17', N'2026-10-22T23:55:58.1169666');
+GO
 PRINT N'Datos de manual.RegistroJuegoFilas';
-INSERT INTO [manual].[RegistroJuegoFilas] ([FilaId], [RegistroId], [LoteriaId], [Valor], [Numero]) VALUES (N'7f3716a9-5fad-46e8-adf0-05f6b985d4c8', N'f17c96cc-46d2-4aad-8271-ad7b617dc8a1', N'61639dd5-766d-4079-bff6-3bd9868b36ee', 200.00, N'6565');
-INSERT INTO [manual].[RegistroJuegoFilas] ([FilaId], [RegistroId], [LoteriaId], [Valor], [Numero]) VALUES (N'f35010e6-e6d5-413a-81d9-170f802e7181', N'8e35bac7-9e70-4254-9085-bc2ba0d53c33', N'55250655-979d-4672-aa10-be287eba5600', 25252.00, N'9865');
-INSERT INTO [manual].[RegistroJuegoFilas] ([FilaId], [RegistroId], [LoteriaId], [Valor], [Numero]) VALUES (N'6308a87a-4f76-4dd9-a8cc-385239fc6af1', N'e8e42cbb-0aaa-4fd1-ab51-5abbd3243b5f', N'ab4b9b96-7487-4000-8402-2a1558cd0b60', 2000.00, N'2525');
-INSERT INTO [manual].[RegistroJuegoFilas] ([FilaId], [RegistroId], [LoteriaId], [Valor], [Numero]) VALUES (N'a3b0eade-f3ef-48a5-a3fc-3f11a3459f09', N'dcd7fea9-fa00-4f99-b672-193c2d14cfa1', N'55250655-979d-4672-aa10-be287eba5600', 2500.00, N'778899');
-INSERT INTO [manual].[RegistroJuegoFilas] ([FilaId], [RegistroId], [LoteriaId], [Valor], [Numero]) VALUES (N'6869c110-af5c-4375-8c90-49dc181015ef', N'f21d549d-7f39-4cff-8ddf-a17f751a4df9', N'61639dd5-766d-4079-bff6-3bd9868b36ee', 300.00, N'9898');
-INSERT INTO [manual].[RegistroJuegoFilas] ([FilaId], [RegistroId], [LoteriaId], [Valor], [Numero]) VALUES (N'2be65a9b-16f9-413f-ad43-4d19fea0233f', N'e8e42cbb-0aaa-4fd1-ab51-5abbd3243b5f', N'61639dd5-766d-4079-bff6-3bd9868b36ee', 15000.00, N'1234');
-INSERT INTO [manual].[RegistroJuegoFilas] ([FilaId], [RegistroId], [LoteriaId], [Valor], [Numero]) VALUES (N'a3797b18-332d-4fe8-96e3-5431dd6dd892', N'b87ecce0-6209-46ca-a078-85364af084af', N'61639dd5-766d-4079-bff6-3bd9868b36ee', 2600.00, N'1234');
-INSERT INTO [manual].[RegistroJuegoFilas] ([FilaId], [RegistroId], [LoteriaId], [Valor], [Numero]) VALUES (N'038d34ec-7db4-4926-ab21-62dd6eb0022f', N'dbcc9549-fd94-46e8-bd40-33721fc252f7', N'ab4b9b96-7487-4000-8402-2a1558cd0b60', 3500.00, N'2525');
-INSERT INTO [manual].[RegistroJuegoFilas] ([FilaId], [RegistroId], [LoteriaId], [Valor], [Numero]) VALUES (N'e7df428c-e6f4-4066-9463-7a4c065051f0', N'a60bf80d-e180-4f10-ad9d-379197c0d762', N'f8192be8-00cb-43c9-8f5b-0a6af18fa586', 1500.00, N'123456789');
-INSERT INTO [manual].[RegistroJuegoFilas] ([FilaId], [RegistroId], [LoteriaId], [Valor], [Numero]) VALUES (N'8246617a-d308-49c3-8e3c-8c681a244eeb', N'ed1f0e2e-ba05-46c1-a7e5-3d59ee9ccba6', N'ab4b9b96-7487-4000-8402-2a1558cd0b60', 10000.00, N'1245');
-INSERT INTO [manual].[RegistroJuegoFilas] ([FilaId], [RegistroId], [LoteriaId], [Valor], [Numero]) VALUES (N'71afcb11-6837-43dd-bc79-b381f3888618', N'8e35bac7-9e70-4254-9085-bc2ba0d53c33', N'f8192be8-00cb-43c9-8f5b-0a6af18fa586', 15000.00, N'3658');
-INSERT INTO [manual].[RegistroJuegoFilas] ([FilaId], [RegistroId], [LoteriaId], [Valor], [Numero]) VALUES (N'e5df2e99-6419-44b5-91e1-f880a0a852c5', N'4f796f0f-95be-4859-81e1-2fc5f9713c93', N'ab4b9b96-7487-4000-8402-2a1558cd0b60', 35000.00, N'6352');
-INSERT INTO [manual].[RegistroJuegoFilas] ([FilaId], [RegistroId], [LoteriaId], [Valor], [Numero]) VALUES (N'a55e8ec6-408f-496a-988d-f8bb1f07b4ab', N'faf80000-c95f-445e-ba00-1e3b748018ba', N'55250655-979d-4672-aa10-be287eba5600', 2500.00, N'778899');
+INSERT INTO [manual].[RegistroJuegoFilas] ([FilaId], [RegistroId], [LoteriaId], [Valor], [Numero]) VALUES (N'16181970-62e7-461f-b539-0a75068a8d70', N'72ce16ac-84ba-46a2-9e50-cc84a937ce54', N'55250655-979d-4672-aa10-be287eba5600', 5000.00, N'2323');
+INSERT INTO [manual].[RegistroJuegoFilas] ([FilaId], [RegistroId], [LoteriaId], [Valor], [Numero]) VALUES (N'24d07e54-62c0-42cc-9f15-93fa7f97ed77', N'c5e83719-7762-48b8-b5b1-3a70f3e295b8', N'55250655-979d-4672-aa10-be287eba5600', 20000.00, N'2323');
+INSERT INTO [manual].[RegistroJuegoFilas] ([FilaId], [RegistroId], [LoteriaId], [Valor], [Numero]) VALUES (N'1e3bab94-3282-44b1-b45d-bee81bee0fd1', N'0d6fc3e3-d655-4532-a3e4-f097b184f5f6', N'61639dd5-766d-4079-bff6-3bd9868b36ee', 989999.00, N'8786');
 GO
 PRINT N'Datos de manual.RegistroJuegoNumerosWebApuestas';
-INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'ca812d49-a66a-4793-897f-03c9277708fd', N'637ff714-ef56-4366-9aa7-440e8f3e314b', N'61639dd5-766d-4079-bff6-3bd9868b36ee', N'1245', 396.00);
-INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'c51eae7e-1e22-477d-9e5d-1020fac2545c', N'637ff714-ef56-4366-9aa7-440e8f3e314b', N'4a7574a5-dfcd-4dea-b904-602bc3825eb7', N'1245', 395.00);
-INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'cdbe949c-edb9-482a-a07b-1617a3d502e7', N'637ff714-ef56-4366-9aa7-440e8f3e314b', N'f7fd487f-9000-4c5e-bbd5-8d6a95709a42', N'1245', 395.00);
-INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'2f143394-5cf7-43e9-b858-2a0307aeb2f1', N'637ff714-ef56-4366-9aa7-440e8f3e314b', N'4a7574a5-dfcd-4dea-b904-602bc3825eb7', N'6325', 396.00);
-INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'45f03839-2ff8-4906-b0da-31339fc63f78', N'1801210a-a4c2-4a58-a828-4628dd50d355', N'61639dd5-766d-4079-bff6-3bd9868b36ee', N'6325', 125.00);
-INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'db371fb9-2efa-4064-b1cf-3c88ae6c841f', N'1801210a-a4c2-4a58-a828-4628dd50d355', N'f7fd487f-9000-4c5e-bbd5-8d6a95709a42', N'6325', 125.00);
-INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'1448ae63-915c-46e5-95ab-3e66e191d511', N'6761ecec-3c5d-416e-994e-a6d83c113eb7', N'f7fd487f-9000-4c5e-bbd5-8d6a95709a42', N'6363', 2800.00);
-INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'96778180-a090-416c-880d-462525f1c080', N'637ff714-ef56-4366-9aa7-440e8f3e314b', N'55250655-979d-4672-aa10-be287eba5600', N'6565', 396.00);
-INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'232703c0-e918-47be-bd20-4df4c87680dc', N'637ff714-ef56-4366-9aa7-440e8f3e314b', N'4a7574a5-dfcd-4dea-b904-602bc3825eb7', N'5214', 396.00);
-INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'f3232829-705c-4158-b6f1-55df281f4db7', N'ba93dcab-f041-4637-a734-31db6c97ac7c', N'61639dd5-766d-4079-bff6-3bd9868b36ee', N'6565', 5000.00);
-INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'a72a0371-1758-4884-8eec-59beee579c8e', N'637ff714-ef56-4366-9aa7-440e8f3e314b', N'61639dd5-766d-4079-bff6-3bd9868b36ee', N'5214', 396.00);
-INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'56b6b197-a62d-43ec-a8f0-6b72116f466a', N'637ff714-ef56-4366-9aa7-440e8f3e314b', N'f7fd487f-9000-4c5e-bbd5-8d6a95709a42', N'5214', 396.00);
-INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'b8e9f68d-dcb9-43d8-873e-6b7519ef9f32', N'637ff714-ef56-4366-9aa7-440e8f3e314b', N'f7fd487f-9000-4c5e-bbd5-8d6a95709a42', N'6565', 396.00);
-INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'c6dee736-83b2-4c5d-ba9c-6d05d03a3ed3', N'637ff714-ef56-4366-9aa7-440e8f3e314b', N'ab4b9b96-7487-4000-8402-2a1558cd0b60', N'6565', 396.00);
-INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'bd2b9ad7-8c1d-4d79-89ba-709cd53cbd56', N'1801210a-a4c2-4a58-a828-4628dd50d355', N'61639dd5-766d-4079-bff6-3bd9868b36ee', N'5214', 125.00);
-INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'9d47eb00-a39a-4b6b-bb6e-7bb3647c400f', N'637ff714-ef56-4366-9aa7-440e8f3e314b', N'f8192be8-00cb-43c9-8f5b-0a6af18fa586', N'5214', 396.00);
-INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'a718db5a-a787-4a7d-a52b-7d36063f8030', N'e30e6d7d-f67d-4ed8-9f7d-b6afecee2073', N'55250655-979d-4672-aa10-be287eba5600', N'6565', 5000.00);
-INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'86b27aa3-debe-4d92-8bda-85b0d8a5bbb7', N'637ff714-ef56-4366-9aa7-440e8f3e314b', N'f8192be8-00cb-43c9-8f5b-0a6af18fa586', N'6325', 396.00);
-INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'fd69dfe8-cad1-412a-98b6-87dd01503672', N'3fd9ab63-538f-40e5-b638-e27956bafae0', N'61639dd5-766d-4079-bff6-3bd9868b36ee', N'7777', 1000.00);
-INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'40ee2ccc-30e2-450c-b6bf-8d5675787266', N'ba93dcab-f041-4637-a734-31db6c97ac7c', N'55250655-979d-4672-aa10-be287eba5600', N'6565', 5000.00);
-INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'961d1e9a-5eca-4005-b361-957306bfd24d', N'637ff714-ef56-4366-9aa7-440e8f3e314b', N'ab4b9b96-7487-4000-8402-2a1558cd0b60', N'1245', 395.00);
-INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'faf5acba-1113-47e8-bed6-a2c075ad5ef1', N'637ff714-ef56-4366-9aa7-440e8f3e314b', N'61639dd5-766d-4079-bff6-3bd9868b36ee', N'6325', 396.00);
-INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'565fa1f6-409d-4aef-9bd8-ab8ac32b2b6f', N'637ff714-ef56-4366-9aa7-440e8f3e314b', N'61639dd5-766d-4079-bff6-3bd9868b36ee', N'6565', 396.00);
-INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'5e3e4974-3772-4158-b08c-b241368ed63b', N'3fd9ab63-538f-40e5-b638-e27956bafae0', N'55250655-979d-4672-aa10-be287eba5600', N'7777', 1000.00);
-INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'd5b0ab54-fb05-4938-8faf-b3cfd54f2762', N'74ef02b1-b591-4d9f-a84c-4a083fe72034', N'ab4b9b96-7487-4000-8402-2a1558cd0b60', N'2323', 6500.00);
-INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'db89b94e-b977-4c1a-950e-b47589256fc2', N'1801210a-a4c2-4a58-a828-4628dd50d355', N'f7fd487f-9000-4c5e-bbd5-8d6a95709a42', N'5214', 125.00);
-INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'023d9158-3a18-4af1-bfc1-b6cff98870cb', N'e30e6d7d-f67d-4ed8-9f7d-b6afecee2073', N'61639dd5-766d-4079-bff6-3bd9868b36ee', N'6565', 5000.00);
-INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'ffc0081e-dc9e-4bcc-841b-ba28c9f71d7f', N'637ff714-ef56-4366-9aa7-440e8f3e314b', N'f8192be8-00cb-43c9-8f5b-0a6af18fa586', N'1245', 395.00);
-INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'987d2d92-39ac-44fe-933b-bd85ba860119', N'637ff714-ef56-4366-9aa7-440e8f3e314b', N'4a7574a5-dfcd-4dea-b904-602bc3825eb7', N'6565', 396.00);
-INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'f9da4253-1635-4b3c-ade7-c3049e2e1f28', N'637ff714-ef56-4366-9aa7-440e8f3e314b', N'55250655-979d-4672-aa10-be287eba5600', N'6325', 396.00);
-INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'20762a3b-0ad2-4695-b363-cfdea033ffe9', N'637ff714-ef56-4366-9aa7-440e8f3e314b', N'ab4b9b96-7487-4000-8402-2a1558cd0b60', N'6325', 396.00);
-INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'7187c555-467c-43a3-bcdb-d053d1bcca09', N'637ff714-ef56-4366-9aa7-440e8f3e314b', N'ab4b9b96-7487-4000-8402-2a1558cd0b60', N'5214', 396.00);
-INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'74d8a9ec-192e-4434-bbcf-da2e0687d5be', N'637ff714-ef56-4366-9aa7-440e8f3e314b', N'f8192be8-00cb-43c9-8f5b-0a6af18fa586', N'6565', 396.00);
-INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'3493703e-22c7-43b7-8b63-e9de85e65dc8', N'637ff714-ef56-4366-9aa7-440e8f3e314b', N'55250655-979d-4672-aa10-be287eba5600', N'5214', 396.00);
-INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'14519312-d896-4e0c-aff4-efa384655abf', N'637ff714-ef56-4366-9aa7-440e8f3e314b', N'55250655-979d-4672-aa10-be287eba5600', N'1245', 396.00);
-INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'54f77088-697a-4db8-95fb-f3eb8075e817', N'637ff714-ef56-4366-9aa7-440e8f3e314b', N'f7fd487f-9000-4c5e-bbd5-8d6a95709a42', N'6325', 396.00);
+INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'4722d060-e4e2-497c-822f-165a86c104b8', N'df0c522d-a041-49b9-8b41-7d0646df2325', N'ab4b9b96-7487-4000-8402-2a1558cd0b60', N'2323', 4000.00);
+INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'690da81f-8325-4f79-821c-5bf0c7823698', N'df0c522d-a041-49b9-8b41-7d0646df2325', N'f8192be8-00cb-43c9-8f5b-0a6af18fa586', N'2323', 4000.00);
+INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'eb6005c7-435c-4e15-a250-cdc6511bf637', N'df0c522d-a041-49b9-8b41-7d0646df2325', N'61639dd5-766d-4079-bff6-3bd9868b36ee', N'2323', 4000.00);
+INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'c92945d4-0c35-40a3-bc44-d5ebc6bd67ad', N'df0c522d-a041-49b9-8b41-7d0646df2325', N'4a7574a5-dfcd-4dea-b904-602bc3825eb7', N'2323', 4000.00);
+INSERT INTO [manual].[RegistroJuegoNumerosWebApuestas] ([ApuestaId], [RegistroId], [LoteriaId], [Numero], [Valor]) VALUES (N'c754abb7-d7c6-4d90-8e00-eb1aa82ee39a', N'df0c522d-a041-49b9-8b41-7d0646df2325', N'55250655-979d-4672-aa10-be287eba5600', N'2323', 4000.00);
 GO
 PRINT N'Datos de manual.RegistrosJuego';
-INSERT INTO [manual].[RegistrosJuego] ([RegistroId], [UsuarioId], [FechaRegistro], [CodigoPublico], [IdempotencyKey], [NombreCompleto]) VALUES (N'dcd7fea9-fa00-4f99-b672-193c2d14cfa1', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-17T21:26:46.0711443', N'7300561', N'b98108ee984049f4ba45a6441f0f4acc', N'Vendedor Web');
-INSERT INTO [manual].[RegistrosJuego] ([RegistroId], [UsuarioId], [FechaRegistro], [CodigoPublico], [IdempotencyKey], [NombreCompleto]) VALUES (N'faf80000-c95f-445e-ba00-1e3b748018ba', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-17T18:18:17.9144603', N'7079920', N'37dd7852a73e47d6bcc0fe7aff0695e3', N'Vendedor Web');
-INSERT INTO [manual].[RegistrosJuego] ([RegistroId], [UsuarioId], [FechaRegistro], [CodigoPublico], [IdempotencyKey], [NombreCompleto]) VALUES (N'4f796f0f-95be-4859-81e1-2fc5f9713c93', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-17T13:03:17.0065155', N'9590306', N'191fac4b7e794066a91ea87d5492d158', N'Vendedor Web');
-INSERT INTO [manual].[RegistrosJuego] ([RegistroId], [UsuarioId], [FechaRegistro], [CodigoPublico], [IdempotencyKey], [NombreCompleto]) VALUES (N'dbcc9549-fd94-46e8-bd40-33721fc252f7', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-18T11:54:43.5107254', N'2963312', N'3843cb9b04c24beb9bf439ceb5d7ab2b', N'Vendedor Web');
-INSERT INTO [manual].[RegistrosJuego] ([RegistroId], [UsuarioId], [FechaRegistro], [CodigoPublico], [IdempotencyKey], [NombreCompleto]) VALUES (N'a60bf80d-e180-4f10-ad9d-379197c0d762', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-17T12:04:42.8977914', N'5537046', N'3adf6cdbbc1941968fd8a9b40fe60b81', N'Vendedor Web');
-INSERT INTO [manual].[RegistrosJuego] ([RegistroId], [UsuarioId], [FechaRegistro], [CodigoPublico], [IdempotencyKey], [NombreCompleto]) VALUES (N'ed1f0e2e-ba05-46c1-a7e5-3d59ee9ccba6', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-18T11:39:55.7446259', N'7604971', N'acb06320bc184accaec64b6b41bde718', N'Vendedor Web');
-INSERT INTO [manual].[RegistrosJuego] ([RegistroId], [UsuarioId], [FechaRegistro], [CodigoPublico], [IdempotencyKey], [NombreCompleto]) VALUES (N'e8e42cbb-0aaa-4fd1-ab51-5abbd3243b5f', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-18T09:29:07.7305656', N'5112671', N'654e7e0bd18c4727a44771335ce4851c', N'Vendedor Web');
-INSERT INTO [manual].[RegistrosJuego] ([RegistroId], [UsuarioId], [FechaRegistro], [CodigoPublico], [IdempotencyKey], [NombreCompleto]) VALUES (N'b87ecce0-6209-46ca-a078-85364af084af', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-18T09:30:57.3682191', N'5149088', N'a5a7c823c4cb4b7aaded5d02a6a907e4', N'Vendedor Web');
-INSERT INTO [manual].[RegistrosJuego] ([RegistroId], [UsuarioId], [FechaRegistro], [CodigoPublico], [IdempotencyKey], [NombreCompleto]) VALUES (N'f21d549d-7f39-4cff-8ddf-a17f751a4df9', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-18T12:36:53.2005362', N'1771352', N'3f08a45265ed4e139be6e93c86aa51d4', N'Vendedor Web');
-INSERT INTO [manual].[RegistrosJuego] ([RegistroId], [UsuarioId], [FechaRegistro], [CodigoPublico], [IdempotencyKey], [NombreCompleto]) VALUES (N'f17c96cc-46d2-4aad-8271-ad7b617dc8a1', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-18T12:24:24.0330438', N'3182150', N'd6a1fbace9b14222b5decc31018eed04', N'Vendedor Web');
-INSERT INTO [manual].[RegistrosJuego] ([RegistroId], [UsuarioId], [FechaRegistro], [CodigoPublico], [IdempotencyKey], [NombreCompleto]) VALUES (N'8e35bac7-9e70-4254-9085-bc2ba0d53c33', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-17T12:28:40.9747880', N'5336461', N'4f103c467c2243b49024a1319f77ffa0', N'Vendedor Web');
+INSERT INTO [manual].[RegistrosJuego] ([RegistroId], [UsuarioId], [FechaRegistro], [CodigoPublico], [IdempotencyKey], [NombreCompleto]) VALUES (N'c5e83719-7762-48b8-b5b1-3a70f3e295b8', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-21T20:19:03.0739284', N'9559996', N'850e8fc5b45c470eaf6484bd694d3ecc', N'Vendedor Web');
+INSERT INTO [manual].[RegistrosJuego] ([RegistroId], [UsuarioId], [FechaRegistro], [CodigoPublico], [IdempotencyKey], [NombreCompleto]) VALUES (N'72ce16ac-84ba-46a2-9e50-cc84a937ce54', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-21T18:19:30.1020892', N'0587016', N'cc841d6bb96f43f9a2aad023ca3d0441', N'Vendedor Web');
+INSERT INTO [manual].[RegistrosJuego] ([RegistroId], [UsuarioId], [FechaRegistro], [CodigoPublico], [IdempotencyKey], [NombreCompleto]) VALUES (N'0d6fc3e3-d655-4532-a3e4-f097b184f5f6', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-21T15:49:02.9937897', N'1694095', N'f294fd23291b4f9faaa562d2833ff2d1', N'Vendedor Web');
 GO
 PRINT N'Datos de manual.RegistrosJuegoNumerosWeb';
-INSERT INTO [manual].[RegistrosJuegoNumerosWeb] ([RegistroId], [UsuarioId], [NombreCompleto], [FechaRegistro], [CodigoPublico], [ValorJugado]) VALUES (N'ba93dcab-f041-4637-a734-31db6c97ac7c', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'Vendedor Web', N'2026-10-18T11:55:19.7951138', N'2101678', 10000.00);
-INSERT INTO [manual].[RegistrosJuegoNumerosWeb] ([RegistroId], [UsuarioId], [NombreCompleto], [FechaRegistro], [CodigoPublico], [ValorJugado]) VALUES (N'637ff714-ef56-4366-9aa7-440e8f3e314b', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'Vendedor Web', N'2026-10-18T12:21:49.1960323', N'1588849', 9500.00);
-INSERT INTO [manual].[RegistrosJuegoNumerosWeb] ([RegistroId], [UsuarioId], [NombreCompleto], [FechaRegistro], [CodigoPublico], [ValorJugado]) VALUES (N'1801210a-a4c2-4a58-a828-4628dd50d355', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'Vendedor Web', N'2026-10-18T12:24:24.1994755', N'4458976', 500.00);
-INSERT INTO [manual].[RegistrosJuegoNumerosWeb] ([RegistroId], [UsuarioId], [NombreCompleto], [FechaRegistro], [CodigoPublico], [ValorJugado]) VALUES (N'74ef02b1-b591-4d9f-a84c-4a083fe72034', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'Vendedor Web', N'2026-10-18T12:36:53.2473468', N'5671499', 6500.00);
-INSERT INTO [manual].[RegistrosJuegoNumerosWeb] ([RegistroId], [UsuarioId], [NombreCompleto], [FechaRegistro], [CodigoPublico], [ValorJugado]) VALUES (N'6761ecec-3c5d-416e-994e-a6d83c113eb7', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'Vendedor Web', N'2026-10-18T12:20:01.2326861', N'1943730', 2800.00);
-INSERT INTO [manual].[RegistrosJuegoNumerosWeb] ([RegistroId], [UsuarioId], [NombreCompleto], [FechaRegistro], [CodigoPublico], [ValorJugado]) VALUES (N'e30e6d7d-f67d-4ed8-9f7d-b6afecee2073', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'Vendedor Web', N'2026-10-18T12:03:09.9659312', N'5912728', 10000.00);
-INSERT INTO [manual].[RegistrosJuegoNumerosWeb] ([RegistroId], [UsuarioId], [NombreCompleto], [FechaRegistro], [CodigoPublico], [ValorJugado]) VALUES (N'3fd9ab63-538f-40e5-b638-e27956bafae0', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'Vendedor Web', N'2026-10-18T12:05:50.2227201', N'5853267', 2000.00);
+INSERT INTO [manual].[RegistrosJuegoNumerosWeb] ([RegistroId], [UsuarioId], [NombreCompleto], [FechaRegistro], [CodigoPublico], [ValorJugado]) VALUES (N'df0c522d-a041-49b9-8b41-7d0646df2325', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'Vendedor Web', N'2026-10-21T15:49:28.4903661', N'5148529', 20000.00);
 GO
 PRINT N'Datos de manual.RevisadaManualLineas';
-INSERT INTO [manual].[RevisadaManualLineas] ([LineaId], [OperacionId], [Origen], [OrigenId], [Valor], [FechaRegistro]) VALUES (N'51e4fd42-6e7f-409c-969f-0ddbf43caf1c', N'd2e75cf0-8c6e-4c8a-b8bd-778893f53f6e', N'Fila', N'2be65a9b-16f9-413f-ad43-4d19fea0233f', 15000.00, N'2026-10-18T09:29:07.7305656');
-INSERT INTO [manual].[RevisadaManualLineas] ([LineaId], [OperacionId], [Origen], [OrigenId], [Valor], [FechaRegistro]) VALUES (N'8fbf0207-4457-493a-b007-247310af7326', N'046f7e26-65a0-4ad2-b51d-a7df14a6f328', N'Fila', N'8246617a-d308-49c3-8e3c-8c681a244eeb', 10000.00, N'2026-10-18T11:39:55.7446259');
-INSERT INTO [manual].[RevisadaManualLineas] ([LineaId], [OperacionId], [Origen], [OrigenId], [Valor], [FechaRegistro]) VALUES (N'6a186c99-4f67-4548-9d5e-2e85cdc1b081', N'046f7e26-65a0-4ad2-b51d-a7df14a6f328', N'Numeros', N'961d1e9a-5eca-4005-b361-957306bfd24d', 395.00, N'2026-10-18T12:21:49.1960323');
-INSERT INTO [manual].[RevisadaManualLineas] ([LineaId], [OperacionId], [Origen], [OrigenId], [Valor], [FechaRegistro]) VALUES (N'1bc84a95-97b5-4fd0-a54d-8a44bfb3f798', N'd2e75cf0-8c6e-4c8a-b8bd-778893f53f6e', N'Fila', N'a3797b18-332d-4fe8-96e3-5431dd6dd892', 2600.00, N'2026-10-18T09:30:57.3682191');
-INSERT INTO [manual].[RevisadaManualLineas] ([LineaId], [OperacionId], [Origen], [OrigenId], [Valor], [FechaRegistro]) VALUES (N'e2c62695-8869-4684-9710-8d7752116514', N'be3e1c1b-c1d1-4a8c-8a1a-596b27a0367e', N'Fila', N'7f3716a9-5fad-46e8-adf0-05f6b985d4c8', 200.00, N'2026-10-18T12:24:24.0330438');
-INSERT INTO [manual].[RevisadaManualLineas] ([LineaId], [OperacionId], [Origen], [OrigenId], [Valor], [FechaRegistro]) VALUES (N'26f3e628-1b9a-4f9f-b89d-b9a7648a5f8b', N'be3e1c1b-c1d1-4a8c-8a1a-596b27a0367e', N'Numeros', N'023d9158-3a18-4af1-bfc1-b6cff98870cb', 5000.00, N'2026-10-18T12:03:09.9659312');
-INSERT INTO [manual].[RevisadaManualLineas] ([LineaId], [OperacionId], [Origen], [OrigenId], [Valor], [FechaRegistro]) VALUES (N'763d2129-9e6d-4148-a815-bb53211ce91d', N'be3e1c1b-c1d1-4a8c-8a1a-596b27a0367e', N'Numeros', N'f3232829-705c-4158-b6f1-55df281f4db7', 5000.00, N'2026-10-18T11:55:19.7951138');
-INSERT INTO [manual].[RevisadaManualLineas] ([LineaId], [OperacionId], [Origen], [OrigenId], [Valor], [FechaRegistro]) VALUES (N'b2177a8d-d59d-41f9-9209-fd61e90b1f62', N'be3e1c1b-c1d1-4a8c-8a1a-596b27a0367e', N'Numeros', N'565fa1f6-409d-4aef-9bd8-ab8ac32b2b6f', 396.00, N'2026-10-18T12:21:49.1960323');
+INSERT INTO [manual].[RevisadaManualLineas] ([LineaId], [OperacionId], [Origen], [OrigenId], [Valor], [FechaRegistro]) VALUES (N'357541ae-2eb9-4887-bcde-6f5d60317e5a', N'257fdaa4-c773-47db-b4e5-8b0d3e02804b', N'Fila', N'1e3bab94-3282-44b1-b45d-bee81bee0fd1', 989999.00, N'2026-10-21T15:49:02.9937897');
+INSERT INTO [manual].[RevisadaManualLineas] ([LineaId], [OperacionId], [Origen], [OrigenId], [Valor], [FechaRegistro]) VALUES (N'076dbd13-353b-4594-9e93-72b7f1ca692a', N'fbd640d4-919f-43c0-8215-2e61806184ba', N'Numeros', N'c754abb7-d7c6-4d90-8e00-eb1aa82ee39a', 4000.00, N'2026-10-21T15:49:28.4903661');
+INSERT INTO [manual].[RevisadaManualLineas] ([LineaId], [OperacionId], [Origen], [OrigenId], [Valor], [FechaRegistro]) VALUES (N'2f9d5a6a-9c1b-4852-8979-dd6f29d5f56c', N'5297a713-8fca-415b-b210-347c98fea2ea', N'Fila', N'24d07e54-62c0-42cc-9f15-93fa7f97ed77', 20000.00, N'2026-10-21T20:19:03.0739284');
+INSERT INTO [manual].[RevisadaManualLineas] ([LineaId], [OperacionId], [Origen], [OrigenId], [Valor], [FechaRegistro]) VALUES (N'd0bef77d-2f09-4b9f-abd5-e7feec87f82a', N'9e6d2346-82e1-4b62-a102-5e1dd424d948', N'Numeros', N'eb6005c7-435c-4e15-a250-cdc6511bf637', 4000.00, N'2026-10-21T15:49:28.4903661');
+INSERT INTO [manual].[RevisadaManualLineas] ([LineaId], [OperacionId], [Origen], [OrigenId], [Valor], [FechaRegistro]) VALUES (N'c18f0573-cf5d-4537-9546-fbbd01dd19e5', N'bda2a024-ef77-4ee5-95cb-e036e974cbaa', N'Fila', N'16181970-62e7-461f-b539-0a75068a8d70', 5000.00, N'2026-10-21T18:19:30.1020892');
 GO
 PRINT N'Datos de manual.RevisadaManualOperaciones';
-INSERT INTO [manual].[RevisadaManualOperaciones] ([OperacionId], [Estado], [LoteriaId], [Numero], [UsuarioId], [FechaOperacion], [Subtotal], [ComisionPorcentaje], [ComisionValor], [TotalConComision], [DescuentoPorcentaje], [DescuentoValor], [TotalPagar]) VALUES (N'be3e1c1b-c1d1-4a8c-8a1a-596b27a0367e', N'PorCubrir', N'61639dd5-766d-4079-bff6-3bd9868b36ee', N'6565', N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-18T12:54:36.9145598', 10596.00, NULL, NULL, NULL, NULL, NULL, NULL);
-INSERT INTO [manual].[RevisadaManualOperaciones] ([OperacionId], [Estado], [LoteriaId], [Numero], [UsuarioId], [FechaOperacion], [Subtotal], [ComisionPorcentaje], [ComisionValor], [TotalConComision], [DescuentoPorcentaje], [DescuentoValor], [TotalPagar]) VALUES (N'd2e75cf0-8c6e-4c8a-b8bd-778893f53f6e', N'Cubierto', N'61639dd5-766d-4079-bff6-3bd9868b36ee', N'1234', N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-18T11:33:45.8564571', 17600.00, 40.00, 7040.00, 24640.00, 20.00, 4928.00, 19712.00);
-INSERT INTO [manual].[RevisadaManualOperaciones] ([OperacionId], [Estado], [LoteriaId], [Numero], [UsuarioId], [FechaOperacion], [Subtotal], [ComisionPorcentaje], [ComisionValor], [TotalConComision], [DescuentoPorcentaje], [DescuentoValor], [TotalPagar]) VALUES (N'046f7e26-65a0-4ad2-b51d-a7df14a6f328', N'PorCubrir', N'ab4b9b96-7487-4000-8402-2a1558cd0b60', N'1245', N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-18T12:54:22.7447263', 10395.00, NULL, NULL, NULL, NULL, NULL, NULL);
+INSERT INTO [manual].[RevisadaManualOperaciones] ([OperacionId], [Estado], [LoteriaId], [Numero], [UsuarioId], [FechaOperacion], [Subtotal], [ComisionPorcentaje], [ComisionValor], [TotalConComision], [DescuentoPorcentaje], [DescuentoValor], [TotalPagar]) VALUES (N'fbd640d4-919f-43c0-8215-2e61806184ba', N'Cubierto', N'55250655-979d-4672-aa10-be287eba5600', N'2323', N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-21T18:09:04.4211588', 4000.00, 20.00, 800.00, 4800.00, 10.00, 480.00, 4320.00);
+INSERT INTO [manual].[RevisadaManualOperaciones] ([OperacionId], [Estado], [LoteriaId], [Numero], [UsuarioId], [FechaOperacion], [Subtotal], [ComisionPorcentaje], [ComisionValor], [TotalConComision], [DescuentoPorcentaje], [DescuentoValor], [TotalPagar]) VALUES (N'5297a713-8fca-415b-b210-347c98fea2ea', N'Cubierto', N'55250655-979d-4672-aa10-be287eba5600', N'2323', N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-21T20:24:58.6032101', 20000.00, 20.00, 4000.00, 24000.00, 10.00, 2400.00, 21600.00);
+INSERT INTO [manual].[RevisadaManualOperaciones] ([OperacionId], [Estado], [LoteriaId], [Numero], [UsuarioId], [FechaOperacion], [Subtotal], [ComisionPorcentaje], [ComisionValor], [TotalConComision], [DescuentoPorcentaje], [DescuentoValor], [TotalPagar]) VALUES (N'9e6d2346-82e1-4b62-a102-5e1dd424d948', N'Cubierto', N'61639dd5-766d-4079-bff6-3bd9868b36ee', N'2323', N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-21T16:04:16.8116845', 4000.00, 20.00, 800.00, 4800.00, 10.00, 480.00, 4320.00);
+INSERT INTO [manual].[RevisadaManualOperaciones] ([OperacionId], [Estado], [LoteriaId], [Numero], [UsuarioId], [FechaOperacion], [Subtotal], [ComisionPorcentaje], [ComisionValor], [TotalConComision], [DescuentoPorcentaje], [DescuentoValor], [TotalPagar]) VALUES (N'257fdaa4-c773-47db-b4e5-8b0d3e02804b', N'Cubierto', N'61639dd5-766d-4079-bff6-3bd9868b36ee', N'8786', N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-21T16:04:00.7583800', 989999.00, 20.00, 197999.80, 1187998.80, 10.00, 118799.88, 1069198.92);
+INSERT INTO [manual].[RevisadaManualOperaciones] ([OperacionId], [Estado], [LoteriaId], [Numero], [UsuarioId], [FechaOperacion], [Subtotal], [ComisionPorcentaje], [ComisionValor], [TotalConComision], [DescuentoPorcentaje], [DescuentoValor], [TotalPagar]) VALUES (N'bda2a024-ef77-4ee5-95cb-e036e974cbaa', N'Cubierto', N'55250655-979d-4672-aa10-be287eba5600', N'2323', N'173dddc6-f00a-4281-83c6-ccbb1896895b', N'2026-10-21T18:19:49.7991000', 5000.00, 20.00, 1000.00, 6000.00, 10.00, 600.00, 5400.00);
 GO
 PRINT N'Datos de manual.VentasJuegoNumeros';
 INSERT INTO [manual].[VentasJuegoNumeros] ([VentaId], [ValorJugado], [CantidadNumeros], [CantidadLoterias], [CantidadApuestas], [FechaRegistro]) VALUES (N'ef3e2590-78ac-4de9-b8c9-2258ca6129d1', 1000.00, 3, 1, 3, N'2026-10-16T23:22:57.0000000');
 INSERT INTO [manual].[VentasJuegoNumeros] ([VentaId], [ValorJugado], [CantidadNumeros], [CantidadLoterias], [CantidadApuestas], [FechaRegistro]) VALUES (N'764e2a28-30c0-40f1-9773-69f8124546da', 5000.00, 1, 1, 1, N'2026-10-17T21:37:19.0000000');
 INSERT INTO [manual].[VentasJuegoNumeros] ([VentaId], [ValorJugado], [CantidadNumeros], [CantidadLoterias], [CantidadApuestas], [FechaRegistro]) VALUES (N'2967bd4c-d1a8-4f71-88c1-73fbc2fb79e3', 10000.00, 2, 2, 4, N'2026-10-16T23:10:03.0000000');
 INSERT INTO [manual].[VentasJuegoNumeros] ([VentaId], [ValorJugado], [CantidadNumeros], [CantidadLoterias], [CantidadApuestas], [FechaRegistro]) VALUES (N'0fdb6023-1780-4a86-99e0-b4c235960382', 3001.00, 2, 2, 4, N'2026-10-16T22:48:02.0000000');
+GO
+PRINT N'Datos de manual.VentasRegistradasWeb';
+INSERT INTO [manual].[VentasRegistradasWeb] ([VentaRegistradaWebId], [VendedorId], [FechaVenta], [Valor], [FechaRegistro]) VALUES (N'1442bc0e-aa8b-4cf2-8b34-5e5d023f55f4', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-22', 90000.00, N'2026-10-22T22:33:25.3478208');
+INSERT INTO [manual].[VentasRegistradasWeb] ([VentaRegistradaWebId], [VendedorId], [FechaVenta], [Valor], [FechaRegistro]) VALUES (N'2f8ac666-3aaa-47c1-bb9c-6385924c1c04', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'2026-10-22', 100000.00, N'2026-10-22T22:22:52.4388821');
 GO
 PRINT N'Datos de recaudo.AsignacionesGrupo';
 INSERT INTO [recaudo].[AsignacionesGrupo] ([AsignacionId], [RecaudadorId], [GrupoId], [Porcentaje], [Estado], [FechaCreacion], [FechaModificacion]) VALUES (N'37308203-dd93-4596-b4d8-0e6552b24d5d', N'38cfc259-5483-46e9-9acb-52be691bf1dc', N'5893f9c5-3950-42c8-bf75-275063f914c4', 15, N'Retirada', N'2026-10-03T19:00:24.0898461', N'2026-10-15T15:41:25.7970247');
@@ -7989,6 +8575,20 @@ INSERT INTO [recaudo].[TirillasCobro] ([TirillaId], [PagoId], [Consecutivo], [Re
 INSERT INTO [recaudo].[TirillasCobro] ([TirillaId], [PagoId], [Consecutivo], [RecaudadorNombre], [VendedorNombre], [FechaHora], [ValorRecibido], [SaldoRestante]) VALUES (N'436d3cb3-a0a6-4372-9410-b20c5faf681f', N'4158e5b9-4fe3-4c54-a493-9f582f83ee76', 8, N'rafael', N'laura', N'2026-10-03T23:15:04.9755459', 3000.00, 6500.00);
 INSERT INTO [recaudo].[TirillasCobro] ([TirillaId], [PagoId], [Consecutivo], [RecaudadorNombre], [VendedorNombre], [FechaHora], [ValorRecibido], [SaldoRestante]) VALUES (N'6c51e82d-954c-423e-b553-bfa00c85a990', N'fe6f4383-7674-4f8b-94b7-7c338236c28d', 7, N'rafael', N'laura', N'2026-10-03T23:13:02.9823404', 3000.00, 9500.00);
 SET IDENTITY_INSERT [recaudo].[TirillasCobro] OFF;
+GO
+PRINT N'Datos de utilidades.Gastos';
+INSERT INTO [utilidades].[Gastos] ([GastoId], [TipoGastoId], [FechaGasto], [Valor], [Observacion], [UsuarioRegistroId], [Estado], [ClaveIdempotencia], [FechaCreacion], [FechaActualizacion], [UsuarioActualizacionId]) VALUES (N'30dbe3a9-67da-44a5-b6a0-b030878b652b', N'a1000001-0000-4000-8000-000000000002', N'2026-10-18', 20000.00, N'almuerzo comunitario', N'ba2a8371-44b1-4b2e-86df-3464a6546ea7', N'Activo', N'88b5c99d5c5042d8b7ed6ec83e4375c0', N'2026-10-18T23:11:17.3538088', NULL, NULL);
+GO
+PRINT N'Datos de utilidades.TiposGasto';
+INSERT INTO [utilidades].[TiposGasto] ([TipoGastoId], [Nombre], [Descripcion], [Activo], [RequiereObservacion], [FechaCreacion], [UsuarioCreacionId], [FechaActualizacion], [UsuarioActualizacionId]) VALUES (N'a1000001-0000-4000-8000-000000000001', N'Transporte', NULL, 1, 1, N'2026-10-18T21:52:53.2662475', N'00000000-0000-0000-0000-000000000000', NULL, NULL);
+INSERT INTO [utilidades].[TiposGasto] ([TipoGastoId], [Nombre], [Descripcion], [Activo], [RequiereObservacion], [FechaCreacion], [UsuarioCreacionId], [FechaActualizacion], [UsuarioActualizacionId]) VALUES (N'a1000001-0000-4000-8000-000000000002', N'Alimentación', NULL, 1, 1, N'2026-10-18T21:52:53.2662475', N'00000000-0000-0000-0000-000000000000', NULL, NULL);
+INSERT INTO [utilidades].[TiposGasto] ([TipoGastoId], [Nombre], [Descripcion], [Activo], [RequiereObservacion], [FechaCreacion], [UsuarioCreacionId], [FechaActualizacion], [UsuarioActualizacionId]) VALUES (N'a1000001-0000-4000-8000-000000000003', N'Entrega de premio', NULL, 1, 1, N'2026-10-18T21:52:53.2662475', N'00000000-0000-0000-0000-000000000000', NULL, NULL);
+INSERT INTO [utilidades].[TiposGasto] ([TipoGastoId], [Nombre], [Descripcion], [Activo], [RequiereObservacion], [FechaCreacion], [UsuarioCreacionId], [FechaActualizacion], [UsuarioActualizacionId]) VALUES (N'a1000001-0000-4000-8000-000000000004', N'Servicios', NULL, 1, 1, N'2026-10-18T21:52:53.2662475', N'00000000-0000-0000-0000-000000000000', NULL, NULL);
+INSERT INTO [utilidades].[TiposGasto] ([TipoGastoId], [Nombre], [Descripcion], [Activo], [RequiereObservacion], [FechaCreacion], [UsuarioCreacionId], [FechaActualizacion], [UsuarioActualizacionId]) VALUES (N'a1000001-0000-4000-8000-000000000005', N'Mensajería', NULL, 1, 1, N'2026-10-18T21:52:53.2662475', N'00000000-0000-0000-0000-000000000000', NULL, NULL);
+INSERT INTO [utilidades].[TiposGasto] ([TipoGastoId], [Nombre], [Descripcion], [Activo], [RequiereObservacion], [FechaCreacion], [UsuarioCreacionId], [FechaActualizacion], [UsuarioActualizacionId]) VALUES (N'a1000001-0000-4000-8000-000000000006', N'Materiales', NULL, 1, 1, N'2026-10-18T21:52:53.2662475', N'00000000-0000-0000-0000-000000000000', NULL, NULL);
+INSERT INTO [utilidades].[TiposGasto] ([TipoGastoId], [Nombre], [Descripcion], [Activo], [RequiereObservacion], [FechaCreacion], [UsuarioCreacionId], [FechaActualizacion], [UsuarioActualizacionId]) VALUES (N'a1000001-0000-4000-8000-000000000007', N'Mantenimiento', NULL, 1, 1, N'2026-10-18T21:52:53.2662475', N'00000000-0000-0000-0000-000000000000', NULL, NULL);
+INSERT INTO [utilidades].[TiposGasto] ([TipoGastoId], [Nombre], [Descripcion], [Activo], [RequiereObservacion], [FechaCreacion], [UsuarioCreacionId], [FechaActualizacion], [UsuarioActualizacionId]) VALUES (N'a1000001-0000-4000-8000-000000000008', N'Comisiones y gastos bancarios', NULL, 1, 1, N'2026-10-18T21:52:53.2662475', N'00000000-0000-0000-0000-000000000000', NULL, NULL);
+INSERT INTO [utilidades].[TiposGasto] ([TipoGastoId], [Nombre], [Descripcion], [Activo], [RequiereObservacion], [FechaCreacion], [UsuarioCreacionId], [FechaActualizacion], [UsuarioActualizacionId]) VALUES (N'a1000001-0000-4000-8000-000000000009', N'Otros', NULL, 1, 1, N'2026-10-18T21:52:53.2662475', N'00000000-0000-0000-0000-000000000000', NULL, NULL);
 GO
 
 EXEC sp_MSforeachtable 'ALTER TABLE ? WITH CHECK CHECK CONSTRAINT ALL';

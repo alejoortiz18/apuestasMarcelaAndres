@@ -1739,37 +1739,27 @@ a.kpi-sort { text-decoration: none; }
   border-radius: 12px;
   background: #fffdf8;
 }
-.version-progreso { margin: 4px 0 14px; }
-.version-progreso-texto { margin: 0 0 8px; font-size: 13px; }
-.version-progreso.is-error .version-progreso-texto { color: var(--red); }
-.version-progreso.is-ok .version-progreso-texto { color: var(--green); }
-.version-progreso-pista {
-  height: 10px;
-  border-radius: 8px;
-  background: #f4ead0;
-  overflow: hidden;
+.almacen-apk-subtitulo {
+  margin: 18px 0 10px;
+  font-size: 15px;
 }
-.version-progreso-barra {
-  display: block;
-  height: 100%;
-  width: 0;
-  background: var(--green);
-  border-radius: 8px;
+.almacen-apk-llave {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 16px;
+  margin: 0 0 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fffdf8;
 }
-.version-progreso.is-guardando .version-progreso-barra {
-  width: 35%;
-  animation: version-progreso-avance 1.2s ease-in-out infinite;
-}
-@keyframes version-progreso-avance {
-  0% { transform: translateX(-120%); }
-  100% { transform: translateX(320%); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .version-progreso.is-guardando .version-progreso-barra {
-    animation: none;
-    width: 100%;
-    opacity: 0.55;
-  }
+.almacen-apk-llave dt { color: var(--muted); font-size: 11px; font-weight: 700; }
+.almacen-apk-llave dd { margin: 2px 0 0; }
+.almacen-apk-huella { grid-column: 1 / -1; }
+.almacen-apk-huella code { font-size: 12px; overflow-wrap: anywhere; }
+.almacen-apk-sha { color: var(--muted); font-size: 12px; }
+@media (max-width: 640px) {
+  .almacen-apk-llave { grid-template-columns: 1fr; }
 }
 .config-grid {
   display: grid;

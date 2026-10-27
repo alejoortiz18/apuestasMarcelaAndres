@@ -377,6 +377,9 @@ public static class PdaTexts
     public const string ActualizacionPreparando = "Preparando la descarga";
     public const string ActualizacionDescargando = "Descargando la actualización: {0}%";
     public const string ActualizacionInstalando = "Abriendo el instalador";
+    public const string ActualizacionArchivoAlterado = "La actualización descargada no coincide con la publicada. Se borró y no se instaló; inténtalo de nuevo.";
+    public const string ActualizacionFirmaDistinta = "La actualización no está firmada con la llave oficial de New Rich. Se borró y no se instaló; avisa al administrador.";
+    public const string ActualizacionVersionNoCorresponde = "La actualización descargada no corresponde a la versión publicada. Se borró y no se instaló; avisa al administrador.";
     public const string Recaudo = "Recaudo";
     public const string Recaudar = "Recaudar";
     public const string RecaudarAyuda = "Cobra a los vendedores de tus grupos.";

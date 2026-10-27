@@ -1677,55 +1677,6 @@ a[data-offline-associate][hidden] { display: none; }
 .kpi-table-wrap { overflow: auto; }
 .metric-grid-2 { grid-template-columns: 1fr 1fr; }
 .config-form { margin-bottom: 22px; }
-.version-aplicacion-lista {
-  list-style: none;
-  margin: 0 0 16px;
-  padding: 0;
-  display: grid;
-  gap: 10px;
-}
-.version-aplicacion-lista li {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 14px;
-  padding: 12px 14px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: #fffdf8;
-}
-.version-progreso { margin: 4px 0 14px; }
-.version-progreso-texto { margin: 0 0 8px; font-size: 13px; }
-.version-progreso.is-error .version-progreso-texto { color: var(--red); }
-.version-progreso.is-ok .version-progreso-texto { color: var(--green); }
-.version-progreso-pista {
-  height: 10px;
-  border-radius: 8px;
-  background: #f4ead0;
-  overflow: hidden;
-}
-.version-progreso-barra {
-  display: block;
-  height: 100%;
-  width: 0;
-  background: var(--green);
-  border-radius: 8px;
-}
-.version-progreso.is-guardando .version-progreso-barra {
-  width: 35%;
-  animation: version-progreso-avance 1.2s ease-in-out infinite;
-}
-@keyframes version-progreso-avance {
-  0% { transform: translateX(-120%); }
-  100% { transform: translateX(320%); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .version-progreso.is-guardando .version-progreso-barra {
-    animation: none;
-    width: 100%;
-    opacity: 0.55;
-  }
-}
 .config-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

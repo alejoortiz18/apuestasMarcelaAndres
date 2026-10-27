@@ -38,6 +38,42 @@ public static class InstaladorApk
 #endif
     }
 
+    /// <summary>Huella SHA-256 del certificado y versionCode del APK descargado; null si Android no los puede leer.</summary>
+    public static (string? Huella, long? NumeroCompilacion) LeerFirma(string ruta)
+    {
+#if ANDROID
+        var paquetes = (Platform.CurrentActivity ?? global::Android.App.Application.Context)?.PackageManager;
+        if (paquetes is null)
+        {
+            return (null, null);
+        }
+
+        byte[]? certificado;
+        long? compilacion;
+        if (OperatingSystem.IsAndroidVersionAtLeast(28))
+        {
+            var info = paquetes.GetPackageArchiveInfo(ruta, global::Android.Content.PM.PackageInfoFlags.SigningCertificates);
+            certificado = info?.SigningInfo?.GetApkContentsSigners()?.FirstOrDefault()?.ToByteArray();
+            compilacion = info?.LongVersionCode;
+        }
+        else
+        {
+#pragma warning disable CA1422 // En Android 27 o menor solo existe la lista de firmas.
+            var info = paquetes.GetPackageArchiveInfo(ruta, global::Android.Content.PM.PackageInfoFlags.Signatures);
+            certificado = info?.Signatures?.FirstOrDefault()?.ToByteArray();
+            compilacion = info?.VersionCode;
+#pragma warning restore CA1422
+        }
+
+        var huella = certificado is null
+            ? null
+            : Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(certificado));
+        return (huella, compilacion);
+#else
+        return (null, null);
+#endif
+    }
+
     public static void Abrir(string ruta)
     {
 #if ANDROID

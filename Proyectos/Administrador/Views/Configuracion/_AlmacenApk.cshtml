@@ -1,0 +1,142 @@
+@using System.Globalization
+@using NewRich.Admin.Constants
+@using NewRich.Admin.Models
+@using NewRich.Constants
+@using NewRich.Domain.Services
+@model NewRich.Admin.Models.AlmacenApkViewModel
+@{
+    var cultura = CultureInfo.GetCultureInfo("es-CO");
+    string Fecha(DateTime utc) => ZonaHorariaColombia.ALocal(utc).ToString("dd/MM/yyyy hh:mm tt", cultura);
+    string Huella(string hex) => string.Join(":", Enumerable.Range(0, hex.Length / 2).Select(i => hex.Substring(i * 2, 2)));
+    string Tamano(long bytes) => string.Format(UiTexts.AlmacenApkMegas, (bytes / 1024m / 1024m).ToString("0.0", cultura));
+    string Accion(string accion) => accion switch
+    {
+        AccionesApkStore.LlaveCrear => UiTexts.AlmacenApkAccionCrear,
+        AccionesApkStore.LlaveDescargar => UiTexts.AlmacenApkAccionDescargar,
+        AccionesApkStore.VersionPublicar => UiTexts.AlmacenApkAccionPublicar,
+        AccionesApkStore.Rechazada => UiTexts.AlmacenApkAccionRechazada,
+        _ => accion
+    };
+    var conservar = Context.Request.Query.Where(q => q.Key is not ("pageAuditoria" or "pageSizeAuditoria"));
+}
+<section class="panel almacen-apk" id="almacen-apk" aria-labelledby="almacenApkTitulo">
+    <div class="panel-head">
+        <div>
+            <h2 id="almacenApkTitulo">@UiTexts.AlmacenApkTitulo</h2>
+            <div class="panel-sub">@UiTexts.AlmacenApkSub</div>
+        </div>
+    </div>
+
+    <h3 class="almacen-apk-subtitulo">@UiTexts.AlmacenApkLlave</h3>
+    @if (Model.Llave is { } llave)
+    {
+        <dl class="almacen-apk-llave">
+            <div>
+                <dt>@UiTexts.AlmacenApkAlias</dt>
+                <dd>@llave.Alias</dd>
+            </div>
+            <div>
+                <dt>@UiTexts.AlmacenApkCreada</dt>
+                <dd>@Fecha(llave.FechaCreacionUtc)</dd>
+            </div>
+            <div class="almacen-apk-huella">
+                <dt>@UiTexts.AlmacenApkHuella</dt>
+                <dd><code>@Huella(llave.Huella)</code></dd>
+            </div>
+        </dl>
+    }
+    else
+    {
+        <div class="empty">@UiTexts.AlmacenApkSinLlave</div>
+    }
+
+    <h3 class="almacen-apk-subtitulo">@UiTexts.AlmacenApkVersiones</h3>
+    @if (Model.Versiones.Count == 0)
+    {
+        <div class="empty">@UiTexts.AlmacenApkSinVersiones</div>
+    }
+    else
+    {
+        <ul class="version-aplicacion-lista">
+            @for (var i = 0; i < Model.Versiones.Count; i++)
+            {
+                var version = Model.Versiones[i];
+                <li>
+                    <strong>@version.NombreVersion</strong>
+                    @if (i == 0)
+                    {
+                        <span class="pill ok">@UiTexts.VersionVigente</span>
+                    }
+                    <span>@UiTexts.Compilacion @version.NumeroCompilacion</span>
+                    <span>@Tamano(version.TamanoBytes)</span>
+                    <span>@UiTexts.PublicadaEl @Fecha(version.FechaPublicacionUtc)</span>
+                    <span class="almacen-apk-sha" title="@UiTexts.AlmacenApkSha @version.Sha256">@UiTexts.AlmacenApkSha @version.Sha256[..12]…</span>
+                </li>
+            }
+        </ul>
+    }
+
+    <h3 class="almacen-apk-subtitulo" id="almacenApkAuditoria">@UiTexts.AlmacenApkAuditoria</h3>
+    <p class="panel-sub">@UiTexts.AlmacenApkAuditoriaSub</p>
+    @if (Model.Auditoria.TotalCount == 0)
+    {
+        <div class="empty">@UiTexts.AlmacenApkSinAuditoria</div>
+    }
+    else
+    {
+        <form class="toolbar" method="get" data-submit-on-change>
+            @foreach (var q in conservar)
+            {
+                <input type="hidden" name="@q.Key" value="@q.Value" />
+            }
+            <div class="field">
+                <label for="pageSizeAuditoria">@UiTexts.FilasPorPagina</label>
+                <select id="pageSizeAuditoria" name="pageSizeAuditoria">
+                    @foreach (var size in PagingHelper.PageSizes)
+                    {
+                        <option value="@size" selected="@(Model.Auditoria.PageSize == size)">@size</option>
+                    }
+                </select>
+            </div>
+        </form>
+        <div class="table-wrap">
+            <table aria-labelledby="almacenApkAuditoria">
+                <thead>
+                <tr>
+                    <th scope="col">@UiTexts.Fecha</th>
+                    <th scope="col">@UiTexts.Usuario</th>
+                    <th scope="col">@UiTexts.AlmacenApkColumnaAccion</th>
+                    <th scope="col">@UiTexts.AlmacenApkColumnaDetalle</th>
+                    <th scope="col">@UiTexts.AlmacenApkColumnaIp</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var registro in Model.Auditoria.Items)
+                {
+                    <tr tabindex="0">
+                        <td>@Fecha(registro.FechaUtc)</td>
+                        <td>@registro.Usuario</td>
+                        <td>
+                            @if (registro.Accion == AccionesApkStore.Rechazada)
+                            {
+                                <span class="pill bad">@Accion(registro.Accion)</span>
+                            }
+                            else
+                            {
+                                @Accion(registro.Accion)
+                            }
+                        </td>
+                        <td>@(registro.Accion == AccionesApkStore.Rechazada && registro.Detalle is { } intento ? Accion(intento) : registro.Detalle ?? "-")</td>
+                        <td>@(registro.Ip ?? "-")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        ViewData["PagerPageKey"] = "pageAuditoria";
+        ViewData["PagerPageSizeKey"] = "pageSizeAuditoria";
+        <partial name="_Pager" model="Model.Auditoria" />
+        ViewData["PagerPageKey"] = "page";
+        ViewData["PagerPageSizeKey"] = "pageSize";
+    }
+</section>

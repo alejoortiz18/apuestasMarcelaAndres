@@ -4,7 +4,6 @@ using NewRich.Admin.Models;
 using NewRich.Admin.Services;
 using NewRich.Application.Contracts.Configuracion;
 using NewRich.Application.Contracts.Loterias;
-using NewRich.Application.Contracts.Versiones;
 using NewRich.Application.Services;
 using NewRich.Constants;
 using NewRich.Constants.Messages;
@@ -33,21 +32,27 @@ public sealed class ConfiguracionController : AdminControllerBase
         int pageSize = 5,
         int pageNumeros = 1,
         int pageSizeNumeros = 5,
+        int pageAuditoria = 1,
+        int pageSizeAuditoria = 5,
         CancellationToken cancellationToken = default)
     {
         SetNav("configuracion", UiTexts.NavConfiguracion);
         var configTask = _api.ObtenerConfiguracionOperativaAsync(cancellationToken);
         var loteriasTask = _api.ListarLoteriasAsync(cancellationToken);
         var numerosTask = _api.ListarNumerosRestringidosAsync(cancellationToken);
-        var versionesTask = _api.ListarVersionesAplicacionAsync(cancellationToken);
-        await Task.WhenAll(configTask, loteriasTask, numerosTask, versionesTask);
+        await Task.WhenAll(configTask, loteriasTask, numerosTask);
         var unauthorized = RedirectIfUnauthorized(configTask.Result)
             ?? RedirectIfUnauthorized(loteriasTask.Result)
-            ?? RedirectIfUnauthorized(numerosTask.Result)
-            ?? RedirectIfUnauthorized(versionesTask.Result);
+            ?? RedirectIfUnauthorized(numerosTask.Result);
         if (unauthorized is not null)
         {
             return unauthorized;
+        }
+
+        var almacen = await AlmacenApkAsync(pageAuditoria, pageSizeAuditoria, cancellationToken);
+        if (almacen.Negado is not null)
+        {
+            return almacen.Negado;
         }
 
         IReadOnlyList<LoteriaResponse> todas = loteriasTask.Result.Data ?? [];
@@ -71,8 +76,7 @@ public sealed class ConfiguracionController : AdminControllerBase
             DiasVenta = MapDias(todas),
             Topes = todas.OrderBy(l => l.Nombre).ToList(),
             PaginaNumeros = PagingHelper.Paginate(numerosTask.Result.Data ?? [], pageNumeros, pageSizeNumeros),
-            Versiones = versionesTask.Result.Success ? versionesTask.Result.Data ?? [] : [],
-            AvisoVersiones = versionesTask.Result.Success ? null : versionesTask.Result.Message
+            AlmacenApk = almacen.Vista
         });
     }
 
@@ -134,40 +138,6 @@ public sealed class ConfiguracionController : AdminControllerBase
 
         SetFlash(SuccessMessages.RegistroActualizado);
         _inactividad.Olvidar();
-        return RedirectToAction(nameof(Index));
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    [RequestSizeLimit(VersionAplicacionLimites.TamanoMaximoBytes)]
-    [RequestFormLimits(MultipartBodyLengthLimit = VersionAplicacionLimites.TamanoMaximoBytes)]
-    public async Task<IActionResult> PublicarVersion(
-        IFormFile? archivo,
-        string? nombreVersion,
-        int numeroCompilacion,
-        CancellationToken cancellationToken)
-    {
-        SetNav("configuracion", UiTexts.NavConfiguracion);
-        if (archivo is null || archivo.Length == 0)
-        {
-            SetFlash(VersionAplicacionMessages.ArchivoVacio, false);
-            return RedirectToAction(nameof(Index));
-        }
-
-        await using var contenido = archivo.OpenReadStream();
-        var result = await _api.PublicarVersionAplicacionAsync(
-            contenido,
-            archivo.FileName,
-            nombreVersion ?? string.Empty,
-            numeroCompilacion,
-            cancellationToken);
-        var denied = RedirectIfUnauthorized(result);
-        if (denied is not null)
-        {
-            return denied;
-        }
-
-        SetFlash(result.Message, result.Success);
         return RedirectToAction(nameof(Index));
     }
 
@@ -523,11 +493,10 @@ public sealed class ConfiguracionController : AdminControllerBase
             return unauthorized;
         }
 
-        var versiones = await _api.ListarVersionesAplicacionAsync(cancellationToken);
-        unauthorized = RedirectIfUnauthorized(versiones);
-        if (unauthorized is not null)
+        var almacen = await AlmacenApkAsync(1, 5, cancellationToken);
+        if (almacen.Negado is not null)
         {
-            return unauthorized;
+            return almacen.Negado;
         }
 
         return View("Index", new ConfiguracionIndexViewModel
@@ -537,9 +506,44 @@ public sealed class ConfiguracionController : AdminControllerBase
             DiasVenta = MapDias(loterias.Data ?? []),
             Topes = (loterias.Data ?? []).OrderBy(l => l.Nombre).ToList(),
             PaginaNumeros = PagingHelper.Paginate(numeros.Data ?? [], 1, 5),
-            Versiones = versiones.Success ? versiones.Data ?? [] : [],
-            AvisoVersiones = versiones.Success ? null : versiones.Message
+            AlmacenApk = almacen.Vista
         });
+    }
+
+    private async Task<(AlmacenApkViewModel? Vista, IActionResult? Negado)> AlmacenApkAsync(
+        int paginaAuditoria,
+        int filasAuditoria,
+        CancellationToken cancellationToken)
+    {
+        if (!User.IsInRole(nameof(RolUsuario.Super)))
+        {
+            return (null, null);
+        }
+
+        var llave = await _api.HuellaLlaveFirmaAsync(cancellationToken);
+        var versiones = await _api.ListarVersionesApkAsync(cancellationToken);
+        var auditoria = await _api.ListarAuditoriaApkAsync(cancellationToken);
+        var negado = RedirectIfUnauthorized(llave) ?? RedirectIfUnauthorized(versiones) ?? RedirectIfUnauthorized(auditoria);
+        if (negado is not null)
+        {
+            return (null, negado);
+        }
+
+        // Sin llave creada el API responde 404: no es un error, la vista muestra que falta crearla.
+        var aviso = new[]
+        {
+            llave.Success || llave.StatusCode == 404 ? null : llave.Message,
+            versiones.Success ? null : versiones.Message,
+            auditoria.Success ? null : auditoria.Message
+        }.FirstOrDefault(m => m is not null);
+
+        return (new AlmacenApkViewModel
+        {
+            Llave = llave.Success ? llave.Data : null,
+            Versiones = versiones.Data ?? [],
+            Auditoria = PagingHelper.Paginate(auditoria.Data ?? [], paginaAuditoria, filasAuditoria),
+            Aviso = aviso
+        }, null);
     }
 
     private static List<DiasLoteriaFormItem> MapDias(IReadOnlyList<LoteriaResponse> loterias) =>

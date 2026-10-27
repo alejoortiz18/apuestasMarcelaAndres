@@ -37,7 +37,6 @@ public interface INewRichDbContext
     DbSet<EntregaGanador> EntregasGanadores { get; }
     DbSet<EvidenciaGanador> EvidenciasGanador { get; }
     DbSet<LlaveAdministrador> LlavesAdministrador { get; }
-    DbSet<VersionAplicacion> VersionesAplicacion { get; }
     DbSet<AuditoriaRetencion> AuditoriasRetencion { get; }
     DbSet<AsignacionGrupoRecaudo> AsignacionesGrupoRecaudo { get; }
     DbSet<PorcentajeGrupoRecaudo> PorcentajesGrupoRecaudo { get; }
@@ -57,6 +56,9 @@ public interface INewRichDbContext
     DbSet<AvisoChat> AvisosChat { get; }
     DbSet<VentaRegistradaWeb> VentasRegistradasWeb { get; }
     DbSet<PremioEntregadoWeb> PremiosEntregadosWeb { get; }
+    DbSet<LlaveFirmaApk> LlavesFirmaApk { get; }
+    DbSet<VersionApk> VersionesApk { get; }
+    DbSet<AuditoriaApk> AuditoriaApk { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     Task ExecuteInTransactionAsync(Func<CancellationToken, Task> action, CancellationToken cancellationToken = default);
@@ -73,6 +75,7 @@ public interface INewRichDbContext
     Task AsegurarEsquemaAvisosChatAsync(CancellationToken cancellationToken = default);
     Task AsegurarEsquemaVentasRegistradasWebAsync(CancellationToken cancellationToken = default);
     Task AsegurarEsquemaPremiosEntregadosWebAsync(CancellationToken cancellationToken = default);
+    Task AsegurarEsquemaApkStoreAsync(CancellationToken cancellationToken = default);
     Task<bool> IntentarBloquearRetencionAsync(CancellationToken cancellationToken = default);
     void DescartarCambios();
 }

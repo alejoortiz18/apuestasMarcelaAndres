@@ -433,20 +433,20 @@ public sealed class AuthServiceTests
     }
 
     [Fact]
-    public async Task Confirmar_publicacion_de_apk_sigue_valida_despues_de_dos_minutos()
+    public async Task Confirmar_accion_caduca_a_los_dos_minutos()
     {
         var (sut, _, usuario, store, reloj) = await CreateSutConAdminAsync("Admin123");
 
         var result = await sut.ConfirmarAccionAdministrativaAsync(usuario.UsuarioId, new ConfirmarAccionRequest
         {
             Password = "Admin123",
-            Accion = AccionesProtegidas.ConfiguracionVersionAplicacion
+            Accion = AccionesProtegidas.ConfiguracionGuardar
         }, CancellationToken.None);
 
-        reloj.Avanzar(TimeSpan.FromMinutes(3));
+        reloj.Avanzar(ConfirmacionAccion.Vigencia + TimeSpan.FromSeconds(1));
 
         result.IsSuccess.Should().BeTrue();
-        store.Consumir(result.Data!.Token, usuario.UsuarioId, AccionesProtegidas.ConfiguracionVersionAplicacion).Should().BeTrue();
+        store.Consumir(result.Data!.Token, usuario.UsuarioId, AccionesProtegidas.ConfiguracionGuardar).Should().BeFalse();
     }
 
     [Fact]

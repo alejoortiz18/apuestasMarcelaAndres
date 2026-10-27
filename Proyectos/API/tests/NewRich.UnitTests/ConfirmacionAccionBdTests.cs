@@ -10,7 +10,7 @@ namespace NewRich.UnitTests;
 public sealed class ConfirmacionAccionBdTests
 {
     [Fact]
-    public async Task Un_token_emitido_en_otra_instancia_sirve_para_publicar_el_apk()
+    public async Task Un_token_emitido_en_otra_instancia_sirve_una_vez()
     {
         var reloj = new Reloj(new DateTime(2026, 9, 29, 23, 0, 0, DateTimeKind.Utc));
         using var proveedor = Proveedor(reloj);
@@ -18,11 +18,11 @@ public sealed class ConfirmacionAccionBdTests
         var receptor = NuevaInstancia(proveedor, reloj);
         var usuarioId = Guid.NewGuid();
 
-        var token = await emisor.EmitirAsync(usuarioId, AccionesProtegidas.ConfiguracionVersionAplicacion, vigencia: ConfirmacionAccion.VigenciaCargaArchivo);
-        reloj.Avanzar(TimeSpan.FromMinutes(3));
+        var token = await emisor.EmitirAsync(usuarioId, AccionesProtegidas.ConfiguracionGuardar);
+        reloj.Avanzar(TimeSpan.FromMinutes(1));
 
-        (await receptor.ConsumirAsync(token, usuarioId, AccionesProtegidas.ConfiguracionVersionAplicacion)).Should().BeTrue();
-        (await receptor.ConsumirAsync(token, usuarioId, AccionesProtegidas.ConfiguracionVersionAplicacion)).Should().BeFalse();
+        (await receptor.ConsumirAsync(token, usuarioId, AccionesProtegidas.ConfiguracionGuardar)).Should().BeTrue();
+        (await receptor.ConsumirAsync(token, usuarioId, AccionesProtegidas.ConfiguracionGuardar)).Should().BeFalse();
     }
 
     [Fact]

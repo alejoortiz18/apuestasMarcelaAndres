@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using NewRich.Admin.Constants;
+using NewRich.Application.Contracts.ApkStore;
 using NewRich.Application.Contracts.Boletos;
 using NewRich.Application.Contracts.Chat;
 using NewRich.Application.Contracts.Configuracion;
@@ -16,7 +17,6 @@ using NewRich.Application.Contracts.Premios;
 using NewRich.Application.Contracts.Resultados;
 using NewRich.Application.Contracts.Usuarios;
 using NewRich.Application.Contracts.Ventas;
-using NewRich.Application.Contracts.Versiones;
 using NewRich.Application.Services;
 using NewRich.Constants;
 using NewRich.Constants.Messages;
@@ -287,8 +287,16 @@ public sealed class ConfiguracionIndexViewModel
     public IReadOnlyList<LoteriaResponse> Topes { get; set; } = [];
     public PagedViewModel<NumeroRestringidoResponse> PaginaNumeros { get; init; } = new();
     public string NuevoNumeroRestringido { get; set; } = string.Empty;
-    public IReadOnlyList<VersionAplicacionResponse> Versiones { get; init; } = [];
-    public string? AvisoVersiones { get; init; }
+    /// <summary>Solo se llena para el superusuario.</summary>
+    public AlmacenApkViewModel? AlmacenApk { get; init; }
+}
+
+public sealed class AlmacenApkViewModel
+{
+    public LlaveFirmaResponse? Llave { get; init; }
+    public IReadOnlyList<VersionApkResponse> Versiones { get; init; } = [];
+    public PagedViewModel<AuditoriaApkResponse> Auditoria { get; init; } = new();
+    public string? Aviso { get; init; }
 }
 
 public sealed class DiasLoteriaFormItem
