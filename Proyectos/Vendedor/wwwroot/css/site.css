@@ -783,6 +783,19 @@ main::-webkit-scrollbar-button,
 }
 .stat small { color: var(--muted); font-size: 11px; }
 .stat strong { display: block; font-size: 27px; margin: 8px 0 3px; }
+.stats.stats-resumen { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+.stat-enlace { color: inherit; text-decoration: none; transition: border-color .15s ease, transform .15s ease; }
+.stat-enlace:hover { border-color: var(--gold); transform: translateY(-1px); }
+.stat-enlace:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.stats-resumen .stat > div { min-width: 0; }
+.stats-resumen .stat strong { overflow-wrap: anywhere; }
+.stat-nota { display: block; color: var(--muted); font-size: 11px; }
+.stat-pendiente strong { color: #916a06; font-size: 20px; line-height: 1.35; }
+.stat-destacado { border-color: var(--gold); background: #fff8e6; }
+.stat-destacado strong { color: var(--green); }
+@media (prefers-reduced-motion: reduce) {
+  .stat-enlace, .stat-enlace:hover { transition: none; transform: none; }
+}
 .up { color: var(--green); font-size: 11px; }
 .panel { padding: 20px; margin-bottom: 18px; }
 .panel-head { display: flex; justify-content: space-between; align-items: center; gap: 15px; margin-bottom: 18px; }

@@ -5,6 +5,7 @@ using NewRich.Application.Contracts.Loterias;
 using NewRich.Application.Contracts.Notificaciones;
 using NewRich.Application.Contracts.Premios;
 using NewRich.Application.Contracts.Resultados;
+using NewRich.Application.Contracts.ResumenVendedorWeb;
 using NewRich.Application.Contracts.Ventas;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Enums;
@@ -46,10 +47,12 @@ public sealed class CambiarPasswordViewModel
 
 public sealed class InicioViewModel
 {
-    public string Total { get; set; } = "0";
-    public int Boletos { get; set; }
     public bool HorarioCerrado { get; set; }
     public string? Aviso { get; set; }
+    public ResumenVendedorWebResponse Resumen { get; set; } = new();
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; } = 5;
+    public IReadOnlyList<NumeroGanadorVendedorResponse> Ganadores { get; set; } = [];
 }
 
 public sealed class FilaJuegoForm

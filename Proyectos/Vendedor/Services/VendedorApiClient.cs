@@ -14,6 +14,7 @@ using NewRich.Application.Contracts.PremiosEntregadosWeb;
 using NewRich.Application.Contracts.RegistrarJuegoManual;
 using NewRich.Application.Contracts.RegistrarJuegoNumerosWebManual;
 using NewRich.Application.Contracts.Resultados;
+using NewRich.Application.Contracts.ResumenVendedorWeb;
 using NewRich.Application.Contracts.Utilidades;
 using NewRich.Application.Contracts.Ventas;
 using NewRich.Application.Contracts.VentasRegistradasWeb;
@@ -55,6 +56,7 @@ public interface IVendedorApiClient
     Task<ApiCallResult<VentasRegistradasWebResponse>> MisVentasRegistradasAsync(int page, int pageSize, CancellationToken cancellationToken);
     Task<ApiCallResult<PremioEntregadoWebResponse>> CargarPremioWebAsync(RegistrarPremioWebRequest request, CancellationToken cancellationToken);
     Task<ApiCallResult<PremiosEntregadosWebResponse>> MisPremiosWebAsync(int page, int pageSize, CancellationToken cancellationToken);
+    Task<ApiCallResult<ResumenVendedorWebResponse>> ResumenHoyAsync(CancellationToken cancellationToken);
 }
 
 public sealed record AdjuntoChatDescarga(byte[] Contenido, string Tipo, string Nombre);
@@ -234,6 +236,9 @@ public sealed class VendedorApiClient : IVendedorApiClient
 
     public Task<ApiCallResult<PremiosEntregadosWebResponse>> MisPremiosWebAsync(int page, int pageSize, CancellationToken cancellationToken) =>
         SendAsync<PremiosEntregadosWebResponse>(HttpMethod.Get, $"api/PremiosEntregadosWeb/Mios?page={page}&pageSize={pageSize}", null, true, null, cancellationToken);
+
+    public Task<ApiCallResult<ResumenVendedorWebResponse>> ResumenHoyAsync(CancellationToken cancellationToken) =>
+        SendAsync<ResumenVendedorWebResponse>(HttpMethod.Get, "api/ResumenVendedorWeb/Hoy", null, true, null, cancellationToken);
 
     public Task<ApiCallResult<CasoGanadorResponse>> RegistrarEntregaAsync(Guid casoId, decimal valorGanado, CancellationToken cancellationToken) =>
         SendAsync<CasoGanadorResponse>(

@@ -5,6 +5,7 @@ using NewRich.Application.Contracts.Premios;
 using NewRich.Application.Contracts.PremiosEntregadosWeb;
 using NewRich.Application.Contracts.RegistrarJuegoManual;
 using NewRich.Application.Contracts.RegistrarJuegoNumerosWebManual;
+using NewRich.Application.Contracts.ResumenVendedorWeb;
 using NewRich.Application.Contracts.Ventas;
 using NewRich.Application.Services;
 using NewRich.Constants.Messages;
@@ -23,25 +24,28 @@ public sealed class InicioController : VendedorController
 
     public InicioController(IVendedorApiClient api) => _api = api;
 
-    public async Task<IActionResult> Index(CancellationToken cancellationToken)
+    public async Task<IActionResult> Index(int page = 1, int pageSize = 5, CancellationToken cancellationToken = default)
     {
         Nav("inicio", UiTexts.Inicio);
-        var hoy = ZonaHorariaColombia.ALocal(DateTime.UtcNow).Date;
-        var ventas = await _api.ConsultarVentasAsync(hoy, hoy, cancellationToken);
-        var negado = SiNoAutorizado(ventas);
+        var resumen = await _api.ResumenHoyAsync(cancellationToken);
+        var negado = SiNoAutorizado(resumen);
         if (negado is not null)
         {
             return negado;
         }
 
         var operativa = await _api.OperativaAsync(cancellationToken);
-        var lista = ventas.Data ?? [];
+        var datos = resumen.Data ?? new ResumenVendedorWebResponse();
+        var tamano = Paginas.Tamano(pageSize);
+        var numero = Paginas.Numero(page, datos.Ganadores.Count, tamano);
         return View(new InicioViewModel
         {
-            Total = Montos.De(lista.Sum(v => v.Total)),
-            Boletos = lista.Count,
             HorarioCerrado = HorarioCerrado(operativa.Data),
-            Aviso = ventas.Success ? null : ventas.Message
+            Aviso = resumen.Success ? null : resumen.Message,
+            Resumen = datos,
+            Page = numero,
+            PageSize = tamano,
+            Ganadores = datos.Ganadores.Skip((numero - 1) * tamano).Take(tamano).ToList()
         });
     }
 }
