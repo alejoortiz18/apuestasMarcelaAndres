@@ -394,16 +394,20 @@ public sealed class AlertasController : VendedorController
             return negado;
         }
 
-        if (alertas.Success && (alertas.Data?.Pendientes ?? 0) > 0)
+        // Los avisos de chat se ven y se marcan leídos desde el menú de chats y Atención al cliente.
+        var propias = (alertas.Data?.Items ?? [])
+            .Where(a => a.Tipo is not (ChatMessages.TipoAvisoSoporte or ChatMessages.TipoAvisoSoporteTecnico))
+            .ToList();
+        foreach (var pendiente in propias.Where(a => !a.Leida))
         {
-            await _api.MarcarAlertasLeidasAsync(cancellationToken);
+            await _api.MarcarAlertaLeidaAsync(pendiente.NotificacionId, cancellationToken);
         }
 
         return View(new AlertasViewModel
         {
             HorarioCerrado = HorarioCerrado(operativa.Data),
             NumerosRestringidos = operativa.Data?.NumerosRestringidos ?? [],
-            Items = alertas.Data?.Items ?? []
+            Items = propias
         });
     }
 }

@@ -17,7 +17,7 @@ public static class ChatVista
     public static bool EsImagen(string? nombreArchivo) =>
         Imagenes.Contains(Path.GetExtension(nombreArchivo ?? string.Empty), StringComparer.OrdinalIgnoreCase);
 
-    private static string Iniciales(string nombre)
+    public static string Iniciales(string nombre)
     {
         var partes = (nombre ?? string.Empty).Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (partes.Length == 0)
@@ -30,6 +30,6 @@ public static class ChatVista
             : $"{char.ToUpperInvariant(partes[0][0])}{char.ToUpperInvariant(partes[1][0])}";
     }
 
-    private static string Tono(string nombre) =>
+    public static string Tono(string nombre) =>
         string.IsNullOrEmpty(nombre) ? "gold" : (nombre[0] % 3) switch { 0 => "gold", 1 => "blue", _ => "green" };
 }

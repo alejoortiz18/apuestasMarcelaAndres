@@ -1081,7 +1081,7 @@
       closeAviso();
       return;
     }
-    document.querySelectorAll("[data-bell-menu][open], [data-cuenta-menu][open]").forEach(function (menu) {
+    document.querySelectorAll("[data-bell-menu][open], [data-chat-avisos][open], [data-cuenta-menu][open]").forEach(function (menu) {
       menu.removeAttribute("open");
     });
   });
@@ -1094,7 +1094,7 @@
   });
 
   document.addEventListener("click", function (event) {
-    document.querySelectorAll("[data-bell-menu][open], [data-cuenta-menu][open]").forEach(function (menu) {
+    document.querySelectorAll("[data-bell-menu][open], [data-chat-avisos][open], [data-cuenta-menu][open]").forEach(function (menu) {
       if (!menu.contains(event.target)) {
         menu.removeAttribute("open");
       }
@@ -1109,7 +1109,8 @@ function iniciarNotificacionesEnVivo() {
     return;
   }
   iniciarNotificacionesEnVivo.ocupado = true;
-  const conexionUrl = document.documentElement.getAttribute("data-notif-conexion");
+  const raiz = document.documentElement;
+  const conexionUrl = raiz.getAttribute("data-notif-conexion");
   const toast = document.getElementById("notifToast");
   if (!conexionUrl || !toast || typeof signalR === "undefined") {
     iniciarNotificacionesEnVivo.ocupado = false;
@@ -1118,65 +1119,57 @@ function iniciarNotificacionesEnVivo() {
 
   const texto = toast.querySelector("[data-toast-text]");
   const enlace = toast.querySelector("[data-toast-link]");
-  const duracion = parseInt(toast.getAttribute("data-toast-ms") || "3000", 10);
+  const duracion = parseInt(toast.getAttribute("data-toast-ms") || "4000", 10);
   let ocultarTimer = 0;
 
-  function urlVer(id) {
-    const plantilla = document.querySelector("[data-bell-menu]") && document.querySelector("[data-bell-menu]").getAttribute("data-ver-plantilla");
-    if (!plantilla) {
-      return "/Notificaciones/Ver/" + id;
-    }
-    return plantilla.replace(/00000000-0000-0000-0000-000000000000/i, id);
+  function esChat(tipo) {
+    return tipo === "ChatSoporte" || tipo === "ChatSoporteTecnico";
   }
 
-  function actualizarCampana(aviso) {
-    const menu = document.querySelector("[data-bell-menu]");
-    if (!menu) {
-      return;
+  function refrescarChats() {
+    const actual = document.querySelector("[data-chat-avisos]");
+    if (!actual) {
+      return Promise.resolve();
     }
-    const pendientes = (parseInt(menu.getAttribute("data-pendientes") || "0", 10) || 0) + 1;
-    menu.setAttribute("data-pendientes", String(pendientes));
-    const badge = menu.querySelector("[data-bell-count]");
-    const resumen = menu.querySelector(".bell");
-    if (badge) {
-      badge.textContent = pendientes > 99 ? "99+" : String(pendientes);
-      badge.classList.remove("hidden");
-    }
-    if (resumen) {
-      const plantilla = menu.getAttribute("data-aria-plantilla") || "{0}";
-      resumen.setAttribute("aria-label", plantilla.replace("{0}", String(pendientes)));
-    }
-    const vacio = menu.querySelector("[data-bell-empty]");
-    const lista = menu.querySelector("[data-bell-list]");
-    if (vacio) {
-      vacio.classList.add("hidden");
-    }
-    if (lista) {
-      const item = document.createElement("li");
-      const ancla = document.createElement("a");
-      ancla.href = urlVer(aviso.notificacionId || aviso.NotificacionId);
-      const titulo = document.createElement("strong");
-      titulo.textContent = aviso.tipo || aviso.Tipo || "";
-      const mensaje = document.createElement("span");
-      mensaje.textContent = aviso.mensaje || aviso.Mensaje || "";
-      ancla.appendChild(titulo);
-      ancla.appendChild(mensaje);
-      item.appendChild(ancla);
-      lista.insertBefore(item, lista.firstChild);
-      while (lista.children.length > 8) {
-        lista.removeChild(lista.lastChild);
-      }
-    }
+    return fetch(actual.getAttribute("data-url"), { credentials: "same-origin" })
+      .then(function (respuesta) { return respuesta.ok ? respuesta.text() : ""; })
+      .then(function (html) {
+        const caja = document.createElement("div");
+        caja.innerHTML = html.trim();
+        const nuevo = caja.querySelector("[data-chat-avisos]");
+        if (!nuevo) {
+          return;
+        }
+        if (actual.hasAttribute("open")) {
+          nuevo.setAttribute("open", "");
+        }
+        actual.replaceWith(nuevo);
+      })
+      .catch(function () { });
   }
 
-  function mostrarToast(aviso) {
-    const mensaje = aviso.mensaje || aviso.Mensaje || "";
-    const id = aviso.notificacionId || aviso.NotificacionId;
+  function marcarChatAbiertoLeido() {
+    const chat = document.querySelector("[data-chat-vivo]");
+    const id = chat && chat.getAttribute("data-conversacion");
+    const url = raiz.getAttribute("data-chat-leido");
+    const token = document.querySelector('input[name="__RequestVerificationToken"]');
+    if (!id || !url || !token) {
+      return Promise.resolve();
+    }
+    return fetch(url + "/" + encodeURIComponent(id), {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "RequestVerificationToken": token.value }
+    }).catch(function () { });
+  }
+
+  function mostrarToast(aviso, chat) {
     if (texto) {
-      texto.textContent = mensaje;
+      texto.textContent = aviso.mensaje || aviso.Mensaje || "";
     }
-    if (enlace && id) {
-      enlace.setAttribute("href", urlVer(id));
+    if (enlace) {
+      enlace.setAttribute("href", toast.getAttribute(chat ? "data-url-chat" : "data-url-alertas") || "#");
+      enlace.textContent = toast.getAttribute(chat ? "data-texto-chat" : "data-texto-alertas") || enlace.textContent;
     }
     toast.classList.remove("hidden");
     window.clearTimeout(ocultarTimer);
@@ -1202,19 +1195,23 @@ function iniciarNotificacionesEnVivo() {
         .build();
       conexion.on("nuevaNotificacion", function (aviso) {
         const tipo = aviso.tipo || aviso.Tipo || "";
-        const enSoporte = document.body.getAttribute("data-nav") === "soporte"
-          || document.body.getAttribute("data-nav") === "soporte-tecnico";
-        if ((tipo === "ChatSoporte" || tipo === "ChatSoporteTecnico") && enSoporte) {
-          // En Soporte el toast se omite: el chat vivo va por ChatHub.
-          // Si el hub de chat falló, recargar muestra el mensaje persistido.
-          if (!document.documentElement.getAttribute("data-chat-vivo-ok")) {
-            window.location.reload();
-          }
+        if (!esChat(tipo)) {
+          mostrarToast(aviso, false);
           return;
         }
-        actualizarCampana(aviso);
-        mostrarToast(aviso);
+        if (document.body.getAttribute("data-nav") === "soporte") {
+          // En Atención al cliente el mensaje ya se ve por el hub del chat; si ese hub falló, recargar lo muestra.
+          if (!raiz.getAttribute("data-chat-vivo-ok")) {
+            window.location.reload();
+            return;
+          }
+          marcarChatAbiertoLeido().then(refrescarChats);
+          return;
+        }
+        refrescarChats();
+        mostrarToast(aviso, true);
       });
+      conexion.onreconnected(refrescarChats);
       function arrancar() {
         return conexion.start().catch(function () {
           window.setTimeout(arrancar, 4000);

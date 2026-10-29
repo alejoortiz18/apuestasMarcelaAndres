@@ -37,6 +37,16 @@ public static class UiTexts
     public const string ValidarTicket = "Validar ticket";
     public const string Resultados = "Resultados";
     public const string Atencion = "Atención al cliente";
+    public const string ChatAvisosAria = "Chats, {0} con mensajes nuevos";
+    public const string ChatAvisosTitulo = "Chats con mensajes nuevos";
+    public const string ChatAvisosVacio = "No hay mensajes nuevos.";
+    public const string ChatAvisosUnMensaje = "1 mensaje nuevo";
+    public const string ChatAvisosVariosMensajes = "{0} mensajes nuevos";
+    public const string ChatAvisosIrAtencion = "Ir a Atención al cliente";
+    public const string RolAdministrador = "Administrador";
+    public const string NuevaNotificacion = "Nuevo mensaje";
+    public const string VerChat = "Ver chat";
+    public const string VerAlertas = "Ver alertas";
     public const string EntregaPremio = "Entrega de premio";
     public const string VentasDelDia = "Ventas del día";
     public const string BoletosHoy = "Boletos hoy";

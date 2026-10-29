@@ -175,11 +175,12 @@ public sealed class ChatServiceTests
     }
 
     [Fact]
-    public async Task EnviarAsync_administrador_no_crea_aviso_de_campana()
+    public async Task EnviarAsync_administrador_avisa_solo_al_vendedor_de_la_conversacion()
     {
         var campana = new NotificacionesFake();
         var (sut, db) = CreateSut(notificaciones: campana);
         var ana = await AgregarUsuarioAsync(db, "Ana Admin", RolUsuario.Administrador);
+        var otraAdmin = await AgregarUsuarioAsync(db, "Olga Admin", RolUsuario.Administrador);
         var camila = await AgregarUsuarioAsync(db, "Camila Rojas", RolUsuario.Vendedor);
         var conv = await AgregarConversacionAsync(db, camila, ana, "Hola");
 
@@ -188,7 +189,11 @@ public sealed class ChatServiceTests
             Texto = "Ya lo reviso"
         }, CancellationToken.None);
 
-        campana.Creadas.Should().BeEmpty();
+        var aviso = campana.Creadas.Should().ContainSingle().Subject;
+        aviso.Tipo.Should().Be(ChatMessages.TipoAvisoSoporte);
+        aviso.Mensaje.Should().Be(string.Format(ChatMessages.AvisoRespuestaSoporte, "Ana Admin"));
+        aviso.Ids.Should().Equal(camila.UsuarioId);
+        aviso.Ids.Should().NotContain([ana.UsuarioId, otraAdmin.UsuarioId]);
     }
 
     [Fact]

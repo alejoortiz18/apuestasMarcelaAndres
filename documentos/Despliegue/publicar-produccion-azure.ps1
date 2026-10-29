@@ -38,6 +38,9 @@ if ($LASTEXITCODE -ne 0) { throw 'No compiló el API.' }
 $ajustes = Join-Path $destino 'appsettings.json'
 $json = Get-Content $ajustes -Raw | ConvertFrom-Json
 $json.ConnectionStrings.NewRichDatabase = "Server=tcp:$ServidorSql,1433;Initial Catalog=$BaseSql;Persist Security Info=False;User ID=$UsuarioSql;Password=$PasswordSql;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
+# Los navegadores del administrador (5000) y del vendedor (5001) se conectan a los hubs de SignalR del API.
+# CorsOrigenes acepta ese puerto también desde equipos de la red local.
+$json.Cors.Origenes = @($json.Cors.Origenes) + @('http://localhost:5000', 'http://localhost:5001') | Select-Object -Unique
 $json | Add-Member -NotePropertyName AzureBlobConnection -NotePropertyValue $ConexionBlob -Force
 $json | Add-Member -NotePropertyName AzureBlobContainerName -NotePropertyValue $ContenedorBlob -Force
 $json | ConvertTo-Json -Depth 20 | Set-Content -Path $ajustes -Encoding UTF8

@@ -514,7 +514,7 @@ public sealed class ChatService : IChatService
 
         var emisor = mensaje.UsuarioEmisor
             ?? await _db.Usuarios.FirstOrDefaultAsync(u => u.UsuarioId == mensaje.UsuarioEmisorId, cancellationToken);
-        if (emisor is null || RolConsola.EsEquipoAdministrativo(emisor.Rol))
+        if (emisor is null)
         {
             return;
         }
@@ -522,6 +522,22 @@ public sealed class ChatService : IChatService
         var tipo = tipoAviso ?? (conversacion.Tipo == TipoConversacion.SoporteTecnico
             ? ChatMessages.TipoAvisoSoporteTecnico
             : ChatMessages.TipoAvisoSoporte);
+
+        if (RolConsola.EsEquipoAdministrativo(emisor.Rol))
+        {
+            var participantes = new[] { conversacion.UsuarioIniciadorId, conversacion.UsuarioDestinoId }
+                .Where(id => id != emisor.UsuarioId && !administradores.Contains(id))
+                .Distinct()
+                .ToList();
+            await _notificaciones.CrearAvisoChatAsync(
+                participantes,
+                tipo,
+                string.Format(ChatMessages.AvisoRespuestaSoporte, emisor.NombreCompleto),
+                conversacion.ConversacionId,
+                emisor.UsuarioId,
+                cancellationToken);
+            return;
+        }
         var plantilla = plantillaAviso ?? (conversacion.Tipo == TipoConversacion.SoporteTecnico
             ? ChatMessages.AvisoMensajeSoporteTecnico
             : ChatMessages.AvisoMensajeSoporte);

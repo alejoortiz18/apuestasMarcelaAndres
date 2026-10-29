@@ -9,7 +9,7 @@
     var inactividadMs = MinutosInactividadSesion.De(Context) * 60 * 1000;
 }
 <!DOCTYPE html>
-<html lang="es-CO" data-no-results="@UiTexts.SinResultados" data-search-option="@UiTexts.BuscarLoteria">
+<html lang="es-CO" data-no-results="@UiTexts.SinResultados" data-search-option="@UiTexts.BuscarLoteria" data-notif-conexion="@Url.Action("Conexion", "Notificaciones")" data-chat-leido="@Url.Action("ChatLeido", "Notificaciones")">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -67,11 +67,21 @@
                 <span class="top-user-name">@User.NombreMostrado()</span>
                 <div class="avatar" aria-hidden="true">@User.Iniciales()</div>
             </div>
-            <form asp-controller="Cuenta" asp-action="Salir" method="post" data-cerrar-sesion>
-                @Html.AntiForgeryToken()
-                <button class="secondary" type="submit">@UiTexts.CerrarSesion</button>
-            </form>
+            <div class="top-acciones">
+                @await Component.InvokeAsync("ChatAvisos")
+                <form asp-controller="Cuenta" asp-action="Salir" method="post" data-cerrar-sesion>
+                    @Html.AntiForgeryToken()
+                    <button class="secondary" type="submit">@UiTexts.CerrarSesion</button>
+                </form>
+            </div>
         </header>
+        <div id="notifToast" class="notif-toast hidden" role="status" aria-live="polite" data-toast-ms="4000"
+             data-url-chat="@Url.Action("Index", "Soporte")" data-url-alertas="@Url.Action("Index", "Alertas")"
+             data-texto-chat="@UiTexts.VerChat" data-texto-alertas="@UiTexts.VerAlertas">
+            <strong>@UiTexts.NuevaNotificacion</strong>
+            <p data-toast-text></p>
+            <a data-toast-link href="@Url.Action("Index", "Soporte")">@UiTexts.VerChat</a>
+        </div>
         <section class="content">
             @RenderBody()
         </section>
@@ -90,6 +100,7 @@
         </div>
     </div>
 </div>
+<script src="~/lib/signalr/signalr.min.js" asp-append-version="true"></script>
 <script src="~/js/site.js" asp-append-version="true"></script>
 <script src="~/js/inactividad.js" asp-append-version="true"></script>
 @await RenderSectionAsync("Scripts", required: false)

@@ -57,6 +57,8 @@ public interface IVendedorApiClient
     Task<ApiCallResult<PremioEntregadoWebResponse>> CargarPremioWebAsync(RegistrarPremioWebRequest request, CancellationToken cancellationToken);
     Task<ApiCallResult<PremiosEntregadosWebResponse>> MisPremiosWebAsync(int page, int pageSize, CancellationToken cancellationToken);
     Task<ApiCallResult<ResumenVendedorWebResponse>> ResumenHoyAsync(CancellationToken cancellationToken);
+    Task<ApiCallResult<AvisosChatResponse>> AvisosChatAsync(CancellationToken cancellationToken);
+    Task<ApiCallResult<NotificacionDetalleResponse>> MarcarAlertaLeidaAsync(Guid notificacionId, CancellationToken cancellationToken);
 }
 
 public sealed record AdjuntoChatDescarga(byte[] Contenido, string Tipo, string Nombre);
@@ -239,6 +241,13 @@ public sealed class VendedorApiClient : IVendedorApiClient
 
     public Task<ApiCallResult<ResumenVendedorWebResponse>> ResumenHoyAsync(CancellationToken cancellationToken) =>
         SendAsync<ResumenVendedorWebResponse>(HttpMethod.Get, "api/ResumenVendedorWeb/Hoy", null, true, null, cancellationToken);
+
+    public Task<ApiCallResult<AvisosChatResponse>> AvisosChatAsync(CancellationToken cancellationToken) =>
+        SendAsync<AvisosChatResponse>(HttpMethod.Get, "api/Notificaciones/chats", null, true, null, cancellationToken);
+
+    // El API marca leída la notificación al consultar su detalle.
+    public Task<ApiCallResult<NotificacionDetalleResponse>> MarcarAlertaLeidaAsync(Guid notificacionId, CancellationToken cancellationToken) =>
+        SendAsync<NotificacionDetalleResponse>(HttpMethod.Get, $"api/Notificaciones/{notificacionId}", null, true, null, cancellationToken);
 
     public Task<ApiCallResult<CasoGanadorResponse>> RegistrarEntregaAsync(Guid casoId, decimal valorGanado, CancellationToken cancellationToken) =>
         SendAsync<CasoGanadorResponse>(

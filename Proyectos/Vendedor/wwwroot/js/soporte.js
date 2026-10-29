@@ -205,8 +205,17 @@
           agregarBurbuja(mensaje);
         }
       });
+      conexion.onreconnected(function () {
+        document.documentElement.setAttribute("data-chat-vivo-ok", "1");
+      });
+      conexion.onclose(function () {
+        document.documentElement.removeAttribute("data-chat-vivo-ok");
+      });
       function arrancar() {
-        return conexion.start().catch(function () {
+        return conexion.start().then(function () {
+          document.documentElement.setAttribute("data-chat-vivo-ok", "1");
+        }).catch(function () {
+          document.documentElement.removeAttribute("data-chat-vivo-ok");
           window.setTimeout(arrancar, 4000);
         });
       }
