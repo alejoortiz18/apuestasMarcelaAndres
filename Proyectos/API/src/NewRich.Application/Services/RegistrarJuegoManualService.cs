@@ -130,7 +130,8 @@ public sealed class RegistrarJuegoManualService : IRegistrarJuegoManualService
             CodigoPublico = f.CodigoPublico.Trim(),
             Loteria = f.Loteria,
             Numero = f.Numero,
-            Valor = f.Valor
+            Valor = f.Valor,
+            Tipo = f.Tipo
         }).ToList();
         return Result<IReadOnlyList<FilaHistoricoJuegoManualResponse>>.Ok(lista, RegistrarJuegoManualMessages.Registrado);
     }

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using NewRich.Application.Abstractions;
 using NewRich.Application.Contracts.RegistrarJuegoManual;
 using NewRich.Application.Services;
+using NewRich.Constants;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
 using NewRich.Domain.Enums;
@@ -182,8 +183,54 @@ public sealed class RegistrarJuegoManualServiceTests
         fila.Loteria.Should().Be("Cali");
         fila.Numero.Should().Be("3214");
         fila.Valor.Should().Be(1500);
+        fila.Tipo.Should().Be(TiposRegistroJuego.Individual);
         (await db.Ventas.CountAsync()).Should().Be(0);
         (await db.VentasManual.CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task ConsultarAsync_incluye_los_combos_del_vendedor_web_con_cada_apuesta()
+    {
+        var (sut, db) = await CreateSutAsync();
+        var vendedor = db.Usuarios.Single(u => u.Rol == RolUsuario.Vendedor);
+        var loteria = db.Loterias.Single();
+        var registroId = Guid.NewGuid();
+        db.RegistrosJuegoNumerosWebManual.Add(new RegistroJuegoNumerosWebManual
+        {
+            RegistroId = registroId,
+            UsuarioId = vendedor.UsuarioId,
+            NombreCompleto = vendedor.NombreCompleto,
+            FechaRegistro = Ahora,
+            CodigoPublico = "7672230",
+            ValorJugado = 8000,
+            Apuestas =
+            [
+                new ApuestaRegistroJuegoNumerosWebManual { ApuestaId = Guid.NewGuid(), RegistroId = registroId, LoteriaId = loteria.LoteriaId, Numero = "2514", Valor = 4000 },
+                new ApuestaRegistroJuegoNumerosWebManual { ApuestaId = Guid.NewGuid(), RegistroId = registroId, LoteriaId = loteria.LoteriaId, Numero = "5126", Valor = 4000 }
+            ]
+        });
+        db.RegistrosJuegoNumerosWebManual.Add(new RegistroJuegoNumerosWebManual
+        {
+            RegistroId = Guid.NewGuid(),
+            UsuarioId = Guid.NewGuid(),
+            NombreCompleto = "Otro vendedor",
+            FechaRegistro = Ahora,
+            CodigoPublico = "1111111",
+            ValorJugado = 1000
+        });
+        await db.SaveChangesAsync();
+
+        var result = await sut.ConsultarAsync(
+            vendedor.UsuarioId,
+            Ahora.Date,
+            Ahora.Date.AddDays(1).AddTicks(-1),
+            CancellationToken.None);
+
+        result.Data!.Select(f => (f.CodigoPublico, f.Numero, f.Valor, f.Loteria, f.Tipo)).Should().BeEquivalentTo(
+        [
+            ("7672230", "2514", 4000m, "Cali", TiposRegistroJuego.Combo),
+            ("7672230", "5126", 4000m, "Cali", TiposRegistroJuego.Combo)
+        ]);
     }
 
     private static async Task<(RegistrarJuegoManualService Sut, NewRichDbContext Db)> CreateSutAsync()

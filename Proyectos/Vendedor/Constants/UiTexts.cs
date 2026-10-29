@@ -98,6 +98,7 @@ public static class UiTexts
     public const string Desde = "Desde";
     public const string Hasta = "Hasta";
     public const string Fecha = "Fecha";
+    public const string TipoJuego = "Tipo";
     public const string Estado = "Estado";
     public const string Consultar = "Consultar";
     public const string CodigoTicket = "Código del ticket";

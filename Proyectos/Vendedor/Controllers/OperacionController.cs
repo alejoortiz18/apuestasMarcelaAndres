@@ -353,7 +353,8 @@ public sealed class HistoricoController : VendedorController
             Codigo = f.CodigoPublico,
             Loteria = f.Loteria,
             Numero = f.Numero,
-            Valor = f.Valor
+            Valor = f.Valor,
+            Tipo = f.Tipo
         });
         var ordenadas = HistoricoOrden.Aplicar(filas, columna, direccion);
         var tamano = Paginas.Tamano(pageSize);

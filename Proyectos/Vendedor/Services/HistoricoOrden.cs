@@ -10,7 +10,7 @@ public static class HistoricoOrden
     public static string Columna(string? orden)
     {
         var valor = (orden ?? string.Empty).Trim().ToLowerInvariant();
-        return valor is "fecha" or "codigo" or "loteria" or "numero" or "valor" ? valor : "fecha";
+        return valor is "fecha" or "codigo" or "tipo" or "loteria" or "numero" or "valor" ? valor : "fecha";
     }
 
     public static string Direccion(string? orden, string? direccion)
@@ -45,6 +45,7 @@ public static class HistoricoOrden
         IOrderedEnumerable<HistoricoFilaViewModel> query = columna switch
         {
             "codigo" => desc ? filas.OrderByDescending(f => f.Codigo, Textos) : filas.OrderBy(f => f.Codigo, Textos),
+            "tipo" => desc ? filas.OrderByDescending(f => f.Tipo, Textos) : filas.OrderBy(f => f.Tipo, Textos),
             "loteria" => desc ? filas.OrderByDescending(f => f.Loteria, Textos) : filas.OrderBy(f => f.Loteria, Textos),
             "numero" => desc ? filas.OrderByDescending(f => f.Numero, CompararNumero) : filas.OrderBy(f => f.Numero, CompararNumero),
             "valor" => desc ? filas.OrderByDescending(f => f.Valor) : filas.OrderBy(f => f.Valor),

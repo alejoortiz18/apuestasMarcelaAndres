@@ -95,15 +95,30 @@ internal static class EsquemaRegistroJuego
             SELECT
                 r.FechaRegistro,
                 r.CodigoPublico,
-                f.Numero,
+                CAST(f.Numero AS nvarchar(max)) AS Numero,
                 f.Valor,
-                l.Nombre AS Loteria
+                l.Nombre AS Loteria,
+                N'Individual' AS Tipo
             FROM manual.RegistrosJuego r
             INNER JOIN manual.RegistroJuegoFilas f ON f.RegistroId = r.RegistroId
             INNER JOIN dbo.Loterias l ON l.LoteriaId = f.LoteriaId
             WHERE r.UsuarioId = @UsuarioId
               AND r.FechaRegistro >= @Desde
-              AND r.FechaRegistro <= @Hasta;
+              AND r.FechaRegistro <= @Hasta
+            UNION ALL
+            SELECT
+                c.FechaRegistro,
+                c.CodigoPublico,
+                CAST(a.Numero AS nvarchar(max)) AS Numero,
+                a.Valor,
+                l.Nombre AS Loteria,
+                N'Combo' AS Tipo
+            FROM manual.RegistrosJuegoNumerosWeb c
+            INNER JOIN manual.RegistroJuegoNumerosWebApuestas a ON a.RegistroId = c.RegistroId
+            INNER JOIN dbo.Loterias l ON l.LoteriaId = a.LoteriaId
+            WHERE c.UsuarioId = @UsuarioId
+              AND c.FechaRegistro >= @Desde
+              AND c.FechaRegistro <= @Hasta;
         END
         """;
 }

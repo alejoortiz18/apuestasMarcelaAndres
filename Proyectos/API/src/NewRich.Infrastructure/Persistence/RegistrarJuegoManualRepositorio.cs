@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using NewRich.Application.Abstractions;
+using NewRich.Constants;
 using NewRich.Domain.Entities;
 
 namespace NewRich.Infrastructure.Persistence;
@@ -60,18 +61,36 @@ EXEC manual.RegistrarJuego
                 .Include(r => r.Filas)
                 .Where(r => r.UsuarioId == usuarioId && r.FechaRegistro >= desde && r.FechaRegistro <= hasta)
                 .ToListAsync(cancellationToken);
-            var ids = registros.SelectMany(r => r.Filas.Select(f => f.LoteriaId)).Distinct().ToList();
+            var combos = await _db.RegistrosJuegoNumerosWebManual
+                .Include(r => r.Apuestas)
+                .Where(r => r.UsuarioId == usuarioId && r.FechaRegistro >= desde && r.FechaRegistro <= hasta)
+                .ToListAsync(cancellationToken);
+            var ids = registros.SelectMany(r => r.Filas.Select(f => f.LoteriaId))
+                .Concat(combos.SelectMany(r => r.Apuestas.Select(a => a.LoteriaId)))
+                .Distinct()
+                .ToList();
             var nombres = await _db.Loterias
                 .Where(l => ids.Contains(l.LoteriaId))
                 .ToDictionaryAsync(l => l.LoteriaId, l => l.Nombre, cancellationToken);
-            return registros.SelectMany(r => r.Filas.Select(f => new FilaHistoricoJuegoManual
+            var individuales = registros.SelectMany(r => r.Filas.Select(f => new FilaHistoricoJuegoManual
             {
                 FechaRegistro = r.FechaRegistro,
                 CodigoPublico = r.CodigoPublico,
                 Numero = f.Numero,
                 Valor = f.Valor,
-                Loteria = nombres.GetValueOrDefault(f.LoteriaId) ?? string.Empty
-            })).ToList();
+                Loteria = nombres.GetValueOrDefault(f.LoteriaId) ?? string.Empty,
+                Tipo = TiposRegistroJuego.Individual
+            }));
+            var apuestasCombo = combos.SelectMany(r => r.Apuestas.Select(a => new FilaHistoricoJuegoManual
+            {
+                FechaRegistro = r.FechaRegistro,
+                CodigoPublico = r.CodigoPublico,
+                Numero = a.Numero,
+                Valor = a.Valor,
+                Loteria = nombres.GetValueOrDefault(a.LoteriaId) ?? string.Empty,
+                Tipo = TiposRegistroJuego.Combo
+            }));
+            return individuales.Concat(apuestasCombo).ToList();
         }
 
         return await _db.Database.SqlQuery<FilaHistoricoJuegoManual>(

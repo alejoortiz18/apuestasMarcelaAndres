@@ -34,4 +34,6 @@ public sealed class FilaHistoricoJuegoManualResponse
     public string Loteria { get; set; } = string.Empty;
     public string Numero { get; set; } = string.Empty;
     public decimal Valor { get; set; }
+    /// <summary>Individual o Combo (ver TiposRegistroJuego).</summary>
+    public string Tipo { get; set; } = string.Empty;
 }

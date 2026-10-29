@@ -59,6 +59,7 @@
             <thead>
             <tr>
                 <th><a class="table-sort" href="@UrlOrden("fecha")" aria-label="@Etiqueta("fecha", UiTexts.Fecha)">@UiTexts.Fecha <span aria-hidden="true">@Marca("fecha")</span></a></th>
+                <th><a class="table-sort" href="@UrlOrden("tipo")" aria-label="@Etiqueta("tipo", UiTexts.TipoJuego)">@UiTexts.TipoJuego <span aria-hidden="true">@Marca("tipo")</span></a></th>
                 <th><a class="table-sort" href="@UrlOrden("loteria")" aria-label="@Etiqueta("loteria", UiTexts.Loteria)">@UiTexts.Loteria <span aria-hidden="true">@Marca("loteria")</span></a></th>
                 <th><a class="table-sort" href="@UrlOrden("numero")" aria-label="@Etiqueta("numero", UiTexts.Numero)">@UiTexts.Numero <span aria-hidden="true">@Marca("numero")</span></a></th>
                 <th><a class="table-sort" href="@UrlOrden("valor")" aria-label="@Etiqueta("valor", UiTexts.Valor)">@UiTexts.Valor <span aria-hidden="true">@Marca("valor")</span></a></th>
@@ -68,7 +69,7 @@
             @if (Model.Items.Count == 0)
             {
                 <tr>
-                    <td colspan="4">@UiTexts.Vacio</td>
+                    <td colspan="5">@UiTexts.Vacio</td>
                 </tr>
             }
             else
@@ -77,6 +78,7 @@
                 {
                     <tr>
                         <td>@fila.Fecha.ToString("dd-MM-yyyy HH:mm:ss")</td>
+                        <td>@(string.IsNullOrWhiteSpace(fila.Tipo) ? UiTexts.TipoIndividual : fila.Tipo)</td>
                         <td>@fila.Loteria</td>
                         <td>@fila.Numero</td>
                         <td>@Montos.De(fila.Valor)</td>

@@ -126,6 +126,7 @@ public sealed class HistoricoFilaViewModel
     public string Loteria { get; set; } = string.Empty;
     public string Numero { get; set; } = string.Empty;
     public decimal Valor { get; set; }
+    public string Tipo { get; set; } = string.Empty;
 }
 
 public sealed class HistoricoViewModel
