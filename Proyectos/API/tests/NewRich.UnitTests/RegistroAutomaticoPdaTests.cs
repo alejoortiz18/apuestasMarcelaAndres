@@ -105,6 +105,23 @@ public sealed class RegistroAutomaticoPdaTests
     }
 
     [Fact]
+    public async Task Registrar_como_celular_un_equipo_que_quedo_como_pda_le_cambia_el_codigo_a_cel()
+    {
+        var sut = CreateSut();
+        var comoPda = await sut.RegistrarAutomaticoAsync(Solicitud("SERIE-A"), CancellationToken.None);
+        var celular = Solicitud("SERIE-A");
+        celular.EsCelular = true;
+
+        var comoCelular = await sut.RegistrarAutomaticoAsync(celular, CancellationToken.None);
+        var repetido = await sut.RegistrarAutomaticoAsync(celular, CancellationToken.None);
+
+        comoPda.Data!.CodigoDispositivo.Should().StartWith("PDA-");
+        comoCelular.Data!.CodigoDispositivo.Should().MatchRegex("^CEL-[0-9A-F]{8}$");
+        comoCelular.Data.DispositivoId.Should().Be(comoPda.Data.DispositivoId);
+        repetido.Data!.CodigoDispositivo.Should().Be(comoCelular.Data.CodigoDispositivo);
+    }
+
+    [Fact]
     public async Task Exige_el_numero_de_serie_del_equipo()
     {
         var sut = CreateSut();

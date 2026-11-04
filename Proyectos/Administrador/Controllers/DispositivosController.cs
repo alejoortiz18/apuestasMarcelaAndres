@@ -112,13 +112,15 @@ public sealed class DispositivosController : AdminControllerBase
         {
             var avance = new AvanceRegistroPdaPorHub(_hub, conexionId);
             var resultado = await _registro.RegistrarAsync(clase, tipo, avance, cancellationToken);
+            var celular = clase == ClaseEquipoPda.Celular;
             return Json(new
             {
                 exitoso = resultado.Exitoso,
                 mensaje = resultado.Mensaje,
                 modelo = resultado.Modelo,
                 nombreRegistrado = resultado.Exitoso ? resultado.NombreRegistrado : null,
-                detalle = resultado.Exitoso ? UiTexts.PdaRegistroCompletadoDetalle : null
+                detalle = resultado.Exitoso ? (celular ? UiTexts.CelularRegistroCompletadoDetalle : UiTexts.PdaRegistroCompletadoDetalle) : null,
+                siguiente = resultado.Exitoso ? (celular ? UiTexts.CelularRegistroSiguientePaso : UiTexts.PdaRegistroSiguientePaso) : null
             });
         }
         finally

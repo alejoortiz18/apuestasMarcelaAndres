@@ -193,6 +193,19 @@ public sealed class RecaudoPdaTests
     }
 
     [Fact]
+    public void El_cobro_registrado_avisa_el_valor_y_el_saldo_y_vuelve_a_cargar_los_valores()
+    {
+        var cobro = File.ReadAllText(RutaMaui("Views", "Recaudador", "RecaudadorCobroPage.cs"));
+        var registrar = cobro[cobro.IndexOf("private async Task RegistrarAsync", StringComparison.Ordinal)..cobro.IndexOf("private async Task SubirPendientesAsync", StringComparison.Ordinal)];
+
+        PdaTexts.CobroRegistrado(150_000m, 50_000m).Should().Be(
+            $"El cobro por {RecaudoPagoVista.Miles(150_000m)} quedó registrado. Saldo que queda: {RecaudoPagoVista.Miles(50_000m)}.");
+        registrar.Should().Contain("PdaTexts.CobroRegistrado(");
+        registrar.IndexOf("await CargarAsync();", StringComparison.Ordinal)
+            .Should().BeLessThan(registrar.LastIndexOf("DisplayAlert", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void La_tirilla_parte_los_nombres_largos_sin_pasarse_del_ancho()
     {
         var texto = TirillaCobroTexto.De(

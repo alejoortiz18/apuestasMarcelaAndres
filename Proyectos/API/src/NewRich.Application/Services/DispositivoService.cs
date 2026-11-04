@@ -85,10 +85,17 @@ public sealed class DispositivoService : IDispositivoService
             .ThenInclude(x => x.Usuario)
             .FirstOrDefaultAsync(d => d.NumeroSerie == serie, cancellationToken);
 
-        // Repetir el registro del mismo aparato no le cambia la identidad: el código ya está
-        // grabado en el equipo y los movimientos anteriores siguen apuntando a él.
+        var prefijo = request.EsCelular ? "CEL-" : "PDA-";
+
+        // Repetir el registro del mismo aparato conserva su código mientras siga siendo la misma
+        // clase de equipo; el registro vuelve a grabarlo en el equipo y los movimientos apuntan al id.
         if (existente is not null)
         {
+            if (!existente.CodigoDispositivo.StartsWith(prefijo, StringComparison.OrdinalIgnoreCase))
+            {
+                existente.CodigoDispositivo = await GenerarCodigoAsync(prefijo, cancellationToken);
+            }
+
             existente.Tipo = request.Tipo;
             existente.Estado = EstadoGeneral.Activo;
             if (!string.IsNullOrWhiteSpace(request.Modelo))
@@ -103,7 +110,7 @@ public sealed class DispositivoService : IDispositivoService
         var dispositivo = new Dispositivo
         {
             DispositivoId = Guid.NewGuid(),
-            CodigoDispositivo = await GenerarCodigoAsync(request.EsCelular ? "CEL-" : "PDA-", cancellationToken),
+            CodigoDispositivo = await GenerarCodigoAsync(prefijo, cancellationToken),
             Tipo = request.Tipo,
             Estado = EstadoGeneral.Activo,
             Modelo = request.Modelo,

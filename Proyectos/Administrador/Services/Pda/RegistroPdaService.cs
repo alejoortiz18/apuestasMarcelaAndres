@@ -170,8 +170,9 @@ public sealed class RegistroPdaService : IRegistroPdaService
         var puente = $"tcp:{_opciones.PuertoPuenteUsb}";
         await EjecutarAsync(dispositivo, cancellationToken, "reverse", puente, puente);
 
-        await avance.ReportarAsync(new AvanceRegistroPda(100, UiTexts.PdaRegistroCompletado), cancellationToken);
-        return new ResultadoRegistroPda(true, UiTexts.PdaRegistroCompletado, modeloEquipo, registro.Data.CodigoDispositivo);
+        var completado = clase == ClaseEquipoPda.Celular ? UiTexts.CelularRegistroCompletado : UiTexts.PdaRegistroCompletado;
+        await avance.ReportarAsync(new AvanceRegistroPda(100, completado), cancellationToken);
+        return new ResultadoRegistroPda(true, completado, modeloEquipo, registro.Data.CodigoDispositivo);
     }
 
     private async Task<(DispositivoAdb? Dispositivo, string? Problema)> DetectarAsync(CancellationToken cancellationToken)

@@ -569,6 +569,7 @@ public sealed class RecaudadorCobroPage : ContentPage
         var pago = new PagoPendienteRecaudo(fila.VendedorId, valor, Guid.NewGuid().ToString("N"), DateTime.UtcNow);
         var saldoQueQueda = RecaudoPagoVista.Saldos(fila).TotalAPagar - valor;
         var aplicado = false;
+        string? aviso = null;
         try
         {
             var ping = await _api.ConectarAsync(
@@ -580,33 +581,35 @@ public sealed class RecaudadorCobroPage : ContentPage
                 if (resultado.IsSuccess && resultado.Data is not null)
                 {
                     aplicado = true;
+                    aviso = PdaTexts.CobroRegistrado(valor, resultado.Data.SaldoRestante);
                     await _impresora.ImprimirAsync(TirillaCobroTexto.De(
                         resultado.Data.RecaudadorNombre,
                         resultado.Data.VendedorNombre,
                         resultado.Data.FechaHora,
                         valor,
                         resultado.Data.SaldoRestante), null);
-                    return;
                 }
-
-                if (!RecaudoPagoVista.EsFallaDeRed(resultado.Message))
+                else if (!RecaudoPagoVista.EsFallaDeRed(resultado.Message))
                 {
                     await DisplayAlert(PdaTexts.RegistrarCobro, resultado.Message, PdaTexts.Cerrar);
                     return;
                 }
             }
 
-            var cola = RecaudoColaPagos.Encolar(pago, await _local.PagosRecaudoPendientesAsync());
-            await _local.GuardarPagosRecaudoAsync(cola);
-            aplicado = true;
-            await _impresora.ImprimirAsync(TirillaCobroTexto.De(
-                _sesion.Usuario?.NombreCompleto ?? PdaTexts.PdaRecaudador,
-                fila.NombreCompleto,
-                ZonaHorariaColombia.ALocal(pago.FechaLocal),
-                valor,
-                saldoQueQueda,
-                sinConexion: true), null);
-            await DisplayAlert(PdaTexts.RegistrarCobro, PdaTexts.CobroGuardadoSinConexion, PdaTexts.Cerrar);
+            if (!aplicado)
+            {
+                var cola = RecaudoColaPagos.Encolar(pago, await _local.PagosRecaudoPendientesAsync());
+                await _local.GuardarPagosRecaudoAsync(cola);
+                aplicado = true;
+                aviso = PdaTexts.CobroGuardadoSinConexion;
+                await _impresora.ImprimirAsync(TirillaCobroTexto.De(
+                    _sesion.Usuario?.NombreCompleto ?? PdaTexts.PdaRecaudador,
+                    fila.NombreCompleto,
+                    ZonaHorariaColombia.ALocal(pago.FechaLocal),
+                    valor,
+                    saldoQueQueda,
+                    sinConexion: true), null);
+            }
         }
         finally
         {
@@ -621,6 +624,10 @@ public sealed class RecaudadorCobroPage : ContentPage
         }
 
         await CargarAsync();
+        if (aviso is not null)
+        {
+            await DisplayAlert(PdaTexts.RegistrarCobro, aviso, PdaTexts.Cerrar);
+        }
     }
 
     private async Task SubirPendientesAsync()

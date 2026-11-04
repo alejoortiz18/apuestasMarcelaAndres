@@ -56,11 +56,12 @@ public sealed class RegistroPorClaseEquipoTests
         var api = ApiQueRegistra();
         var sut = CrearServicio(new AdbFalso().ConEquipoListo(Serie), api.Object);
 
-        await sut.RegistrarAsync(clase, TipoDispositivo.Observador, Silencio(), CancellationToken.None);
+        var resultado = await sut.RegistrarAsync(clase, TipoDispositivo.Observador, Silencio(), CancellationToken.None);
 
         api.Verify(a => a.RegistrarDispositivoAutomaticoAsync(
             It.Is<RegistrarPdaAutomaticoRequest>(r => r.EsCelular == esCelular),
             It.IsAny<CancellationToken>()), Times.Once);
+        resultado.Mensaje.Should().Be(esCelular ? UiTexts.CelularRegistroCompletado : UiTexts.PdaRegistroCompletado);
     }
 
     [Fact]

@@ -626,6 +626,9 @@ public static class UiTexts
     public const string PdaNombreRegistrado = "Quedó registrado como:";
     public const string PdaRegistroCompletadoDetalle = "La aplicación fue instalada y el dispositivo quedó asociado al sistema. Puede desconectar el PDA de forma segura.";
     public const string PdaRegistroSiguientePaso = "Para habilitar la venta, cree el usuario y asócielo a este PDA desde el listado.";
+    public const string CelularRegistroCompletado = "Celular registrado correctamente.";
+    public const string CelularRegistroCompletadoDetalle = "La aplicación fue instalada y el dispositivo quedó asociado al sistema. Puede desconectar el celular de forma segura.";
+    public const string CelularRegistroSiguientePaso = "Para habilitar el ingreso, cree el usuario y asócielo a este celular desde el listado.";
 
     public const string PdaSinDispositivoConectado = "No se detectó ningún PDA conectado. Revise el cable USB y vuelva a intentarlo.";
     public const string PdaSinAutorizacionUsb = "El PDA está conectado pero no autorizó la depuración USB. En el dispositivo seleccione Permitir y vuelva a intentarlo.";

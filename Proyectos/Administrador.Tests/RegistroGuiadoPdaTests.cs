@@ -159,7 +159,7 @@ public sealed class RegistroGuiadoPdaTests
         var resultado = await sut.RegistrarAsync(ClaseEquipoPda.Celular, TipoDispositivo.Observador, Silencio(), CancellationToken.None);
 
         resultado.Exitoso.Should().BeTrue();
-        resultado.Mensaje.Should().Be(UiTexts.PdaRegistroCompletado);
+        resultado.Mensaje.Should().Be(UiTexts.CelularRegistroCompletado);
         adb.Ejecutados.Should().Contain(c => c == ComandoInstalacionDirecta);
         adb.Ejecutados.Should().Contain(c =>
             c == ComandoIdentidadInterna);

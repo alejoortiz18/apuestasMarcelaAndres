@@ -207,6 +207,13 @@
         }
         pintarAvance({ porcentaje: 100, mensaje: datos.mensaje });
         if (dialogo) {
+          [["#registroPdaDialogTitulo", datos.mensaje], ["[data-detalle-registrado]", datos.detalle], ["[data-siguiente-registrado]", datos.siguiente]]
+            .forEach(function (par) {
+              const destino = dialogo.querySelector(par[0]);
+              if (destino && par[1]) {
+                destino.textContent = par[1];
+              }
+            });
           const nombre = dialogo.querySelector("[data-nombre-registrado]");
           const filaNombre = dialogo.querySelector("[data-nombre-registrado-fila]");
           if (nombre && datos.nombreRegistrado) {
