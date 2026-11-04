@@ -223,6 +223,16 @@ public sealed class KpiService : IKpiService
             IngresosPorGrupo = barras,
             IngresosPorVendedor = porVendedor,
             VentasPorDiaDetalle = ventasDia,
+            VentasDetalle = ventas
+                .OrderByDescending(v => v.FechaVenta)
+                .Select(v => new KpiVentaFilaResponse
+                {
+                    FechaVenta = v.FechaVenta,
+                    Vendedor = v.Usuario?.NombreCompleto ?? string.Empty,
+                    Grupo = v.Usuario?.UsuarioGrupos.FirstOrDefault()?.Grupo?.Nombre ?? "Sin grupo",
+                    Total = v.Total
+                })
+                .ToList(),
             Resultados = resultados.Select(n => new KpiResultadoFilaResponse
             {
                 Fecha = DateOnly.FromDateTime(n.FechaJuego),

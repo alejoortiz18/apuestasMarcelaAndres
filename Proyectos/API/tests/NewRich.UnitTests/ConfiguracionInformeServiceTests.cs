@@ -77,6 +77,18 @@ public sealed class ConfiguracionInformeServiceTests
     }
 
     [Fact]
+    public async Task Guardar_acepta_el_orden_de_las_secciones_del_informe()
+    {
+        var (sut, _) = CreateSut();
+        const string orden = """{"ventas":["vendedores","grupo"]}""";
+
+        var guardado = await sut.GuardarAsync(Admin, CategoriasInforme.OrdenSecciones, Pedido(orden), CancellationToken.None);
+
+        guardado.IsSuccess.Should().BeTrue(guardado.Message);
+        guardado.Data!.Filtros.Should().Be(orden);
+    }
+
+    [Fact]
     public async Task Guardar_rechaza_una_categoria_que_no_esta_habilitada()
     {
         var (sut, db) = CreateSut();

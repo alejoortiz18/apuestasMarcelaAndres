@@ -1,0 +1,10 @@
+@using NewRich.Admin.Constants
+@model (NewRich.Admin.Services.SeccionesVista Vista, string Clave)
+@if (Model.Vista.Movible)
+{
+    <button type="button" class="informe-mover" data-mover
+            aria-label="@string.Format(UiTexts.InformeMoverSeccion, Model.Vista.Nombre(Model.Clave))"
+            title="@UiTexts.InformeMoverAyuda">
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><circle cx="9" cy="6" r="1.6" /><circle cx="15" cy="6" r="1.6" /><circle cx="9" cy="12" r="1.6" /><circle cx="15" cy="12" r="1.6" /><circle cx="9" cy="18" r="1.6" /><circle cx="15" cy="18" r="1.6" /></svg>
+    </button>
+}

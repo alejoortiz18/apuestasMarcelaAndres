@@ -2,6 +2,7 @@
 @using NewRich.Admin.Constants
 @using NewRich.Admin.Models
 @using NewRich.Admin.Services
+@using NewRich.Constants
 @model InformeVentasViewModel
 @{
     var cultura = CultureInfo.GetCultureInfo("es-CO");
@@ -21,8 +22,39 @@
     var ganancia = r.Ganancias > 0 ? " is-positivo" : r.Ganancias < 0 ? " is-negativo" : "";
     var mayorDia = Model.Ingresos.Dias.Count == 0 ? 0m : Model.Ingresos.Dias.Max(d => d.Total);
     var conservar = (string[] quitar) => Context.Request.Query.Where(q => !quitar.Contains(q.Key, StringComparer.OrdinalIgnoreCase));
+    var secciones = OrdenSeccionesInforme.Vista(ViewData, CategoriasInforme.Ventas);
 }
-<div class="informe-reporte informe-ventas" aria-labelledby="informeVentasReporteTitulo">
+<div class="informe-reporte informe-ventas informe-secciones" data-secciones="@secciones.Categoria" aria-labelledby="informeVentasReporteTitulo">
+<div class="informe-movible" data-seccion="grupo" style="order: @secciones.Posicion("grupo")">
+<partial name="_MoverSeccion" model='(secciones, "grupo")' />
+<div class="informe-graficos">
+    <section class="informe-grafico informe-grafico-ancho" aria-labelledby="informeVentasPorGrupo">
+        <h5 id="informeVentasPorGrupo">@UiTexts.InformeIngresosPorGrupo</h5>
+        <p>@UiTexts.InformeIngresosPorGrupoAyuda</p>
+        @if (Model.Ingresos.PorGrupo.Count == 0)
+        {
+            <p class="empty">@UiTexts.InformeSinIngresos</p>
+        }
+        else
+        {
+            <ul class="informe-barras">
+                @foreach (var grupo in Model.Ingresos.PorGrupo)
+                {
+                    <li>
+                        <div class="informe-barra-head">
+                            <span>@grupo.Texto</span>
+                            <strong>@Pesos(grupo.Valor) <small>@Porc(grupo.Porcentaje) %</small></strong>
+                        </div>
+                        <div class="informe-barra" aria-hidden="true"><i style="width: @Css(grupo.Ancho)%"></i></div>
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+</div>
+</div>
+    <div class="informe-movible" data-seccion="encabezado" style="order: @secciones.Posicion("encabezado")">
+    <partial name="_MoverSeccion" model='(secciones, "encabezado")' />
     <header class="informe-reporte-head">
         <div>
             <h3 id="informeVentasReporteTitulo">@UiTexts.InformeVentasNombre</h3>
@@ -33,7 +65,10 @@
             <li>@string.Format(UiTexts.InformeAlcanceTexto, Model.Alcance)</li>
         </ul>
     </header>
+    </div>
 
+    <div class="informe-movible" data-seccion="tarjetas" style="order: @secciones.Posicion("tarjetas")">
+    <partial name="_MoverSeccion" model='(secciones, "tarjetas")' />
     <p class="informe-ventas-ayuda">@UiTexts.InformeTarjetasAyuda</p>
     <div class="informe-metricas informe-finanzas">
         <div class="informe-metrica is-principal">
@@ -61,7 +96,10 @@
             <strong>@Pesos(r.Ganancias)</strong>
         </div>
     </div>
+    </div>
 
+    <div class="informe-movible" data-seccion="dias" style="order: @secciones.Posicion("dias")">
+    <partial name="_MoverSeccion" model='(secciones, "dias")' />
     <section class="informe-bloque" aria-labelledby="informeVentasIngresos">
         <header class="informe-bloque-head">
             <h4 id="informeVentasIngresos">@UiTexts.InformeSeccionIngresos</h4>
@@ -119,32 +157,12 @@
                     </div>
                 }
             </section>
-
-            <section class="informe-grafico informe-grafico-ancho" aria-labelledby="informeVentasPorGrupo">
-                <h5 id="informeVentasPorGrupo">@UiTexts.InformeIngresosPorGrupo</h5>
-                <p>@UiTexts.InformeIngresosPorGrupoAyuda</p>
-                @if (Model.Ingresos.PorGrupo.Count == 0)
-                {
-                    <p class="empty">@UiTexts.InformeSinIngresos</p>
-                }
-                else
-                {
-                    <ul class="informe-barras">
-                        @foreach (var grupo in Model.Ingresos.PorGrupo)
-                        {
-                            <li>
-                                <div class="informe-barra-head">
-                                    <span>@grupo.Texto</span>
-                                    <strong>@Pesos(grupo.Valor) <small>@Porc(grupo.Porcentaje) %</small></strong>
-                                </div>
-                                <div class="informe-barra" aria-hidden="true"><i style="width: @Css(grupo.Ancho)%"></i></div>
-                            </li>
-                        }
-                    </ul>
-                }
-            </section>
         </div>
+    </section>
+    </div>
 
+    <div class="informe-movible" data-seccion="vendedores" style="order: @secciones.Posicion("vendedores")">
+    <partial name="_MoverSeccion" model='(secciones, "vendedores")' />
         <section class="informe-tabla" id="informeVentasRankingSeccion" aria-labelledby="informeVentasRanking">
             <div class="informe-tabla-head">
                 <div>
@@ -178,11 +196,10 @@
                             @foreach (var (clave, texto, numero) in new[]
                             {
                                 (InformeOrden.Posicion, UiTexts.InformeColumnaPosicion, false),
+                                (InformeOrden.Fecha, UiTexts.FechaVenta, false),
                                 (InformeOrden.Vendedor, UiTexts.Vendedor, false),
                                 (InformeOrden.Grupo, UiTexts.Grupo, false),
-                                (InformeOrden.Ventas, UiTexts.Ventas, true),
-                                (InformeOrden.Total, UiTexts.Total, true),
-                                (InformeOrden.Participacion, UiTexts.InformeColumnaParticipacion, false)
+                                (InformeOrden.Total, UiTexts.Total, true)
                             })
                             {
                                 <partial name="_ColumnaOrden" model='new ColumnaOrdenViewModel { Clave = clave, Texto = texto, Estado = Model.Ingresos.OrdenRanking, ParamOrden = "ordenV", ParamDireccion = "dirV", ParamPagina = "pageV", Ancla = "informeVentasRankingSeccion", Numero = numero }' />
@@ -194,16 +211,10 @@
                         {
                             <tr>
                                 <td><span class="informe-puesto@(v.Posicion <= 3 ? " is-podio" : "")">@v.Posicion</span></td>
+                                <td>@v.FechaVenta.ToString("dd/MM/yyyy hh:mm tt", cultura)</td>
                                 <td><strong>@v.Vendedor</strong></td>
                                 <td>@v.Grupo</td>
-                                <td class="num">@Numero(v.Ventas)</td>
                                 <td class="num"><strong>@Pesos(v.Total)</strong></td>
-                                <td>
-                                    <div class="informe-participacion">
-                                        <div class="informe-barra" aria-hidden="true"><i style="width: @Css(v.Participacion)%"></i></div>
-                                        <small>@Porc(v.Participacion) %</small>
-                                    </div>
-                                </td>
                             </tr>
                         }
                         </tbody>
@@ -214,5 +225,5 @@
                 <partial name="_Pager" model="Model.Ingresos.Vendedores" />
             }
         </section>
-    </section>
+    </div>
 </div>

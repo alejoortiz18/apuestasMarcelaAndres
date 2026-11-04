@@ -1323,3 +1323,110 @@
         transition: none;
     }
 }
+
+/* Secciones que el usuario acomoda dentro de cada informe. */
+.informe-secciones {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.informe-movible {
+    position: relative;
+    grid-column: 1 / -1;
+    min-width: 0;
+    border-radius: 12px;
+    transition: box-shadow .15s ease, background-color .15s ease;
+}
+
+.informe-movible.is-media {
+    grid-column: auto;
+}
+
+.informe-movible > .informe-grafico {
+    height: 100%;
+}
+
+@media (max-width: 860px) {
+    .informe-movible.is-media {
+        grid-column: 1 / -1;
+    }
+}
+
+.informe-movible > .informe-graficos,
+.informe-movible > .informe-bloque,
+.informe-movible > .informe-tabla {
+    margin-top: 0;
+}
+
+.informe-movible > .informe-reporte-head {
+    margin-bottom: 0;
+}
+
+.informe-mover {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fffdf8;
+    color: var(--muted);
+    cursor: grab;
+    opacity: 0;
+    touch-action: none;
+    transition: opacity .15s ease, color .15s ease, border-color .15s ease;
+}
+
+.informe-mover svg {
+    fill: currentColor;
+}
+
+.informe-movible:hover > .informe-mover,
+.informe-mover:focus-visible,
+.informe-movible.is-arrastrando > .informe-mover {
+    opacity: 1;
+}
+
+.informe-mover:hover {
+    border-color: var(--gold);
+    color: var(--ink);
+}
+
+.informe-mover:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+}
+
+.informe-secciones.is-ordenando {
+    user-select: none;
+}
+
+.informe-movible.is-arrastrando {
+    z-index: 3;
+    background: #fff8e6;
+    outline: 2px dashed var(--gold);
+    outline-offset: 4px;
+    box-shadow: 0 10px 24px rgba(23, 59, 50, .16);
+    cursor: grabbing;
+}
+
+.informe-secciones.is-ordenando .informe-movible:not(.is-arrastrando) {
+    opacity: .82;
+}
+
+.informe-exportando .informe-mover {
+    display: none !important;
+}
+
+@media (hover: none) {
+    .informe-mover {
+        opacity: 1;
+    }
+}

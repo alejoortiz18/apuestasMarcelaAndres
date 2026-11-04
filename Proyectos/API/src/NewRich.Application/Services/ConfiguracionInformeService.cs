@@ -33,7 +33,7 @@ public sealed class ConfiguracionInformeService : IConfiguracionInformeService
 
     public async Task<Result<ConfiguracionInformeResponse>> GuardarAsync(Guid usuarioId, string categoria, GuardarConfiguracionInformeRequest request, CancellationToken cancellationToken)
     {
-        if (!CategoriasInforme.Habilitadas.Contains(categoria))
+        if (!CategoriasInforme.Guardables.Contains(categoria))
         {
             return Result<ConfiguracionInformeResponse>.Fail(InformeMessages.CategoriaNoHabilitada);
         }

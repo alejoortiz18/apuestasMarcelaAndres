@@ -136,6 +136,7 @@ public static class VentasInforme
                 .GroupBy(v => (v.Vendedor, v.Grupo))
                 .Select(g => new KpiVendedorFilaResponse { Vendedor = g.Key.Vendedor, Grupo = g.Key.Grupo, Ventas = g.Sum(v => v.Ventas), Total = g.Sum(v => v.Total) })
                 .ToList(),
+            VentasDetalle = partes.SelectMany(p => p.VentasDetalle).ToList(),
             VentasPorDiaDetalle = partes.SelectMany(p => p.VentasPorDiaDetalle)
                 .GroupBy(d => d.Fecha)
                 .Select(g => new KpiVentaDiaResponse { Fecha = g.Key, Ventas = g.Sum(d => d.Ventas), Total = g.Sum(d => d.Total) })
@@ -325,20 +326,17 @@ public static class VentasInforme
             .Select(g => (Texto: g.Key, Valor: g.Sum(b => b.Total), Cantidad: 0))
             .ToList();
 
-        var vendedores = (kpi?.IngresosPorVendedor ?? [])
-            .GroupBy(v => (v.Vendedor, v.Grupo))
-            .Select(g => (g.Key.Vendedor, g.Key.Grupo, Ventas: g.Sum(v => v.Ventas), Total: g.Sum(v => v.Total)))
+        var vendedores = (kpi?.VentasDetalle ?? [])
             .OrderByDescending(v => v.Total)
-            .ThenByDescending(v => v.Ventas)
+            .ThenByDescending(v => v.FechaVenta)
             .ThenBy(v => v.Vendedor, StringComparer.CurrentCultureIgnoreCase)
             .Select((v, i) => new VendedorIngresoInforme
             {
                 Posicion = i + 1,
+                FechaVenta = v.FechaVenta,
                 Vendedor = v.Vendedor,
                 Grupo = string.IsNullOrWhiteSpace(v.Grupo) ? UiTexts.SinGrupo : v.Grupo,
-                Ventas = v.Ventas,
-                Total = v.Total,
-                Participacion = Porcentaje(v.Total, ingresos)
+                Total = v.Total
             })
             .ToList();
 

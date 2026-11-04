@@ -25,6 +25,15 @@ public sealed class KpiVendedorFilaResponse
     public decimal Total { get; set; }
 }
 
+/// <summary>Una venta del PDA, sin agrupar. La fecha está en hora de Colombia.</summary>
+public sealed class KpiVentaFilaResponse
+{
+    public DateTime FechaVenta { get; set; }
+    public string Vendedor { get; set; } = string.Empty;
+    public string Grupo { get; set; } = string.Empty;
+    public decimal Total { get; set; }
+}
+
 public sealed class KpiVentaDiaResponse
 {
     public DateOnly Fecha { get; set; }
@@ -67,6 +76,7 @@ public sealed class KpiResponse
     public IReadOnlyList<KpiBarraGrupoResponse> IngresosPorGrupo { get; set; } = [];
     public IReadOnlyList<KpiVendedorFilaResponse> IngresosPorVendedor { get; set; } = [];
     public IReadOnlyList<KpiVentaDiaResponse> VentasPorDiaDetalle { get; set; } = [];
+    public IReadOnlyList<KpiVentaFilaResponse> VentasDetalle { get; set; } = [];
     public IReadOnlyList<KpiResultadoFilaResponse> Resultados { get; set; } = [];
     public IReadOnlyList<string> LoteriasUtilizadas { get; set; } = [];
     public int PersonasTotales { get; set; }

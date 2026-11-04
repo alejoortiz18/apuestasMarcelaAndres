@@ -113,6 +113,7 @@ public sealed class InformesController : AdminControllerBase
         return (new InformesViewModel
         {
             Corte = ahora,
+            OrdenSecciones = OrdenSeccionesInforme.Leer(configuraciones.Data?.FirstOrDefault(c => c.Categoria == CategoriasInforme.OrdenSecciones)?.Filtros),
             Vendedores = vendedores,
             Informe = vendedores.Configurada
                 ? PersonalInforme.Informe(personal, listaGrupos, filtros, ahora, orden, dir, page, pageSize)
@@ -251,6 +252,21 @@ public sealed class InformesController : AdminControllerBase
 
         SetAvisoModal(result.Message);
         return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> OrdenSecciones(string? categoria, List<string>? secciones, CancellationToken cancellationToken)
+    {
+        var configuraciones = await _api.ListarConfiguracionesInformeAsync(cancellationToken);
+        if (configuraciones.Unauthorized) return Json(new { exitoso = false, mensaje = UiTexts.PdaSesionExpirada });
+
+        var actual = configuraciones.Data?.FirstOrDefault(c => c.Categoria == CategoriasInforme.OrdenSecciones)?.Filtros;
+        var json = configuraciones.Success ? OrdenSeccionesInforme.Aplicar(actual, categoria ?? string.Empty, secciones) : null;
+        if (json is null) return Json(new { exitoso = false, mensaje = UiTexts.InformeOrdenNoGuardado });
+
+        var result = await _api.GuardarConfiguracionInformeAsync(CategoriasInforme.OrdenSecciones, json, cancellationToken);
+        return Json(new { exitoso = result.Success, mensaje = result.Success ? null : UiTexts.InformeOrdenNoGuardado });
     }
 
     [HttpPost]

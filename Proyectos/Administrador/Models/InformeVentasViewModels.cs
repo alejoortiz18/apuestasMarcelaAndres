@@ -85,11 +85,10 @@ public sealed class IngresoDiaInforme
 public sealed class VendedorIngresoInforme
 {
     public int Posicion { get; init; }
+    public DateTime FechaVenta { get; init; }
     public string Vendedor { get; init; } = string.Empty;
     public string Grupo { get; init; } = string.Empty;
-    public int Ventas { get; init; }
     public decimal Total { get; init; }
-    public decimal Participacion { get; init; }
 }
 
 public sealed class IngresosInforme

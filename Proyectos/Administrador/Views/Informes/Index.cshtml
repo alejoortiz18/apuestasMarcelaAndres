@@ -1,8 +1,10 @@
 @using NewRich.Admin.Constants
 @using NewRich.Admin.Models
+@using NewRich.Admin.Services
 @using NewRich.Constants
 @model InformesViewModel
 @{
+    ViewData[OrdenSeccionesInforme.ClaveVista] = Model.OrdenSecciones;
     var vendedores = Model.Vendedores;
     var filtros = vendedores.Filtros;
     var campos = new[]
@@ -119,7 +121,9 @@
     </div>
 </section>
 
-<section id="informeSeleccionados" class="panel informe-seccion" aria-label="@UiTexts.InformeFiltrosTitulo">
+<section id="informeSeleccionados" class="panel informe-seccion" aria-label="@UiTexts.InformeFiltrosTitulo"
+         data-orden-url="@Url.Action("OrdenSecciones")"
+         data-orden-error="@UiTexts.InformeOrdenNoGuardado">
     @if (!algunaConfigurada)
     {
         <p class="empty">@UiTexts.InformeFiltrosVacio</p>

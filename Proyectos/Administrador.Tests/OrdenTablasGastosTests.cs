@@ -80,21 +80,23 @@ public sealed class OrdenTablasGastosTests
             Kpi = new KpiResponse
             {
                 Ingresos = 600m,
-                IngresosPorVendedor =
+                VentasDetalle =
                 [
-                    new KpiVendedorFilaResponse { Vendedor = "Carla", Grupo = "Sur", Ventas = 1, Total = 100m },
-                    new KpiVendedorFilaResponse { Vendedor = "Ana", Grupo = "Norte", Ventas = 3, Total = 300m },
-                    new KpiVendedorFilaResponse { Vendedor = "Beto", Grupo = "Este", Ventas = 2, Total = 200m }
+                    new KpiVentaFilaResponse { FechaVenta = new DateTime(2026, 10, 19, 8, 0, 0), Vendedor = "Carla", Grupo = "Sur", Total = 100m },
+                    new KpiVentaFilaResponse { FechaVenta = new DateTime(2026, 10, 19, 9, 0, 0), Vendedor = "Ana", Grupo = "Norte", Total = 300m },
+                    new KpiVentaFilaResponse { FechaVenta = new DateTime(2026, 10, 19, 7, 0, 0), Vendedor = "Beto", Grupo = "Este", Total = 200m }
                 ]
             }
         };
 
         var porDefecto = VentasInforme.Informe(fuente, new FiltrosPeriodoInforme { Periodo = "hoy" }, [], Hoy, Hoy, DateTime.Now, 1, 10);
         var porNombre = VentasInforme.Informe(fuente, new FiltrosPeriodoInforme { Periodo = "hoy" }, [], Hoy, Hoy, DateTime.Now, 1, 10, "vendedor", "desc");
+        var porFecha = VentasInforme.Informe(fuente, new FiltrosPeriodoInforme { Periodo = "hoy" }, [], Hoy, Hoy, DateTime.Now, 1, 10, "fecha", "asc");
 
         porDefecto.Ingresos.Vendedores.Items.Select(v => v.Vendedor).Should().Equal("Ana", "Beto", "Carla");
         porNombre.Ingresos.Vendedores.Items.Select(v => (v.Vendedor, v.Posicion)).Should().Equal(("Carla", 3), ("Beto", 2), ("Ana", 1));
         porNombre.Ingresos.OrdenRanking.Should().Be(new EstadoOrden("vendedor", "desc"));
+        porFecha.Ingresos.Vendedores.Items.Select(v => v.Vendedor).Should().Equal("Beto", "Carla", "Ana");
     }
 
     [Fact]

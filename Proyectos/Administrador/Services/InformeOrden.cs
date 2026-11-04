@@ -5,18 +5,17 @@ namespace NewRich.Admin.Services;
 public static class InformeOrden
 {
     public const string Posicion = "posicion";
+    public const string Fecha = "fecha";
     public const string Vendedor = "vendedor";
     public const string Grupo = "grupo";
-    public const string Ventas = "ventas";
     public const string Total = "total";
-    public const string Participacion = "participacion";
     public const string Recaudador = "recaudador";
     public const string DeudaAnterior = "anterior";
     public const string PendienteDia = "dia";
     public const string TotalPendiente = "pendiente";
 
     public static EstadoOrden EstadoRanking(string? orden, string? direccion) =>
-        Resolver(orden, direccion, [Posicion, Vendedor, Grupo, Ventas, Total, Participacion], Posicion, OrdenTabla.Ascendente);
+        Resolver(orden, direccion, [Posicion, Fecha, Vendedor, Grupo, Total], Posicion, OrdenTabla.Ascendente);
 
     public static EstadoOrden EstadoAtrasos(string? orden, string? direccion) =>
         Resolver(orden, direccion, [Vendedor, Grupo, Recaudador, DeudaAnterior, PendienteDia, TotalPendiente], TotalPendiente, OrdenTabla.Descendente);
@@ -24,11 +23,10 @@ public static class InformeOrden
     public static IReadOnlyList<VendedorIngresoInforme> Ranking(IEnumerable<VendedorIngresoInforme> filas, EstadoOrden estado) =>
         (estado.Orden switch
         {
+            Fecha => OrdenTabla.Por(filas, f => f.FechaVenta, estado.Direccion),
             Vendedor => OrdenTabla.Por(filas, f => f.Vendedor, estado.Direccion, OrdenTabla.Texto),
             Grupo => OrdenTabla.Por(filas, f => f.Grupo, estado.Direccion, OrdenTabla.Texto),
-            Ventas => OrdenTabla.Por(filas, f => f.Ventas, estado.Direccion),
             Total => OrdenTabla.Por(filas, f => f.Total, estado.Direccion),
-            Participacion => OrdenTabla.Por(filas, f => f.Participacion, estado.Direccion),
             _ => OrdenTabla.Por(filas, f => f.Posicion, estado.Direccion)
         }).ThenBy(f => f.Posicion).ToList();
 

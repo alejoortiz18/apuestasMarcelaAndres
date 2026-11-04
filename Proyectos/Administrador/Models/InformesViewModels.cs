@@ -14,6 +14,7 @@ public sealed class InformesViewModel
     public InformeEgresosViewModel? InformeEgresos { get; init; }
     public PeriodoInformeViewModel Recaudo { get; init; } = new();
     public InformeRecaudoViewModel? InformeRecaudo { get; init; }
+    public IReadOnlyDictionary<string, List<string>> OrdenSecciones { get; init; } = new Dictionary<string, List<string>>();
 }
 
 public sealed class TarjetaInforme

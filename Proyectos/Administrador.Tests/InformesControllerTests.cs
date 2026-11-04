@@ -169,6 +169,42 @@ public sealed class InformesControllerTests
         sut.TempData["AvisoModal"].Should().Be("Quitado.");
     }
 
+    [Fact]
+    public async Task Mover_secciones_guarda_el_nuevo_orden_y_conserva_el_de_los_otros_informes()
+    {
+        var api = Api();
+        api.Setup(a => a.ListarConfiguracionesInformeAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ApiCallResult<List<ConfiguracionInformeResponse>>.Ok(
+                [new() { Categoria = CategoriasInforme.OrdenSecciones, Filtros = """{"egresos":["gastos"]}""" }], "Listo."));
+        string? guardado = null;
+        api.Setup(a => a.GuardarConfiguracionInformeAsync(CategoriasInforme.OrdenSecciones, It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback<string, string, CancellationToken>((_, json, _) => guardado = json)
+            .ReturnsAsync(ApiCallResult<ConfiguracionInformeResponse>.Ok(new(), "Guardado."));
+        var sut = Crear(api.Object);
+
+        var result = await sut.OrdenSecciones(CategoriasInforme.Ventas, ["vendedores", "grupo"], CancellationToken.None);
+
+        result.Should().BeOfType<JsonResult>();
+        var leido = OrdenSeccionesInforme.Leer(guardado);
+        OrdenSeccionesInforme.Orden(leido, CategoriasInforme.Ventas).Should().StartWith(["vendedores", "grupo"]);
+        OrdenSeccionesInforme.Orden(leido, CategoriasInforme.Egresos)[0].Should().Be("gastos");
+    }
+
+    [Fact]
+    public async Task Index_pasa_el_orden_guardado_a_la_vista()
+    {
+        var api = Api();
+        api.Setup(a => a.ListarConfiguracionesInformeAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ApiCallResult<List<ConfiguracionInformeResponse>>.Ok(
+                [new() { Categoria = CategoriasInforme.OrdenSecciones, Filtros = """{"ventas":["dias"]}""" }], "Listo."));
+        var sut = Crear(api.Object);
+
+        var result = await sut.Index(null, null, cancellationToken: CancellationToken.None);
+
+        var modelo = result.Should().BeOfType<ViewResult>().Subject.Model.Should().BeOfType<InformesViewModel>().Subject;
+        OrdenSeccionesInforme.Orden(modelo.OrdenSecciones, CategoriasInforme.Ventas)[0].Should().Be("dias");
+    }
+
     private static Mock<IAdminApiClient> Api()
     {
         var api = new Mock<IAdminApiClient>();

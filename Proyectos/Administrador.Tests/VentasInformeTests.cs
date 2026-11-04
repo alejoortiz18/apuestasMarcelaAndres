@@ -76,7 +76,7 @@ public sealed class VentasInformeTests
     }
 
     [Fact]
-    public void Los_ingresos_llenan_todos_los_dias_y_ordenan_el_ranking()
+    public void Los_ingresos_llenan_todos_los_dias_y_listan_cada_venta_sin_agrupar()
     {
         var fuente = new FuenteInformeVentas
         {
@@ -85,10 +85,11 @@ public sealed class VentasInformeTests
                 Ingresos = 300m,
                 VentasConfirmadas = 3,
                 VentasPorDiaDetalle = [new() { Fecha = new DateOnly(2026, 10, 19), Ventas = 3, Total = 300m }],
-                IngresosPorVendedor =
+                VentasDetalle =
                 [
-                    new() { Vendedor = "Bruno", Grupo = "Sur", Ventas = 1, Total = 100m },
-                    new() { Vendedor = "Ana", Grupo = "Norte", Ventas = 2, Total = 200m }
+                    new() { FechaVenta = new DateTime(2026, 10, 19, 9, 0, 0), Vendedor = "Ana", Grupo = "Norte", Total = 50m },
+                    new() { FechaVenta = new DateTime(2026, 10, 19, 10, 0, 0), Vendedor = "Bruno", Grupo = "Sur", Total = 100m },
+                    new() { FechaVenta = new DateTime(2026, 10, 19, 11, 0, 0), Vendedor = "Ana", Grupo = "Norte", Total = 150m }
                 ]
             }
         };
@@ -99,7 +100,8 @@ public sealed class VentasInformeTests
         informe.Ingresos.MejorDia!.Fecha.Should().Be(new DateOnly(2026, 10, 19));
         informe.Ingresos.PromedioDiario.Should().Be(100m);
         informe.Ingresos.TicketPromedio.Should().Be(100m);
-        informe.Ingresos.Vendedores.Items.Select(v => (v.Posicion, v.Vendedor, v.Participacion)).Should().Equal((1, "Ana", 66.7m), (2, "Bruno", 33.3m));
+        informe.Ingresos.Vendedores.Items.Select(v => (v.Posicion, v.Vendedor, v.Total, v.FechaVenta.Hour))
+            .Should().Equal((1, "Ana", 150m, 11), (2, "Bruno", 100m, 10), (3, "Ana", 50m, 9));
     }
 
     [Fact]

@@ -2,6 +2,7 @@
 @using NewRich.Admin.Constants
 @using NewRich.Admin.Models
 @using NewRich.Admin.Services
+@using NewRich.Constants
 @model InformeVendedoresViewModel
 @{
     var cultura = CultureInfo.GetCultureInfo("es-CO");
@@ -35,15 +36,21 @@
     string Etiqueta(string columna, string texto) => string.Format(
         InformeVendedoresOrden.SiguienteDireccion(columna, Model.Orden, Model.Direccion) == "asc" ? UiTexts.OrdenarColumnaAsc : UiTexts.OrdenarColumnaDesc,
         texto);
+    var secciones = OrdenSeccionesInforme.Vista(ViewData, CategoriasInforme.Vendedores);
 }
-<div class="informe-reporte" aria-labelledby="informeReporteTitulo">
+<div class="informe-reporte informe-secciones" data-secciones="@secciones.Categoria" aria-labelledby="informeReporteTitulo">
+    <div class="informe-movible" data-seccion="encabezado" style="order: @secciones.Posicion("encabezado")">
+    <partial name="_MoverSeccion" model='(secciones, "encabezado")' />
     <header class="informe-reporte-head">
         <div>
             <h3 id="informeReporteTitulo">@UiTexts.InformeVendedoresNombre</h3>
             <p>@string.Format(UiTexts.InformeCorte, Model.Corte.ToString("dd/MM/yyyy hh:mm tt", cultura))</p>
         </div>
     </header>
+    </div>
 
+    <div class="informe-movible" data-seccion="tarjetas" style="order: @secciones.Posicion("tarjetas")">
+    <partial name="_MoverSeccion" model='(secciones, "tarjetas")' />
     <div class="informe-metricas">
         <div class="informe-metrica is-principal">
             <small>@UiTexts.InformeMetricaIncluidos</small>
@@ -66,8 +73,10 @@
             <em>@string.Format(UiTexts.InformeMetricaActivosNota, Porc(Model.PorcentajeActivos), Numero(Model.Inactivos))</em>
         </div>
     </div>
+    </div>
 
-    <div class="informe-graficos">
+    <div class="informe-movible is-media" data-seccion="tipos" style="order: @secciones.Posicion("tipos")">
+    <partial name="_MoverSeccion" model='(secciones, "tipos")' />
         <section class="informe-grafico" aria-labelledby="informeGraficoTipos">
             <h4 id="informeGraficoTipos">@UiTexts.InformeGraficoTipos</h4>
             <p>@UiTexts.InformeGraficoTiposAyuda</p>
@@ -96,7 +105,10 @@
                 </div>
             }
         </section>
+    </div>
 
+    <div class="informe-movible is-media" data-seccion="grupos" style="order: @secciones.Posicion("grupos")">
+    <partial name="_MoverSeccion" model='(secciones, "grupos")' />
         <section class="informe-grafico" aria-labelledby="informeGraficoGrupos">
             <h4 id="informeGraficoGrupos">@UiTexts.InformeGraficoGrupos</h4>
             <p>@UiTexts.InformeGraficoGruposAyuda</p>
@@ -120,7 +132,10 @@
                 </ul>
             }
         </section>
+    </div>
 
+    <div class="informe-movible" data-seccion="estado" style="order: @secciones.Posicion("estado")">
+    <partial name="_MoverSeccion" model='(secciones, "estado")' />
         <section class="informe-grafico informe-grafico-ancho" aria-labelledby="informeGraficoEstado">
             <h4 id="informeGraficoEstado">@UiTexts.InformeGraficoEstado</h4>
             <p>@UiTexts.InformeGraficoEstadoAyuda</p>
@@ -142,6 +157,8 @@
         </section>
     </div>
 
+    <div class="informe-movible" data-seccion="tabla" style="order: @secciones.Posicion("tabla")">
+    <partial name="_MoverSeccion" model='(secciones, "tabla")' />
     <section class="informe-tabla" aria-labelledby="informeTablaTitulo">
         <div class="informe-tabla-head">
             <div>
@@ -201,4 +218,5 @@
             <partial name="_Pager" model="Model.Personal" />
         }
     </section>
+    </div>
 </div>

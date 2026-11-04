@@ -68,6 +68,7 @@ public sealed class KpiServiceTests
 
         result.Data!.Ingresos.Should().Be(5000);
         result.Data.IngresosPorVendedor.Should().ContainSingle(v => v.Vendedor == "Camila Rojas" && v.Total == 5000);
+        result.Data.VentasDetalle.Should().ContainSingle(v => v.Vendedor == "Camila Rojas" && v.Total == 5000 && v.FechaVenta != default);
         result.Data.Vendedores.Should().Be(1);
     }
 

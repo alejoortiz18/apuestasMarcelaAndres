@@ -2,6 +2,7 @@
 @using NewRich.Admin.Constants
 @using NewRich.Admin.Models
 @using NewRich.Admin.Services
+@using NewRich.Constants
 @model InformeEgresosViewModel
 @{
     var cultura = CultureInfo.GetCultureInfo("es-CO");
@@ -79,8 +80,11 @@
     string EtiquetaPremios(string columna, string texto) => string.Format(
         InformePremiosWebOrden.SiguienteDireccion(columna, ordenP, dirP) == "asc" ? UiTexts.OrdenarColumnaAsc : UiTexts.OrdenarColumnaDesc,
         texto);
+    var secciones = OrdenSeccionesInforme.Vista(ViewData, CategoriasInforme.Egresos);
 }
-<div class="informe-reporte informe-egresos" aria-labelledby="informeEgresosReporteTitulo">
+<div class="informe-reporte informe-egresos informe-secciones" data-secciones="@secciones.Categoria" aria-labelledby="informeEgresosReporteTitulo">
+    <div class="informe-movible" data-seccion="encabezado" style="order: @secciones.Posicion("encabezado")">
+    <partial name="_MoverSeccion" model='(secciones, "encabezado")' />
     <header class="informe-reporte-head">
         <div>
             <h3 id="informeEgresosReporteTitulo">@UiTexts.InformeEgresosNombre</h3>
@@ -91,9 +95,10 @@
             <li>@string.Format(UiTexts.InformeAlcanceTexto, Model.Alcance)</li>
         </ul>
     </header>
+    </div>
 
-    <section class="informe-bloque" aria-label="@UiTexts.InformeEgresosNombre">
-        <div class="informe-graficos">
+    <div class="informe-movible is-media" data-seccion="conceptos" style="order: @secciones.Posicion("conceptos")">
+    <partial name="_MoverSeccion" model='(secciones, "conceptos")' />
             <section class="informe-grafico" aria-labelledby="informeEgresosConceptos">
                 <h5 id="informeEgresosConceptos">@UiTexts.InformeEgresosPorConcepto</h5>
                 <p>@UiTexts.InformeEgresosPorConceptoAyuda</p>
@@ -122,7 +127,10 @@
                     </div>
                 }
             </section>
+    </div>
 
+    <div class="informe-movible is-media" data-seccion="tipos" style="order: @secciones.Posicion("tipos")">
+    <partial name="_MoverSeccion" model='(secciones, "tipos")' />
             <section class="informe-grafico" aria-labelledby="informeEgresosTiposGasto">
                 <h5 id="informeEgresosTiposGasto">@UiTexts.InformeGastosPorTipo</h5>
                 <p>@UiTexts.InformeGastosPorTipoAyuda</p>
@@ -146,8 +154,10 @@
                     </ul>
                 }
             </section>
-        </div>
+    </div>
 
+    <div class="informe-movible" data-seccion="premios" style="order: @secciones.Posicion("premios")">
+    <partial name="_MoverSeccion" model='(secciones, "premios")' />
         <section class="informe-tabla" id="informeEgresosPremiosWeb" aria-labelledby="informeEgresosPremiosWebTitulo">
             <div class="informe-tabla-head">
                 <div>
@@ -209,7 +219,10 @@
                 <partial name="_Pager" model="premiosWeb" />
             }
         </section>
+    </div>
 
+    <div class="informe-movible" data-seccion="gastos" style="order: @secciones.Posicion("gastos")">
+    <partial name="_MoverSeccion" model='(secciones, "gastos")' />
         <section class="informe-tabla" id="informeEgresosGastosPersonaSeccion" aria-labelledby="informeEgresosGastosPersona">
             <div class="informe-tabla-head">
                 <div>
@@ -278,5 +291,5 @@
                 <p class="informe-nota">@string.Format(UiTexts.InformeGastosAnulados, Numero(Model.Egresos.AnuladosCantidad), Pesos(Model.Egresos.AnuladosValor))</p>
             }
         </section>
-    </section>
+    </div>
 </div>

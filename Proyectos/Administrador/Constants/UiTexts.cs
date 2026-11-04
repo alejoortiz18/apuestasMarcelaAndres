@@ -386,7 +386,12 @@ public static class UiTexts
     public const string InformeIngresosVentas = "{0} ventas";
     public const string InformeIngresosPorGrupo = "Ingresos por grupo";
     public const string InformeIngresosPorGrupoAyuda = "De mayor a menor ingreso.";
-    public const string InformeRankingVendedores = "Ranking de vendedores";
+    public const string InformeRankingVendedores = "Vendedores";
+    public const string InformeSeccionEncabezado = "Encabezado del informe";
+    public const string InformeSeccionTarjetas = "Tarjetas";
+    public const string InformeMoverSeccion = "Mover la sección {0}. Mantenga presionado y arrastre, o use las flechas arriba y abajo.";
+    public const string InformeMoverAyuda = "Mantenga presionado para mover esta sección dentro de su informe.";
+    public const string InformeOrdenNoGuardado = "No se pudo guardar el orden de las secciones. Intente de nuevo.";
     public const string InformeRankingVendedoresAyuda = "Ordenado de mayor a menor ingreso.";
     public const string InformeColumnaPosicion = "Puesto";
     public const string InformeColumnaParticipacion = "Participación";

@@ -477,4 +477,196 @@
   document.querySelectorAll("[data-informe-exportar]").forEach(function (boton) {
     boton.addEventListener("click", function () { exportarPdf(boton); });
   });
+
+  // Cada sección se mueve solo dentro de su informe. El orden se pinta con la propiedad order
+  // de CSS que deja el servidor, así la página no salta al cargar ni se mueve el DOM.
+  function iniciarSecciones() {
+    const raiz = document.getElementById("informeSeleccionados");
+    const url = raiz ? raiz.getAttribute("data-orden-url") : null;
+    if (!url) {
+      return;
+    }
+    const error = raiz.getAttribute("data-orden-error");
+    const interactivos = "a, button, input, select, textarea, label, summary, [contenteditable]";
+    const esperaMs = 450;
+    const tolerancia = 8;
+    let arrastre = null;
+
+    function movibles(contenedor) {
+      return Array.from(contenedor.children)
+        .filter(function (el) { return el.matches(".informe-movible[data-seccion]"); })
+        .sort(function (a, b) { return (Number(a.style.order) || 0) - (Number(b.style.order) || 0); });
+    }
+
+    function aplicar(lista) {
+      lista.forEach(function (el, i) { el.style.order = String(i); });
+    }
+
+    function firma(contenedor) {
+      return movibles(contenedor).map(function (el) { return el.getAttribute("data-seccion"); }).join("|");
+    }
+
+    function avisar(mensaje) {
+      if (typeof window.openAviso === "function") {
+        window.openAviso(mensaje);
+      }
+    }
+
+    function guardar(contenedor) {
+      const datos = new FormData();
+      datos.append("categoria", contenedor.getAttribute("data-secciones"));
+      movibles(contenedor).forEach(function (el) { datos.append("secciones", el.getAttribute("data-seccion")); });
+      const token = document.querySelector("input[name='__RequestVerificationToken']");
+      if (token) {
+        datos.append("__RequestVerificationToken", token.value);
+      }
+      fetch(url, { method: "POST", body: datos, credentials: "same-origin", headers: { "X-Requested-With": "fetch" } })
+        .then(function (r) { return r.ok ? r.json() : { exitoso: false }; })
+        .then(function (r) {
+          if (!r.exitoso) {
+            avisar(r.mensaje || error);
+          }
+        })
+        .catch(function () { avisar(error); });
+    }
+
+    function mover(seccion, paso) {
+      const contenedor = seccion.parentElement;
+      const lista = movibles(contenedor);
+      const desde = lista.indexOf(seccion);
+      const hasta = Math.max(0, Math.min(lista.length - 1, desde + paso));
+      if (desde === hasta) {
+        return;
+      }
+      lista.splice(desde, 1);
+      lista.splice(hasta, 0, seccion);
+      aplicar(lista);
+      guardar(contenedor);
+    }
+
+    function cancelarEspera() {
+      if (arrastre && arrastre.temporizador) {
+        clearTimeout(arrastre.temporizador);
+      }
+    }
+
+    function empezar(seccion, evento) {
+      arrastre.activo = true;
+      arrastre.inicial = firma(seccion.parentElement);
+      seccion.classList.add("is-arrastrando");
+      seccion.parentElement.classList.add("is-ordenando");
+      try { seccion.setPointerCapture(evento.pointerId); } catch (e) { /* el puntero ya se soltó */ }
+      const seleccion = window.getSelection ? window.getSelection() : null;
+      if (seleccion) {
+        seleccion.removeAllRanges();
+      }
+      if (navigator.vibrate) {
+        navigator.vibrate(15);
+      }
+    }
+
+    function reubicar(x, y) {
+      const seccion = arrastre.seccion;
+      const otras = movibles(seccion.parentElement).filter(function (el) { return el !== seccion; });
+      // Las secciones de media columna comparten fila: ahí decide la posición horizontal.
+      let indice = otras.length;
+      for (let i = 0; i < otras.length; i++) {
+        const r = otras[i].getBoundingClientRect();
+        const media = r.width < seccion.parentElement.clientWidth * 0.75;
+        const antes = y < r.top || (y <= r.bottom && (media ? x < r.left + r.width / 2 : y < r.top + r.height / 2));
+        if (antes) {
+          indice = i;
+          break;
+        }
+      }
+      otras.splice(indice, 0, seccion);
+      aplicar(otras);
+      if (y < 60) {
+        window.scrollBy(0, -18);
+      } else if (y > window.innerHeight - 60) {
+        window.scrollBy(0, 18);
+      }
+    }
+
+    function terminar() {
+      if (!arrastre) {
+        return;
+      }
+      cancelarEspera();
+      const seccion = arrastre.seccion;
+      if (arrastre.activo) {
+        seccion.classList.remove("is-arrastrando");
+        seccion.parentElement.classList.remove("is-ordenando");
+        if (firma(seccion.parentElement) !== arrastre.inicial) {
+          guardar(seccion.parentElement);
+        }
+        // El clic que sigue al soltar no debe abrir enlaces ni ordenar tablas.
+        window.addEventListener("click", function (e) { e.stopPropagation(); e.preventDefault(); }, { capture: true, once: true });
+        setTimeout(function () { arrastre = null; }, 0);
+        return;
+      }
+      arrastre = null;
+    }
+
+    raiz.querySelectorAll(".informe-secciones .informe-movible[data-seccion]").forEach(function (seccion) {
+      const asa = seccion.querySelector(":scope > [data-mover]");
+      if (!asa) {
+        return;
+      }
+
+      asa.addEventListener("keydown", function (e) {
+        if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+          e.preventDefault();
+          mover(seccion, e.key === "ArrowUp" ? -1 : 1);
+          asa.focus();
+        }
+      });
+
+      seccion.addEventListener("pointerdown", function (e) {
+        if (arrastre || e.button !== 0) {
+          return;
+        }
+        const enAsa = asa.contains(e.target);
+        if (!enAsa && e.target.closest(interactivos)) {
+          return;
+        }
+        arrastre = { seccion: seccion, x: e.clientX, y: e.clientY, activo: false };
+        if (enAsa) {
+          e.preventDefault();
+          empezar(seccion, e);
+          return;
+        }
+        arrastre.temporizador = setTimeout(function () {
+          if (arrastre && arrastre.seccion === seccion && !arrastre.activo) {
+            empezar(seccion, e);
+          }
+        }, esperaMs);
+      });
+
+      seccion.addEventListener("pointermove", function (e) {
+        if (!arrastre || arrastre.seccion !== seccion) {
+          return;
+        }
+        if (!arrastre.activo) {
+          if (Math.abs(e.clientX - arrastre.x) > tolerancia || Math.abs(e.clientY - arrastre.y) > tolerancia) {
+            cancelarEspera();
+            arrastre = null;
+          }
+          return;
+        }
+        e.preventDefault();
+        reubicar(e.clientX, e.clientY);
+      });
+
+      seccion.addEventListener("pointerup", terminar);
+      seccion.addEventListener("pointercancel", terminar);
+      seccion.addEventListener("contextmenu", function (e) {
+        if (arrastre && arrastre.activo) {
+          e.preventDefault();
+        }
+      });
+    });
+  }
+
+  iniciarSecciones();
 })();
