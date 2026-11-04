@@ -25,15 +25,12 @@ public sealed class PdaConexionTests
     }
 
     [Fact]
-    public void La_aplicacion_habla_con_el_api_local_de_test_por_usb_y_wifi()
+    public void La_aplicacion_habla_con_el_api_de_produccion_en_azure()
     {
-        PdaConexion.UrlLocalUsb.Should().Be("http://localhost:3002/");
-        PdaConexion.UrlLocal.Should().Be("http://192.168.20.35:3002/");
-        PdaConexion.UrlsPara(emulador: false).Should().Equal(PdaConexion.UrlLocalUsb, PdaConexion.UrlLocal);
-        PdaConexion.UrlsPara(emulador: true).Should().Equal(PdaConexion.UrlEmulador, PdaConexion.UrlLocal);
-        PdaConexion.BaseUrl(emulador: false).Should().Be(PdaConexion.UrlLocalUsb);
-        PdaConexion.UrlsPara(emulador: false).Should().NotContain(PdaConexion.UrlTest);
-        PdaConexion.UrlsPara(emulador: false).Should().NotContain(PdaConexion.UrlProduccion);
+        PdaConexion.UrlProduccion.Should().Be("https://newrich-cxhea7a9g6d2c3ce.centralus-01.azurewebsites.net/");
+        PdaConexion.UrlsPara(emulador: false).Should().Equal(PdaConexion.UrlProduccion);
+        PdaConexion.UrlsPara(emulador: true).Should().Equal(PdaConexion.UrlProduccion);
+        PdaConexion.BaseUrl(emulador: false).Should().Be(PdaConexion.UrlProduccion);
     }
 
     [Fact]
@@ -49,6 +46,6 @@ public sealed class PdaConexionTests
     public void Hub_de_chat_cuelga_de_la_misma_base_de_la_api()
     {
         PdaConexion.HubChat(PdaConexion.UrlProduccion).Should().Be(
-            "https://api-ventas-prod-ffh4dmdhgpcsapda.westus3-01.azurewebsites.net/hubs/chat");
+            "https://newrich-cxhea7a9g6d2c3ce.centralus-01.azurewebsites.net/hubs/chat");
     }
 }

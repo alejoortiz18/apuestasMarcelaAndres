@@ -150,9 +150,7 @@
 }
 
 .revisada-pdf-encabezado h2,
-.revisada-pdf-encabezado p,
-.revisada-pdf-filtros h3,
-.revisada-pdf-filtros p {
+.revisada-pdf-encabezado p {
     margin: 0;
     font-family: inherit;
 }
@@ -169,29 +167,9 @@
     line-height: 1.3;
 }
 
-.revisada-pdf-encabezado p:not(.revisada-pdf-kicker) {
+.revisada-pdf-fechas {
     color: var(--muted);
     font-size: 11px;
-}
-
-.revisada-pdf-encabezado .revisada-pdf-corte {
-    padding-top: 5px;
-}
-
-.revisada-pdf-filtros {
-    display: grid;
-    gap: 5px;
-    padding: 13px;
-    border: 1px solid var(--line);
-    background: var(--panel);
-    font-size: 12px;
-    line-height: 1.45;
-}
-
-.revisada-pdf-filtros h3 {
-    color: var(--green);
-    font-size: 12px;
-    font-weight: 800;
 }
 
 .revisada-exportando .revisada-loteria,
@@ -355,6 +333,10 @@
 
 .revisada-historico-resumen {
     margin-bottom: 16px;
+}
+
+.revisada-historico-pie {
+    margin-top: 16px;
 }
 
 .revisada-historico-tabla {

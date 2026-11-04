@@ -55,7 +55,7 @@ public sealed class GrupoRevisadaManualResponse
     public List<LineaRevisadaManualResponse> Lineas { get; set; } = [];
 }
 
-/// <summary>Fila del histórico de Cubierto: lo cubierto de una lotería y número en un mismo día.</summary>
+/// <summary>Fila del histórico de Cubierto: un registro cubierto, con la comisión y el descuento de su cubrimiento.</summary>
 public sealed class FilaCubiertoHistoricoResponse
 {
     public DateTime Fecha { get; set; }

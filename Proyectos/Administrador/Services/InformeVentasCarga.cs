@@ -70,7 +70,7 @@ public static class InformeVentasCarga
                 if (unauthorized) return new CargaInformeVentas { Unauthorized = true };
 
                 var web = await api.TotalVentasRegistradasWebAsync(desde, hasta, grupoId, null, cancellationToken);
-                if (Revisar(web)) ingresosWeb += web.Data!.Total;
+                if (Revisar(web)) ingresosWeb += web.Data!.Total + web.Data.TotalJuegos;
                 if (unauthorized) return new CargaInformeVentas { Unauthorized = true };
             }
         }

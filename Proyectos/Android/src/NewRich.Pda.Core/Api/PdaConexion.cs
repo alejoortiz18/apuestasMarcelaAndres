@@ -18,17 +18,8 @@ public static class PdaConexion
 
     public static string CodigoDispositivo { get; set; } = CodigoDispositivoPredeterminado;
     public static string? NumeroSerie { get; set; }
-    public const string UrlProduccion = "https://api-ventas-prod-ffh4dmdhgpcsapda.westus3-01.azurewebsites.net/";
-    public const string UrlTest = "https://apirichtest-gkgkguhyc6hdbtdb.westus3-01.azurewebsites.net/";
-
-    /// <summary>Con el celular por USB, <c>adb reverse tcp:3002 tcp:3002</c> deja el API del PC aquí.</summary>
-    public const string UrlLocalUsb = "http://localhost:3002/";
-
-    /// <summary>Alternativa por Wi-Fi. Cambiar si el PC recibe otra dirección en la red.</summary>
-    public const string UrlLocal = "http://192.168.20.35:3002/";
-
-    /// <summary>En el emulador de Android, 10.0.2.2 es el PC.</summary>
-    public const string UrlEmulador = "http://10.0.2.2:3002/";
+    /// <summary>API de producción en Azure (App Service newrich).</summary>
+    public const string UrlProduccion = "https://newrich-cxhea7a9g6d2c3ce.centralus-01.azurewebsites.net/";
     public const string RutaHubChat = "/hubs/chat";
 
     /// <summary>Sondeo liviano. No descarga el documento de swagger.</summary>
@@ -36,9 +27,8 @@ public static class PdaConexion
 
     public static string BaseUrl(bool emulador) => UrlsPara(emulador)[0];
 
-    /// <summary>En esta rama el celular habla con el API local de test: primero por USB y luego por Wi-Fi.</summary>
-    public static IReadOnlyList<string> UrlsPara(bool emulador) =>
-        emulador ? [UrlEmulador, UrlLocal] : [UrlLocalUsb, UrlLocal];
+    /// <summary>En esta rama todos los equipos, físicos o emulados, hablan con el API de producción en Azure.</summary>
+    public static IReadOnlyList<string> UrlsPara(bool emulador) => [UrlProduccion];
 
     public static string HubChat(string baseUrl) => baseUrl.TrimEnd('/') + RutaHubChat;
 

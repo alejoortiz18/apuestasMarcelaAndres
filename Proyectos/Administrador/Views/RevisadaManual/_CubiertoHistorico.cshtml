@@ -6,20 +6,28 @@
     var cultura = CultureInfo.GetCultureInfo("es-CO");
     string Pesos(decimal valor) => valor.ToString("N0", cultura);
     var historico = Model.Historico!;
-    var columnas = new (string Clave, string Titulo, bool Numerica)[]
+    var columnas = new (string Clave, string Titulo, bool Numerica, bool EnPdf, string? TituloPdf)[]
     {
-        ("fecha", UiTexts.Fecha, false),
-        ("loteria", UiTexts.Loteria, false),
-        ("numero", UiTexts.NumeroJugado, false),
-        ("registros", UiTexts.RecubrirRegistros, true),
-        ("subtotal", UiTexts.Subtotal, true),
-        ("comision", UiTexts.Comision, true),
-        ("valorcomision", UiTexts.ValorComision, true),
-        ("totalcomision", UiTexts.TotalConComision, true),
-        ("descuento", UiTexts.Descuento, true),
-        ("valordescuento", UiTexts.ValorDescuento, true),
-        ("totalpagar", UiTexts.TotalAPagar, true)
+        ("fecha", UiTexts.Fecha, false, true, null),
+        ("loteria", UiTexts.Loteria, false, true, null),
+        ("numero", UiTexts.NumeroJugado, false, true, null),
+        ("registros", UiTexts.RecubrirRegistros, true, false, null),
+        ("subtotal", UiTexts.Subtotal, true, true, UiTexts.Valor),
+        ("comision", UiTexts.Comision, true, false, null),
+        ("valorcomision", UiTexts.ValorComision, true, false, null),
+        ("totalcomision", UiTexts.TotalConComision, true, false, null),
+        ("descuento", UiTexts.Descuento, true, false, null),
+        ("valordescuento", UiTexts.ValorDescuento, true, false, null),
+        ("totalpagar", UiTexts.TotalAPagar, true, true, null)
     };
+
+    void Orden(string clave, string titulo, bool activa, string? tituloPdf)
+    {
+        <button type="button" class="table-sort" data-historico-orden="@clave" data-titulo="@titulo" data-pdf-texto="@tituloPdf"
+                aria-label="@string.Format(UiTexts.OrdenarColumnaAsc, titulo)">
+            @titulo <span aria-hidden="true">@(activa ? "↓" : "↕")</span>
+        </button>
+    }
 }
 <section class="panel revisada-historico" aria-labelledby="revisadaHistoricoTitulo"
          data-historico
@@ -31,20 +39,12 @@
          data-asc="@UiTexts.OrdenarColumnaAsc"
          data-desc="@UiTexts.OrdenarColumnaDesc">
     <div class="revisada-historico-head">
-        <h2 id="revisadaHistoricoTitulo">@UiTexts.HistoricoCubiertoTitulo</h2>
+        <h2 id="revisadaHistoricoTitulo" data-pdf-texto="@UiTexts.HistoricoCubiertoPdfTitulo">@UiTexts.HistoricoCubiertoTitulo</h2>
         <p class="revisada-historico-rango">
             <span>@UiTexts.Desde: <strong>@Model.Desde.ToString("dd/MM/yyyy", cultura)</strong></span>
             <span>@UiTexts.Hasta: <strong>@Model.Hasta.ToString("dd/MM/yyyy", cultura)</strong></span>
         </p>
     </div>
-    <dl class="revisada-totales-lista revisada-historico-resumen">
-        <div><dt>@UiTexts.HistoricoFilas</dt><dd>@historico.TotalFilas.ToString("N0", cultura)</dd></div>
-        <div><dt>@UiTexts.RecubrirRegistros</dt><dd>@historico.Registros.ToString("N0", cultura)</dd></div>
-        <div><dt>@UiTexts.Subtotal</dt><dd>@Pesos(historico.Subtotal)</dd></div>
-        <div><dt>@UiTexts.TotalConComision</dt><dd>@Pesos(historico.TotalConComision)</dd></div>
-        <div><dt>@UiTexts.TotalValorDescuento</dt><dd>@Pesos(historico.DescuentoValor)</dd></div>
-        <div class="is-principal"><dt>@UiTexts.TotalAPagar</dt><dd>@Pesos(historico.TotalPagar)</dd></div>
-    </dl>
     @if (historico.TotalFilas == 0)
     {
         <p class="empty">@UiTexts.HistoricoVacio</p>
@@ -55,18 +55,19 @@
             <table>
                 <thead>
                     <tr>
-                        @foreach (var (clave, titulo, numerica) in columnas)
+                        @foreach (var (clave, titulo, numerica, enPdf, tituloPdf) in columnas)
                         {
                             var activa = clave == "fecha";
-                            <th scope="col" class="@(numerica ? "num" : null)" aria-sort="@(activa ? "descending" : "none")">
-                                <button type="button" class="table-sort" data-historico-orden="@clave"
-                                        data-titulo="@titulo"
-                                        aria-label="@string.Format(UiTexts.OrdenarColumnaAsc, titulo)">
-                                    @titulo <span aria-hidden="true">@(activa ? "↓" : "↕")</span>
-                                </button>
-                            </th>
+                            if (enPdf)
+                            {
+                                <th scope="col" class="@(numerica ? "num" : null)" aria-sort="@(activa ? "descending" : "none")">@{ Orden(clave, titulo, activa, tituloPdf); }</th>
+                            }
+                            else
+                            {
+                                <th scope="col" class="@(numerica ? "num" : null)" aria-sort="@(activa ? "descending" : "none")" data-pdf-omitir>@{ Orden(clave, titulo, activa, tituloPdf); }</th>
+                            }
                         }
-                        <th scope="col"><span class="sr-only">@UiTexts.VerDetalleCubierto</span></th>
+                        <th scope="col" data-pdf-omitir><span class="sr-only">@UiTexts.VerDetalleCubierto</span></th>
                     </tr>
                 </thead>
                 <tbody data-historico-filas>
@@ -76,4 +77,9 @@
             <p class="revisada-historico-cargando" data-historico-centinela>@UiTexts.HistoricoCargando</p>
         </div>
     }
+    <dl class="revisada-totales-lista revisada-historico-pie">
+        <div><dt data-pdf-texto="@UiTexts.Valor">@UiTexts.Subtotal</dt><dd>@Pesos(historico.Subtotal)</dd></div>
+        <div><dt>@UiTexts.TotalValorDescuento</dt><dd>@Pesos(historico.DescuentoValor)</dd></div>
+        <div class="is-principal"><dt>@UiTexts.TotalAPagar</dt><dd data-pdf-texto="@Pesos(historico.Subtotal - historico.DescuentoValor)">@Pesos(historico.TotalPagar)</dd></div>
+    </dl>
 </section>

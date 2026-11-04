@@ -151,7 +151,7 @@
                     <h5 id="informeVentasRanking">@UiTexts.InformeRankingVendedores</h5>
                     <p>@UiTexts.InformeRankingVendedoresAyuda</p>
                 </div>
-                <form method="get" asp-action="Index" class="informe-filas" data-submit-on-change>
+                <form method="get" asp-action="@ViewContext.RouteData.Values["action"]" class="informe-filas" data-submit-on-change>
                     @foreach (var q in conservar(["pageV", "pageSizeV"]))
                     {
                         <input type="hidden" name="@q.Key" value="@q.Value" />

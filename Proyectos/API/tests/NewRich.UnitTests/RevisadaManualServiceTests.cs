@@ -130,7 +130,7 @@ public sealed class RevisadaManualServiceTests
     }
 
     [Fact]
-    public async Task Historico_agrupa_por_fecha_de_cubrimiento_loteria_y_numero()
+    public async Task Historico_muestra_un_renglon_por_registro_cubierto()
     {
         var (sut, db, admin) = await CreateSutAsync();
         var desde = new DateTime(2026, 10, 18);
@@ -149,11 +149,17 @@ public sealed class RevisadaManualServiceTests
 
         historico.IsSuccess.Should().BeTrue(historico.Message);
         var datos = historico.Data!;
-        datos.TotalFilas.Should().Be(2);
-        datos.Filas.Select(f => (f.Numero, f.Subtotal, f.Registros)).Should().Equal(("1234", 13_000m, 2), ("5678", 8_000m, 1));
-        datos.Filas[0].Cubrimientos.Should().HaveCount(2);
-        datos.Filas[0].TotalPagar.Should().Be(14_040m);
+        datos.TotalFilas.Should().Be(3);
+        datos.Filas.Select(f => (f.Numero, f.Subtotal, f.Registros)).Should().Equal(("1234", 11_000m, 1), ("5678", 8_000m, 1), ("1234", 2_000m, 1));
+        datos.Filas[0].Cubrimientos.Should().ContainSingle();
+        datos.Filas[0].ComisionPorcentajes.Should().Equal(20m);
+        datos.Filas[0].ComisionValor.Should().Be(2_200m);
+        datos.Filas[0].TotalConComision.Should().Be(13_200m);
+        datos.Filas[0].DescuentoValor.Should().Be(1_320m);
+        datos.Filas[0].TotalPagar.Should().Be(11_880m);
+        datos.Filas[2].TotalPagar.Should().Be(2_160m);
         datos.Filas[1].Fecha.Should().Be(desde.AddDays(-1));
+        datos.Registros.Should().Be(3);
         datos.Subtotal.Should().Be(21_000m);
         (await sut.CubiertoHoyAsync(CancellationToken.None)).Data!.Grupos.Should().OnlyContain(g => g.Numero == "1234");
     }

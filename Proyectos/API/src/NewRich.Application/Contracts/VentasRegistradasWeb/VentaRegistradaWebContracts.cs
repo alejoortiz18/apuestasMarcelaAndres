@@ -6,4 +6,5 @@ public sealed record VentaRegistradaWebResponse(Guid Id, DateOnly FechaVenta, de
 
 public sealed record VentasRegistradasWebResponse(int TotalFilas, IReadOnlyList<VentaRegistradaWebResponse> Items);
 
-public sealed record TotalVentasRegistradasWebResponse(decimal Total, int Cantidad);
+/// <summary>Total y Cantidad son de Registrar venta; TotalJuegos y CantidadJuegos, de Registrar juego (Individual y Combo).</summary>
+public sealed record TotalVentasRegistradasWebResponse(decimal Total, int Cantidad, decimal TotalJuegos = 0m, int CantidadJuegos = 0);

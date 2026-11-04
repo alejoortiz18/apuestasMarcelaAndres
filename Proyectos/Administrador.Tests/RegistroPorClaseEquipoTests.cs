@@ -48,6 +48,21 @@ public sealed class RegistroPorClaseEquipoTests
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    [Theory]
+    [InlineData(ClaseEquipoPda.Pda, false)]
+    [InlineData(ClaseEquipoPda.Celular, true)]
+    public async Task El_registro_avisa_a_la_api_si_el_equipo_es_un_celular(ClaseEquipoPda clase, bool esCelular)
+    {
+        var api = ApiQueRegistra();
+        var sut = CrearServicio(new AdbFalso().ConEquipoListo(Serie), api.Object);
+
+        await sut.RegistrarAsync(clase, TipoDispositivo.Observador, Silencio(), CancellationToken.None);
+
+        api.Verify(a => a.RegistrarDispositivoAutomaticoAsync(
+            It.Is<RegistrarPdaAutomaticoRequest>(r => r.EsCelular == esCelular),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
     [Fact]
     public async Task Elegir_celular_para_un_vendedor_no_registra_ni_instala_nada()
     {

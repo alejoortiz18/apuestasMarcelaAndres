@@ -45,7 +45,7 @@ public interface ITokenStore
 
 public sealed class ApiOpciones
 {
-    public string BaseUrl { get; set; } = PdaConexion.UrlLocal;
+    public string BaseUrl { get; set; } = PdaConexion.UrlProduccion;
 }
 
 public sealed class NewRichApiClient

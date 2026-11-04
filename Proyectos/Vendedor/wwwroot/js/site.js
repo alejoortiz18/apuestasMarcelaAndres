@@ -2385,6 +2385,13 @@ iniciarDiasVenta();
 
   form.addEventListener("change", sincronizar);
 
+  form.querySelectorAll("[data-usar-filas], [data-usar-numeros]").forEach(function (tipo) {
+    tipo.addEventListener("change", function () {
+      const resultado = document.querySelector("[data-juego-resultado]");
+      if (resultado) resultado.remove();
+    });
+  });
+
   filas.addEventListener("click", function (evento) {
     const quitar = evento.target.closest("[data-quitar]");
     const agregar = evento.target.closest("[data-agregar]");

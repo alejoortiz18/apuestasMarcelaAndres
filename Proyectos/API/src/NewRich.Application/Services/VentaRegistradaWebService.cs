@@ -95,22 +95,41 @@ public sealed class VentaRegistradaWebService : IVentaRegistradaWebService
     {
         var consulta = _db.VentasRegistradasWeb.AsNoTracking()
             .Where(v => v.FechaVenta >= desde && v.FechaVenta <= hasta);
+        // Los juegos se guardan en hora de Colombia.
+        var inicio = desde.ToDateTime(TimeOnly.MinValue);
+        var fin = hasta.AddDays(1).ToDateTime(TimeOnly.MinValue);
+        var individuales = _db.RegistrosJuegoManual.AsNoTracking()
+            .Where(r => r.FechaRegistro >= inicio && r.FechaRegistro < fin);
+        var combos = _db.RegistrosJuegoNumerosWebManual.AsNoTracking()
+            .Where(r => r.FechaRegistro >= inicio && r.FechaRegistro < fin);
         if (grupoId.HasValue)
         {
             var miembros = _db.Usuarios
                 .Where(u => u.UsuarioGrupos.Any(g => g.GrupoId == grupoId.Value))
                 .Select(u => u.UsuarioId);
             consulta = consulta.Where(v => miembros.Contains(v.VendedorId));
+            individuales = individuales.Where(r => miembros.Contains(r.UsuarioId));
+            combos = combos.Where(r => miembros.Contains(r.UsuarioId));
         }
 
         if (vendedorId.HasValue)
         {
             consulta = consulta.Where(v => v.VendedorId == vendedorId.Value);
+            individuales = individuales.Where(r => r.UsuarioId == vendedorId.Value);
+            combos = combos.Where(r => r.UsuarioId == vendedorId.Value);
         }
 
         var valores = await consulta.Select(v => v.Valor).ToListAsync(cancellationToken);
+        var valoresIndividuales = await individuales
+            .Select(r => r.Filas.Sum(f => (decimal?)f.Valor) ?? 0m)
+            .ToListAsync(cancellationToken);
+        var valoresCombos = await combos.Select(r => r.ValorJugado).ToListAsync(cancellationToken);
         return Result<TotalVentasRegistradasWebResponse>.Ok(
-            new TotalVentasRegistradasWebResponse(valores.Sum(), valores.Count),
+            new TotalVentasRegistradasWebResponse(
+                valores.Sum(),
+                valores.Count,
+                valoresIndividuales.Sum() + valoresCombos.Sum(),
+                valoresIndividuales.Count + valoresCombos.Count),
             SuccessMessages.OperacionExitosa);
     }
 

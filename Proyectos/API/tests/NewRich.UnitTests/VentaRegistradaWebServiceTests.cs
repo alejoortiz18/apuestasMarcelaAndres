@@ -134,6 +134,55 @@ public sealed class VentaRegistradaWebServiceTests
         anaFueraDelGrupo.Data!.Total.Should().Be(0m);
     }
 
+    [Fact]
+    public async Task Total_suma_aparte_los_juegos_individuales_y_combo_del_rango_y_grupo()
+    {
+        await using var db = Nueva();
+        var grupoNorte = Guid.NewGuid();
+        var ana = await Vendedor(db, "Ana", grupoNorte);
+        var sara = await Vendedor(db, "Sara", Guid.NewGuid());
+        db.RegistrosJuegoManual.AddRange(
+            Individual(ana, Hoy.ToDateTime(new TimeOnly(23, 30)), 1_000m, 2_000m),
+            Individual(sara, Hoy.ToDateTime(new TimeOnly(9, 0)), 4_000m),
+            Individual(ana, Hoy.AddDays(-5).ToDateTime(new TimeOnly(9, 0)), 8_000m));
+        db.RegistrosJuegoNumerosWebManual.AddRange(
+            Combo(ana, Hoy.AddDays(-1).ToDateTime(new TimeOnly(0, 10)), 10_000m),
+            Combo(sara, Hoy.ToDateTime(new TimeOnly(12, 0)), 20_000m),
+            Combo(ana, Hoy.AddDays(1).ToDateTime(new TimeOnly(0, 5)), 40_000m));
+        db.VentasRegistradasWeb.Add(Venta(ana, Hoy, 7_000m));
+        await db.SaveChangesAsync();
+        var sut = new VentaRegistradaWebService(db, new HasherFalso());
+
+        var todo = await sut.TotalAsync(Hoy.AddDays(-1), Hoy, null, null, CancellationToken.None);
+        var norte = await sut.TotalAsync(Hoy.AddDays(-1), Hoy, grupoNorte, null, CancellationToken.None);
+
+        todo.Data!.Total.Should().Be(7_000m);
+        todo.Data.TotalJuegos.Should().Be(37_000m);
+        todo.Data.CantidadJuegos.Should().Be(4);
+        norte.Data!.TotalJuegos.Should().Be(13_000m);
+        norte.Data.CantidadJuegos.Should().Be(2);
+    }
+
+    private static RegistroJuegoManual Individual(Guid vendedor, DateTime fecha, params decimal[] valores)
+    {
+        var registro = new RegistroJuegoManual { RegistroId = Guid.NewGuid(), UsuarioId = vendedor, FechaRegistro = fecha, CodigoPublico = "A1", IdempotencyKey = Guid.NewGuid().ToString("N") };
+        foreach (var valor in valores)
+        {
+            registro.Filas.Add(new FilaRegistroJuegoManual { FilaId = Guid.NewGuid(), RegistroId = registro.RegistroId, LoteriaId = Guid.NewGuid(), Numero = "1234", Valor = valor });
+        }
+
+        return registro;
+    }
+
+    private static RegistroJuegoNumerosWebManual Combo(Guid vendedor, DateTime fecha, decimal valor) => new()
+    {
+        RegistroId = Guid.NewGuid(),
+        UsuarioId = vendedor,
+        FechaRegistro = fecha,
+        CodigoPublico = "C1",
+        ValorJugado = valor
+    };
+
     private static VentaRegistradaWeb Venta(Guid vendedor, DateOnly fecha, decimal valor) => new()
     {
         VentaRegistradaWebId = Guid.NewGuid(),

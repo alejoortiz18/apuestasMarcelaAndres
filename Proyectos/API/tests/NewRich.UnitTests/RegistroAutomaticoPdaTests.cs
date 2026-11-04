@@ -90,6 +90,21 @@ public sealed class RegistroAutomaticoPdaTests
     }
 
     [Fact]
+    public async Task El_codigo_de_un_celular_empieza_por_cel_y_el_de_un_pda_por_pda()
+    {
+        var sut = CreateSut();
+        var celular = Solicitud("SERIE-CEL");
+        celular.EsCelular = true;
+        celular.Tipo = TipoDispositivo.Observador;
+
+        var deCelular = await sut.RegistrarAutomaticoAsync(celular, CancellationToken.None);
+        var dePda = await sut.RegistrarAutomaticoAsync(Solicitud("SERIE-PDA"), CancellationToken.None);
+
+        deCelular.Data!.CodigoDispositivo.Should().MatchRegex("^CEL-[0-9A-F]{8}$");
+        dePda.Data!.CodigoDispositivo.Should().MatchRegex("^PDA-[0-9A-F]{8}$");
+    }
+
+    [Fact]
     public async Task Exige_el_numero_de_serie_del_equipo()
     {
         var sut = CreateSut();

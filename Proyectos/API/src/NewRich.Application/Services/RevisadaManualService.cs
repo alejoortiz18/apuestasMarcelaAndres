@@ -321,26 +321,12 @@ public sealed class RevisadaManualService : IRevisadaManualService
         var operaciones = await CubiertasEntreAsync(desde.Date, hasta.Date.AddDays(1), cancellationToken);
         var nombres = await NombresAsync(operaciones.Select(o => o.LoteriaId), cancellationToken);
         var filas = operaciones
-            .GroupBy(o => (Fecha: o.FechaOperacion.Date, o.LoteriaId, o.Numero))
-            .Select(g =>
+            .OrderBy(o => o.FechaOperacion)
+            .SelectMany(o =>
             {
-                var cubrimientos = g.OrderBy(o => o.FechaOperacion).ToList();
-                var loteria = nombres.GetValueOrDefault(g.Key.LoteriaId) ?? string.Empty;
-                return new FilaCubiertoHistoricoResponse
-                {
-                    Fecha = g.Key.Fecha,
-                    Loteria = loteria,
-                    Numero = g.Key.Numero,
-                    Registros = cubrimientos.Sum(o => o.Lineas.Count),
-                    Subtotal = cubrimientos.Sum(o => o.Subtotal),
-                    ComisionPorcentajes = cubrimientos.Where(o => o.ComisionPorcentaje.HasValue).Select(o => o.ComisionPorcentaje!.Value).Distinct().ToList(),
-                    ComisionValor = cubrimientos.Sum(o => o.ComisionValor ?? 0),
-                    TotalConComision = cubrimientos.Sum(o => o.TotalConComision ?? 0),
-                    DescuentoPorcentajes = cubrimientos.Where(o => o.DescuentoPorcentaje.HasValue).Select(o => o.DescuentoPorcentaje!.Value).Distinct().ToList(),
-                    DescuentoValor = cubrimientos.Sum(o => o.DescuentoValor ?? 0),
-                    TotalPagar = cubrimientos.Sum(o => o.TotalPagar ?? 0),
-                    Cubrimientos = cubrimientos.Select(o => Mapear(o, loteria)).ToList()
-                };
+                var loteria = nombres.GetValueOrDefault(o.LoteriaId) ?? string.Empty;
+                var cubrimiento = Mapear(o, loteria);
+                return o.Lineas.OrderBy(l => l.FechaRegistro).Select(l => FilaDeRegistro(o, l.Valor, loteria, cubrimiento));
             })
             .ToList();
 
@@ -351,12 +337,12 @@ public sealed class RevisadaManualService : IRevisadaManualService
         return Result<CubiertoHistoricoResponse>.Ok(new CubiertoHistoricoResponse
         {
             TotalFilas = filas.Count,
-            Registros = filas.Sum(f => f.Registros),
-            Subtotal = filas.Sum(f => f.Subtotal),
-            ComisionValor = filas.Sum(f => f.ComisionValor),
-            TotalConComision = filas.Sum(f => f.TotalConComision),
-            DescuentoValor = filas.Sum(f => f.DescuentoValor),
-            TotalPagar = filas.Sum(f => f.TotalPagar),
+            Registros = filas.Count,
+            Subtotal = operaciones.Sum(o => o.Subtotal),
+            ComisionValor = operaciones.Sum(o => o.ComisionValor ?? 0),
+            TotalConComision = operaciones.Sum(o => o.TotalConComision ?? 0),
+            DescuentoValor = operaciones.Sum(o => o.DescuentoValor ?? 0),
+            TotalPagar = operaciones.Sum(o => o.TotalPagar ?? 0),
             HayMas = paginaActual * tamanoPagina < filas.Count,
             Filas = deLaPagina
         }, RevisadaManualMessages.Consultado);
@@ -407,6 +393,28 @@ public sealed class RevisadaManualService : IRevisadaManualService
 
     private const string EstadoHistoricoPendiente = "Pendiente";
     private const string EstadoHistoricoCubierto = "Cubierto";
+
+    private static FilaCubiertoHistoricoResponse FilaDeRegistro(OperacionRevisadaManual operacion, decimal valor, string loteria, GrupoRevisadaManualResponse cubrimiento)
+    {
+        var comision = operacion.ComisionPorcentaje;
+        var descuento = operacion.TotalPagar is null ? null : operacion.DescuentoPorcentaje;
+        var conComision = comision is null ? 0m : RevisadaManualCalculo.TotalConComision(valor, comision.Value);
+        return new FilaCubiertoHistoricoResponse
+        {
+            Fecha = operacion.FechaOperacion.Date,
+            Loteria = loteria,
+            Numero = operacion.Numero,
+            Registros = 1,
+            Subtotal = valor,
+            ComisionPorcentajes = comision is null ? [] : [comision.Value],
+            ComisionValor = comision is null ? 0m : RevisadaManualCalculo.Parte(valor, comision.Value),
+            TotalConComision = conComision,
+            DescuentoPorcentajes = operacion.DescuentoPorcentaje is null ? [] : [operacion.DescuentoPorcentaje.Value],
+            DescuentoValor = descuento is null ? 0m : RevisadaManualCalculo.Parte(conComision, descuento.Value),
+            TotalPagar = descuento is null ? 0m : RevisadaManualCalculo.TotalAPagar(conComision, descuento.Value),
+            Cubrimientos = [cubrimiento]
+        };
+    }
 
     private static List<FilaCubiertoHistoricoResponse> OrdenarHistorico(List<FilaCubiertoHistoricoResponse> filas, string? orden, bool descendente)
     {

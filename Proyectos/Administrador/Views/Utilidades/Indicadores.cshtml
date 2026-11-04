@@ -1,5 +1,7 @@
 @using NewRich.Admin.Constants
-@model NewRich.Admin.Models.IndicadoresUtilidadesViewModel
+@model NewRich.Admin.Models.UtilidadesVentasViewModel
+<link rel="stylesheet" href="~/css/informes.css" asp-append-version="true" />
+
 <div class="heading">
     <div>
         <div class="eyebrow">@UiTexts.UtilidadesKicker</div>
@@ -8,84 +10,59 @@
     </div>
 </div>
 <div class="panel">
-    <partial name="_Periodo" model="Model" />
-</div>
-<div class="metric-grid indicadores-utilidades">
-    <article class="metric">
-        <small>@UiTexts.TotalIngresos</small>
-        <strong>@Model.Ingresos</strong>
-    </article>
-    <article class="metric">
-        <small>@UiTexts.Ganancias</small>
-        <strong>@Model.Ganancia</strong>
-    </article>
-    <article class="metric">
-        <small>@UiTexts.TotalGastos</small>
-        <strong>@Model.Total</strong>
-    </article>
-    <article class="metric">
-        <small>@UiTexts.CantidadGastos</small>
-        <strong>@Model.Cantidad</strong>
-    </article>
-    <article class="metric">
-        <small>@UiTexts.GastoPromedio</small>
-        <strong>@Model.Promedio</strong>
-    </article>
-    <article class="metric">
-        <small>@UiTexts.MayorGasto</small>
-        <strong>@Model.MayorValor</strong>
-        <em>@Model.Mayor</em>
-    </article>
-</div>
-<div class="kpi-grid informe-grid">
-    <section class="kpi-section">
-        <h2>@UiTexts.GastosPorTipo</h2>
-        @if (Model.Tipos.Count == 0)
-        {
-            <p>@UiTexts.SinGastosPeriodo</p>
-        }
-        else
-        {
-            <div class="kpi-bars">
-                @foreach (var tipo in Model.Tipos)
+    <form class="toolbar" method="get">
+        <div class="field">
+            <label for="periodo">@UiTexts.Periodo</label>
+            <select id="periodo" name="periodo" class="searchable">
+                @foreach (var opcion in Model.Configuracion.Periodos)
                 {
-                    <div>
-                        <div class="kpi-bar-head">
-                            <span>@tipo.Etiqueta</span>
-                            <span>@tipo.Valor · @string.Format(UiTexts.Participacion, tipo.Porcentaje) · @string.Format(UiTexts.RegistrosDelTipo, tipo.Cantidad)</span>
-                        </div>
-                        <div class="kpi-bar gold" role="img" aria-label="@tipo.Etiqueta @tipo.Valor">
-                            <i style="width: @(tipo.Porcentaje)%"></i>
-                        </div>
-                    </div>
+                    <option value="@opcion.Valor" selected="@(Model.Periodo == opcion.Valor)">@opcion.Texto</option>
                 }
-            </div>
-        }
-    </section>
-    <section class="kpi-section">
-        <h2>@Model.SerieTitulo</h2>
-        @if (Model.Serie.Count == 0)
-        {
-            <p>@UiTexts.SinGastosPeriodo</p>
-        }
-        else
-        {
-            <div class="informe-dias" role="img" aria-label="@Model.SerieTitulo">
-                @foreach (var dia in Model.Serie)
+            </select>
+        </div>
+        <div class="field">
+            <label for="desde">@UiTexts.Desde</label>
+            <input id="desde" name="desde" type="date" value="@Model.Desde?.ToString("yyyy-MM-dd")" />
+        </div>
+        <div class="field">
+            <label for="hasta">@UiTexts.Hasta</label>
+            <input id="hasta" name="hasta" type="date" value="@Model.Hasta?.ToString("yyyy-MM-dd")" />
+        </div>
+        <div class="field">
+            <label for="grupoId">@UiTexts.Grupo</label>
+            <select id="grupoId" name="grupoId" class="searchable">
+                <option value="">@UiTexts.InformeTodosGrupos</option>
+                @foreach (var grupo in Model.Configuracion.Grupos)
                 {
-                    <div class="informe-dia">
-                        <span class="informe-dia-valor">@dia.Valor</span>
-                        <div class="informe-dia-pista">
-                            <i style="height: @(Math.Max(dia.Porcentaje, dia.Porcentaje == 0 ? 0 : 8))%"></i>
-                        </div>
-                        <span class="informe-dia-fecha">@dia.Etiqueta</span>
-                    </div>
+                    <option value="@grupo.Valor" selected="@(Model.GrupoId?.ToString() == grupo.Valor)">@grupo.Texto</option>
                 }
-            </div>
-        }
-    </section>
+            </select>
+        </div>
+        <button class="primary" type="submit">@UiTexts.Consultar</button>
+        <a class="secondary" asp-action="Indicadores">@UiTexts.Limpiar</a>
+    </form>
 </div>
-@if (!string.IsNullOrWhiteSpace(Model.AnuladosTexto))
-{
-    <p class="kpi-note">@Model.AnuladosTexto</p>
-}
+<section class="panel informe-seccion" aria-labelledby="utilidadesVentasTitulo">
+    <div class="informe-categoria">
+        <h2 id="utilidadesVentasTitulo" class="informe-titulo-categoria">@UiTexts.InformeCategoriaVentas</h2>
+        <article class="informe-config">
+            <div class="informe-config-datos">
+                <h3>@UiTexts.InformeCategoriaVentas</h3>
+                <dl>
+                    @foreach (var detalle in Model.Configuracion.Detalle)
+                    {
+                        <div>
+                            <dt>@detalle.Etiqueta</dt>
+                            <dd>@detalle.Valor</dd>
+                        </div>
+                    }
+                </dl>
+                <p>@UiTexts.InformeGruposVentasAyuda</p>
+            </div>
+        </article>
+        @if (Model.Informe is not null)
+        {
+            <partial name="~/Views/Informes/_InformeVentas.cshtml" model="Model.Informe" />
+        }
+    </div>
+</section>

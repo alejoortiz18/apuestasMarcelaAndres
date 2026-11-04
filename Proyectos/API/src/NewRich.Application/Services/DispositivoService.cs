@@ -103,7 +103,7 @@ public sealed class DispositivoService : IDispositivoService
         var dispositivo = new Dispositivo
         {
             DispositivoId = Guid.NewGuid(),
-            CodigoDispositivo = await GenerarCodigoAsync(cancellationToken),
+            CodigoDispositivo = await GenerarCodigoAsync(request.EsCelular ? "CEL-" : "PDA-", cancellationToken),
             Tipo = request.Tipo,
             Estado = EstadoGeneral.Activo,
             Modelo = request.Modelo,
@@ -118,11 +118,11 @@ public sealed class DispositivoService : IDispositivoService
     }
 
     /// <summary>Código corto y propio de cada equipo, dentro del largo que admite la columna.</summary>
-    private async Task<string> GenerarCodigoAsync(CancellationToken cancellationToken)
+    private async Task<string> GenerarCodigoAsync(string prefijo, CancellationToken cancellationToken)
     {
         while (true)
         {
-            var candidato = "PDA-" + Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
+            var candidato = prefijo + Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
             if (!await _db.Dispositivos.AnyAsync(d => d.CodigoDispositivo == candidato, cancellationToken))
             {
                 return candidato;

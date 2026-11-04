@@ -12,7 +12,7 @@
 }
 @if (Model.Resultado?.Filas is not null || Model.Resultado?.Numeros is not null)
 {
-    <div class="juego-resultados">
+    <div class="juego-resultados" data-juego-resultado>
         @if (Model.Resultado?.Filas is { } filas)
         {
             <section class="panel">

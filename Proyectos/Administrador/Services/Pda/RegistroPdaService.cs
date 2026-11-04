@@ -110,7 +110,8 @@ public sealed class RegistroPdaService : IRegistroPdaService
         {
             NumeroSerie = dispositivo.NumeroSerie,
             Modelo = modeloEquipo,
-            Tipo = tipo
+            Tipo = tipo,
+            EsCelular = clase == ClaseEquipoPda.Celular
         }, cancellationToken);
 
         if (!registro.Success || registro.Data is null)

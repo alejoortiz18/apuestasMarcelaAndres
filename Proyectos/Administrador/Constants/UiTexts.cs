@@ -1072,20 +1072,7 @@ public static class UiTexts
 
     public const string MenuUtilidades = "Contabilidad";
     public const string NavUtilidadesIndicadores = "Utilidades";
-    public const string IndicadoresAyuda = "Informe de ingresos, ganancias y gastos de todos los usuarios.";
-    public const string TotalIngresos = "Total ingresos";
-    public const string Ganancias = "Ganancias";
-    public const string TotalGastos = "Total de gastos";
-    public const string CantidadGastos = "Cantidad";
-    public const string GastoPromedio = "Gasto promedio";
-    public const string MayorGasto = "Mayor gasto";
-    public const string GastosPorTipo = "Gastos por tipo";
-    public const string GastosPorDia = "Gastos por día";
-    public const string GastosPorMes = "Gastos por mes";
-    public const string RegistrosDelTipo = "{0} registros";
-    public const string Participacion = "{0} %";
-    public const string AnuladosAparte = "Quedaron por fuera {0} gastos anulados, por {1}. No entran en los totales.";
-    public const string SinGastosPeriodo = "No hay gastos activos en este periodo.";
+    public const string IndicadoresAyuda = "Resultado de ventas del periodo: ingresos, premios, gastos, número cubierto y ganancias.";
     public const string NavUtilidadesResumen = "Resumen";
     public const string NavUtilidadesMovimientos = "Movimientos";
     public const string NavUtilidadesRegistrar = "Registrar gasto";
@@ -1141,6 +1128,8 @@ public static class UiTexts
     public const string MenuRevisadaManual = "Revisada manual";
     public const string NavRevisadaResumen = "Resumen";
     public const string NavRevisadaCubierto = "Cubierto";
+    public const string CubiertoPdfTitulo = "Números por cubrir";
+    public const string CubiertoPdfGenerado = "Generado el {0}";
     public const string RevisadaKicker = "Revisión manual";
     public const string RevisadaResumenSub = "Jugadas de Registrar juego del sitio del vendedor, pendientes de cubrir.";
     public const string RevisadaCubiertoSub = "Grupos cubiertos. Ingrese el descuento para consultar el total a pagar.";
@@ -1163,6 +1152,7 @@ public static class UiTexts
     public const string HistoricoTotalPendiente = "Total pendiente";
     public const string HistoricoTotalCubierto = "Total cubierto";
     public const string HistoricoCubiertoTitulo = "Histórico de lo cubierto";
+    public const string HistoricoCubiertoPdfTitulo = "Lista de números";
     public const string HistoricoFilas = "Filas";
     public const string HistoricoVacio = "No hay nada cubierto en estas fechas.";
     public const string HistoricoCargando = "Cargando más…";

@@ -46,7 +46,7 @@
                 data-revisada-exportar
                 data-fuentes="@Url.Content("~/lib/fuentes-pdf/fuentes.css")"
                 data-archivo="cubierto-@(DateTime.Now.ToString("yyyyMMdd-HHmm")).pdf"
-                data-titulo="@UiTexts.NavRevisadaCubierto"
+                data-titulo="@UiTexts.CubiertoPdfTitulo"
                 data-generando="@UiTexts.InformePdfGenerando"
                 data-error="@UiTexts.InformePdfError">@UiTexts.InformeExportarPdf</button>
     }
@@ -56,29 +56,21 @@
     <div class="revisada-pdf-resumen" aria-hidden="true" data-revisada-pdf-resumen>
         <header class="revisada-pdf-encabezado" data-pdf-encabezado>
             <p class="revisada-pdf-kicker">@UiTexts.InformePdfKicker</p>
-            <h2>@UiTexts.NavRevisadaCubierto</h2>
-            <p>@UiTexts.RevisadaCubiertoSub</p>
-            <p class="revisada-pdf-corte">@UiTexts.CorteDeInformacion: @DateTime.Now.ToString("dd/MM/yyyy HH:mm") · @UiTexts.FuenteSql</p>
+            <h2>@UiTexts.CubiertoPdfTitulo</h2>
+            <p class="revisada-pdf-fechas" data-pdf-generado data-formato="@UiTexts.CubiertoPdfGenerado"></p>
         </header>
-        <section class="revisada-pdf-filtros" data-pdf-filtros>
-            <h3>@UiTexts.FiltrosAplicados</h3>
-            <p>@UiTexts.Desde: @Model.Desde.ToString("dd/MM/yyyy", cultura)</p>
-            <p>@UiTexts.Hasta: @Model.Hasta.ToString("dd/MM/yyyy", cultura)</p>
-            <p>@UiTexts.Comision: @(string.IsNullOrWhiteSpace(Model.Comision) ? "-" : Model.Comision + " %")</p>
-            <p>@UiTexts.Descuento: @(string.IsNullOrWhiteSpace(Model.Porcentaje) ? "-" : Model.Porcentaje + " %")</p>
-        </section>
     </div>
 }
 <div id="revisada-datos">
 @if (Model.IncluyeHoy)
 {
-<div class="stats">
+<div class="stats" data-pdf-omitir>
     <article class="stat"><small>@UiTexts.JugadasVisibles</small><strong>@Model.Jugadas.ToString("N0", cultura)</strong></article>
     <article class="stat"><small>@UiTexts.LoteriasVisibles</small><strong>@Model.Loterias.ToString("N0", cultura)</strong></article>
     <article class="stat"><small>@UiTexts.TotalAgrupado</small><strong>@Pesos(Model.Total)</strong></article>
 </div>
 }
-<div class="panel">
+<div class="panel" data-pdf-omitir>
     @if (esCubierto)
     {
         <form id="porcentajesForm" method="post" asp-action="GuardarPorcentajes" hidden>
@@ -102,7 +94,10 @@
         {
             <div class="field">
                 <label for="valorMinimo">@UiTexts.ValorMinimoVisualizar</label>
-                <input id="valorMinimo" name="valorMinimo" inputmode="numeric" value="@Model.ValorMinimo" />
+                <div class="money-input">
+                    <span class="money-prefix" aria-hidden="true">@UiTexts.SimboloPesos</span>
+                    <input id="valorMinimo" name="valorMinimo" type="text" inputmode="numeric" autocomplete="off" data-miles value="@Model.ValorMinimo" />
+                </div>
             </div>
         }
         else
@@ -133,7 +128,7 @@
 </div>
 @if (esCubierto && Model.IncluyeHoy)
 {
-    <h2 class="revisada-parte-titulo">@string.Format(cultura, UiTexts.CubiertoHoyTitulo, DateTime.Today.ToString("dd/MM/yyyy", cultura))</h2>
+    <h2 class="revisada-parte-titulo" data-pdf-omitir>@string.Format(cultura, UiTexts.CubiertoHoyTitulo, DateTime.Today.ToString("dd/MM/yyyy", cultura))</h2>
 }
 else if (!esCubierto && Model.IncluyeHoy && Model.HistoricoResumen is not null)
 {
@@ -145,7 +140,7 @@ else if (!esCubierto && Model.IncluyeHoy && Model.HistoricoResumen is not null)
 }
 else if (Model.IncluyeHoy)
 {
-    <section class="panel revisada-previa revisada-modo-resumen" data-revisada-filtro>
+    <section class="panel revisada-previa revisada-modo-resumen" data-revisada-filtro data-pdf-omitir>
         <div class="revisada-previa-head">
             <div>
                 <h2>@UiTexts.LoteriasEnEstaPagina</h2>

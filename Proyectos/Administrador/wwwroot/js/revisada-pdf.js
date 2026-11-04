@@ -103,6 +103,20 @@
     return filas;
   }
 
+  function fechaHora(fecha) {
+    const dos = function (n) { return String(n).padStart(2, "0"); };
+    const horas = fecha.getHours();
+    return dos(fecha.getDate()) + "/" + dos(fecha.getMonth() + 1) + "/" + fecha.getFullYear() + " "
+      + (horas % 12 || 12) + ":" + dos(fecha.getMinutes()) + (horas < 12 ? "\u00a0a.\u00a0m." : "\u00a0p.\u00a0m.");
+  }
+
+  function marcarGenerado(encabezado) {
+    const generado = encabezado.querySelector("[data-pdf-generado]");
+    if (generado) {
+      generado.textContent = generado.getAttribute("data-formato").replace("{0}", fechaHora(new Date()));
+    }
+  }
+
   function armarCopia(original, filas) {
     const lienzo = document.createElement("div");
     lienzo.className = "revisada-pdf-lienzo";
@@ -111,13 +125,12 @@
     const copia = original.cloneNode(true);
     copia.removeAttribute("id");
     copia.classList.add("revisada-exportando");
-    copia.querySelectorAll("template").forEach(function (t) { t.remove(); });
     const cuerpo = copia.querySelector("[data-historico-filas]");
     if (cuerpo && filas) {
-      filas.forEach(function (fila) { fila.querySelectorAll("template").forEach(function (t) { t.remove(); }); });
       cuerpo.replaceChildren.apply(cuerpo, filas);
     }
-    lienzo.appendChild(copia);
+    copia.querySelectorAll("template, [data-pdf-omitir]").forEach(function (t) { t.remove(); });
+    copia.querySelectorAll("[data-pdf-texto]:not([data-pdf-texto=''])").forEach(function (el) { el.textContent = el.getAttribute("data-pdf-texto"); });    lienzo.appendChild(copia);
     document.body.appendChild(lienzo);
     return { lienzo: lienzo, copia: copia };
   }
@@ -126,10 +139,10 @@
     const original = document.getElementById("revisada-datos");
     const resumen = document.querySelector("[data-revisada-pdf-resumen]");
     const encabezado = resumen && resumen.querySelector("[data-pdf-encabezado]");
-    const filtros = resumen && resumen.querySelector("[data-pdf-filtros]");
-    if (!original || !encabezado || !filtros || !window.htmlToImage || !window.jspdf) {
+    if (!original || !encabezado || !window.htmlToImage || !window.jspdf) {
       throw new Error("faltan piezas");
     }
+    marcarGenerado(encabezado);
 
     const seccionHistorico = original.querySelector("[data-historico]");
     const filas = seccionHistorico && seccionHistorico.querySelector("[data-historico-filas]")
@@ -152,12 +165,10 @@
       const fuentes = await fuentesIncrustadas(boton.getAttribute("data-fuentes"));
       const lienzos = await Promise.all([
         window.htmlToImage.toCanvas(encabezado, { pixelRatio: 2, fontEmbedCSS: fuentes }),
-        window.htmlToImage.toCanvas(filtros, { pixelRatio: 2, fontEmbedCSS: fuentes }),
         window.htmlToImage.toCanvas(copia, { pixelRatio: Math.min(2, 30000 / alto), fontEmbedCSS: fuentes })
       ]);
       const cabeza = lienzos[0];
-      const resumenFiltros = lienzos[1];
-      const lienzo = lienzos[2];
+      const lienzo = lienzos[1];
       const fondo = getComputedStyle(document.body).backgroundColor;
 
       const pdf = new window.jspdf.jsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
@@ -165,14 +176,10 @@
       const anchoUtil = pagina.ancho - pagina.margen * 2;
       const altoDe = function (c) { return c.height / c.width * anchoUtil; };
       const altoCabeza = altoDe(cabeza);
-      const altoFiltros = altoDe(resumenFiltros);
       const mmPorPx = anchoUtil / ancho;
       const pxPorCss = lienzo.width / ancho;
       const relleno = colorRgb(fondo);
-      const inicioDe = function (i) {
-        const bajoCabeza = pagina.margen + altoCabeza + pagina.espacio;
-        return i === 0 ? bajoCabeza + altoFiltros + pagina.espacio : bajoCabeza;
-      };
+      const inicioDe = function () { return pagina.margen + altoCabeza + pagina.espacio; };
       const utilDe = function (i) { return (pagina.alto - pagina.margen - pagina.pie - inicioDe(i)) / mmPorPx; };
 
       const tramos = paginar(alto, utilDe, piezas);
@@ -183,9 +190,6 @@
         pdf.setFillColor(relleno[0], relleno[1], relleno[2]);
         pdf.rect(0, 0, pagina.ancho, pagina.alto, "F");
         pdf.addImage(cabeza, "PNG", pagina.margen, pagina.margen, anchoUtil, altoCabeza, "cabeza", "FAST");
-        if (i === 0) {
-          pdf.addImage(resumenFiltros, "PNG", pagina.margen, pagina.margen + altoCabeza + pagina.espacio, anchoUtil, altoFiltros, undefined, "FAST");
-        }
         const desde = Math.floor(tramo.inicio * pxPorCss);
         const corte = document.createElement("canvas");
         corte.width = lienzo.width;

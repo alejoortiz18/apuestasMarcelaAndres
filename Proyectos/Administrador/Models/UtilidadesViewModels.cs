@@ -3,19 +3,14 @@ using NewRich.Application.Contracts.Utilidades;
 
 namespace NewRich.Admin.Models;
 
-public sealed class IndicadoresUtilidadesViewModel : PeriodoUtilidades
+public sealed class UtilidadesVentasViewModel
 {
-    public string Ingresos { get; init; } = FormatoPesos.De(0);
-    public string Ganancia { get; init; } = FormatoPesos.De(0);
-    public string Total { get; init; } = FormatoPesos.De(0);
-    public int Cantidad { get; init; }
-    public string Promedio { get; init; } = FormatoPesos.De(0);
-    public string Mayor { get; init; } = "-";
-    public string MayorValor { get; init; } = "-";
-    public string? AnuladosTexto { get; init; }
-    public string SerieTitulo { get; init; } = string.Empty;
-    public IReadOnlyList<BarraGasto> Tipos { get; init; } = [];
-    public IReadOnlyList<BarraGasto> Serie { get; init; } = [];
+    public string Periodo { get; init; } = string.Empty;
+    public DateOnly? Desde { get; init; }
+    public DateOnly? Hasta { get; init; }
+    public Guid? GrupoId { get; init; }
+    public PeriodoInformeViewModel Configuracion { get; init; } = new();
+    public InformeVentasViewModel? Informe { get; init; }
 }
 
 public class PeriodoUtilidades

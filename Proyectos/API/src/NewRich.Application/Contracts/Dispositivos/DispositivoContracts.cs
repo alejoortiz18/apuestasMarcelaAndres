@@ -19,6 +19,9 @@ public sealed class RegistrarPdaAutomaticoRequest
     public string NumeroSerie { get; set; } = string.Empty;
     public string? Modelo { get; set; }
     public TipoDispositivo Tipo { get; set; }
+
+    /// <summary>Un celular recibe un código que empieza por CEL- y un PDA uno que empieza por PDA-.</summary>
+    public bool EsCelular { get; set; }
 }
 
 public sealed class ActualizarDispositivoRequest

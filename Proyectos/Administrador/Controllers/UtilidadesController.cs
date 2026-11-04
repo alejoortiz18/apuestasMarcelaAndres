@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Mvc;
 using NewRich.Admin.Constants;
 using NewRich.Admin.Models;
 using NewRich.Admin.Services;
+using NewRich.Application.Contracts.Grupos;
 using NewRich.Application.Contracts.Utilidades;
+using NewRich.Constants;
 using NewRich.Domain.Services;
 
 namespace NewRich.Admin.Controllers;
@@ -16,74 +18,73 @@ public sealed class UtilidadesController : AdminControllerBase
     public UtilidadesController(IAdminApiClient api) => _api = api;
 
     [HttpGet]
-    [HttpGet]
-    public async Task<IActionResult> Indicadores(string? periodo, DateOnly? desde, DateOnly? hasta, CancellationToken cancellationToken)
+    public async Task<IActionResult> Indicadores(
+        string? periodo,
+        DateOnly? desde,
+        DateOnly? hasta,
+        Guid? grupoId,
+        int pageV = 1,
+        int pageSizeV = 10,
+        string? ordenV = null,
+        string? dirV = null,
+        CancellationToken cancellationToken = default)
     {
         SetNav("utilidades-indicadores", UiTexts.NavUtilidadesIndicadores);
-        periodo = Normalizar(periodo);
-        var consulta = await _api.UtilidadesIndicadoresAsync(periodo, desde, hasta, cancellationToken);
-        var negado = RedirectIfUnauthorized(consulta);
+        var grupos = await _api.ListarGruposAsync(cancellationToken);
+        var negado = RedirectIfUnauthorized(grupos);
         if (negado is not null)
         {
             return negado;
         }
 
-        if (!consulta.Success || consulta.Data is null)
+        IReadOnlyList<GrupoResponse> listaGrupos = grupos.Data ?? [];
+        if (grupoId is { } elegido && listaGrupos.All(g => g.GrupoId != elegido))
         {
-            SetAvisoModal(consulta.Message);
-            return View(new IndicadoresUtilidadesViewModel
-            {
-                Periodo = periodo,
-                Desde = desde,
-                Hasta = hasta,
-                SerieTitulo = UiTexts.GastosPorDia
-            });
+            grupoId = null;
         }
 
-        var datos = consulta.Data;
-        var porMes = datos.Hasta.DayNumber - datos.Desde.DayNumber > 31;
-        var serie = porMes
-            ? datos.PorDia
-                .GroupBy(d => new { d.Fecha.Year, d.Fecha.Month })
-                .Select(g => new GastoPorDiaResponse(new DateOnly(g.Key.Year, g.Key.Month, 1), g.Sum(d => d.Valor)))
-                .OrderBy(d => d.Fecha)
-                .ToList()
-            : datos.PorDia.ToList();
-        var maximo = serie.Count == 0 ? 0 : serie.Max(d => d.Valor);
-        var mayor = datos.MayorValor is null
-            ? "-"
-            : $"{datos.MayorTipo}, {datos.MayorFecha:dd-MM-yyyy}";
-
-        return View(new IndicadoresUtilidadesViewModel
+        var conocido = VentasInforme.OpcionesPeriodo().Any(p => p.Valor == periodo);
+        var filtros = new FiltrosPeriodoInforme
         {
-            Periodo = periodo,
+            Periodo = conocido ? periodo! : VentasInforme.Periodo7,
             Desde = desde,
             Hasta = hasta,
-            PeriodoTexto = PeriodoTexto(datos.Desde, datos.Hasta),
-            Ingresos = FormatoPesos.De(datos.TotalIngresos),
-            Ganancia = FormatoPesos.De(datos.Ganancia),
-            Total = FormatoPesos.De(datos.TotalValor),
-            Cantidad = datos.Cantidad,
-            Promedio = FormatoPesos.De(datos.Promedio),
-            Mayor = mayor,
-            MayorValor = datos.MayorValor is null ? "-" : FormatoPesos.De(datos.MayorValor.Value),
-            AnuladosTexto = datos.AnuladosCantidad == 0
-                ? null
-                : string.Format(UiTexts.AnuladosAparte, datos.AnuladosCantidad, FormatoPesos.De(datos.AnuladosValor)),
-            SerieTitulo = porMes ? UiTexts.GastosPorMes : UiTexts.GastosPorDia,
-            Tipos = datos.PorTipo.Select(t => new BarraGasto
-            {
-                Etiqueta = t.Tipo,
-                Valor = FormatoPesos.De(t.Valor),
-                Cantidad = t.Cantidad,
-                Porcentaje = datos.TotalValor == 0 ? 0 : (int)Math.Round(t.Valor / datos.TotalValor * 100m, MidpointRounding.AwayFromZero)
-            }).ToList(),
-            Serie = serie.Select(d => new BarraGasto
-            {
-                Etiqueta = porMes ? d.Fecha.ToString("MMM yyyy", Colombia) : d.Fecha.ToString("dd MMM", Colombia),
-                Valor = FormatoPesos.De(d.Valor),
-                Porcentaje = maximo == 0 ? 0 : (int)Math.Round(d.Valor / maximo * 100m, MidpointRounding.AwayFromZero)
-            }).ToList()
+            Grupos = grupoId is null ? null : [grupoId.Value]
+        };
+        var invalido = VentasInforme.Validar(filtros);
+        if (invalido is not null)
+        {
+            filtros = new FiltrosPeriodoInforme { Periodo = VentasInforme.Periodo7, Grupos = filtros.Grupos };
+        }
+
+        var aviso = grupos.Success ? invalido : grupos.Message;
+        if (aviso is not null)
+        {
+            SetAvisoModal(aviso);
+        }
+
+        var ahora = ZonaHorariaColombia.ALocal(DateTime.UtcNow);
+        var hoy = DateOnly.FromDateTime(ahora);
+        var (inicio, fin) = VentasInforme.Rango(filtros, hoy);
+        var carga = await InformeVentasCarga.CargarAsync(_api, DatosInforme.Ventas, filtros, listaGrupos, inicio, fin, cancellationToken);
+        if (carga.Unauthorized)
+        {
+            return RedirectToAction("Ingresar", "Cuenta", new { expired = true });
+        }
+
+        if (aviso is null && carga.Error is not null)
+        {
+            SetAvisoModal(carga.Error);
+        }
+
+        return View(new UtilidadesVentasViewModel
+        {
+            Periodo = filtros.Periodo,
+            Desde = filtros.Desde,
+            Hasta = filtros.Hasta,
+            GrupoId = grupoId,
+            Configuracion = VentasInforme.Construir(CategoriasInforme.Ventas, listaGrupos, filtros, true, hoy),
+            Informe = VentasInforme.Informe(carga.Fuente, filtros, listaGrupos, inicio, fin, ahora, pageV, pageSizeV, ordenV, dirV)
         });
     }
 
