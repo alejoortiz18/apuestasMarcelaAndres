@@ -222,6 +222,9 @@
       if (periodo) {
         mostrarError(periodo, periodo.querySelector("[data-informe-error]"), "");
       }
+      if (tiposEgreso) {
+        mostrarError(tiposEgreso, tiposEgreso.querySelector("[data-informe-error]"), "");
+      }
       sincronizar();
       dialog.hidden = true;
       dialog.classList.add("hidden");
@@ -280,25 +283,63 @@
       }
     });
 
+    const tiposEgreso = dialog.querySelector("[data-informe-tipos-egreso]");
+
+    function sinTipos() {
+      return !!tiposEgreso && !tiposEgreso.querySelector("input:checked");
+    }
+
+    if (tiposEgreso) {
+      tiposEgreso.addEventListener("change", function () {
+        if (!sinTipos()) {
+          mostrarError(tiposEgreso, tiposEgreso.querySelector("[data-informe-error]"), "");
+        }
+      });
+    }
+
     form.addEventListener("submit", function (event) {
       const invalidos = campos.filter(function (c) { return especificos(c) && elegidos(c).length === 0; });
       campos.forEach(function (c) { marcarError(c, invalidos.includes(c)); });
       const rango = errorRango();
       sincronizarPeriodo(true);
-      if (rango || invalidos.length > 0) {
+      const faltanTipos = sinTipos();
+      if (tiposEgreso) {
+        mostrarError(tiposEgreso, tiposEgreso.querySelector("[data-informe-error]"), faltanTipos ? tiposEgreso.getAttribute("data-error") : "");
+      }
+      if (rango || faltanTipos || invalidos.length > 0) {
         event.preventDefault();
         const destino = rango
           ? periodo.querySelector("[data-informe-desde]")
-          : invalidos[0].buscar || invalidos[0].fs.querySelector("input");
+          : faltanTipos
+            ? tiposEgreso.querySelector("input")
+            : invalidos[0].buscar || invalidos[0].fs.querySelector("input");
         if (destino) {
           destino.focus();
         }
         return;
       }
-      if (guardar) {
-        guardar.disabled = true;
-      }
+      ocupado(guardar);
     });
+
+    const quitar = dialog.querySelector('button[type="submit"][form]');
+    const formQuitar = quitar ? document.getElementById(quitar.getAttribute("form")) : null;
+    if (formQuitar) {
+      formQuitar.addEventListener("submit", function () { ocupado(quitar); });
+    }
+
+    // Mientras el servidor guarda o quita, el botón pulsado gira y ningún otro se puede usar.
+    function ocupado(boton) {
+      dialog.querySelectorAll(".dialog-actions button").forEach(function (b) { b.disabled = true; });
+      if (!boton) {
+        return;
+      }
+      boton.classList.add("boton-cargando");
+      boton.setAttribute("aria-busy", "true");
+      const texto = boton.getAttribute("data-cargando");
+      if (texto) {
+        boton.textContent = texto;
+      }
+    }
   }
 
   document.querySelectorAll("[data-informe-dialog]").forEach(iniciar);

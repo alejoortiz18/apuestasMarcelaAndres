@@ -103,7 +103,8 @@ public sealed class InformesControllerTests
 
         var vendedor = Guid.NewGuid();
 
-        await sut.GuardarPeriodo(categoria, "15", null, null, "elegidos", [grupo], "elegidos", [vendedor], CancellationToken.None);
+        await sut.GuardarPeriodo(categoria, "15", null, null, "elegidos", [grupo], "elegidos", [vendedor],
+            [VentasInforme.TipoEgresoPremios, VentasInforme.TipoEgresoGastos, VentasInforme.TipoEgresoCubierto], CancellationToken.None);
 
         var filtros = JsonSerializer.Deserialize<FiltrosPeriodoInforme>(enviado!, new JsonSerializerOptions(JsonSerializerDefaults.Web))!;
         filtros.Periodo.Should().Be("15");
@@ -113,12 +114,32 @@ public sealed class InformesControllerTests
     }
 
     [Fact]
+    public async Task Guardar_egresos_guarda_los_tipos_elegidos_y_todos_equivale_a_no_filtrar()
+    {
+        var enviados = new List<string>();
+        var api = Api();
+        api.Setup(a => a.GuardarConfiguracionInformeAsync(CategoriasInforme.Egresos, It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback<string, string, CancellationToken>((_, filtros, _) => enviados.Add(filtros))
+            .ReturnsAsync(ApiCallResult<ConfiguracionInformeResponse>.Ok(new(), "Guardado."));
+        var sut = Crear(api.Object);
+
+        await sut.GuardarPeriodo(CategoriasInforme.Egresos, "7", null, null, "todos", null, "todos", null,
+            [VentasInforme.TipoEgresoPremios, VentasInforme.TipoEgresoCubierto], CancellationToken.None);
+        await sut.GuardarPeriodo(CategoriasInforme.Egresos, "7", null, null, "todos", null, "todos", null,
+            [VentasInforme.TipoEgresoPremios, VentasInforme.TipoEgresoGastos, VentasInforme.TipoEgresoCubierto], CancellationToken.None);
+
+        var opciones = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        JsonSerializer.Deserialize<FiltrosPeriodoInforme>(enviados[0], opciones)!.TiposEgreso.Should().Equal(VentasInforme.TipoEgresoPremios, VentasInforme.TipoEgresoCubierto);
+        JsonSerializer.Deserialize<FiltrosPeriodoInforme>(enviados[1], opciones)!.TiposEgreso.Should().BeNull();
+    }
+
+    [Fact]
     public async Task Guardar_periodo_con_rango_mayor_a_31_dias_no_llama_la_api()
     {
         var api = Api();
         var sut = Crear(api.Object);
 
-        await sut.GuardarPeriodo(CategoriasInforme.Egresos, "rango", new DateOnly(2026, 8, 1), new DateOnly(2026, 10, 1), "todos", null, "todos", null, CancellationToken.None);
+        await sut.GuardarPeriodo(CategoriasInforme.Egresos, "rango", new DateOnly(2026, 8, 1), new DateOnly(2026, 10, 1), "todos", null, "todos", null, null, CancellationToken.None);
 
         api.Verify(a => a.GuardarConfiguracionInformeAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
         sut.TempData["AvisoModal"].Should().Be(UiTexts.InformeRangoMaximo);
@@ -130,7 +151,7 @@ public sealed class InformesControllerTests
         var api = Api();
         var sut = Crear(api.Object);
 
-        await sut.GuardarPeriodo(CategoriasInforme.Vendedores, "7", null, null, "todos", null, "todos", null, CancellationToken.None);
+        await sut.GuardarPeriodo(CategoriasInforme.Vendedores, "7", null, null, "todos", null, "todos", null, null, CancellationToken.None);
 
         api.Verify(a => a.GuardarConfiguracionInformeAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
         sut.TempData["AvisoModal"].Should().Be(UiTexts.InformeCategoriaInvalida);

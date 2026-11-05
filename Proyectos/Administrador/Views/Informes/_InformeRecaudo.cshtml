@@ -12,6 +12,7 @@
     string Fecha(DateOnly fecha) => fecha.ToString("dd/MM/yyyy", cultura);
     string Periodo() => Model.Desde == Model.Hasta ? Fecha(Model.Desde) : string.Format(UiTexts.InformeRangoTexto, Fecha(Model.Desde), Fecha(Model.Hasta));
     var secciones = OrdenSeccionesInforme.Vista(ViewData, CategoriasInforme.Recaudo);
+    var conservar = (string[] quitar) => Context.Request.Query.Where(q => !quitar.Contains(q.Key, StringComparer.OrdinalIgnoreCase));
 }
 <div class="informe-reporte informe-recaudo informe-secciones" data-secciones="@secciones.Categoria" aria-labelledby="informeRecaudoReporteTitulo">
     <div class="informe-movible" data-seccion="encabezado" style="order: @secciones.Posicion("encabezado")">
@@ -133,8 +134,21 @@
                         <h5 id="informeRecaudoAtrasos">@UiTexts.InformeRecaudoAtrasos</h5>
                         <p>@UiTexts.InformeRecaudoAtrasosAyuda</p>
                     </div>
+                    <form method="get" asp-action="@ViewContext.RouteData.Values["action"]" class="informe-filas" data-submit-on-change>
+                        @foreach (var q in conservar(["pageAt", "pageSizeAt"]))
+                        {
+                            <input type="hidden" name="@q.Key" value="@q.Value" />
+                        }
+                        <label for="informeRecaudoPageSizeAt">@UiTexts.FilasPorPagina</label>
+                        <select id="informeRecaudoPageSizeAt" name="pageSizeAt">
+                            @foreach (var size in PagingHelper.PageSizes)
+                            {
+                                <option value="@size" selected="@(recaudo.Atrasos.PageSize == size)">@size</option>
+                            }
+                        </select>
+                    </form>
                 </div>
-                @if (recaudo.Atrasos.Count == 0)
+                @if (recaudo.Atrasos.TotalCount == 0)
                 {
                     <p class="empty">@UiTexts.InformeSinAtrasos</p>
                 }
@@ -159,7 +173,7 @@
                             </tr>
                             </thead>
                             <tbody>
-                            @foreach (var a in recaudo.Atrasos)
+                            @foreach (var a in recaudo.Atrasos.Items)
                             {
                                 <tr>
                                     <td><strong>@a.Vendedor</strong></td>
@@ -173,6 +187,9 @@
                             </tbody>
                         </table>
                     </div>
+                    ViewData["PagerPageKey"] = "pageAt";
+                    ViewData["PagerPageSizeKey"] = "pageSizeAt";
+                    <partial name="_Pager" model="recaudo.Atrasos" />
                 }
                 @if (recaudo.Recortado)
                 {

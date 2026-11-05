@@ -105,6 +105,25 @@ public sealed partial class RecaudoService
         var totalRecaudado = lineas.Sum(d => d.Cobrado);
         var totalPendiente = saldos.Sum(s => s.Fila.TotalPendiente);
         var composicion = saldos.Select(s => Composicion(s.Fila)).ToList();
+        var pendientes = saldos
+            .Where(s => s.Fila.TotalPendiente > 0m)
+            .OrderByDescending(s => s.Fila.TotalPendiente)
+            .ThenBy(s => s.Fila.NombreCompleto)
+            .Select(s =>
+            {
+                var (deudaAnterior, pendienteDelDia) = Composicion(s.Fila);
+                return new SaldoVendedorRecaudoResponse
+                {
+                    VendedorId = s.Fila.VendedorId,
+                    Nombre = s.Fila.NombreCompleto,
+                    Grupo = s.Fila.Grupo,
+                    Recaudador = s.Recaudador,
+                    DeudaAnterior = deudaAnterior,
+                    PendienteDelDia = pendienteDelDia,
+                    TotalPendiente = s.Fila.TotalPendiente
+                };
+            })
+            .ToList();
 
         return Result<TableroRecaudoResponse>.Ok(new TableroRecaudoResponse
         {
@@ -125,26 +144,8 @@ public sealed partial class RecaudoService
             Dias = lineas,
             Recaudadores = barrasRecaudador,
             Grupos = grupos,
-            MayoresSaldos = saldos
-                .Where(s => s.Fila.TotalPendiente > 0m)
-                .OrderByDescending(s => s.Fila.TotalPendiente)
-                .ThenBy(s => s.Fila.NombreCompleto)
-                .Take(MayoresSaldosVisibles)
-                .Select(s =>
-                {
-                    var (deudaAnterior, pendienteDelDia) = Composicion(s.Fila);
-                    return new SaldoVendedorRecaudoResponse
-                    {
-                        VendedorId = s.Fila.VendedorId,
-                        Nombre = s.Fila.NombreCompleto,
-                        Grupo = s.Fila.Grupo,
-                        Recaudador = s.Recaudador,
-                        DeudaAnterior = deudaAnterior,
-                        PendienteDelDia = pendienteDelDia,
-                        TotalPendiente = s.Fila.TotalPendiente
-                    };
-                })
-                .ToList(),
+            MayoresSaldos = pendientes.Take(MayoresSaldosVisibles).ToList(),
+            SaldosPendientes = pendientes,
             OpcionesRecaudadores = recaudadores.Select(r => new OpcionRecaudoResponse { Id = r.UsuarioId, Nombre = r.NombreCompleto }).ToList(),
             OpcionesGrupos = await OpcionesDeGrupoAsync(cancellationToken)
         }, SuccessMessages.OperacionExitosa);

@@ -33,6 +33,19 @@ public static class VentasInforme
     public const string Periodo30 = "30";
     public const string PeriodoRango = "rango";
     public const int DiasMaximos = 31;
+    public const string TipoEgresoPremios = "premios";
+    public const string TipoEgresoGastos = "gastos";
+    public const string TipoEgresoCubierto = "cubierto";
+
+    public static readonly IReadOnlyList<OpcionInforme> TiposEgreso =
+    [
+        new() { Valor = TipoEgresoPremios, Texto = UiTexts.InformeTipoEgresoPremios },
+        new() { Valor = TipoEgresoGastos, Texto = UiTexts.InformeTipoEgresoGastos },
+        new() { Valor = TipoEgresoCubierto, Texto = UiTexts.InformeTipoEgresoCubierto }
+    ];
+
+    public static bool Incluye(FiltrosPeriodoInforme filtros, string tipo) =>
+        filtros.TiposEgreso is null || filtros.TiposEgreso.Contains(tipo);
 
     public static readonly IReadOnlyList<string> CategoriasPorPeriodo =
         [CategoriasInforme.Ventas, CategoriasInforme.Egresos, CategoriasInforme.Recaudo];
@@ -67,6 +80,7 @@ public static class VentasInforme
         }
         if (filtros.Grupos is { Count: 0 }) return UiTexts.InformeEligeGrupo;
         if (filtros.Vendedores is { Count: 0 }) return UiTexts.InformeEligeVendedor;
+        if (filtros.TiposEgreso is { Count: 0 }) return UiTexts.InformeEligeTipoEgreso;
         return null;
     }
 
@@ -115,6 +129,13 @@ public static class VentasInforme
                 UiTexts.InformeTodosVendedores);
             detalle.Add(new() { Etiqueta = UiTexts.InformeEtiquetaVendedores, Valor = elegidos });
             resumen += $" · {elegidos}";
+        }
+
+        if (clave == CategoriasInforme.Egresos)
+        {
+            var tipos = string.Join(", ", TiposEgreso.Where(t => Incluye(filtros, t.Valor)).Select(t => t.Texto));
+            detalle.Add(new() { Etiqueta = UiTexts.InformeEtiquetaTiposEgreso, Valor = tipos });
+            resumen += $" · {tipos}";
         }
 
         return new PeriodoInformeViewModel
@@ -220,6 +241,9 @@ public static class VentasInforme
             MayoresSaldos = partes.SelectMany(p => p.MayoresSaldos)
                 .OrderByDescending(s => s.TotalPendiente)
                 .Take(5)
+                .ToList(),
+            SaldosPendientes = partes.SelectMany(p => p.SaldosPendientes)
+                .OrderByDescending(s => s.TotalPendiente)
                 .ToList()
         };
     }
@@ -258,13 +282,34 @@ public static class VentasInforme
         int paginaPremios = 1,
         int filasPremios = 10,
         string? ordenGastos = null,
-        string? direccionGastos = null)
+        string? direccionGastos = null,
+        string? ordenCubiertos = null,
+        string? direccionCubiertos = null,
+        int paginaCubiertos = 1,
+        int filasCubiertos = 10)
     {
-        var resumen = Resumen(fuente);
+        var conPremios = Incluye(filtros, TipoEgresoPremios);
+        var conGastos = Incluye(filtros, TipoEgresoGastos);
+        var conCubierto = Incluye(filtros, TipoEgresoCubierto);
+        var completo = Resumen(fuente);
+        var resumen = new ResumenFinancieroInforme
+        {
+            IngresosPda = completo.IngresosPda,
+            IngresosWeb = completo.IngresosWeb,
+            VentasConfirmadas = completo.VentasConfirmadas,
+            PremiosObservador = conPremios ? completo.PremiosObservador : 0m,
+            PremiosWeb = conPremios ? completo.PremiosWeb : 0m,
+            EntregasPremio = conPremios ? completo.EntregasPremio : 0,
+            TotalGastos = conGastos ? completo.TotalGastos : 0m,
+            CantidadGastos = conGastos ? completo.CantidadGastos : 0,
+            TotalCubierto = conCubierto ? completo.TotalCubierto : 0m,
+            JugadasCubiertas = conCubierto ? completo.JugadasCubiertas : 0
+        };
+        var premiosWeb = conPremios ? fuente.PremiosWeb : [];
         var (columnaGastos, sentidoGastos) = OrdenTabla.Resolver(ordenGastos, direccionGastos, ColumnasGastosPersona, GastoPersonaTotal, OrdenTabla.Descendente);
         var orden = InformePremiosWebOrden.Normalizar(ordenPremios);
         var direccion = InformePremiosWebOrden.Direccion(ordenPremios, direccionPremios);
-        var premios = InformePremiosWebOrden.Ordenar(fuente.PremiosWeb.Select(p => new PremioWebInforme
+        var premios = InformePremiosWebOrden.Ordenar(premiosWeb.Select(p => new PremioWebInforme
         {
             Fecha = p.FechaPremio,
             Vendedor = p.Vendedor,
@@ -273,7 +318,26 @@ public static class VentasInforme
             ValorApostado = p.ValorApostado,
             ValorPremio = p.ValorPremio
         }), orden, direccion);
-        var egresos = Egresos(resumen, fuente, paginaGastos, filasGastos, columnaGastos, sentidoGastos);
+        var egresos = Egresos(resumen, fuente, paginaGastos, filasGastos, columnaGastos, sentidoGastos, conPremios, conGastos, conCubierto);
+        var porLoteria = premiosWeb
+            .GroupBy(p => p.Loteria)
+            .Select(g => (Texto: g.Key, Valor: g.Sum(p => p.ValorPremio), Cantidad: g.Count()))
+            .ToList();
+        var cubiertos = (conCubierto ? fuente.Cubierto?.Grupos ?? [] : [])
+            .Select(g => new CubiertoInforme
+            {
+                Fecha = DateOnly.FromDateTime(g.FechaOperacion ?? corte),
+                Loteria = g.Loteria,
+                Numero = g.Numero,
+                Valor = g.Subtotal
+            })
+            .ToList();
+        var cubiertoPorLoteria = cubiertos
+            .GroupBy(c => c.Loteria)
+            .Select(g => (Texto: g.Key, Valor: g.Sum(c => c.Valor), Cantidad: g.Count()))
+            .ToList();
+        var (columnaCubierto, sentidoCubierto) = OrdenTabla.Resolver(ordenCubiertos, direccionCubiertos, ColumnasCubiertos, CubiertoFecha, OrdenTabla.Descendente);
+        var ordenCubierto = new EstadoOrden(columnaCubierto, sentidoCubierto);
         return new InformeEgresosViewModel
         {
             Corte = corte,
@@ -292,7 +356,14 @@ public static class VentasInforme
                 OrdenGastos = columnaGastos,
                 DireccionGastos = sentidoGastos,
                 AnuladosValor = egresos.AnuladosValor,
-                AnuladosCantidad = egresos.AnuladosCantidad
+                AnuladosCantidad = egresos.AnuladosCantidad,
+                PremiosPorLoteria = Segmentos(porLoteria, porLoteria.Sum(p => p.Valor)),
+                CubiertoPorLoteria = Segmentos(cubiertoPorLoteria, cubiertoPorLoteria.Sum(c => c.Valor)),
+                Cubiertos = PagingHelper.Paginate(OrdenarCubiertos(cubiertos, ordenCubierto), paginaCubiertos, filasCubiertos),
+                OrdenCubiertos = ordenCubierto,
+                IncluyePremios = conPremios,
+                IncluyeGastos = conGastos,
+                IncluyeCubierto = conCubierto
             }
         };
     }
@@ -305,13 +376,15 @@ public static class VentasInforme
         DateOnly hasta,
         DateTime corte,
         string? ordenAtrasos = null,
-        string? direccionAtrasos = null) => new()
+        string? direccionAtrasos = null,
+        int paginaAtrasos = 1,
+        int filasAtrasos = 10) => new()
     {
         Corte = corte,
         Desde = desde,
         Hasta = hasta,
         Alcance = Alcance(filtros, grupos),
-        Recaudo = fuente.Recaudo is null ? null : Recaudo(fuente.Recaudo, InformeOrden.EstadoAtrasos(ordenAtrasos, direccionAtrasos))
+        Recaudo = fuente.Recaudo is null ? null : Recaudo(fuente.Recaudo, InformeOrden.EstadoAtrasos(ordenAtrasos, direccionAtrasos), paginaAtrasos, filasAtrasos)
     };
 
     private static ResumenFinancieroInforme Resumen(FuenteInformeVentas fuente) => new()
@@ -381,34 +454,59 @@ public static class VentasInforme
         };
     }
 
+    public const string CubiertoFecha = "fecha";
+    public const string CubiertoLoteria = "loteria";
+    public const string CubiertoNumero = "numero";
+    public const string CubiertoValor = "valor";
+    private static readonly string[] ColumnasCubiertos = [CubiertoFecha, CubiertoLoteria, CubiertoNumero, CubiertoValor];
+
+    private static IReadOnlyList<CubiertoInforme> OrdenarCubiertos(IEnumerable<CubiertoInforme> filas, EstadoOrden estado) =>
+        (estado.Orden switch
+        {
+            CubiertoLoteria => OrdenTabla.Por(filas, c => c.Loteria, estado.Direccion, OrdenTabla.Texto),
+            CubiertoNumero => OrdenTabla.Por(filas, c => c.Numero, estado.Direccion, OrdenTabla.Texto),
+            CubiertoValor => OrdenTabla.Por(filas, c => c.Valor, estado.Direccion),
+            _ => OrdenTabla.Por(filas, c => c.Fecha, estado.Direccion)
+        }).ThenBy(c => c.Loteria, OrdenTabla.Texto).ThenBy(c => c.Numero, OrdenTabla.Texto).ToList();
+
+    public const string GastoPersonaFecha = "fecha";
     public const string GastoPersonaPersona = "persona";
     public const string GastoPersonaTipo = "tipo";
     public const string GastoPersonaTotal = "total";
-    private static readonly string[] ColumnasGastosPersona = [GastoPersonaPersona, GastoPersonaTipo, GastoPersonaTotal];
+    private static readonly string[] ColumnasGastosPersona = [GastoPersonaFecha, GastoPersonaPersona, GastoPersonaTipo, GastoPersonaTotal];
 
     private static IEnumerable<GastoPersonaInforme> OrdenarGastosPersona(IEnumerable<GastoPersonaInforme> personas, string orden, string direccion) =>
         (orden switch
         {
+            GastoPersonaFecha => OrdenTabla.Por(personas, p => p.Fecha, direccion),
             GastoPersonaPersona => OrdenTabla.Por(personas, p => p.Persona, direccion, OrdenTabla.Texto),
             GastoPersonaTipo => OrdenTabla.Por(personas, p => p.Tipo, direccion, OrdenTabla.Texto),
             _ => OrdenTabla.Por(personas, p => p.Total, direccion)
         }).ThenBy(p => p.Persona, OrdenTabla.Texto);
 
-    private static EgresosInforme Egresos(ResumenFinancieroInforme resumen, FuenteInformeVentas fuente, int pagina, int filas, string ordenGastos = GastoPersonaTotal, string direccionGastos = OrdenTabla.Descendente)
+    private static EgresosInforme Egresos(
+        ResumenFinancieroInforme resumen,
+        FuenteInformeVentas fuente,
+        int pagina,
+        int filas,
+        string ordenGastos = GastoPersonaTotal,
+        string direccionGastos = OrdenTabla.Descendente,
+        bool conPremios = true,
+        bool conGastos = true,
+        bool conCubierto = true)
     {
-        var conceptos = new List<(string Texto, decimal Valor, int Cantidad)>
-        {
-            (UiTexts.InformeConceptoPremios, resumen.TotalPremios, resumen.EntregasPremio),
-            (UiTexts.InformeConceptoGastos, resumen.TotalGastos, resumen.CantidadGastos),
-            (UiTexts.InformeConceptoCubierto, resumen.TotalCubierto, resumen.JugadasCubiertas)
-        };
-        var porTipo = (fuente.Gastos?.PorTipo ?? [])
+        var conceptos = new List<(string Texto, decimal Valor, int Cantidad)>();
+        if (conPremios) conceptos.Add((UiTexts.InformeConceptoPremios, resumen.TotalPremios, resumen.EntregasPremio));
+        if (conGastos) conceptos.Add((UiTexts.InformeConceptoGastos, resumen.TotalGastos, resumen.CantidadGastos));
+        if (conCubierto) conceptos.Add((UiTexts.InformeConceptoCubierto, resumen.TotalCubierto, resumen.JugadasCubiertas));
+        var porTipo = (conGastos ? fuente.Gastos?.PorTipo ?? [] : [])
             .Select(t => (Texto: t.Tipo, t.Valor, t.Cantidad))
             .ToList();
         var personas = fuente.Movimientos
-            .Where(m => m.Estado == "Activo")
+            .Where(m => conGastos && m.Estado == "Activo")
             .Select(m => new GastoPersonaInforme
             {
+                Fecha = m.FechaGasto,
                 Persona = string.IsNullOrWhiteSpace(m.Usuario) ? m.UsuarioRegistroId.ToString() : m.Usuario,
                 Tipo = m.Tipo,
                 Total = m.Valor
@@ -420,12 +518,12 @@ public static class VentasInforme
             Conceptos = Segmentos(conceptos, resumen.TotalEgresos),
             GastosPorTipo = Segmentos(porTipo, resumen.TotalGastos),
             GastosPorPersona = PagingHelper.Paginate(ordenadas, pagina, filas),
-            AnuladosValor = fuente.Gastos?.AnuladosValor ?? 0m,
-            AnuladosCantidad = fuente.Gastos?.AnuladosCantidad ?? 0
+            AnuladosValor = conGastos ? fuente.Gastos?.AnuladosValor ?? 0m : 0m,
+            AnuladosCantidad = conGastos ? fuente.Gastos?.AnuladosCantidad ?? 0 : 0
         };
     }
 
-    private static RecaudoInforme Recaudo(TableroRecaudoResponse tablero, EstadoOrden ordenAtrasos)
+    private static RecaudoInforme Recaudo(TableroRecaudoResponse tablero, EstadoOrden ordenAtrasos, int paginaAtrasos, int filasAtrasos)
     {
         var mayor = tablero.Recaudadores.Count == 0 ? 0m : tablero.Recaudadores.Max(r => r.TotalRecaudado + r.TotalPendiente);
         return new RecaudoInforme
@@ -459,7 +557,7 @@ public static class VentasInforme
                     AnchoPendiente = Porcentaje(r.TotalPendiente, mayor)
                 })
                 .ToList(),
-            Atrasos = InformeOrden.Atrasos(tablero.MayoresSaldos
+            Atrasos = PagingHelper.Paginate(InformeOrden.Atrasos(tablero.SaldosPendientes
                 .Select(s => new AtrasoInforme
                 {
                     Vendedor = s.Nombre,
@@ -468,7 +566,7 @@ public static class VentasInforme
                     DeudaAnterior = s.DeudaAnterior,
                     PendienteDelDia = s.PendienteDelDia,
                     TotalPendiente = s.TotalPendiente
-                }), ordenAtrasos),
+                }), ordenAtrasos), paginaAtrasos, filasAtrasos),
             OrdenAtrasos = ordenAtrasos,
             Recortado = tablero.PeriodoRecortado
         };

@@ -502,6 +502,7 @@ public sealed class RecaudoServiceTests
             .Should().Equal(("Carmen Recaudo", 100m, 60m, 40m, 60), ("Rosa Recaudo", 200m, 0m, 200m, 0));
         t.Grupos.Select(g => (g.Nombre, g.Detalle, g.TotalPendiente)).Should().Equal(("Centro", "Carmen Recaudo", 40m), ("Sur", "Rosa Recaudo", 200m));
         t.MayoresSaldos.Select(s => s.Nombre).Should().Equal("Beto Sur", "Ana Vende");
+        t.SaldosPendientes.Select(s => (s.Nombre, s.TotalPendiente)).Should().Equal(("Beto Sur", 200m), ("Ana Vende", 40m));
         t.OpcionesRecaudadores.Select(o => o.Id).Should().BeEquivalentTo([carmen.UsuarioId, rosa.UsuarioId]);
         t.OpcionesGrupos.Should().Equal("Centro", "Sur");
         t.Dias.Should().ContainSingle().Which.Cobrado.Should().Be(60m);

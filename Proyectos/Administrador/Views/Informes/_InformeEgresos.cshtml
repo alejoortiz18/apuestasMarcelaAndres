@@ -60,6 +60,7 @@
     var dirG = Model.Egresos.DireccionGastos;
     var columnasGastos = new (string Clave, string Texto, bool Numero)[]
     {
+        (VentasInforme.GastoPersonaFecha, UiTexts.Fecha, false),
         (VentasInforme.GastoPersonaPersona, UiTexts.InformeColumnaPersona, false),
         (VentasInforme.GastoPersonaTipo, UiTexts.TipoGasto, false),
         (VentasInforme.GastoPersonaTotal, UiTexts.Total, true)
@@ -127,6 +128,8 @@
             </section>
     </div>
 
+    @if (Model.Egresos.IncluyeGastos)
+    {
     <div class="informe-movible is-media" data-seccion="tipos" style="order: @secciones.Posicion("tipos")">
     <partial name="_MoverSeccion" model='(secciones, "tipos")' />
             <section class="informe-grafico" aria-labelledby="informeEgresosTiposGasto">
@@ -147,6 +150,36 @@
                                     <strong>@Pesos(tipo.Valor) <small>@Porc(tipo.Porcentaje) %</small></strong>
                                 </div>
                                 <div class="informe-barra is-gasto" aria-hidden="true"><i style="width: @Css(tipo.Ancho)%"></i></div>
+                            </li>
+                        }
+                    </ul>
+                }
+            </section>
+    </div>
+    }
+
+    @if (Model.Egresos.IncluyePremios)
+    {
+    <div class="informe-movible is-media" data-seccion="loterias" style="order: @secciones.Posicion("loterias")">
+    <partial name="_MoverSeccion" model='(secciones, "loterias")' />
+            <section class="informe-grafico" aria-labelledby="informeEgresosPremiosLoteria">
+                <h5 id="informeEgresosPremiosLoteria">@UiTexts.InformePremiosPorLoteria</h5>
+                <p>@UiTexts.InformePremiosPorLoteriaAyuda</p>
+                @if (Model.Egresos.PremiosPorLoteria.Count == 0)
+                {
+                    <p class="empty">@UiTexts.InformeSinPremiosWeb</p>
+                }
+                else
+                {
+                    <ul class="informe-barras">
+                        @foreach (var loteria in Model.Egresos.PremiosPorLoteria)
+                        {
+                            <li>
+                                <div class="informe-barra-head">
+                                    <span>@loteria.Texto <small>@string.Format(UiTexts.InformePremiosCantidad, Numero(loteria.Cantidad))</small></span>
+                                    <strong>@Pesos(loteria.Valor) <small>@Porc(loteria.Porcentaje) %</small></strong>
+                                </div>
+                                <div class="informe-barra" aria-hidden="true"><i style="width: @Css(loteria.Ancho)%"></i></div>
                             </li>
                         }
                     </ul>
@@ -218,7 +251,104 @@
             }
         </section>
     </div>
+    }
 
+    @if (Model.Egresos.IncluyeCubierto)
+    {
+    <div class="informe-movible is-media" data-seccion="cubiertoloterias" style="order: @secciones.Posicion("cubiertoloterias")">
+    <partial name="_MoverSeccion" model='(secciones, "cubiertoloterias")' />
+            <section class="informe-grafico" aria-labelledby="informeEgresosCubiertoLoteria">
+                <h5 id="informeEgresosCubiertoLoteria">@UiTexts.InformeCubiertoPorLoteria</h5>
+                <p>@UiTexts.InformeCubiertoPorLoteriaAyuda</p>
+                @if (Model.Egresos.CubiertoPorLoteria.Count == 0)
+                {
+                    <p class="empty">@UiTexts.InformeSinCubiertos</p>
+                }
+                else
+                {
+                    <ul class="informe-barras">
+                        @foreach (var loteria in Model.Egresos.CubiertoPorLoteria)
+                        {
+                            <li>
+                                <div class="informe-barra-head">
+                                    <span>@loteria.Texto <small>@string.Format(UiTexts.InformeCubiertosCantidad, Numero(loteria.Cantidad))</small></span>
+                                    <strong>@Pesos(loteria.Valor) <small>@Porc(loteria.Porcentaje) %</small></strong>
+                                </div>
+                                <div class="informe-barra" aria-hidden="true"><i style="width: @Css(loteria.Ancho)%"></i></div>
+                            </li>
+                        }
+                    </ul>
+                }
+            </section>
+    </div>
+
+    <div class="informe-movible" data-seccion="cubiertos" style="order: @secciones.Posicion("cubiertos")">
+    <partial name="_MoverSeccion" model='(secciones, "cubiertos")' />
+        <section class="informe-tabla" id="informeEgresosCubiertosSeccion" aria-labelledby="informeEgresosCubiertos">
+            <div class="informe-tabla-head">
+                <div>
+                    <h5 id="informeEgresosCubiertos">@UiTexts.InformeCubiertos</h5>
+                    <p>@UiTexts.InformeCubiertosAyuda</p>
+                </div>
+                <form method="get" asp-action="Index" class="informe-filas" data-submit-on-change>
+                    @foreach (var q in conservar(["pageC", "pageSizeC"]))
+                    {
+                        <input type="hidden" name="@q.Key" value="@q.Value" />
+                    }
+                    <label for="informeEgresosPageSizeC">@UiTexts.FilasPorPagina</label>
+                    <select id="informeEgresosPageSizeC" name="pageSizeC">
+                        @foreach (var size in PagingHelper.PageSizes)
+                        {
+                            <option value="@size" selected="@(Model.Egresos.Cubiertos.PageSize == size)">@size</option>
+                        }
+                    </select>
+                </form>
+            </div>
+            @if (Model.Egresos.Cubiertos.TotalCount == 0)
+            {
+                <p class="empty">@UiTexts.InformeSinCubiertos</p>
+            }
+            else
+            {
+                <div class="table-wrap">
+                    <table class="informe-table">
+                        <thead>
+                        <tr>
+                            @foreach (var (clave, texto, numero) in new[]
+                            {
+                                (VentasInforme.CubiertoFecha, UiTexts.Fecha, false),
+                                (VentasInforme.CubiertoLoteria, UiTexts.Loteria, false),
+                                (VentasInforme.CubiertoNumero, UiTexts.InformeColumnaNumero, false),
+                                (VentasInforme.CubiertoValor, UiTexts.Valor, true)
+                            })
+                            {
+                                <partial name="_ColumnaOrden" model='new ColumnaOrdenViewModel { Clave = clave, Texto = texto, Estado = Model.Egresos.OrdenCubiertos, ParamOrden = "ordenC", ParamDireccion = "dirC", ParamPagina = "pageC", Ancla = "informeEgresosCubiertosSeccion", Numero = numero }' />
+                            }
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var c in Model.Egresos.Cubiertos.Items)
+                        {
+                            <tr>
+                                <td>@c.Fecha.ToString("dd/MM/yyyy", cultura)</td>
+                                <td>@c.Loteria</td>
+                                <td><strong>@c.Numero</strong></td>
+                                <td class="num"><strong>@Pesos(c.Valor)</strong></td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+                ViewData["PagerPageKey"] = "pageC";
+                ViewData["PagerPageSizeKey"] = "pageSizeC";
+                <partial name="_Pager" model="Model.Egresos.Cubiertos" />
+            }
+        </section>
+    </div>
+    }
+
+    @if (Model.Egresos.IncluyeGastos)
+    {
     <div class="informe-movible" data-seccion="gastos" style="order: @secciones.Posicion("gastos")">
     <partial name="_MoverSeccion" model='(secciones, "gastos")' />
         <section class="informe-tabla" id="informeEgresosGastosPersonaSeccion" aria-labelledby="informeEgresosGastosPersona">
@@ -265,6 +395,7 @@
                         @foreach (var p in Model.Egresos.GastosPorPersona.Items)
                         {
                             <tr>
+                                <td>@p.Fecha.ToString("dd/MM/yyyy", cultura)</td>
                                 <td><strong>@p.Persona</strong></td>
                                 <td>@p.Tipo</td>
                                 <td class="num"><strong>@Pesos(p.Total)</strong></td>
@@ -283,4 +414,5 @@
             }
         </section>
     </div>
+    }
 </div>

@@ -39,7 +39,85 @@ public sealed class VentasInformeTests
         VentasInforme.Validar(new FiltrosPeriodoInforme { Periodo = "rango" }).Should().Be(UiTexts.InformeRangoIncompleto);
         VentasInforme.Validar(new FiltrosPeriodoInforme { Periodo = "7", Grupos = [] }).Should().Be(UiTexts.InformeEligeGrupo);
         VentasInforme.Validar(new FiltrosPeriodoInforme { Periodo = "7", Vendedores = [] }).Should().Be(UiTexts.InformeEligeVendedor);
+        VentasInforme.Validar(new FiltrosPeriodoInforme { Periodo = "7", TiposEgreso = [] }).Should().Be(UiTexts.InformeEligeTipoEgreso);
     }
+
+    [Fact]
+    public void Egresos_solo_suma_y_muestra_los_tipos_elegidos()
+    {
+        var fuente = new FuenteInformeVentas
+        {
+            Kpi = new KpiResponse { ValorPremiosEntregados = 100m },
+            PremiosWeb = [Premio("Cali", 50m)],
+            Gastos = Gastos(300m),
+            Cubierto = new VistaRevisadaManualResponse { Total = 700m, Jugadas = 2 }
+        };
+
+        var informe = VentasInforme.InformeEgresos(fuente, new FiltrosPeriodoInforme { Periodo = "hoy", TiposEgreso = [VentasInforme.TipoEgresoGastos, VentasInforme.TipoEgresoCubierto] }, [], Hoy, Hoy, DateTime.Now, 1, 10);
+
+        informe.Resumen.TotalEgresos.Should().Be(1_000m);
+        informe.Egresos.Conceptos.Select(c => c.Texto).Should().Equal(UiTexts.InformeConceptoCubierto, UiTexts.InformeConceptoGastos);
+        informe.Egresos.IncluyePremios.Should().BeFalse();
+        informe.Egresos.IncluyeGastos.Should().BeTrue();
+        informe.Egresos.PremiosWeb.TotalCount.Should().Be(0);
+        informe.Egresos.PremiosPorLoteria.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Los_premios_por_loteria_suman_el_valor_de_cada_loteria()
+    {
+        var fuente = new FuenteInformeVentas { PremiosWeb = [Premio("Cali", 50m), Premio("Bogotá", 120m), Premio("Cali", 30m)] };
+
+        var informe = VentasInforme.InformeEgresos(fuente, new FiltrosPeriodoInforme { Periodo = "hoy" }, [], Hoy, Hoy, DateTime.Now, 1, 10);
+
+        informe.Egresos.PremiosPorLoteria.Select(p => (p.Texto, p.Valor, p.Cantidad))
+            .Should().Equal(("Bogotá", 120m, 1), ("Cali", 80m, 2));
+    }
+
+    [Fact]
+    public void Los_numeros_cubiertos_se_listan_y_se_suman_por_loteria()
+    {
+        var fuente = new FuenteInformeVentas
+        {
+            Cubierto = new VistaRevisadaManualResponse
+            {
+                Total = 900m,
+                Grupos =
+                [
+                    Cubierto("Cali", "1234", 200m, new DateTime(2026, 10, 18, 9, 0, 0)),
+                    Cubierto("Bogotá", "5678", 500m, new DateTime(2026, 10, 20, 9, 0, 0)),
+                    Cubierto("Cali", "9999", 200m, new DateTime(2026, 10, 19, 9, 0, 0))
+                ]
+            }
+        };
+
+        var informe = VentasInforme.InformeEgresos(fuente, new FiltrosPeriodoInforme { Periodo = "hoy" }, [], Hoy, Hoy, DateTime.Now, 1, 10);
+        var porValor = VentasInforme.InformeEgresos(fuente, new FiltrosPeriodoInforme { Periodo = "hoy" }, [], Hoy, Hoy, DateTime.Now, 1, 10,
+            ordenCubiertos: "valor", direccionCubiertos: "desc", paginaCubiertos: 1, filasCubiertos: 2);
+        var sinCubierto = VentasInforme.InformeEgresos(fuente, new FiltrosPeriodoInforme { Periodo = "hoy", TiposEgreso = [VentasInforme.TipoEgresoPremios] }, [], Hoy, Hoy, DateTime.Now, 1, 10);
+
+        informe.Egresos.Cubiertos.Items.Select(c => (c.Fecha, c.Loteria, c.Numero, c.Valor)).Should().Equal(
+            (new DateOnly(2026, 10, 20), "Bogotá", "5678", 500m),
+            (new DateOnly(2026, 10, 19), "Cali", "9999", 200m),
+            (new DateOnly(2026, 10, 18), "Cali", "1234", 200m));
+        informe.Egresos.CubiertoPorLoteria.Select(c => (c.Texto, c.Valor, c.Cantidad)).Should().Equal(("Bogotá", 500m, 1), ("Cali", 400m, 2));
+        porValor.Egresos.Cubiertos.TotalCount.Should().Be(3);
+        porValor.Egresos.Cubiertos.Items.First().Numero.Should().Be("5678");
+        sinCubierto.Egresos.Cubiertos.TotalCount.Should().Be(0);
+        sinCubierto.Egresos.CubiertoPorLoteria.Should().BeEmpty();
+    }
+
+    private static GrupoRevisadaManualResponse Cubierto(string loteria, string numero, decimal valor, DateTime fecha) => new()
+    {
+        OperacionId = Guid.NewGuid(),
+        Loteria = loteria,
+        Numero = numero,
+        Subtotal = valor,
+        FechaOperacion = fecha
+    };
+
+    private static NewRich.Application.Contracts.PremiosEntregadosWeb.PremioEntregadoWebResponse Premio(string loteria, decimal valor) =>
+        new(Guid.NewGuid(), Hoy, loteria, "1234", 1_000m, valor, DateTime.Now, Guid.NewGuid(), "Ana");
 
     [Fact]
     public void El_filtro_de_vendedores_ofrece_solo_vendedores_y_muestra_los_elegidos()
@@ -143,8 +221,22 @@ public sealed class VentasInformeTests
 
         var informe = VentasInforme.InformeEgresos(fuente, new FiltrosPeriodoInforme { Periodo = "hoy" }, [], Hoy, Hoy, DateTime.Now, 1, 10);
 
-        informe.Egresos.GastosPorPersona.Items.Select(p => (p.Persona, p.Tipo, p.Total))
-            .Should().Equal(("Carla", "Papelería", 200m), ("Carla", "Transporte", 100m));
+        informe.Egresos.GastosPorPersona.Items.Select(p => (p.Fecha, p.Persona, p.Tipo, p.Total))
+            .Should().Equal((Hoy, "Carla", "Papelería", 200m), (Hoy, "Carla", "Transporte", 100m));
+    }
+
+    [Fact]
+    public void Faltantes_por_recaudar_trae_a_todos_los_que_deben_y_pagina()
+    {
+        var saldos = Enumerable.Range(1, 7)
+            .Select(i => new SaldoVendedorRecaudoResponse { Nombre = $"Vendedor {i}", Grupo = "Centro", Recaudador = "Hugo", TotalPendiente = i * 1_000m })
+            .ToList();
+        var fuente = new FuenteInformeVentas { Recaudo = new TableroRecaudoResponse { MayoresSaldos = saldos.Take(5).ToList(), SaldosPendientes = saldos } };
+
+        var informe = VentasInforme.InformeRecaudo(fuente, new FiltrosPeriodoInforme { Periodo = "hoy" }, [], Hoy, Hoy, DateTime.Now, paginaAtrasos: 2, filasAtrasos: 5);
+
+        informe.Recaudo!.Atrasos.TotalCount.Should().Be(7);
+        informe.Recaudo.Atrasos.Items.Select(a => a.Vendedor).Should().Equal("Vendedor 2", "Vendedor 1");
     }
 
     [Fact]

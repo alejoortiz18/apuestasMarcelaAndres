@@ -1,6 +1,7 @@
 @using NewRich.Admin.Constants
 @using NewRich.Admin.Models
 @using NewRich.Admin.Services
+@using NewRich.Constants
 @model ModalPeriodoInforme
 @{
     var config = Model.Config;
@@ -58,6 +59,22 @@
                     </div>
                     <p class="informe-error" role="alert" data-informe-error hidden></p>
                 </fieldset>
+                @if (config.Clave == CategoriasInforme.Egresos)
+                {
+                    <fieldset class="informe-filtro" data-informe-tipos-egreso data-error="@UiTexts.InformeEligeTipoEgreso">
+                        <legend>@UiTexts.InformeFiltrarTipoEgreso</legend>
+                        <div class="informe-modo">
+                            @foreach (var tipo in VentasInforme.TiposEgreso)
+                            {
+                                <label class="informe-modo-opcion">
+                                    <input type="checkbox" name="tiposEgreso" value="@tipo.Valor" checked="@VentasInforme.Incluye(filtros, tipo.Valor)" />
+                                    <span>@tipo.Texto</span>
+                                </label>
+                            }
+                        </div>
+                        <p class="informe-error" role="alert" data-informe-error hidden></p>
+                    </fieldset>
+                }
                 <div class="informe-filtro-grupo">
                     <partial name="_FiltroInforme" model="grupos" />
                     @if (config.Vendedores.Count > 0)
@@ -70,10 +87,10 @@
             <div class="dialog-actions informe-acciones">
                 @if (config.Configurada)
                 {
-                    <button class="danger" type="submit" form="@(p)Quitar">@UiTexts.InformeQuitar</button>
+                    <button class="danger" type="submit" form="@(p)Quitar" data-cargando="@UiTexts.InformeQuitando">@UiTexts.InformeQuitar</button>
                 }
                 <button class="secondary" type="button" data-informe-cerrar>@UiTexts.Cancelar</button>
-                <button class="primary" type="submit">@UiTexts.InformeGuardarSeleccion</button>
+                <button class="primary" type="submit" data-cargando="@UiTexts.InformeGuardando">@UiTexts.InformeGuardarSeleccion</button>
             </div>
         </form>
         @if (config.Configurada)

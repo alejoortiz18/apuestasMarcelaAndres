@@ -7,6 +7,9 @@ public sealed class FiltrosPeriodoInforme
     public DateOnly? Hasta { get; set; }
     public List<Guid>? Grupos { get; set; }
     public List<Guid>? Vendedores { get; set; }
+
+    /// <summary>Solo para Egresos: premios, gastos y cubierto. Null es todos.</summary>
+    public List<string>? TiposEgreso { get; set; }
 }
 
 public sealed class PeriodoInformeViewModel
@@ -114,12 +117,22 @@ public sealed class SegmentoValorInforme
     public decimal Ancho { get; init; }
 }
 
-/// <summary>Un gasto activo, sin agrupar: quién lo registró, de qué tipo y por cuánto.</summary>
+/// <summary>Un gasto activo, sin agrupar: de qué fecha, quién lo registró, de qué tipo y por cuánto.</summary>
 public sealed class GastoPersonaInforme
 {
+    public DateOnly Fecha { get; init; }
     public string Persona { get; init; } = string.Empty;
     public string Tipo { get; init; } = string.Empty;
     public decimal Total { get; init; }
+}
+
+/// <summary>Un número cubierto en Revisada manual: cuándo se cubrió, de qué lotería y por cuánto.</summary>
+public sealed class CubiertoInforme
+{
+    public DateOnly Fecha { get; init; }
+    public string Loteria { get; init; } = string.Empty;
+    public string Numero { get; init; } = string.Empty;
+    public decimal Valor { get; init; }
 }
 
 public sealed class PremioWebInforme
@@ -144,6 +157,13 @@ public sealed class EgresosInforme
     public PagedViewModel<GastoPersonaInforme> GastosPorPersona { get; init; } = new();
     public decimal AnuladosValor { get; init; }
     public int AnuladosCantidad { get; init; }
+    public IReadOnlyList<SegmentoValorInforme> PremiosPorLoteria { get; init; } = [];
+    public IReadOnlyList<SegmentoValorInforme> CubiertoPorLoteria { get; init; } = [];
+    public PagedViewModel<CubiertoInforme> Cubiertos { get; init; } = new();
+    public EstadoOrden OrdenCubiertos { get; init; } = new("fecha", "desc");
+    public bool IncluyePremios { get; init; } = true;
+    public bool IncluyeGastos { get; init; } = true;
+    public bool IncluyeCubierto { get; init; } = true;
 }
 
 public sealed class RecaudadorInforme
@@ -182,7 +202,7 @@ public sealed class RecaudoInforme
     public int VendedoresEnDeuda { get; init; }
     public GraficoLineaRecaudo Grafico { get; init; } = GraficoLineaRecaudo.De([]);
     public IReadOnlyList<RecaudadorInforme> Recaudadores { get; init; } = [];
-    public IReadOnlyList<AtrasoInforme> Atrasos { get; init; } = [];
+    public PagedViewModel<AtrasoInforme> Atrasos { get; init; } = new();
     public EstadoOrden OrdenAtrasos { get; init; } = new("pendiente", "desc");
     public bool Recortado { get; init; }
 }

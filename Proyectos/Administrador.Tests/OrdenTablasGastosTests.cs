@@ -45,6 +45,25 @@ public sealed class OrdenTablasGastosTests
     }
 
     [Fact]
+    public void Gastos_por_persona_ordena_por_la_fecha_del_gasto()
+    {
+        var fuente = new FuenteInformeVentas
+        {
+            Movimientos =
+            [
+                Movimiento("Ana", 10_000m) with { FechaGasto = Hoy.AddDays(-2) },
+                Movimiento("Beto", 20_000m) with { FechaGasto = Hoy },
+                Movimiento("Carla", 30_000m) with { FechaGasto = Hoy.AddDays(-1) }
+            ]
+        };
+
+        var informe = VentasInforme.InformeEgresos(fuente, new FiltrosPeriodoInforme { Periodo = "7" }, [], Hoy, Hoy, DateTime.Now, 1, 5,
+            ordenGastos: "fecha", direccionGastos: "desc");
+
+        informe.Egresos.GastosPorPersona.Items.Select(p => p.Persona).Should().Equal("Beto", "Carla", "Ana");
+    }
+
+    [Fact]
     public async Task Kpi_ordena_todos_los_gastos_web_antes_de_paginar()
     {
         var api = new Mock<IAdminApiClient>();

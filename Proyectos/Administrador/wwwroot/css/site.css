@@ -2580,6 +2580,32 @@ th:nth-last-child(-n+3) .th-ayuda-texto { left: auto; right: 0; }
   animation: tablero-giro 0.8s linear infinite;
 }
 @keyframes tablero-giro { to { transform: rotate(360deg); } }
+
+/* Botón que espera la respuesta del servidor: gira un indicador antes del texto. */
+.boton-cargando {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: progress;
+}
+.boton-cargando::before {
+  content: "";
+  width: 14px;
+  height: 14px;
+  flex: none;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: tablero-giro 0.8s linear infinite;
+}
+/* El botón que espera conserva su color; los demás quedan grises por estar deshabilitados. */
+.primary.boton-cargando:disabled { background: var(--green) !important; border-color: var(--green) !important; color: #fff !important; }
+.danger.boton-cargando:disabled { background: var(--red2) !important; border-color: var(--red2) !important; color: var(--red) !important; }
+button.boton-cargando:disabled { cursor: progress; }
+@media (prefers-reduced-motion: reduce) {
+  .boton-cargando::before { animation-duration: 2s; }
+}
 .tablero { transition: opacity 0.2s ease; }
 .tablero[aria-busy="true"] { opacity: 0.55; pointer-events: none; }
 .tablero-meta { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0 0 12px; color: var(--muted); font-size: 12px; }

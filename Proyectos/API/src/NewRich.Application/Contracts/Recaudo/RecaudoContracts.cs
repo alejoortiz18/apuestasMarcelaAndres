@@ -241,6 +241,9 @@ public sealed class TableroRecaudoResponse
     public IReadOnlyList<RecaudoAgrupadoResponse> Recaudadores { get; set; } = [];
     public IReadOnlyList<RecaudoAgrupadoResponse> Grupos { get; set; } = [];
     public IReadOnlyList<SaldoVendedorRecaudoResponse> MayoresSaldos { get; set; } = [];
+
+    /// <summary>Todos los vendedores con saldo pendiente al cierre, de mayor a menor (MayoresSaldos son los primeros).</summary>
+    public IReadOnlyList<SaldoVendedorRecaudoResponse> SaldosPendientes { get; set; } = [];
     public IReadOnlyList<OpcionRecaudoResponse> OpcionesRecaudadores { get; set; } = [];
     public IReadOnlyList<string> OpcionesGrupos { get; set; } = [];
 }

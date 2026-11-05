@@ -14,7 +14,7 @@ public sealed class OrdenSeccionesInformeTests
         OrdenSeccionesInforme.Orden(guardado, CategoriasInforme.Ventas)
             .Should().Equal("grupo", "encabezado", "tarjetas", "dias", "vendedores");
         OrdenSeccionesInforme.Orden(OrdenSeccionesInforme.Leer("no es json"), CategoriasInforme.Egresos)
-            .Should().Equal("encabezado", "conceptos", "tipos", "premios", "gastos");
+            .Should().Equal("encabezado", "conceptos", "tipos", "loterias", "premios", "cubiertoloterias", "cubiertos", "gastos");
         OrdenSeccionesInforme.Orden(guardado, CategoriasInforme.Vendedores)
             .Should().Equal("encabezado", "tarjetas", "tipos", "grupos", "estado", "tabla");
     }
@@ -27,7 +27,7 @@ public sealed class OrdenSeccionesInformeTests
         OrdenSeccionesInforme.Orden(guardado, CategoriasInforme.Vendedores)
             .Should().Equal("tabla", "tipos", "grupos", "estado", "encabezado", "tarjetas");
         OrdenSeccionesInforme.Orden(guardado, CategoriasInforme.Egresos)
-            .Should().Equal("conceptos", "tipos", "gastos", "encabezado", "premios");
+            .Should().Equal("conceptos", "tipos", "gastos", "encabezado", "loterias", "premios", "cubiertoloterias", "cubiertos");
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public sealed class OrdenSeccionesInformeTests
         json.Should().NotBeNull();
         var leido = OrdenSeccionesInforme.Leer(json);
         OrdenSeccionesInforme.Orden(leido, CategoriasInforme.Ventas).Should().Equal("dias", "grupo", "encabezado", "tarjetas", "vendedores");
-        OrdenSeccionesInforme.Orden(leido, CategoriasInforme.Egresos).Should().Equal("gastos", "encabezado", "conceptos", "tipos", "premios");
+        OrdenSeccionesInforme.Orden(leido, CategoriasInforme.Egresos).Should().Equal("gastos", "encabezado", "conceptos", "tipos", "loterias", "premios", "cubiertoloterias", "cubiertos");
     }
 
     [Fact]

@@ -41,10 +41,16 @@ public sealed class InformesController : AdminControllerBase
         string? dirV = null,
         string? ordenAt = null,
         string? dirAt = null,
+        int pageAt = 1,
+        int pageSizeAt = 10,
+        string? ordenC = null,
+        string? dirC = null,
+        int pageC = 1,
+        int pageSizeC = 10,
         CancellationToken cancellationToken = default)
     {
         SetNav("informes", UiTexts.NavInformes);
-        var premios = new OrdenesInforme(ordenP, dirP, pageP, pageSizeP, ordenG, dirG, ordenV, dirV, ordenAt, dirAt);
+        var premios = new OrdenesInforme(ordenP, dirP, pageP, pageSizeP, ordenG, dirG, ordenV, dirV, ordenAt, dirAt, pageAt, pageSizeAt, ordenC, dirC, pageC, pageSizeC);
         var (modelo, salida) = await ConstruirAsync(orden, dir, page, pageSize, pageV, pageSizeV, pageG, pageSizeG, premios, cancellationToken);
         return salida ?? View(modelo);
     }
@@ -126,12 +132,13 @@ public sealed class InformesController : AdminControllerBase
             Egresos = egresos,
             InformeEgresos = cargaEgresos.Carga is { } fuenteEgresos
                 ? VentasInforme.InformeEgresos(fuenteEgresos.Fuente, egresos.Filtros, listaGrupos, cargaEgresos.Desde, cargaEgresos.Hasta, ahora, pageG, pageSizeG,
-                    premios.Orden, premios.Direccion, premios.Pagina, premios.Filas, premios.OrdenGastos, premios.DireccionGastos)
+                    premios.Orden, premios.Direccion, premios.Pagina, premios.Filas, premios.OrdenGastos, premios.DireccionGastos,
+                    premios.OrdenCubiertos, premios.DireccionCubiertos, premios.PaginaCubiertos, PagingHelper.NormalizePageSize(premios.FilasCubiertos))
                 : null,
             Recaudo = recaudo,
             InformeRecaudo = cargaRecaudo.Carga is { } fuenteRecaudo
                 ? VentasInforme.InformeRecaudo(fuenteRecaudo.Fuente, recaudo.Filtros, listaGrupos, cargaRecaudo.Desde, cargaRecaudo.Hasta, ahora,
-                    premios.OrdenAtrasos, premios.DireccionAtrasos)
+                    premios.OrdenAtrasos, premios.DireccionAtrasos, premios.PaginaAtrasos, PagingHelper.NormalizePageSize(premios.FilasAtrasos))
                 : null,
             Tarjetas =
             [
@@ -227,17 +234,25 @@ public sealed class InformesController : AdminControllerBase
         List<Guid>? grupos,
         string? modoVendedores,
         List<Guid>? vendedores,
+        List<string>? tiposEgreso,
         CancellationToken cancellationToken)
     {
         var clave = VentasInforme.CategoriasPorPeriodo.FirstOrDefault(c => c == categoria);
         var rango = periodo == VentasInforme.PeriodoRango;
+        List<string>? tipos = null;
+        if (clave == CategoriasInforme.Egresos)
+        {
+            tipos = VentasInforme.TiposEgreso.Select(t => t.Valor).Where(v => tiposEgreso?.Contains(v) == true).ToList();
+            if (tipos.Count == VentasInforme.TiposEgreso.Count) tipos = null;
+        }
         var filtros = new FiltrosPeriodoInforme
         {
             Periodo = periodo?.Trim() ?? string.Empty,
             Desde = rango ? desde : null,
             Hasta = rango ? hasta : null,
             Grupos = Elegidos(modoGrupos, grupos?.Where(g => g != Guid.Empty)),
-            Vendedores = Elegidos(modoVendedores, vendedores?.Where(v => v != Guid.Empty))
+            Vendedores = Elegidos(modoVendedores, vendedores?.Where(v => v != Guid.Empty)),
+            TiposEgreso = tipos
         };
 
         var aviso = clave is null ? UiTexts.InformeCategoriaInvalida : VentasInforme.Validar(filtros);
@@ -296,5 +311,11 @@ public sealed class InformesController : AdminControllerBase
         string? OrdenRanking,
         string? DireccionRanking,
         string? OrdenAtrasos,
-        string? DireccionAtrasos);
+        string? DireccionAtrasos,
+        int PaginaAtrasos,
+        int FilasAtrasos,
+        string? OrdenCubiertos,
+        string? DireccionCubiertos,
+        int PaginaCubiertos,
+        int FilasCubiertos);
 }

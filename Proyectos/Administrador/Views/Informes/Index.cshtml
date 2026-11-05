@@ -274,10 +274,10 @@
             <div class="dialog-actions informe-acciones">
                 @if (vendedores.Configurada)
                 {
-                    <button class="danger" type="submit" form="informeQuitarVendedores">@UiTexts.InformeQuitar</button>
+                    <button class="danger" type="submit" form="informeQuitarVendedores" data-cargando="@UiTexts.InformeQuitando">@UiTexts.InformeQuitar</button>
                 }
                 <button class="secondary" type="button" data-informe-cerrar>@UiTexts.Cancelar</button>
-                <button class="primary" type="submit">@UiTexts.InformeGuardarSeleccion</button>
+                <button class="primary" type="submit" data-cargando="@UiTexts.InformeGuardando">@UiTexts.InformeGuardarSeleccion</button>
             </div>
         </form>
         @if (vendedores.Configurada)
