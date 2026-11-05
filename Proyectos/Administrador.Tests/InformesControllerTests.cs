@@ -199,14 +199,14 @@ public sealed class InformesControllerTests
         var api = Api();
         api.Setup(a => a.ListarConfiguracionesInformeAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(ApiCallResult<List<ConfiguracionInformeResponse>>.Ok(
-                [new() { Categoria = CategoriasInforme.OrdenSecciones, Filtros = """{"egresos":["gastos"]}""" }], "Listo."));
+                [new() { Categoria = CategoriasInforme.OrdenSecciones, Filtros = """{"egresos":["gastos","encabezado","conceptos","tipos","premios","loterias","cubiertoloterias","cubiertos"]}""" }], "Listo."));
         string? guardado = null;
         api.Setup(a => a.GuardarConfiguracionInformeAsync(CategoriasInforme.OrdenSecciones, It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Callback<string, string, CancellationToken>((_, json, _) => guardado = json)
             .ReturnsAsync(ApiCallResult<ConfiguracionInformeResponse>.Ok(new(), "Guardado."));
         var sut = Crear(api.Object);
 
-        var result = await sut.OrdenSecciones(CategoriasInforme.Ventas, ["vendedores", "grupo"], CancellationToken.None);
+        var result = await sut.OrdenSecciones(CategoriasInforme.Ventas, ["vendedores", "grupo", "encabezado", "tarjetas", "dias"], CancellationToken.None);
 
         result.Should().BeOfType<JsonResult>();
         var leido = OrdenSeccionesInforme.Leer(guardado);
@@ -220,7 +220,7 @@ public sealed class InformesControllerTests
         var api = Api();
         api.Setup(a => a.ListarConfiguracionesInformeAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(ApiCallResult<List<ConfiguracionInformeResponse>>.Ok(
-                [new() { Categoria = CategoriasInforme.OrdenSecciones, Filtros = """{"ventas":["dias"]}""" }], "Listo."));
+                [new() { Categoria = CategoriasInforme.OrdenSecciones, Filtros = """{"ventas":["dias","grupo","encabezado","tarjetas","vendedores"]}""" }], "Listo."));
         var sut = Crear(api.Object);
 
         var result = await sut.Index(null, null, cancellationToken: CancellationToken.None);

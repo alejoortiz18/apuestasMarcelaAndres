@@ -214,6 +214,7 @@
     const texto = boton.textContent;
     boton.disabled = true;
     boton.setAttribute("aria-busy", "true");
+    boton.classList.add("boton-cargando");
     boton.textContent = boton.getAttribute("data-generando");
     exportar()
       .catch(function () {
@@ -225,6 +226,7 @@
         boton.textContent = texto;
         boton.disabled = false;
         boton.removeAttribute("aria-busy");
+        boton.classList.remove("boton-cargando");
       });
   });
 })();

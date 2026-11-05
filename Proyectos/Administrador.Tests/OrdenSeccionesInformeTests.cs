@@ -14,7 +14,7 @@ public sealed class OrdenSeccionesInformeTests
         OrdenSeccionesInforme.Orden(guardado, CategoriasInforme.Ventas)
             .Should().Equal("grupo", "encabezado", "tarjetas", "dias", "vendedores");
         OrdenSeccionesInforme.Orden(OrdenSeccionesInforme.Leer("no es json"), CategoriasInforme.Egresos)
-            .Should().Equal("encabezado", "conceptos", "tipos", "loterias", "premios", "cubiertoloterias", "cubiertos", "gastos");
+            .Should().Equal("encabezado", "tipos", "premios", "loterias", "cubiertoloterias", "cubiertos", "conceptos", "gastos");
         OrdenSeccionesInforme.Orden(guardado, CategoriasInforme.Vendedores)
             .Should().Equal("encabezado", "tarjetas", "tipos", "grupos", "estado", "tabla");
     }
@@ -25,13 +25,22 @@ public sealed class OrdenSeccionesInformeTests
         var guardado = OrdenSeccionesInforme.Leer("""{"vendedores":["tabla","graficos"],"egresos":["graficos","gastos"]}""");
 
         OrdenSeccionesInforme.Orden(guardado, CategoriasInforme.Vendedores)
-            .Should().Equal("tabla", "tipos", "grupos", "estado", "encabezado", "tarjetas");
+            .Should().Equal("encabezado", "tarjetas", "tabla", "tipos", "grupos", "estado");
         OrdenSeccionesInforme.Orden(guardado, CategoriasInforme.Egresos)
-            .Should().Equal("conceptos", "tipos", "gastos", "encabezado", "loterias", "premios", "cubiertoloterias", "cubiertos");
+            .Should().Equal("encabezado", "conceptos", "tipos", "premios", "loterias", "cubiertoloterias", "cubiertos", "gastos");
     }
 
     [Fact]
-    public void El_orden_guardado_manda_y_las_secciones_que_falten_van_al_final()
+    public void Una_seccion_nueva_entra_detras_de_la_que_la_antecede_en_el_orden_de_siempre()
+    {
+        var guardado = OrdenSeccionesInforme.Leer("""{"egresos":["encabezado","conceptos","tipos","premios","gastos"]}""");
+
+        OrdenSeccionesInforme.Orden(guardado, CategoriasInforme.Egresos)
+            .Should().Equal("encabezado", "conceptos", "tipos", "premios", "loterias", "cubiertoloterias", "cubiertos", "gastos");
+    }
+
+    [Fact]
+    public void El_orden_guardado_manda_y_las_secciones_que_falten_se_ubican_tras_su_vecina()
     {
         var guardado = OrdenSeccionesInforme.Leer("""{"ventas":["vendedores","desconocida","grupo"]}""");
 
@@ -46,12 +55,13 @@ public sealed class OrdenSeccionesInformeTests
     {
         var actual = """{"egresos":["gastos","encabezado"]}""";
 
-        var json = OrdenSeccionesInforme.Aplicar(actual, CategoriasInforme.Ventas, ["dias", "grupo", "dias", "otra"]);
+        var json = OrdenSeccionesInforme.Aplicar(actual, CategoriasInforme.Ventas, ["dias", "grupo", "encabezado", "tarjetas", "vendedores", "otra"]);
 
         json.Should().NotBeNull();
         var leido = OrdenSeccionesInforme.Leer(json);
         OrdenSeccionesInforme.Orden(leido, CategoriasInforme.Ventas).Should().Equal("dias", "grupo", "encabezado", "tarjetas", "vendedores");
-        OrdenSeccionesInforme.Orden(leido, CategoriasInforme.Egresos).Should().Equal("gastos", "encabezado", "conceptos", "tipos", "loterias", "premios", "cubiertoloterias", "cubiertos");
+        OrdenSeccionesInforme.Orden(leido, CategoriasInforme.Egresos)
+            .Should().Equal("gastos", "encabezado", "tipos", "premios", "loterias", "cubiertoloterias", "cubiertos", "conceptos");
     }
 
     [Fact]

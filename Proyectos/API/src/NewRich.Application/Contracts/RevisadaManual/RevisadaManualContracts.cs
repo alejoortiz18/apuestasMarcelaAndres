@@ -52,6 +52,9 @@ public sealed class GrupoRevisadaManualResponse
     public decimal? DescuentoValor { get; set; }
     public decimal? TotalPagar { get; set; }
     public DateTime? FechaOperacion { get; set; }
+
+    /// <summary>Nombre de quien hizo la operación (por ejemplo, quien cubrió). Solo viene en las consultas de Cubierto.</summary>
+    public string? CubiertoPor { get; set; }
     public List<LineaRevisadaManualResponse> Lineas { get; set; } = [];
 }
 

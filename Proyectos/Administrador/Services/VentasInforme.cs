@@ -329,12 +329,16 @@ public static class VentasInforme
                 Fecha = DateOnly.FromDateTime(g.FechaOperacion ?? corte),
                 Loteria = g.Loteria,
                 Numero = g.Numero,
-                Valor = g.Subtotal
+                CubiertoPor = string.IsNullOrWhiteSpace(g.CubiertoPor) ? "-" : g.CubiertoPor,
+                Subtotal = g.Subtotal,
+                DescuentoPorcentaje = g.DescuentoPorcentaje,
+                Descuento = g.DescuentoValor ?? 0m,
+                Pagado = g.TotalPagar ?? 0m
             })
             .ToList();
         var cubiertoPorLoteria = cubiertos
             .GroupBy(c => c.Loteria)
-            .Select(g => (Texto: g.Key, Valor: g.Sum(c => c.Valor), Cantidad: g.Count()))
+            .Select(g => (Texto: g.Key, Valor: g.Sum(c => c.Subtotal), Cantidad: g.Count()))
             .ToList();
         var (columnaCubierto, sentidoCubierto) = OrdenTabla.Resolver(ordenCubiertos, direccionCubiertos, ColumnasCubiertos, CubiertoFecha, OrdenTabla.Descendente);
         var ordenCubierto = new EstadoOrden(columnaCubierto, sentidoCubierto);
@@ -457,15 +461,22 @@ public static class VentasInforme
     public const string CubiertoFecha = "fecha";
     public const string CubiertoLoteria = "loteria";
     public const string CubiertoNumero = "numero";
-    public const string CubiertoValor = "valor";
-    private static readonly string[] ColumnasCubiertos = [CubiertoFecha, CubiertoLoteria, CubiertoNumero, CubiertoValor];
+    public const string CubiertoQuien = "quien";
+    public const string CubiertoSubtotal = "subtotal";
+    public const string CubiertoDescuento = "descuento";
+    public const string CubiertoPagado = "pagado";
+    private static readonly string[] ColumnasCubiertos =
+        [CubiertoFecha, CubiertoLoteria, CubiertoNumero, CubiertoQuien, CubiertoSubtotal, CubiertoDescuento, CubiertoPagado];
 
     private static IReadOnlyList<CubiertoInforme> OrdenarCubiertos(IEnumerable<CubiertoInforme> filas, EstadoOrden estado) =>
         (estado.Orden switch
         {
             CubiertoLoteria => OrdenTabla.Por(filas, c => c.Loteria, estado.Direccion, OrdenTabla.Texto),
             CubiertoNumero => OrdenTabla.Por(filas, c => c.Numero, estado.Direccion, OrdenTabla.Texto),
-            CubiertoValor => OrdenTabla.Por(filas, c => c.Valor, estado.Direccion),
+            CubiertoQuien => OrdenTabla.Por(filas, c => c.CubiertoPor, estado.Direccion, OrdenTabla.Texto),
+            CubiertoSubtotal => OrdenTabla.Por(filas, c => c.Subtotal, estado.Direccion),
+            CubiertoDescuento => OrdenTabla.Por(filas, c => c.Descuento, estado.Direccion),
+            CubiertoPagado => OrdenTabla.Por(filas, c => c.Pagado, estado.Direccion),
             _ => OrdenTabla.Por(filas, c => c.Fecha, estado.Direccion)
         }).ThenBy(c => c.Loteria, OrdenTabla.Texto).ThenBy(c => c.Numero, OrdenTabla.Texto).ToList();
 

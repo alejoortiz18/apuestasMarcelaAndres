@@ -319,7 +319,10 @@
                                 (VentasInforme.CubiertoFecha, UiTexts.Fecha, false),
                                 (VentasInforme.CubiertoLoteria, UiTexts.Loteria, false),
                                 (VentasInforme.CubiertoNumero, UiTexts.InformeColumnaNumero, false),
-                                (VentasInforme.CubiertoValor, UiTexts.Valor, true)
+                                (VentasInforme.CubiertoQuien, UiTexts.InformeColumnaQuienCubrio, false),
+                                (VentasInforme.CubiertoSubtotal, UiTexts.Subtotal, true),
+                                (VentasInforme.CubiertoDescuento, UiTexts.Descuento, true),
+                                (VentasInforme.CubiertoPagado, UiTexts.InformeColumnaValorPagado, true)
                             })
                             {
                                 <partial name="_ColumnaOrden" model='new ColumnaOrdenViewModel { Clave = clave, Texto = texto, Estado = Model.Egresos.OrdenCubiertos, ParamOrden = "ordenC", ParamDireccion = "dirC", ParamPagina = "pageC", Ancla = "informeEgresosCubiertosSeccion", Numero = numero }' />
@@ -333,7 +336,16 @@
                                 <td>@c.Fecha.ToString("dd/MM/yyyy", cultura)</td>
                                 <td>@c.Loteria</td>
                                 <td><strong>@c.Numero</strong></td>
-                                <td class="num"><strong>@Pesos(c.Valor)</strong></td>
+                                <td>@c.CubiertoPor</td>
+                                <td class="num">@Pesos(c.Subtotal)</td>
+                                <td class="num">
+                                    @Pesos(c.Descuento)
+                                    @if (c.DescuentoPorcentaje is { } porcentaje)
+                                    {
+                                        <small>(@Porc(porcentaje) %)</small>
+                                    }
+                                </td>
+                                <td class="num"><strong>@Pesos(c.Pagado)</strong></td>
                             </tr>
                         }
                         </tbody>

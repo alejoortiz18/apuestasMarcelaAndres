@@ -37,12 +37,12 @@ public static class OrdenSeccionesInforme
             [CategoriasInforme.Egresos] =
             [
                 ("encabezado", UiTexts.InformeSeccionEncabezado),
-                ("conceptos", UiTexts.InformeEgresosPorConcepto),
                 ("tipos", UiTexts.InformeGastosPorTipo),
-                ("loterias", UiTexts.InformePremiosPorLoteria),
                 ("premios", UiTexts.InformePremiosWeb),
+                ("loterias", UiTexts.InformePremiosPorLoteria),
                 ("cubiertoloterias", UiTexts.InformeCubiertoPorLoteria),
                 ("cubiertos", UiTexts.InformeCubiertos),
+                ("conceptos", UiTexts.InformeEgresosPorConcepto),
                 ("gastos", UiTexts.InformeGastosPorPersona)
             ],
             [CategoriasInforme.Recaudo] =
@@ -94,7 +94,21 @@ public static class OrdenSeccionesInforme
             .Where(claves.Contains)
             .Distinct()
             .ToList();
-        return [.. elegidas, .. claves.Except(elegidas)];
+
+        // Lo que no estaba guardado (por ejemplo, una sección nueva) entra detrás de la sección
+        // que la antecede en el orden de siempre; si ninguna la antecede, va de primera.
+        for (var i = 0; i < claves.Count; i++)
+        {
+            if (elegidas.Contains(claves[i]))
+            {
+                continue;
+            }
+
+            var anterior = claves.Take(i).LastOrDefault(elegidas.Contains);
+            elegidas.Insert(anterior is null ? 0 : elegidas.IndexOf(anterior) + 1, claves[i]);
+        }
+
+        return elegidas;
     }
 
     /// <summary>Devuelve el JSON con el nuevo orden de ese informe, o null si el informe no existe.</summary>

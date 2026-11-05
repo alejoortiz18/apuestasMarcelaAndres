@@ -380,7 +380,9 @@ public static class UiTexts
     public const string InformePremiosPorLoteriaAyuda = "Total de premios cargados por vendedor web en cada lotería.";
     public const string InformePremiosCantidad = "{0} premios";
     public const string InformeCubiertos = "Números cubiertos";
-    public const string InformeCubiertosAyuda = "Cada número cubierto en Revisada manual en el periodo, con su valor.";
+    public const string InformeCubiertosAyuda = "Cada número cubierto en Revisada manual en el periodo: quién lo cubrió, el subtotal, el descuento y el valor pagado.";
+    public const string InformeColumnaQuienCubrio = "Quién cubrió";
+    public const string InformeColumnaValorPagado = "Valor pagado";
     public const string InformeCubiertoPorLoteria = "Números cubiertos por lotería";
     public const string InformeCubiertoPorLoteriaAyuda = "Total cubierto en cada lotería.";
     public const string InformeCubiertosCantidad = "{0} números";
@@ -418,9 +420,9 @@ public static class UiTexts
     public const string InformeSinIngresos = "No hay ventas en el periodo.";
     public const string InformeEgresosPorConcepto = "Egresos por concepto";
     public const string InformeEgresosPorConceptoAyuda = "Participación de premio, gastos y número cubierto en los egresos.";
-    public const string InformeConceptoPremios = "Premio";
+    public const string InformeConceptoPremios = "Premios";
     public const string InformeConceptoGastos = "Gastos";
-    public const string InformeConceptoCubierto = "Número cubierto";
+    public const string InformeConceptoCubierto = "Números cubiertos";
     public const string InformeEgresosCentro = "egresos";
     public const string InformeGastosPorTipo = "Gastos por tipo";
     public const string InformeGastosPorTipoAyuda = "De mayor a menor valor.";
@@ -446,7 +448,7 @@ public static class UiTexts
     public const string InformeRecaudadores = "Recaudado frente a pendiente por recaudador";
     public const string InformeRecaudadoresAyuda = "De mayor a menor pendiente.";
     public const string InformeRecaudadorDato = "Recaudó {0} · le falta {1} · {2} vendedores";
-    public const string InformeRecaudoAtrasos = "Faltantes por recaudar";
+    public const string InformeRecaudoAtrasos = "Lista deudores";
     public const string InformeRecaudoAtrasosAyuda = "Vendedores con atrasos";
     public const string InformeColumnaDeudaAnterior = "Deuda anterior";
     public const string InformeColumnaPendienteDia = "Pendiente del día";

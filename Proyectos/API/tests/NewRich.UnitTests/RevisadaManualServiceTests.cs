@@ -230,6 +230,41 @@ public sealed class RevisadaManualServiceTests
         ajeno.Grupos.Should().BeEmpty();
     }
 
+    [Fact]
+    public async Task Cubierto_dice_quien_cubrio_y_por_vendedor_recalcula_descuento_y_valor_pagado()
+    {
+        var (sut, db, admin) = await CreateSutAsync();
+        db.Usuarios.Add(new Usuario
+        {
+            UsuarioId = admin,
+            NombreCompleto = "Dora Admin",
+            NombreUsuario = "dora",
+            PasswordHash = "h",
+            PasswordSalt = "s",
+            Rol = RolUsuario.Administrador,
+            Estado = EstadoUsuario.Activo,
+            FechaCreacion = Ahora
+        });
+        await db.SaveChangesAsync();
+        var desde = new DateTime(2026, 10, 18);
+        var hasta = desde.AddDays(1).AddTicks(-1);
+        var grupo = (await sut.ResumenAsync(desde, hasta, null, CancellationToken.None)).Data!.Grupos.Single(g => g.Numero == "1234");
+        await sut.CubrirDesdeResumenAsync(admin, grupo.Lineas.Select(l => l.Clave).ToList(), 20, 10, CancellationToken.None);
+        await AgregarFilaAsync(db, "1234", 2_000);
+        var nuevo = (await sut.RecubrirPreviaAsync(desde, hasta, null, CancellationToken.None)).Data!.Grupos.Single();
+        await sut.RecubrirAsync(admin, nuevo.Lineas.Select(l => l.Clave).ToList(), 20, 10, CancellationToken.None);
+        var vendedor = (await db.Usuarios.FirstAsync(u => u.Rol == RolUsuario.Vendedor)).UsuarioId;
+
+        var todo = (await sut.CubiertoAsync(desde, hasta, CancellationToken.None)).Data!;
+        var suyo = (await sut.CubiertoAsync(desde, hasta, [vendedor], CancellationToken.None)).Data!;
+
+        todo.Grupos.Should().OnlyContain(g => g.CubiertoPor == "Dora Admin");
+        var mayor = suyo.Grupos.Single(g => g.Subtotal == 11_000m);
+        mayor.TotalConComision.Should().Be(13_200m);
+        mayor.DescuentoValor.Should().Be(1_320m);
+        mayor.TotalPagar.Should().Be(11_880m);
+    }
+
     private static async Task AgregarFilaAsync(NewRichDbContext db, string numero, decimal valor)
     {
         var existente = await db.RegistrosJuegoManual.AsNoTracking().FirstAsync();

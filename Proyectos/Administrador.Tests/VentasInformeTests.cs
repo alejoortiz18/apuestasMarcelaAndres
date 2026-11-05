@@ -93,13 +93,13 @@ public sealed class VentasInformeTests
 
         var informe = VentasInforme.InformeEgresos(fuente, new FiltrosPeriodoInforme { Periodo = "hoy" }, [], Hoy, Hoy, DateTime.Now, 1, 10);
         var porValor = VentasInforme.InformeEgresos(fuente, new FiltrosPeriodoInforme { Periodo = "hoy" }, [], Hoy, Hoy, DateTime.Now, 1, 10,
-            ordenCubiertos: "valor", direccionCubiertos: "desc", paginaCubiertos: 1, filasCubiertos: 2);
+            ordenCubiertos: "subtotal", direccionCubiertos: "desc", paginaCubiertos: 1, filasCubiertos: 2);
         var sinCubierto = VentasInforme.InformeEgresos(fuente, new FiltrosPeriodoInforme { Periodo = "hoy", TiposEgreso = [VentasInforme.TipoEgresoPremios] }, [], Hoy, Hoy, DateTime.Now, 1, 10);
 
-        informe.Egresos.Cubiertos.Items.Select(c => (c.Fecha, c.Loteria, c.Numero, c.Valor)).Should().Equal(
-            (new DateOnly(2026, 10, 20), "Bogotá", "5678", 500m),
-            (new DateOnly(2026, 10, 19), "Cali", "9999", 200m),
-            (new DateOnly(2026, 10, 18), "Cali", "1234", 200m));
+        informe.Egresos.Cubiertos.Items.Select(c => (c.Fecha, c.Loteria, c.Numero, c.CubiertoPor, c.Subtotal, c.Descuento, c.Pagado)).Should().Equal(
+            (new DateOnly(2026, 10, 20), "Bogotá", "5678", "Dora", 500m, 60m, 540m),
+            (new DateOnly(2026, 10, 19), "Cali", "9999", "Dora", 200m, 24m, 216m),
+            (new DateOnly(2026, 10, 18), "Cali", "1234", "Dora", 200m, 24m, 216m));
         informe.Egresos.CubiertoPorLoteria.Select(c => (c.Texto, c.Valor, c.Cantidad)).Should().Equal(("Bogotá", 500m, 1), ("Cali", 400m, 2));
         porValor.Egresos.Cubiertos.TotalCount.Should().Be(3);
         porValor.Egresos.Cubiertos.Items.First().Numero.Should().Be("5678");
@@ -113,7 +113,11 @@ public sealed class VentasInformeTests
         Loteria = loteria,
         Numero = numero,
         Subtotal = valor,
-        FechaOperacion = fecha
+        FechaOperacion = fecha,
+        CubiertoPor = "Dora",
+        DescuentoPorcentaje = 10m,
+        DescuentoValor = valor * 1.2m * 0.1m,
+        TotalPagar = valor * 1.2m * 0.9m
     };
 
     private static NewRich.Application.Contracts.PremiosEntregadosWeb.PremioEntregadoWebResponse Premio(string loteria, decimal valor) =>

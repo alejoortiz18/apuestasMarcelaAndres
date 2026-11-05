@@ -25,6 +25,11 @@
     cursor: progress;
 }
 
+.informe-exportar.boton-cargando:disabled {
+    opacity: 1;
+    cursor: progress;
+}
+
 .informe-pdf-resumen {
     position: fixed;
     top: 0;

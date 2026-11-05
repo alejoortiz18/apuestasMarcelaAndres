@@ -126,13 +126,17 @@ public sealed class GastoPersonaInforme
     public decimal Total { get; init; }
 }
 
-/// <summary>Un número cubierto en Revisada manual: cuándo se cubrió, de qué lotería y por cuánto.</summary>
+/// <summary>Un número cubierto en Revisada manual: cuándo, de qué lotería, quién lo cubrió y cuánto se pagó.</summary>
 public sealed class CubiertoInforme
 {
     public DateOnly Fecha { get; init; }
     public string Loteria { get; init; } = string.Empty;
     public string Numero { get; init; } = string.Empty;
-    public decimal Valor { get; init; }
+    public string CubiertoPor { get; init; } = string.Empty;
+    public decimal Subtotal { get; init; }
+    public decimal? DescuentoPorcentaje { get; init; }
+    public decimal Descuento { get; init; }
+    public decimal Pagado { get; init; }
 }
 
 public sealed class PremioWebInforme

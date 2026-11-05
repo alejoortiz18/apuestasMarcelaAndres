@@ -326,6 +326,20 @@ public sealed class RevisadaManualService : IRevisadaManualService
             {
                 g.Lineas = g.Lineas.Where(l => claves.Contains(l.Clave)).ToList();
                 g.Subtotal = g.Lineas.Sum(l => l.Valor);
+                // Comisión y descuento se aplican sobre la parte de esos vendedores, con los porcentajes del cubrimiento.
+                if (g.ComisionPorcentaje is { } comision)
+                {
+                    g.ComisionValor = RevisadaManualCalculo.Parte(g.Subtotal, comision);
+                    g.TotalConComision = RevisadaManualCalculo.TotalConComision(g.Subtotal, comision);
+                }
+
+                if (g.TotalPagar is not null && g.TotalConComision is { } conComision)
+                {
+                    var descuento = g.DescuentoPorcentaje ?? 0m;
+                    g.DescuentoValor = RevisadaManualCalculo.Parte(conComision, descuento);
+                    g.TotalPagar = RevisadaManualCalculo.TotalAPagar(conComision, descuento);
+                }
+
                 return g;
             })
             .Where(g => g.Lineas.Count > 0)
@@ -515,8 +529,17 @@ public sealed class RevisadaManualService : IRevisadaManualService
             .Where(o => o.Estado == estado && o.Lineas.Any(l => l.FechaRegistro >= desde && l.FechaRegistro <= hasta))
             .ToListAsync(cancellationToken);
         var nombres = await NombresAsync(operaciones.Select(o => o.LoteriaId), cancellationToken);
+        var idsUsuarios = operaciones.Select(o => o.UsuarioId).Distinct().ToList();
+        var usuarios = await _db.Usuarios.AsNoTracking()
+            .Where(u => idsUsuarios.Contains(u.UsuarioId))
+            .ToDictionaryAsync(u => u.UsuarioId, u => u.NombreCompleto, cancellationToken);
         var grupos = operaciones
-            .Select(o => Mapear(o, nombres.GetValueOrDefault(o.LoteriaId) ?? string.Empty))
+            .Select(o =>
+            {
+                var grupo = Mapear(o, nombres.GetValueOrDefault(o.LoteriaId) ?? string.Empty);
+                grupo.CubiertoPor = usuarios.GetValueOrDefault(o.UsuarioId);
+                return grupo;
+            })
             .OrderBy(g => g.Loteria)
             .ThenBy(g => g.Numero)
             .ToList();
