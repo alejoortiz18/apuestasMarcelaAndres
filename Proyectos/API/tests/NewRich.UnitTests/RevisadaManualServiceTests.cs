@@ -209,6 +209,27 @@ public sealed class RevisadaManualServiceTests
         datos.Subtotal.Should().Be(26_000);
     }
 
+    [Fact]
+    public async Task Cubierto_por_vendedores_solo_cuenta_las_jugadas_de_esos_vendedores()
+    {
+        var (sut, db, admin) = await CreateSutAsync();
+        var desde = new DateTime(2026, 10, 18);
+        var hasta = desde.AddDays(1).AddTicks(-1);
+        foreach (var grupo in (await sut.ResumenAsync(desde, hasta, null, CancellationToken.None)).Data!.Grupos)
+        {
+            await sut.CubrirDesdeResumenAsync(admin, grupo.Lineas.Select(l => l.Clave).ToList(), 20, 10, CancellationToken.None);
+        }
+        var vendedor = (await db.Usuarios.FirstAsync()).UsuarioId;
+
+        var suyo = (await sut.CubiertoAsync(desde, hasta, [vendedor], CancellationToken.None)).Data!;
+        var ajeno = (await sut.CubiertoAsync(desde, hasta, [Guid.NewGuid()], CancellationToken.None)).Data!;
+
+        suyo.Total.Should().Be(24_000m);
+        suyo.Jugadas.Should().Be(3);
+        ajeno.Total.Should().Be(0m);
+        ajeno.Grupos.Should().BeEmpty();
+    }
+
     private static async Task AgregarFilaAsync(NewRichDbContext db, string numero, decimal valor)
     {
         var existente = await db.RegistrosJuegoManual.AsNoTracking().FirstAsync();

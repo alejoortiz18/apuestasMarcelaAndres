@@ -76,9 +76,9 @@ public sealed class RevisadaManualController : ApiControllerBase
     }
 
     [HttpGet("Cubierto")]
-    public async Task<IActionResult> Cubierto([FromQuery] DateTime desde, [FromQuery] DateTime hasta, CancellationToken cancellationToken)
+    public async Task<IActionResult> Cubierto([FromQuery] DateTime desde, [FromQuery] DateTime hasta, [FromQuery] List<Guid>? vendedores, CancellationToken cancellationToken)
     {
-        return From(await _revisada.CubiertoAsync(desde, hasta, cancellationToken));
+        return From(await _revisada.CubiertoAsync(desde, hasta, vendedores is { Count: > 0 } ? vendedores : null, cancellationToken));
     }
 
     [HttpPost("Descuento")]

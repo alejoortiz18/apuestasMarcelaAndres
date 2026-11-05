@@ -283,6 +283,9 @@ public sealed class FiltroTableroRecaudo
     public DateOnly Hasta { get; set; }
     public Guid? RecaudadorId { get; set; }
     public string? Grupo { get; set; }
+
+    /// <summary>Si trae vendedores, el tablero solo suma las obligaciones de ellos.</summary>
+    public IReadOnlyList<Guid>? Vendedores { get; set; }
 }
 
 public sealed class GrupoDetalleRecaudoResponse

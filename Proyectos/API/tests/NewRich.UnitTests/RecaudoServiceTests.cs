@@ -543,6 +543,28 @@ public sealed class RecaudoServiceTests
     }
 
     [Fact]
+    public async Task El_tablero_filtrado_por_vendedores_solo_suma_lo_de_esos_vendedores()
+    {
+        var (sut, db, _, rosa) = await DosRecaudadoresAsync();
+        var beto = db.Usuarios.Single(u => u.NombreCompleto == "Beto Sur").UsuarioId;
+
+        var t = (await sut.TableroAsync(new FiltroTableroRecaudo
+        {
+            Desde = new DateOnly(2026, 9, 27),
+            Hasta = new DateOnly(2026, 9, 28),
+            Vendedores = [beto]
+        }, CancellationToken.None)).Data!;
+
+        t.TotalVendido.Should().Be(2000m);
+        t.TotalPorRecaudar.Should().Be(200m);
+        t.TotalRecaudado.Should().Be(0m);
+        t.Dias.Select(d => d.Debia).Should().Equal(0m, 200m);
+        t.Recaudadores.Should().ContainSingle(r => r.Id == rosa.UsuarioId);
+        t.MayoresSaldos.Select(s => s.Nombre).Should().Equal("Beto Sur");
+        t.Grupos.Select(g => g.Nombre).Should().Equal("Sur");
+    }
+
+    [Fact]
     public async Task El_tablero_avisa_cuando_el_periodo_pasa_de_31_dias()
     {
         var (sut, _, _, _) = await DosRecaudadoresAsync();

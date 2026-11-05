@@ -1430,3 +1430,61 @@
         opacity: 1;
     }
 }
+
+/* Opciones de un filtro mostradas como tabla (por ejemplo, Filtrar por vendedor). */
+.informe-tabla-opciones {
+    max-height: 260px;
+    margin-top: 8px;
+    overflow: auto;
+    border: 1px solid #efe6d6;
+    border-radius: 8px;
+}
+
+.informe-tabla-opciones table {
+    min-width: 0;
+    width: 100%;
+    font-size: 13px;
+}
+
+.informe-tabla-opciones thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #fffaf0;
+}
+
+.informe-tabla-opciones th:first-child,
+.informe-tabla-opciones td:first-child {
+    width: 44px;
+    text-align: center;
+}
+
+.informe-tabla-opciones td label {
+    display: block;
+    cursor: pointer;
+}
+
+.informe-tabla-opciones input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--green);
+    cursor: pointer;
+}
+
+.informe-tabla-opciones input[type="checkbox"]:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+}
+
+.informe-tabla-opciones tbody tr:hover,
+.informe-tabla-opciones tbody tr:focus-within {
+    background: #fffaf0;
+}
+
+.informe-tabla-opciones tbody tr:has(input:checked) {
+    background: #fdf1d4;
+}
+
+.informe-tabla-opciones tr[hidden] {
+    display: none;
+}

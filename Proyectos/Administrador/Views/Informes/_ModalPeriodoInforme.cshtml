@@ -14,6 +14,13 @@
         TextoTodos = UiTexts.InformeTodosGrupos, TextoElegidos = UiTexts.InformeGruposEspecificos, Error = UiTexts.InformeEligeGrupo,
         Opciones = config.Grupos, Elegidos = filtros.Grupos?.Select(g => g.ToString()).ToHashSet(StringComparer.OrdinalIgnoreCase)
     };
+    var vendedores = new CampoFiltroInforme
+    {
+        Id = $"{p}Vendedores", Modo = "modoVendedores", Nombre = "vendedores", Titulo = UiTexts.InformeFiltrarVendedor,
+        TextoTodos = UiTexts.InformeTodosVendedores, TextoElegidos = UiTexts.InformeVendedoresEspecificos, Error = UiTexts.InformeEligeVendedor,
+        Opciones = config.Vendedores, Elegidos = filtros.Vendedores?.Select(v => v.ToString()).ToHashSet(StringComparer.OrdinalIgnoreCase),
+        Encabezados = [UiTexts.Vendedor, UiTexts.Usuario, UiTexts.Grupo, UiTexts.Tipo]
+    };
 }
 <div id="@(p)Dialog" class="dialog-back hidden" role="dialog" aria-modal="true" aria-labelledby="@(p)Titulo" data-informe-dialog="@config.Clave" data-seleccionados="@UiTexts.InformeSeleccionados" hidden>
     <div class="dialog dialog-informe dialog-informe-periodo">
@@ -53,6 +60,10 @@
                 </fieldset>
                 <div class="informe-filtro-grupo">
                     <partial name="_FiltroInforme" model="grupos" />
+                    @if (config.Vendedores.Count > 0)
+                    {
+                        <partial name="_FiltroInforme" model="vendedores" />
+                    }
                     <p class="informe-filtro-nota">@Model.NotaGrupos</p>
                 </div>
             </div>

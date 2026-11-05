@@ -84,7 +84,7 @@ public sealed class InformesController : AdminControllerBase
         PeriodoInformeViewModel Configuracion(string categoria)
         {
             var guardadaPeriodo = configuraciones.Data?.FirstOrDefault(c => c.Categoria == categoria);
-            return VentasInforme.Construir(categoria, listaGrupos, VentasInforme.LeerFiltros(guardadaPeriodo?.Filtros), guardadaPeriodo is not null, hoy);
+            return VentasInforme.Construir(categoria, listaGrupos, VentasInforme.LeerFiltros(guardadaPeriodo?.Filtros), guardadaPeriodo is not null, hoy, personal);
         }
 
         async Task<(CargaInformeVentas? Carga, DateOnly Desde, DateOnly Hasta)> Cargar(PeriodoInformeViewModel config, DatosInforme datos)
@@ -225,6 +225,8 @@ public sealed class InformesController : AdminControllerBase
         DateOnly? hasta,
         string? modoGrupos,
         List<Guid>? grupos,
+        string? modoVendedores,
+        List<Guid>? vendedores,
         CancellationToken cancellationToken)
     {
         var clave = VentasInforme.CategoriasPorPeriodo.FirstOrDefault(c => c == categoria);
@@ -234,7 +236,8 @@ public sealed class InformesController : AdminControllerBase
             Periodo = periodo?.Trim() ?? string.Empty,
             Desde = rango ? desde : null,
             Hasta = rango ? hasta : null,
-            Grupos = Elegidos(modoGrupos, grupos?.Where(g => g != Guid.Empty))
+            Grupos = Elegidos(modoGrupos, grupos?.Where(g => g != Guid.Empty)),
+            Vendedores = Elegidos(modoVendedores, vendedores?.Where(v => v != Guid.Empty))
         };
 
         var aviso = clave is null ? UiTexts.InformeCategoriaInvalida : VentasInforme.Validar(filtros);

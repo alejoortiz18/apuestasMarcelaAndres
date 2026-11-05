@@ -18,6 +18,7 @@ public interface IRevisadaManualService
     Task<Result<VistaRevisadaManualResponse>> PorCubrirAsync(DateTime desde, DateTime hasta, CancellationToken cancellationToken);
     Task<Result<GrupoRevisadaManualResponse>> CubrirAsync(Guid administradorId, Guid operacionId, decimal comisionPorcentaje, CancellationToken cancellationToken);
     Task<Result<VistaRevisadaManualResponse>> CubiertoAsync(DateTime desde, DateTime hasta, CancellationToken cancellationToken);
+    Task<Result<VistaRevisadaManualResponse>> CubiertoAsync(DateTime desde, DateTime hasta, IReadOnlyCollection<Guid>? vendedores, CancellationToken cancellationToken);
     Task<Result<VistaRevisadaManualResponse>> CubiertoHoyAsync(CancellationToken cancellationToken);
     Task<Result<ResumenHistoricoResponse>> ResumenHistoricoAsync(DateTime desde, DateTime hasta, string? orden, bool descendente, int pagina, int tamano, CancellationToken cancellationToken);
     Task<Result<CubiertoHistoricoResponse>> CubiertoHistoricoAsync(DateTime desde, DateTime hasta, string? orden, bool descendente, int pagina, int tamano, CancellationToken cancellationToken);
@@ -291,10 +292,51 @@ public sealed class RevisadaManualService : IRevisadaManualService
         return Result<GrupoRevisadaManualResponse>.Ok(Mapear(operacion, loteria), RevisadaManualMessages.Cubierto);
     }
 
-    public async Task<Result<VistaRevisadaManualResponse>> CubiertoAsync(DateTime desde, DateTime hasta, CancellationToken cancellationToken)
+    public Task<Result<VistaRevisadaManualResponse>> CubiertoAsync(DateTime desde, DateTime hasta, CancellationToken cancellationToken) =>
+        CubiertoAsync(desde, hasta, null, cancellationToken);
+
+    public async Task<Result<VistaRevisadaManualResponse>> CubiertoAsync(DateTime desde, DateTime hasta, IReadOnlyCollection<Guid>? vendedores, CancellationToken cancellationToken)
     {
         var vista = await OperacionesAsync(OperacionRevisadaManual.EstadoCubierto, desde, hasta, cancellationToken);
+        if (vendedores is not null)
+        {
+            vista = await DeVendedoresAsync(vista, vendedores, cancellationToken);
+        }
+
         return Result<VistaRevisadaManualResponse>.Ok(vista, RevisadaManualMessages.Consultado);
+    }
+
+    /// <summary>Deja de cada grupo solo las jugadas registradas por esos vendedores y recalcula los totales.</summary>
+    private async Task<VistaRevisadaManualResponse> DeVendedoresAsync(VistaRevisadaManualResponse vista, IReadOnlyCollection<Guid> vendedores, CancellationToken cancellationToken)
+    {
+        var filas = await _db.RegistrosJuegoManual.AsNoTracking()
+            .Where(r => vendedores.Contains(r.UsuarioId))
+            .SelectMany(r => r.Filas.Select(f => f.FilaId))
+            .ToListAsync(cancellationToken);
+        var apuestas = await _db.RegistrosJuegoNumerosWebManual.AsNoTracking()
+            .Where(r => vendedores.Contains(r.UsuarioId))
+            .SelectMany(r => r.Apuestas.Select(a => a.ApuestaId))
+            .ToListAsync(cancellationToken);
+        var claves = filas.Select(id => LineaRevisadaManual.ClaveDe(LineaRevisadaManual.OrigenFila, id))
+            .Concat(apuestas.Select(id => LineaRevisadaManual.ClaveDe(LineaRevisadaManual.OrigenNumeros, id)))
+            .ToHashSet(StringComparer.Ordinal);
+
+        var grupos = vista.Grupos
+            .Select(g =>
+            {
+                g.Lineas = g.Lineas.Where(l => claves.Contains(l.Clave)).ToList();
+                g.Subtotal = g.Lineas.Sum(l => l.Valor);
+                return g;
+            })
+            .Where(g => g.Lineas.Count > 0)
+            .ToList();
+        return new VistaRevisadaManualResponse
+        {
+            Jugadas = grupos.Sum(g => g.Lineas.Count),
+            Loterias = grupos.Select(g => g.Loteria).Distinct().Count(),
+            Total = grupos.Sum(g => g.Subtotal),
+            Grupos = grupos
+        };
     }
 
     public async Task<Result<VistaRevisadaManualResponse>> CubiertoHoyAsync(CancellationToken cancellationToken)

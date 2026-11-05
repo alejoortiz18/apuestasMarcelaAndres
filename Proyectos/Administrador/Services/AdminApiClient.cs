@@ -147,6 +147,7 @@ public interface IAdminApiClient
     Task<ApiCallResult<List<MovimientoRecaudoResponse>>> HistorialRecaudoAsync(FiltroHistorialRecaudo filtro, CancellationToken cancellationToken);
     Task<ApiCallResult<MetricasRecaudoResponse>> MetricasRecaudoAsync(DateOnly desde, DateOnly hasta, CancellationToken cancellationToken);
     Task<ApiCallResult<TableroRecaudoResponse>> TableroRecaudoAsync(DateOnly desde, DateOnly hasta, Guid? recaudadorId, string? grupo, CancellationToken cancellationToken);
+    Task<ApiCallResult<TableroRecaudoResponse>> TableroRecaudoAsync(DateOnly desde, DateOnly hasta, Guid? recaudadorId, string? grupo, IReadOnlyCollection<Guid>? vendedores, CancellationToken cancellationToken);
     Task<ApiCallResult<DetalleRecaudadorResponse>> DetalleRecaudoAsync(Guid recaudadorId, DateOnly desde, DateOnly hasta, CancellationToken cancellationToken);
 
     Task<ApiCallResult<VistaRevisadaManualResponse>> RevisadaResumenAsync(DateTime desde, DateTime hasta, decimal? valorMinimo, CancellationToken cancellationToken);
@@ -157,6 +158,7 @@ public interface IAdminApiClient
     Task<ApiCallResult<ResumenHistoricoResponse>> RevisadaResumenHistoricoAsync(DateTime desde, DateTime hasta, string? orden, bool descendente, int pagina, int tamano, CancellationToken cancellationToken);
     Task<ApiCallResult<CubiertoHistoricoResponse>> RevisadaCubiertoHistoricoAsync(DateTime desde, DateTime hasta, string? orden, bool descendente, int pagina, int tamano, CancellationToken cancellationToken);
     Task<ApiCallResult<VistaRevisadaManualResponse>> RevisadaCubiertoAsync(DateTime desde, DateTime hasta, CancellationToken cancellationToken);
+    Task<ApiCallResult<VistaRevisadaManualResponse>> RevisadaCubiertoAsync(DateTime desde, DateTime hasta, IReadOnlyCollection<Guid>? vendedores, CancellationToken cancellationToken);
     Task<ApiCallResult<ParametrosRevisadaManualResponse>> ParametrosRevisadaManualAsync(CancellationToken cancellationToken);
     Task<ApiCallResult<ParametrosRevisadaManualResponse>> GuardarComisionRevisadaManualAsync(decimal porcentaje, CancellationToken cancellationToken);
     Task<ApiCallResult<ParametrosRevisadaManualResponse>> GuardarDescuentoRevisadaManualAsync(decimal porcentaje, CancellationToken cancellationToken);
@@ -620,6 +622,16 @@ public sealed class AdminApiClient : IAdminApiClient
             ("recaudadorId", recaudadorId?.ToString()),
             ("grupo", grupo)), null, true, cancellationToken);
 
+    public Task<ApiCallResult<TableroRecaudoResponse>> TableroRecaudoAsync(DateOnly desde, DateOnly hasta, Guid? recaudadorId, string? grupo, IReadOnlyCollection<Guid>? vendedores, CancellationToken cancellationToken) =>
+        SendAsync<TableroRecaudoResponse>(HttpMethod.Get, "api/Recaudo/Tablero" + BuildQuery(
+        [
+            ("desde", desde.ToString("yyyy-MM-dd")),
+            ("hasta", hasta.ToString("yyyy-MM-dd")),
+            ("recaudadorId", recaudadorId?.ToString()),
+            ("grupo", grupo),
+            .. (vendedores ?? []).Select(v => ("vendedores", (string?)v.ToString()))
+        ]), null, true, cancellationToken);
+
     public Task<ApiCallResult<DetalleRecaudadorResponse>> DetalleRecaudoAsync(Guid recaudadorId, DateOnly desde, DateOnly hasta, CancellationToken cancellationToken) =>
         SendAsync<DetalleRecaudadorResponse>(HttpMethod.Get, $"api/Recaudo/Detalle/{recaudadorId}" + BuildQuery(
             ("desde", desde.ToString("yyyy-MM-dd")),
@@ -668,6 +680,14 @@ public sealed class AdminApiClient : IAdminApiClient
         SendAsync<VistaRevisadaManualResponse>(HttpMethod.Get, "api/RevisadaManual/Cubierto" + BuildQuery(
             ("desde", desde.ToString("o")),
             ("hasta", hasta.ToString("o"))), null, true, cancellationToken);
+
+    public Task<ApiCallResult<VistaRevisadaManualResponse>> RevisadaCubiertoAsync(DateTime desde, DateTime hasta, IReadOnlyCollection<Guid>? vendedores, CancellationToken cancellationToken) =>
+        SendAsync<VistaRevisadaManualResponse>(HttpMethod.Get, "api/RevisadaManual/Cubierto" + BuildQuery(
+        [
+            ("desde", desde.ToString("o")),
+            ("hasta", hasta.ToString("o")),
+            .. (vendedores ?? []).Select(v => ("vendedores", (string?)v.ToString()))
+        ]), null, true, cancellationToken);
 
     public Task<ApiCallResult<ParametrosRevisadaManualResponse>> ParametrosRevisadaManualAsync(CancellationToken cancellationToken) =>
         SendAsync<ParametrosRevisadaManualResponse>(HttpMethod.Get, "api/ParametrosRevisadaManual", null, true, cancellationToken);

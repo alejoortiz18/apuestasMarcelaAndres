@@ -328,7 +328,8 @@ public sealed partial class RecaudoService
         Guid recaudadorId,
         DateOnly desde,
         DateOnly hasta,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IReadOnlyCollection<Guid>? vendedores = null)
     {
         var inicio = desde > hasta ? hasta : desde;
         var primerDia = hasta.AddDays(1 - DiasMaximosLineaDeTiempo);
@@ -341,7 +342,12 @@ public sealed partial class RecaudoService
         IReadOnlyList<ObligacionRecaudoResponse> filasHasta = [];
         for (var dia = inicio; dia <= hasta; dia = dia.AddDays(1))
         {
-            var filas = (await ObligacionesAsync(recaudadorId, dia, cancellationToken)).Data ?? [];
+            IReadOnlyList<ObligacionRecaudoResponse> filas = (await ObligacionesAsync(recaudadorId, dia, cancellationToken)).Data ?? [];
+            if (vendedores is not null)
+            {
+                filas = filas.Where(f => vendedores.Contains(f.VendedorId)).ToList();
+            }
+
             filasHasta = filas;
             dias.Add(new LineaRecaudoDiaResponse
             {

@@ -18,6 +18,39 @@
     <div class="informe-lista" id="@(Model.Id)Lista" data-informe-lista @(todos ? "hidden" : null)>
         <label class="sr-only" for="@(Model.Id)Buscar">@UiTexts.BuscarOpcion</label>
         <input id="@(Model.Id)Buscar" type="search" placeholder="@UiTexts.BuscarOpcion" autocomplete="off" data-informe-buscar />
+        @if (Model.Encabezados.Count > 0)
+        {
+            <div class="table-wrap informe-tabla-opciones">
+                <table class="informe-table">
+                    <thead>
+                    <tr>
+                        <th scope="col"><span class="sr-only">@UiTexts.InformeColumnaElegir</span></th>
+                        @foreach (var encabezado in Model.Encabezados)
+                        {
+                            <th scope="col">@encabezado</th>
+                        }
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @for (var i = 0; i < Model.Opciones.Count; i++)
+                    {
+                        var opcion = Model.Opciones[i];
+                        var id = $"{Model.Id}Opcion{i}";
+                        <tr data-informe-opcion data-texto="@opcion.Texto @string.Join(" ", opcion.Columnas)">
+                            <td><input id="@id" type="checkbox" name="@Model.Nombre" value="@opcion.Valor" checked="@(Model.Elegidos?.Contains(opcion.Valor) == true)" /></td>
+                            <td><label for="@id"><strong>@opcion.Texto</strong></label></td>
+                            @foreach (var celda in opcion.Columnas)
+                            {
+                                <td>@celda</td>
+                            }
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
         <ul class="informe-opciones">
             @foreach (var opcion in Model.Opciones)
             {
@@ -35,6 +68,7 @@
                 </li>
             }
         </ul>
+        }
         <p class="informe-sin-opciones" data-informe-sin-opciones hidden>@UiTexts.SinResultadosOpcion</p>
         <p class="informe-contador" data-informe-contador></p>
     </div>

@@ -7,8 +7,10 @@ using NewRich.Application.Contracts.Kpi;
 using NewRich.Application.Contracts.PremiosEntregadosWeb;
 using NewRich.Application.Contracts.Recaudo;
 using NewRich.Application.Contracts.RevisadaManual;
+using NewRich.Application.Contracts.Usuarios;
 using NewRich.Application.Contracts.Utilidades;
 using NewRich.Constants;
+using NewRich.Domain.Enums;
 
 namespace NewRich.Admin.Services;
 
@@ -64,6 +66,7 @@ public static class VentasInforme
             if (filtros.Hasta.Value.DayNumber - filtros.Desde.Value.DayNumber + 1 > DiasMaximos) return UiTexts.InformeRangoMaximo;
         }
         if (filtros.Grupos is { Count: 0 }) return UiTexts.InformeEligeGrupo;
+        if (filtros.Vendedores is { Count: 0 }) return UiTexts.InformeEligeVendedor;
         return null;
     }
 
@@ -91,12 +94,28 @@ public static class VentasInforme
         .Select(g => new OpcionInforme { Valor = g.GrupoId.ToString(), Texto = g.Nombre })
         .ToList();
 
-    public static PeriodoInformeViewModel Construir(string clave, IReadOnlyList<GrupoResponse> grupos, FiltrosPeriodoInforme filtros, bool configurada, DateOnly hoy)
+    /// <param name="usuarios">Con usuarios, el filtro ofrece elegir vendedores; sin ellos (Utilidades) no aparece.</param>
+    public static PeriodoInformeViewModel Construir(string clave, IReadOnlyList<GrupoResponse> grupos, FiltrosPeriodoInforme filtros, bool configurada, DateOnly hoy, IReadOnlyList<UsuarioResponse>? usuarios = null)
     {
         var periodos = OpcionesPeriodo();
         var (desde, hasta) = Rango(filtros, hoy);
         var periodo = $"{periodos.First(p => p.Valor == (filtros.Periodo is PeriodoHoy or Periodo15 or Periodo30 or PeriodoRango ? filtros.Periodo : Periodo7)).Texto} ({Fechas(desde, hasta)})";
         var alcance = Alcance(filtros, grupos);
+        var vendedores = usuarios is null ? [] : OpcionesVendedor(usuarios);
+        var detalle = new List<DetalleFiltroInforme>
+        {
+            new() { Etiqueta = UiTexts.InformeEtiquetaPeriodo, Valor = periodo },
+            new() { Etiqueta = UiTexts.InformeEtiquetaGrupos, Valor = alcance }
+        };
+        var resumen = $"{periodo} · {alcance}";
+        if (usuarios is not null)
+        {
+            var elegidos = Nombres(
+                filtros.Vendedores?.Select(id => vendedores.FirstOrDefault(v => v.Valor == id.ToString())?.Texto ?? id.ToString()).ToList(),
+                UiTexts.InformeTodosVendedores);
+            detalle.Add(new() { Etiqueta = UiTexts.InformeEtiquetaVendedores, Valor = elegidos });
+            resumen += $" · {elegidos}";
+        }
 
         return new PeriodoInformeViewModel
         {
@@ -105,15 +124,24 @@ public static class VentasInforme
             Filtros = filtros,
             Periodos = periodos,
             Grupos = OpcionesGrupo(grupos),
+            Vendedores = vendedores,
             Hoy = hoy,
-            Detalle =
-            [
-                new() { Etiqueta = UiTexts.InformeEtiquetaPeriodo, Valor = periodo },
-                new() { Etiqueta = UiTexts.InformeEtiquetaGrupos, Valor = alcance }
-            ],
-            ResumenCorto = $"{periodo} · {alcance}"
+            Detalle = detalle,
+            ResumenCorto = resumen
         };
     }
+
+    public static IReadOnlyList<OpcionInforme> OpcionesVendedor(IEnumerable<UsuarioResponse> usuarios) => usuarios
+        .Where(u => RolConsola.EsVendedor(u.Rol))
+        .OrderBy(u => u.NombreCompleto, StringComparer.CurrentCultureIgnoreCase)
+        .Select(u => new OpcionInforme
+        {
+            Valor = u.UsuarioId.ToString(),
+            Texto = u.NombreCompleto,
+            Detalle = $"{u.Usuario} {u.GrupoNombre}",
+            Columnas = [u.Usuario, string.IsNullOrWhiteSpace(u.GrupoNombre) ? UiTexts.SinGrupo : u.GrupoNombre, RolUi.Nombre(u.Rol)]
+        })
+        .ToList();
 
     public static KpiResponse? FusionarKpi(IReadOnlyList<KpiResponse> partes)
     {
@@ -354,20 +382,15 @@ public static class VentasInforme
     }
 
     public const string GastoPersonaPersona = "persona";
-    public const string GastoPersonaCantidad = "gastos";
     public const string GastoPersonaTipo = "tipo";
     public const string GastoPersonaTotal = "total";
-    public const string GastoPersonaParticipacion = "participacion";
-    private static readonly string[] ColumnasGastosPersona =
-        [GastoPersonaPersona, GastoPersonaCantidad, GastoPersonaTipo, GastoPersonaTotal, GastoPersonaParticipacion];
+    private static readonly string[] ColumnasGastosPersona = [GastoPersonaPersona, GastoPersonaTipo, GastoPersonaTotal];
 
     private static IEnumerable<GastoPersonaInforme> OrdenarGastosPersona(IEnumerable<GastoPersonaInforme> personas, string orden, string direccion) =>
         (orden switch
         {
             GastoPersonaPersona => OrdenTabla.Por(personas, p => p.Persona, direccion, OrdenTabla.Texto),
-            GastoPersonaCantidad => OrdenTabla.Por(personas, p => p.Cantidad, direccion),
-            GastoPersonaTipo => OrdenTabla.Por(personas, p => p.TipoPrincipal, direccion, OrdenTabla.Texto),
-            GastoPersonaParticipacion => OrdenTabla.Por(personas, p => p.Participacion, direccion),
+            GastoPersonaTipo => OrdenTabla.Por(personas, p => p.Tipo, direccion, OrdenTabla.Texto),
             _ => OrdenTabla.Por(personas, p => p.Total, direccion)
         }).ThenBy(p => p.Persona, OrdenTabla.Texto);
 
@@ -382,17 +405,13 @@ public static class VentasInforme
         var porTipo = (fuente.Gastos?.PorTipo ?? [])
             .Select(t => (Texto: t.Tipo, t.Valor, t.Cantidad))
             .ToList();
-        var activos = fuente.Movimientos.Where(m => m.Estado == "Activo").ToList();
-        var total = activos.Sum(m => m.Valor);
-        var personas = activos
-            .GroupBy(m => string.IsNullOrWhiteSpace(m.Usuario) ? m.UsuarioRegistroId.ToString() : m.Usuario)
-            .Select(g => new GastoPersonaInforme
+        var personas = fuente.Movimientos
+            .Where(m => m.Estado == "Activo")
+            .Select(m => new GastoPersonaInforme
             {
-                Persona = g.Key,
-                Cantidad = g.Count(),
-                Total = g.Sum(m => m.Valor),
-                Participacion = Porcentaje(g.Sum(m => m.Valor), total),
-                TipoPrincipal = g.GroupBy(m => m.Tipo).OrderByDescending(t => t.Sum(m => m.Valor)).ThenBy(t => t.Key).First().Key
+                Persona = string.IsNullOrWhiteSpace(m.Usuario) ? m.UsuarioRegistroId.ToString() : m.Usuario,
+                Tipo = m.Tipo,
+                Total = m.Valor
             });
         var ordenadas = OrdenarGastosPersona(personas, ordenGastos, direccionGastos).ToList();
 

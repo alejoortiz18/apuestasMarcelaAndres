@@ -37,10 +37,10 @@ public sealed partial class RecaudoService
 
         foreach (var recaudador in recaudadores.Where(r => filtro.RecaudadorId is null || r.UsuarioId == filtro.RecaudadorId))
         {
-            var (periodo, filasHasta) = await PeriodoAsync(recaudador.UsuarioId, desde, hasta, cancellationToken);
+            var (periodo, filasHasta) = await PeriodoAsync(recaudador.UsuarioId, desde, hasta, cancellationToken, filtro.Vendedores);
             var diasVista = periodo.Select(d => grupo is null ? d : DelGrupo(d, grupo)).ToList();
             var filas = filasHasta.Where(f => grupo is null || f.Grupo == grupo).ToList();
-            if (grupo is not null && filas.Count == 0 && diasVista.All(d => d.Debia == 0m && d.Cobrado == 0m))
+            if ((grupo is not null || filtro.Vendedores is not null) && filas.Count == 0 && diasVista.All(d => d.Debia == 0m && d.Cobrado == 0m))
             {
                 continue;
             }

@@ -101,11 +101,14 @@ public sealed class InformesControllerTests
             .ReturnsAsync(ApiCallResult<ConfiguracionInformeResponse>.Ok(new(), "Guardado."));
         var sut = Crear(api.Object);
 
-        await sut.GuardarPeriodo(categoria, "15", null, null, "elegidos", [grupo], CancellationToken.None);
+        var vendedor = Guid.NewGuid();
+
+        await sut.GuardarPeriodo(categoria, "15", null, null, "elegidos", [grupo], "elegidos", [vendedor], CancellationToken.None);
 
         var filtros = JsonSerializer.Deserialize<FiltrosPeriodoInforme>(enviado!, new JsonSerializerOptions(JsonSerializerDefaults.Web))!;
         filtros.Periodo.Should().Be("15");
         filtros.Grupos.Should().Equal(grupo);
+        filtros.Vendedores.Should().Equal(vendedor);
         sut.TempData["AvisoModal"].Should().Be("Guardado.");
     }
 
@@ -115,7 +118,7 @@ public sealed class InformesControllerTests
         var api = Api();
         var sut = Crear(api.Object);
 
-        await sut.GuardarPeriodo(CategoriasInforme.Egresos, "rango", new DateOnly(2026, 8, 1), new DateOnly(2026, 10, 1), "todos", null, CancellationToken.None);
+        await sut.GuardarPeriodo(CategoriasInforme.Egresos, "rango", new DateOnly(2026, 8, 1), new DateOnly(2026, 10, 1), "todos", null, "todos", null, CancellationToken.None);
 
         api.Verify(a => a.GuardarConfiguracionInformeAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
         sut.TempData["AvisoModal"].Should().Be(UiTexts.InformeRangoMaximo);
@@ -127,7 +130,7 @@ public sealed class InformesControllerTests
         var api = Api();
         var sut = Crear(api.Object);
 
-        await sut.GuardarPeriodo(CategoriasInforme.Vendedores, "7", null, null, "todos", null, CancellationToken.None);
+        await sut.GuardarPeriodo(CategoriasInforme.Vendedores, "7", null, null, "todos", null, "todos", null, CancellationToken.None);
 
         api.Verify(a => a.GuardarConfiguracionInformeAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
         sut.TempData["AvisoModal"].Should().Be(UiTexts.InformeCategoriaInvalida);

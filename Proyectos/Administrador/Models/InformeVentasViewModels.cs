@@ -6,6 +6,7 @@ public sealed class FiltrosPeriodoInforme
     public DateOnly? Desde { get; set; }
     public DateOnly? Hasta { get; set; }
     public List<Guid>? Grupos { get; set; }
+    public List<Guid>? Vendedores { get; set; }
 }
 
 public sealed class PeriodoInformeViewModel
@@ -15,6 +16,7 @@ public sealed class PeriodoInformeViewModel
     public FiltrosPeriodoInforme Filtros { get; init; } = new();
     public IReadOnlyList<OpcionInforme> Periodos { get; init; } = [];
     public IReadOnlyList<OpcionInforme> Grupos { get; init; } = [];
+    public IReadOnlyList<OpcionInforme> Vendedores { get; init; } = [];
     public IReadOnlyList<DetalleFiltroInforme> Detalle { get; init; } = [];
     public string ResumenCorto { get; init; } = string.Empty;
     public DateOnly Hoy { get; init; }
@@ -112,13 +114,12 @@ public sealed class SegmentoValorInforme
     public decimal Ancho { get; init; }
 }
 
+/// <summary>Un gasto activo, sin agrupar: quién lo registró, de qué tipo y por cuánto.</summary>
 public sealed class GastoPersonaInforme
 {
     public string Persona { get; init; } = string.Empty;
-    public int Cantidad { get; init; }
+    public string Tipo { get; init; } = string.Empty;
     public decimal Total { get; init; }
-    public decimal Participacion { get; init; }
-    public string TipoPrincipal { get; init; } = string.Empty;
 }
 
 public sealed class PremioWebInforme

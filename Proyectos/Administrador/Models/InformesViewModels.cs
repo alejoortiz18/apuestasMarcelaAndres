@@ -52,6 +52,9 @@ public sealed class OpcionInforme
     public string Valor { get; init; } = string.Empty;
     public string Texto { get; init; } = string.Empty;
     public string? Detalle { get; init; }
+
+    /// <summary>Celdas extra cuando la lista se muestra como tabla (después de la columna del texto).</summary>
+    public IReadOnlyList<string> Columnas { get; init; } = [];
 }
 
 public sealed class ConteoInforme
@@ -118,6 +121,9 @@ public sealed class CampoFiltroInforme
     public string Error { get; init; } = string.Empty;
     public IReadOnlyList<OpcionInforme> Opciones { get; init; } = [];
     public IReadOnlySet<string>? Elegidos { get; init; }
+
+    /// <summary>Si trae encabezados, las opciones se muestran en una tabla con esas columnas.</summary>
+    public IReadOnlyList<string> Encabezados { get; init; } = [];
 }
 
 public sealed class DetalleFiltroInforme

@@ -61,10 +61,8 @@
     var columnasGastos = new (string Clave, string Texto, bool Numero)[]
     {
         (VentasInforme.GastoPersonaPersona, UiTexts.InformeColumnaPersona, false),
-        (VentasInforme.GastoPersonaCantidad, UiTexts.InformeColumnaGastos, true),
-        (VentasInforme.GastoPersonaTipo, UiTexts.InformeColumnaTipoPrincipal, false),
-        (VentasInforme.GastoPersonaTotal, UiTexts.Total, true),
-        (VentasInforme.GastoPersonaParticipacion, UiTexts.InformeColumnaParticipacion, false)
+        (VentasInforme.GastoPersonaTipo, UiTexts.TipoGasto, false),
+        (VentasInforme.GastoPersonaTotal, UiTexts.Total, true)
     };
     string UrlOrdenGastos(string columna)
     {
@@ -268,15 +266,8 @@
                         {
                             <tr>
                                 <td><strong>@p.Persona</strong></td>
-                                <td class="num">@Numero(p.Cantidad)</td>
-                                <td>@p.TipoPrincipal</td>
+                                <td>@p.Tipo</td>
                                 <td class="num"><strong>@Pesos(p.Total)</strong></td>
-                                <td>
-                                    <div class="informe-participacion">
-                                        <div class="informe-barra is-gasto" aria-hidden="true"><i style="width: @Css(p.Participacion)%"></i></div>
-                                        <small>@Porc(p.Participacion) %</small>
-                                    </div>
-                                </td>
                             </tr>
                         }
                         </tbody>

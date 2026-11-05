@@ -22,6 +22,7 @@ public sealed class TableroRecaudoController : ApiControllerBase
         [FromQuery] DateOnly? hasta,
         [FromQuery] Guid? recaudadorId,
         [FromQuery] string? grupo,
+        [FromQuery] List<Guid>? vendedores,
         CancellationToken cancellationToken)
     {
         var hoy = DateOnly.FromDateTime(ZonaHorariaColombia.ALocal(DateTime.UtcNow));
@@ -31,7 +32,8 @@ public sealed class TableroRecaudoController : ApiControllerBase
             Desde = desde ?? fin.AddDays(-6),
             Hasta = fin,
             RecaudadorId = recaudadorId,
-            Grupo = grupo
+            Grupo = grupo,
+            Vendedores = vendedores is { Count: > 0 } ? vendedores : null
         }, cancellationToken));
     }
 }

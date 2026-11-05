@@ -38,6 +38,28 @@ public sealed class VentasInformeTests
         VentasInforme.Validar(invertido).Should().Be(UiTexts.InformeRangoInvalido);
         VentasInforme.Validar(new FiltrosPeriodoInforme { Periodo = "rango" }).Should().Be(UiTexts.InformeRangoIncompleto);
         VentasInforme.Validar(new FiltrosPeriodoInforme { Periodo = "7", Grupos = [] }).Should().Be(UiTexts.InformeEligeGrupo);
+        VentasInforme.Validar(new FiltrosPeriodoInforme { Periodo = "7", Vendedores = [] }).Should().Be(UiTexts.InformeEligeVendedor);
+    }
+
+    [Fact]
+    public void El_filtro_de_vendedores_ofrece_solo_vendedores_y_muestra_los_elegidos()
+    {
+        var ana = Guid.NewGuid();
+        var beto = Guid.NewGuid();
+        var usuarios = new List<NewRich.Application.Contracts.Usuarios.UsuarioResponse>
+        {
+            new() { UsuarioId = beto, NombreCompleto = "Beto", Usuario = "beto", Rol = NewRich.Domain.Enums.RolUsuario.VendedorWeb },
+            new() { UsuarioId = ana, NombreCompleto = "Ana", Usuario = "ana", Rol = NewRich.Domain.Enums.RolUsuario.Vendedor },
+            new() { UsuarioId = Guid.NewGuid(), NombreCompleto = "Ciro", Usuario = "ciro", Rol = NewRich.Domain.Enums.RolUsuario.Recaudador }
+        };
+
+        var todos = VentasInforme.Construir("ventas", [], new FiltrosPeriodoInforme { Periodo = "7" }, true, Hoy, usuarios);
+        var elegidos = VentasInforme.Construir("ventas", [], new FiltrosPeriodoInforme { Periodo = "7", Vendedores = [ana] }, true, Hoy, usuarios);
+
+        todos.Vendedores.Select(v => v.Texto).Should().Equal("Ana", "Beto");
+        todos.Detalle.Should().Contain(d => d.Etiqueta == UiTexts.InformeEtiquetaVendedores && d.Valor == UiTexts.InformeTodosVendedores);
+        elegidos.Detalle.Should().Contain(d => d.Etiqueta == UiTexts.InformeEtiquetaVendedores && d.Valor == "Ana");
+        elegidos.ResumenCorto.Should().EndWith("Ana");
     }
 
     [Fact]
@@ -105,7 +127,7 @@ public sealed class VentasInformeTests
     }
 
     [Fact]
-    public void Los_gastos_por_persona_solo_cuentan_los_activos()
+    public void Los_gastos_por_persona_muestran_cada_gasto_activo_sin_agrupar()
     {
         var usuario = Guid.NewGuid();
         var fuente = new FuenteInformeVentas
@@ -121,10 +143,8 @@ public sealed class VentasInformeTests
 
         var informe = VentasInforme.InformeEgresos(fuente, new FiltrosPeriodoInforme { Periodo = "hoy" }, [], Hoy, Hoy, DateTime.Now, 1, 10);
 
-        var persona = informe.Egresos.GastosPorPersona.Items.Should().ContainSingle().Subject;
-        persona.Total.Should().Be(300m);
-        persona.Cantidad.Should().Be(2);
-        persona.TipoPrincipal.Should().Be("Papelería");
+        informe.Egresos.GastosPorPersona.Items.Select(p => (p.Persona, p.Tipo, p.Total))
+            .Should().Equal(("Carla", "Papelería", 200m), ("Carla", "Transporte", 100m));
     }
 
     [Fact]
