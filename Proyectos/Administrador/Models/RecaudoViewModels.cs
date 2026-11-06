@@ -41,6 +41,7 @@ public sealed class FilaPanelRecaudo
     public string Grupos { get; init; } = string.Empty;
     public int PersonasAsignadas { get; init; }
     public decimal TotalPorRecaudar { get; init; }
+    public decimal TotalEntregarAdministracion { get; init; }
     public decimal TotalRecaudado { get; init; }
     public decimal SaldoPendiente { get; init; }
     public int PorcentajeRecaudado { get; init; }
@@ -64,7 +65,6 @@ public sealed class FilaGrupoRecaudo
     public Guid GrupoId { get; init; }
     public string Nombre { get; init; } = string.Empty;
     public int Vendedores { get; init; }
-    public int Porcentaje { get; init; }
     public bool SinConfigurar { get; init; }
     public decimal TotalPorRecaudar { get; init; }
     public decimal TotalRecaudado { get; init; }
@@ -78,7 +78,6 @@ public sealed class IntegrantesGrupoRecaudoViewModel
     public string Nombre { get; init; } = string.Empty;
     public DateOnly Desde { get; init; }
     public DateOnly Hasta { get; init; }
-    public int Porcentaje { get; init; }
     public bool SinConfigurar { get; init; }
     public string RecaudadorNombre { get; init; } = string.Empty;
     public decimal TotalPorRecaudar { get; init; }
@@ -97,6 +96,8 @@ public sealed class FilaIntegranteGrupoRecaudo
     public string RecaudadorNombre { get; init; } = string.Empty;
     public decimal TotalVendido { get; init; }
     public decimal ValorACobrar { get; init; }
+    public int PorcentajeRecaudador { get; init; }
+    public decimal EntregarAdministracion { get; init; }
     public decimal TotalPendiente { get; init; }
     public decimal PagosHoy { get; init; }
     public string Estado { get; init; } = string.Empty;
@@ -107,7 +108,6 @@ public sealed class FilaVendedorRecaudo
 {
     public Guid VendedorId { get; init; }
     public string Nombre { get; init; } = string.Empty;
-    public int Porcentaje { get; init; }
     public string RecaudadorNombre { get; init; } = string.Empty;
     public bool SenalSinGrupo { get; init; }
 }
@@ -123,7 +123,6 @@ public sealed class AsignacionRecaudadorGrupo
     public Guid GrupoId { get; set; }
     public Guid? RecaudadorId { get; set; }
     public Guid? RecaudadorActualId { get; set; }
-    public int Porcentaje { get; set; }
 }
 
 public sealed class HistorialRecaudoViewModel
@@ -169,6 +168,7 @@ public sealed class DetalleRecaudoViewModel
     public DateOnly Desde { get; init; }
     public DateOnly Hasta { get; init; }
     public decimal TotalPorRecaudar { get; init; }
+    public decimal TotalEntregarAdministracion { get; init; }
     public decimal TotalRecaudado { get; init; }
     public decimal SaldoPendiente { get; init; }
     public int PorcentajeRecaudado { get; init; }
@@ -191,6 +191,7 @@ public sealed class FilaCobradoRecaudo
     public bool SenalSinGrupo { get; init; }
     public string Recaudador { get; init; } = string.Empty;
     public decimal ValorQueDebia { get; init; }
+    public decimal EntregarAdministracion { get; init; }
     public decimal ValorRecibido { get; init; }
     public decimal SaldoPendiente { get; init; }
     public DateTime? FechaPago { get; init; }
@@ -205,7 +206,11 @@ public sealed class FilaPendienteRecaudo
     public string? Alias { get; init; }
     public bool SenalSinGrupo { get; init; }
     public string Recaudador { get; init; } = string.Empty;
+    public decimal TotalVendido { get; init; }
+    public int? PorcentajeVendedor { get; init; }
     public decimal ValorQueDebe { get; init; }
+    public int? PorcentajeRecaudador { get; init; }
+    public decimal EntregarAdministracion { get; init; }
     public decimal DeudaAnterior { get; init; }
     public decimal TotalPendiente { get; init; }
     public string Estado { get; init; } = string.Empty;

@@ -327,66 +327,9 @@
     });
   });
 
-  document.querySelectorAll("[data-edicion-porcentajes]").forEach(function (panel) {
-    const editar = panel.querySelector("[data-editar-porcentajes]");
-    const guardar = panel.querySelector("[data-guardar-porcentajes]");
-    const cancelar = panel.querySelector("[data-cancelar-porcentajes]");
-    if (!editar || !guardar || !cancelar) {
-      return;
-    }
-    const ayuda = panel.querySelector("[data-edicion-ayuda]");
-    const textos = panel.querySelectorAll("[data-porcentaje-texto]");
-    const envolturas = panel.querySelectorAll("[data-porcentaje-campo]");
-    const campos = panel.querySelectorAll("[data-porcentaje-input]");
-    let editando = false;
-
-    function modoEdicion(activo) {
-      editando = activo;
-      panel.classList.toggle("is-editando", activo);
-      editar.hidden = activo;
-      guardar.hidden = !activo;
-      cancelar.hidden = !activo;
-      if (ayuda) {
-        ayuda.hidden = !activo;
-      }
-      textos.forEach(function (texto) { texto.hidden = activo; });
-      envolturas.forEach(function (envoltura) { envoltura.hidden = !activo; });
-      if (!activo) {
-        campos.forEach(function (campo) { campo.value = campo.defaultValue; });
-      }
-    }
-
-    editar.addEventListener("click", function () {
-      modoEdicion(true);
-      if (campos.length > 0) {
-        campos[0].focus();
-      }
-    });
-    cancelar.addEventListener("click", function () {
-      modoEdicion(false);
-      editar.focus();
-    });
-    campos.forEach(function (campo) {
-      campo.addEventListener("focus", function () { campo.select(); });
-    });
-    panel.addEventListener("keydown", function (event) {
-      if (event.key === "Escape" && editando) {
-        event.preventDefault();
-        modoEdicion(false);
-        editar.focus();
-      }
-    });
-    guardar.addEventListener("submit", function () {
-      const boton = guardar.querySelector('button[type="submit"]');
-      if (boton) {
-        boton.disabled = true;
-      }
-    });
-  });
-
   document.querySelectorAll("[data-guardar-recaudadores]").forEach(function (form) {
     const boton = form.querySelector('button[type="submit"]');
-    const panel = form.closest("[data-edicion-porcentajes]") || form.closest(".panel");
+    const panel = form.closest(".panel");
     const selects = (panel || document).querySelectorAll("[data-recaudador-grupo]");
     if (!boton) {
       return;
@@ -687,6 +630,33 @@
     }
     rol.addEventListener("change", sincronizar);
     sincronizar();
+    const comision = form.querySelector("[data-usuario-comision]");
+    if (comision) {
+      const roles = comision.getAttribute("data-usuario-comision").split(",");
+      function sincronizarComision() {
+        const visible = roles.indexOf(rol.value) >= 0;
+        comision.hidden = !visible;
+        comision.querySelectorAll("input").forEach(function (input) {
+          input.disabled = !visible;
+          input.required = visible;
+        });
+      }
+      rol.addEventListener("change", sincronizarComision);
+      sincronizarComision();
+      const todos = comision.querySelector("[data-comision-todos]");
+      if (todos) {
+        todos.addEventListener("click", function () {
+          const dias = comision.querySelectorAll("input[name='PorcentajesDia']");
+          if (!dias.length) {
+            return;
+          }
+          dias.forEach(function (input) {
+            input.value = dias[0].value;
+          });
+          dias[0].focus();
+        });
+      }
+    }
   }
 
   // El vendedor web solo usa el sitio web del vendedor: no se le asocia PDA.

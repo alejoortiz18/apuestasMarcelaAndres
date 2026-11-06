@@ -79,6 +79,8 @@ public sealed class UsuarioFormViewModel
     [Display(Name = UiTexts.Grupo)]
     public Guid? GrupoId { get; set; }
 
+    public int[] PorcentajesDia { get; set; } = [1, 1, 1, 1, 1, 1, 1];
+
     public IReadOnlyList<DispositivoResponse> Dispositivos { get; set; } = [];
 
     public IReadOnlyList<GrupoResponse> Grupos { get; set; } = [];

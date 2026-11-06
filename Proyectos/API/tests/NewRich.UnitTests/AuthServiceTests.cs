@@ -569,7 +569,7 @@ public sealed class AuthServiceTests
     }
 
     [Fact]
-    public async Task LoginManualAsync_vendedor_entra_sin_pda()
+    public async Task LoginManualAsync_vendedor_de_pda_no_entra_al_sitio_web()
     {
         var (_, db, usuario) = await CreateSutSinDispositivoAsync(RolUsuario.Vendedor);
         var hasher = new Pbkdf2PasswordHasher();
@@ -581,16 +581,50 @@ public sealed class AuthServiceTests
             Password = "Obs12345!"
         }, CancellationToken.None);
 
-        result.IsSuccess.Should().BeTrue(result.Message);
-        result.Data!.Rol.Should().Be(RolUsuario.Vendedor);
-        result.Data.DispositivoId.Should().BeNull();
-        (await db.Dispositivos.CountAsync()).Should().Be(0);
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(403);
+        result.Message.Should().Be(AuthMessages.VendedorSoloDispositivoAsignado);
+        (await db.Sesiones.CountAsync()).Should().Be(0);
     }
 
     [Fact]
-    public async Task LoginManualAsync_vendedor_entra_con_el_horario_del_sistema_cerrado()
+    public async Task LoginAsync_vendedor_no_entra_en_un_pda_ajeno()
     {
-        var (_, db, usuario) = await CreateSutSinDispositivoAsync(RolUsuario.Vendedor);
+        var (sut, db, usuario) = await CreateSutConRolDePdaAsync(
+            RolUsuario.Vendedor,
+            TipoDispositivo.Vendedor,
+            "Ven12345!",
+            "PDA-LAURA",
+            "serie-laura");
+        db.Dispositivos.Add(new Dispositivo
+        {
+            DispositivoId = Guid.NewGuid(),
+            CodigoDispositivo = "PDA-AJENO",
+            Tipo = TipoDispositivo.Vendedor,
+            Estado = EstadoGeneral.Activo,
+            NumeroSerie = "serie-ajena",
+            FechaRegistro = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+
+        var result = await sut.LoginAsync(new LoginRequest
+        {
+            Usuario = usuario.NombreUsuario,
+            Password = "Ven12345!",
+            CodigoDispositivo = "PDA-AJENO",
+            NumeroSerie = "serie-ajena"
+        }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(403);
+        result.Message.Should().Be(AuthMessages.VendedorSoloDispositivoAsignado);
+        (await db.Sesiones.CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task LoginManualAsync_vendedor_web_entra_con_el_horario_del_sistema_cerrado()
+    {
+        var (_, db, usuario) = await CreateSutSinDispositivoAsync(RolUsuario.VendedorWeb);
         db.Configuraciones.AddRange(
             new Configuracion { ConfiguracionId = Guid.NewGuid(), Clave = "HoraApertura", Valor = "08:00", FechaActualizacion = DateTime.UtcNow },
             new Configuracion { ConfiguracionId = Guid.NewGuid(), Clave = "HoraCierre", Valor = "09:00", FechaActualizacion = DateTime.UtcNow });
@@ -605,7 +639,7 @@ public sealed class AuthServiceTests
         }, CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue(result.Message);
-        result.Data!.Rol.Should().Be(RolUsuario.Vendedor);
+        result.Data!.Rol.Should().Be(RolUsuario.VendedorWeb);
     }
 
     [Fact]

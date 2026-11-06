@@ -130,7 +130,11 @@ public sealed class AuthService : IAuthService
             var asociado = usuario.DispositivosUsuarios.Any(x => x.DispositivoId == dispositivo.DispositivoId && x.Activo);
             if (!asociado)
             {
-                return Result<LoginResponse>.Fail(AuthMessages.DispositivoNoAsociado, 403);
+                return Result<LoginResponse>.Fail(
+                    usuario.Rol == RolUsuario.Vendedor
+                        ? AuthMessages.VendedorSoloDispositivoAsignado
+                        : AuthMessages.DispositivoNoAsociado,
+                    403);
             }
 
             dispositivoId = dispositivo.DispositivoId;

@@ -17,7 +17,7 @@ public static class UiTexts
     public const string PanelRecaudoTitulo = "Resumen";
     public const string PanelRecaudoSub = "Totales de cada recaudador en el periodo elegido.";
     public const string ConfigRecaudoTitulo = "Configuración de recaudo";
-    public const string ConfigRecaudoSub = "Asigna grupos y vendedores, y define el porcentaje que deben entregar.";
+    public const string ConfigRecaudoSub = "Asigna grupos y vendedores a cada recaudador. El porcentaje de cada día se configura en el usuario.";
     public const string HistorialRecaudoTitulo = "Historial de recaudo";
     public const string HistorialRecaudoSub = "Pagos registrados en el periodo. El administrador consulta el historial y no registra cobros.";
     public const string MetricasRecaudoTitulo = "Métricas de recaudo";
@@ -33,7 +33,7 @@ public static class UiTexts
     public const string PeriodoRecortadoFormato = "El periodo pasa de 31 días. Se muestran los 31 días que terminan el {0}.";
     public const string SinDatosTablero = "No hubo deudas ni cobros en este periodo. Prueba con otro rango de fechas o quita los filtros.";
     public const string AyudaMetricaTotalVendido = "Suma de las ventas de los vendedores a cargo en el periodo.";
-    public const string AyudaMetricaPorRecaudar = "Lo generado por las ventas del periodo según el porcentaje de cada grupo, sin deudas anteriores.";
+    public const string AyudaMetricaPorRecaudar = "Lo que los vendedores deben entregar por las ventas del periodo, después del porcentaje de cada vendedor ese día, sin deudas anteriores.";
     public const string AyudaMetricaRecaudado = "Pagos registrados por los recaudadores en el periodo, también los de deudas anteriores.";
     public const string AyudaMetricaPendiente = "Lo que deben los vendedores al cierre de la fecha Hasta, incluidas las deudas de días anteriores.";
     public const string AyudaMetricaPorcentaje = "Total recaudado dividido entre total recaudado más total pendiente.";
@@ -94,7 +94,7 @@ public static class UiTexts
     public const string AyudaColumnaValorRecibido = "Suma de los pagos que el recaudador registró ese día.";
     public const string AyudaColumnaSaldoPendiente = "Lo que quedó debiendo después de los pagos. Pasa a deuda anterior.";
     public const string AyudaColumnaFechaHoraPago = "Hora de Colombia del último pago del día. Si se cobró sin conexión, es la hora en que se cobró en el PDA.";
-    public const string AyudaColumnaValorQueDebePagar = "Lo generado ese día: total vendido por el porcentaje del grupo o del vendedor.";
+    public const string AyudaColumnaValorQueDebePagar = "Lo que el vendedor debe entregar ese día: total vendido menos su porcentaje de ese día.";
     public const string AyudaColumnaDeudaAnterior = "Lo que quedó debiendo de días anteriores.";
     public const string AyudaColumnaTotalPendienteDetalle = "Deuda anterior más lo que debe pagar ese día.";
     public const string FichaDelRecaudador = "Ficha del recaudador";
@@ -162,7 +162,7 @@ public static class UiTexts
     public const string SinAsignar = "Sin asignar";
     public const string EligeGrupo = "Elige un grupo";
     public const string EligeVendedor = "Elige un vendedor";
-    public const string AyudaPorcentaje = "Entero de 1 a 100. Es la parte que el vendedor debe entregar.";
+    public const string AyudaPorcentaje = "El porcentaje ya no es del grupo: cada vendedor y cada recaudador tiene el suyo por día de la semana en Usuarios.";
     public const string AyudaTarjetaRecaudador = "Recaudador asignado a este grupo. Dice No aplica si el grupo aún no tiene recaudador.";
     public const string AyudaTarjetaPorcentaje = "Parte de lo vendido que cada vendedor del grupo debe entregar.";
     public const string AyudaTarjetaTotalPorRecaudar = "Suma de lo que se generó para cobrar a los integrantes en la fecha Hasta. No incluye deudas de días anteriores.";
@@ -171,9 +171,14 @@ public static class UiTexts
     public const string AyudaColumnaNombreCompleto = "Nombre del vendedor y, debajo, su alias.";
     public const string AyudaColumnaIdentificador = "Usuario con el que el vendedor ingresa al PDA.";
     public const string AyudaColumnaRecaudador = "Recaudador que cobra a este grupo. Dice No aplica si el grupo aún no tiene recaudador.";
-    public const string AyudaColumnaPorcentaje = "Parte de lo vendido que el vendedor debe entregar. Es el porcentaje del grupo.";
+    public const string AyudaColumnaPorcentaje = "Porcentaje que se gana el vendedor el día consultado.";
+    public const string PorcentajeRecaudador = "Porcentaje del recaudador";
+    public const string AyudaColumnaPorcentajeRecaudador = "Porcentaje que se gana el recaudador el día consultado, sobre lo que entrega el vendedor.";
+    public const string EntregarAdministracion = "Entregar a la administración";
+    public const string AyudaTotalEntregarAdministracion = "Suma de lo que el recaudador debe entregar a la administración en el periodo, después de su porcentaje de cada día.";
+    public const string AyudaColumnaEntregarAdministracion = "Lo que entrega el vendedor menos el porcentaje del recaudador. Es lo que el recaudador debe entregar.";
     public const string AyudaColumnaTotalVendido = "Suma de las ventas del vendedor en la fecha Hasta.";
-    public const string AyudaColumnaTotalPorRecaudar = "Lo que debe entregar por lo vendido ese día: total vendido por el porcentaje, redondeado hacia arriba al peso.";
+    public const string AyudaColumnaTotalPorRecaudar = "Lo que el vendedor debe entregar por lo vendido ese día: total vendido menos su porcentaje.";
     public const string AyudaColumnaTotalRecaudado = "Pagos que el recaudador le registró a este vendedor ese día.";
     public const string AyudaColumnaTotalPendiente = "Lo que aún debe: saldo de días anteriores más total por recaudar, menos total recaudado.";
     public const string AyudaColumnaEstado = "Situación del cobro del día: al día, por cobrar, deudado o sin movimiento.";
@@ -377,7 +382,7 @@ public static class UiTexts
     public const string InformeEligeTipoEgreso = "Elige al menos un tipo de egreso.";
     public const string InformeEtiquetaTiposEgreso = "Tipos";
     public const string InformePremiosPorLoteria = "Premios por lotería";
-    public const string InformePremiosPorLoteriaAyuda = "Total de premios cargados por vendedor web en cada lotería.";
+    public const string InformePremiosPorLoteriaAyuda = "Total de premios entregados por el observador y por el vendedor web en cada lotería.";
     public const string InformePremiosCantidad = "{0} premios";
     public const string InformeCubiertos = "Números cubiertos";
     public const string InformeCubiertosAyuda = "Cada número cubierto en Revisada manual en el periodo: quién lo cubrió, el subtotal, el descuento y el valor pagado.";
@@ -434,6 +439,7 @@ public static class UiTexts
     public const string InformePremiosWeb = "Premios";
     public const string InformePremiosWebAyuda = "Premios que los vendedores web cargaron en Entrega de premio, por fecha del premio.";
     public const string InformeSinPremiosWeb = "No hay premios cargados por vendedores web en el periodo.";
+    public const string InformeSinPremiosPorLoteria = "No hay premios entregados por observador ni por vendedor web en el periodo.";
     public const string InformeColumnaNumero = "Número";
     public const string InformeColumnaValorPremio = "Valor premio";
     public const string InformeGastosAnulados = "{0} gastos anulados por {1} no suman en los egresos.";
@@ -989,6 +995,9 @@ public static class UiTexts
     public const string SeleccioneVendedor = "Selecciona un vendedor";
     public const string SinVendedoresDisponibles = "No hay vendedores disponibles para agregar.";
     public const string Grupo = "Grupo";
+    public const string ComisionPorDia = "Comisión por día";
+    public const string ComisionPorDiaAyuda = "Porcentaje entero de 0 a 100 que se gana cada día.";
+    public const string ComisionAplicarTodos = "Aplicar el lunes a todos";
 
     public const string OfflineKicker = "Operación especial";
     public const string OfflineTitulo = "Ventas offline";
@@ -1162,7 +1171,7 @@ public static class UiTexts
     public const string CubiertoPdfGenerado = "Generado el {0}";
     public const string RevisadaKicker = "Revisión manual";
     public const string RevisadaResumenSub = "Jugadas de Registrar juego del sitio del vendedor, pendientes de cubrir.";
-    public const string RevisadaCubiertoSub = "Grupos cubiertos. Ingrese el descuento para consultar el total a pagar.";
+    public const string RevisadaCubiertoSub = "Grupos cubiertos con su subtotal y el total a pagar.";
     public const string ValorMinimoVisualizar = "Valor mínimo para visualizar";
     public const string JugadasVisibles = "Jugadas visibles";
     public const string LoteriasVisibles = "Loterías";
@@ -1188,7 +1197,7 @@ public static class UiTexts
     public const string HistoricoCargando = "Cargando más…";
     public const string RecubrirBoton = "Recubrir";
     public const string RecubrirAyuda = "Cubre lo pendiente de los números y loterías que ya se cubrieron hoy.";
-    public const string RecubrirResumen = "Se van a cubrir {0} números ({1} registros) con comisión {2} % y descuento {3} %.";
+    public const string RecubrirResumen = "Se van a cubrir {0} números ({1} registros).";
     public const string RecubrirSinPendientes = "No hay números cubiertos hoy que aparezcan en Resumen con estos filtros.";
     public const string RecubrirResultado = "{0} Números: {1}. Registros: {2}.";
     public const string RecubrirRegistros = "Registros";

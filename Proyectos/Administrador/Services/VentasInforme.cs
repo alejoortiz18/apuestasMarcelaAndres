@@ -177,6 +177,17 @@ public static class VentasInforme
             VentasConfirmadas = partes.Sum(p => p.VentasConfirmadas),
             ValorPremiosEntregados = partes.Sum(p => p.ValorPremiosEntregados),
             EntregasPremio = partes.Sum(p => p.EntregasPremio),
+            PremiosEntregadosPorLoteria = partes.SelectMany(p => p.PremiosEntregadosPorLoteria)
+                .GroupBy(p => p.Loteria)
+                .Select(g => new KpiPremioLoteriaResponse
+                {
+                    Loteria = g.Key,
+                    Valor = g.Sum(p => p.Valor),
+                    Cantidad = g.Sum(p => p.Cantidad)
+                })
+                .OrderByDescending(p => p.Valor)
+                .ThenBy(p => p.Loteria, StringComparer.CurrentCultureIgnoreCase)
+                .ToList(),
             IngresosPorGrupo = partes.SelectMany(p => p.IngresosPorGrupo)
                 .GroupBy(b => b.Nombre)
                 .Select(g => new KpiBarraGrupoResponse { Nombre = g.Key, Total = g.Sum(b => b.Total) })
@@ -322,6 +333,12 @@ public static class VentasInforme
         var porLoteria = premiosWeb
             .GroupBy(p => p.Loteria)
             .Select(g => (Texto: g.Key, Valor: g.Sum(p => p.ValorPremio), Cantidad: g.Count()))
+            .Concat(conPremios
+                ? (fuente.Kpi?.PremiosEntregadosPorLoteria ?? [])
+                    .Select(p => (Texto: p.Loteria, Valor: p.Valor, Cantidad: p.Cantidad))
+                : [])
+            .GroupBy(p => p.Texto)
+            .Select(g => (Texto: g.Key, Valor: g.Sum(p => p.Valor), Cantidad: g.Sum(p => p.Cantidad)))
             .ToList();
         var cubiertos = (conCubierto ? fuente.Cubierto?.Grupos ?? [] : [])
             .Select(g => new CubiertoInforme

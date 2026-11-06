@@ -183,6 +183,27 @@ public sealed class KpiServiceTests
         result.Data!.ValorMasAltoApostado.Should().Be(5000);
     }
 
+    [Fact]
+    public async Task ConsultarAsync_agrupa_los_premios_del_observador_por_loteria()
+    {
+        var (sut, db) = CreateSut();
+        var vendedor = await AgregarUsuarioAsync(db, "Camila Rojas", RolUsuario.Vendedor);
+        var observador = await AgregarUsuarioAsync(db, "Roberto Mira", RolUsuario.Observador);
+        await AgregarPremioEntregadoAsync(db, vendedor, observador, "Cali", 100_000m, new DateTime(2026, 8, 10, 15, 0, 0, DateTimeKind.Utc));
+        await AgregarPremioEntregadoAsync(db, vendedor, observador, "Cali", 50_000m, new DateTime(2026, 8, 12, 15, 0, 0, DateTimeKind.Utc));
+        await AgregarPremioEntregadoAsync(db, vendedor, observador, "Bogotá", 80_000m, new DateTime(2026, 8, 11, 15, 0, 0, DateTimeKind.Utc));
+
+        var result = await sut.ConsultarAsync(new KpiRequest
+        {
+            FechaInicial = new DateTime(2026, 8, 1),
+            FechaFinal = new DateTime(2026, 8, 30)
+        }, CancellationToken.None);
+
+        result.Data!.ValorPremiosEntregados.Should().Be(230_000m);
+        result.Data.PremiosEntregadosPorLoteria.Select(p => (p.Loteria, p.Valor, p.Cantidad))
+            .Should().Equal(("Cali", 150_000m, 2), ("Bogotá", 80_000m, 1));
+    }
+
     private static (KpiService Sut, NewRichDbContext Db) CreateSut()
     {
         var options = new DbContextOptionsBuilder<NewRichDbContext>()
@@ -288,6 +309,88 @@ public sealed class KpiServiceTests
         venta.Boletos.Add(boleto);
         db.Loterias.Add(loteria);
         db.Ventas.Add(venta);
+        await db.SaveChangesAsync();
+    }
+
+    private static async Task AgregarPremioEntregadoAsync(
+        NewRichDbContext db,
+        Usuario vendedor,
+        Usuario observador,
+        string nombreLoteria,
+        decimal valor,
+        DateTime fecha)
+    {
+        var loteria = new Loteria
+        {
+            LoteriaId = Guid.NewGuid(),
+            Nombre = nombreLoteria,
+            Estado = EstadoGeneral.Activo,
+            FechaCreacion = DateTime.UtcNow
+        };
+        var venta = new Venta
+        {
+            VentaId = Guid.NewGuid(),
+            UsuarioId = vendedor.UsuarioId,
+            Usuario = vendedor,
+            FechaVenta = fecha,
+            Total = 1000m,
+            TipoApuesta = TipoApuesta.INDIVIDUAL
+        };
+        var boleto = new Boleto
+        {
+            BoletoId = Guid.NewGuid(),
+            VentaId = venta.VentaId,
+            Venta = venta,
+            FechaCreacion = fecha,
+            EstadoBoleto = EstadoBoleto.PremioEntregado,
+            VigenciaDias = 30
+        };
+        var juego = new Juego
+        {
+            JuegoId = Guid.NewGuid(),
+            BoletoId = boleto.BoletoId,
+            Boleto = boleto,
+            Numero = "1234",
+            Valor = 1000m,
+            TipoJuego = TipoJuego.INDIVIDUAL
+        };
+        juego.JuegoLoterias.Add(new JuegoLoteria
+        {
+            JuegoId = juego.JuegoId,
+            LoteriaId = loteria.LoteriaId,
+            Loteria = loteria
+        });
+        boleto.Juegos.Add(juego);
+        venta.Boletos.Add(boleto);
+        var casoId = Guid.NewGuid();
+        boleto.CasoGanadorId = casoId;
+        db.Loterias.Add(loteria);
+        db.Ventas.Add(venta);
+        db.CasosGanadores.Add(new CasoGanador
+        {
+            CasoId = casoId,
+            BoletoId = boleto.BoletoId,
+            Boleto = boleto,
+            TicketCode = "ABC1234",
+            Estado = EstadoCasoGanador.Registrado,
+            FechaReporte = fecha,
+            VendedorQueReporto = vendedor.UsuarioId,
+            ObservadorAsignado = observador.UsuarioId,
+            FechaRegistro = fecha
+        });
+        db.EntregasGanadores.Add(new EntregaGanador
+        {
+            EntregaId = Guid.NewGuid(),
+            CasoId = casoId,
+            NombreGanador = "Ana",
+            ApellidoGanador = "Perez",
+            NumeroContacto = "300",
+            LugarGano = "Cali",
+            NombreVendedor = vendedor.NombreCompleto,
+            ValorTotalGanado = valor,
+            PersonaQueEntrega = observador.UsuarioId,
+            FechaEntrega = fecha
+        });
         await db.SaveChangesAsync();
     }
 

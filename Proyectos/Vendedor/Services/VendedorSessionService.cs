@@ -71,6 +71,6 @@ public static class ClaimsPrincipalExtensions
             : $"{parts[0][0]}{parts[1][0]}".ToUpperInvariant();
     }
 
-    public static bool EsVendedor(this ClaimsPrincipal user) =>
-        user.IsInRole(nameof(RolUsuario.Vendedor)) || user.IsInRole(nameof(RolUsuario.VendedorWeb));
+    public static bool EsVendedorWeb(this ClaimsPrincipal user) =>
+        user.IsInRole(nameof(RolUsuario.VendedorWeb));
 }

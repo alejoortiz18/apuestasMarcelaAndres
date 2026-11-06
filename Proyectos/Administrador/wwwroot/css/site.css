@@ -228,6 +228,83 @@ a { color: inherit; }
   border-color: var(--gold);
 }
 
+.comision-dias {
+  margin: 18px 0;
+  padding: 14px 16px 16px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--gold);
+  border-radius: 10px;
+  background: #fffaf0;
+}
+.comision-dias[hidden] { display: none !important; }
+.comision-dias legend {
+  padding: 0 6px;
+  margin-left: -6px;
+  font-size: 13px;
+  font-weight: 900;
+  color: var(--green);
+}
+.comision-dias-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin-bottom: 12px;
+}
+.comision-dias-head .field-help { flex: 1 1 180px; }
+.comision-dias .comision-dias-todos { min-height: 36px; padding: 6px 12px; font-size: 12px; }
+.comision-dias-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.comision-dia { display: grid; gap: 4px; }
+.comision-dia label { font-size: 11px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.comision-dia-input {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.comision-dia-input:hover { border-color: var(--gold); }
+.comision-dia-input:focus-within { outline: 2px solid #e8c56b; border-color: var(--gold); }
+.comision-dia-input:has(input:invalid:not(:focus)) { border-color: var(--red); background: var(--red2); }
+.comision-dia-input:has(input:disabled) { opacity: 0.55; }
+.comision-dia-input input {
+  flex: 1;
+  min-width: 0;
+  min-height: 42px;
+  padding: 8px 4px 8px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 800;
+  text-align: right;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.comision-dia-input input:focus { outline: none; }
+.comision-dia-input input::-webkit-outer-spin-button,
+.comision-dia-input input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.comision-dia-input span {
+  display: flex;
+  align-items: center;
+  padding: 0 10px 0 4px;
+  color: var(--gold);
+  font-weight: 900;
+}
+@media (max-width: 420px) {
+  .comision-dias-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .comision-dia-input { transition: none; }
+}
+
 .money-input {
   display: inline-flex;
   align-items: stretch;

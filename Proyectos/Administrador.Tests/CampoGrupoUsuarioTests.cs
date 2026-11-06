@@ -52,6 +52,22 @@ public sealed class CampoGrupoUsuarioTests
         vista.Should().Contain("data-usuario-form");
     }
 
+    [Fact]
+    public void La_comision_por_dia_va_agrupada_en_cuadricula_con_aplicar_a_todos()
+    {
+        var vista = File.ReadAllText(Ruta("Views", "Usuarios", "_CamposUsuario.cshtml"));
+        var css = File.ReadAllText(Ruta("wwwroot", "css", "site.css"));
+        var script = File.ReadAllText(Ruta("wwwroot", "js", "site.js"));
+
+        vista.Should().Contain("<fieldset class=\"comision-dias\" data-usuario-comision=");
+        vista.Should().Contain("<legend>@UiTexts.ComisionPorDia</legend>");
+        vista.Should().Contain("class=\"comision-dias-grid\"");
+        vista.Should().Contain("data-comision-todos");
+        Bloque(css, ".comision-dias[hidden]").Should().Contain("display: none");
+        Bloque(css, ".comision-dias-grid {").Should().Contain("repeat(4");
+        script.Should().Contain("[data-comision-todos]");
+    }
+
     private static string Funcion(string fuente, string firma)
     {
         var inicio = fuente.IndexOf(firma, StringComparison.Ordinal);

@@ -320,6 +320,9 @@ public sealed class NewRichApiClient
         return Enviar<IReadOnlyList<ObligacionRecaudoResponse>>(HttpMethod.Get, "api/Recaudo/Obligaciones" + q, null, ct);
     }
 
+    public Task<Result<ObligacionRecaudoResponse>> MiEntregaRecaudoAsync(CancellationToken ct) =>
+        Enviar<ObligacionRecaudoResponse>(HttpMethod.Get, "api/Recaudo/MiEntrega", null, ct);
+
     public Task<Result<PagoRecaudoResponse>> RegistrarPagoRecaudoAsync(RegistrarPagoRecaudoRequest request, CancellationToken ct) =>
         Enviar<PagoRecaudoResponse>(HttpMethod.Post, "api/Recaudo/Pagos", request, ct);
 

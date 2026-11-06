@@ -93,6 +93,7 @@
 </section>
 <div class="recaudo-metricas">
     @{ Tarjeta(UiTexts.TotalPorRecaudar, UiTexts.AyudaDetalleTotalPorRecaudar, FormatoPesos.De(Model.TotalPorRecaudar)); }
+    @{ Tarjeta(UiTexts.EntregarAdministracion, UiTexts.AyudaTotalEntregarAdministracion, FormatoPesos.De(Model.TotalEntregarAdministracion)); }
     @{ Tarjeta(UiTexts.TotalRecaudado, UiTexts.AyudaDetalleTotalRecaudado, FormatoPesos.De(Model.TotalRecaudado)); }
     @{ Tarjeta(UiTexts.SaldoPendiente, UiTexts.AyudaDetalleSaldoPendiente, FormatoPesos.De(Model.SaldoPendiente)); }
     @{ Tarjeta(UiTexts.PorcentajeRecaudado, UiTexts.AyudaDetallePorcentajeRecaudado, $"{Model.PorcentajeRecaudado} %"); }
@@ -145,7 +146,6 @@
                 <article class="recaudo-grupo">
                     <header>
                         <h3>@grupo.Nombre</h3>
-                        <span class="recaudo-grupo-porcentaje">@(grupo.Porcentaje is int p ? $"{p} %" : UiTexts.PorcentajeVariable)</span>
                     </header>
                     <div class="panel-sub">@string.Format(UiTexts.VendedoresFormato, grupo.Vendedores)</div>
                     <dl>
@@ -185,6 +185,7 @@
                         <th>@UiTexts.Vendedor</th>
                         <th>@UiTexts.RecaudadorResponsable</th>
                         @{ Encabezado(UiTexts.ValorQueDebiaPagar, UiTexts.AyudaColumnaValorQueDebiaPagar); }
+                        @{ Encabezado(UiTexts.EntregarAdministracion, UiTexts.AyudaColumnaEntregarAdministracion); }
                         @{ Encabezado(UiTexts.ValorRecibido, UiTexts.AyudaColumnaValorRecibido); }
                         @{ Encabezado(UiTexts.SaldoPendiente, UiTexts.AyudaColumnaSaldoPendiente); }
                         @{ Encabezado(UiTexts.FechaHoraPago, UiTexts.AyudaColumnaFechaHoraPago); }
@@ -209,6 +210,7 @@
                             </td>
                             <td>@fila.Recaudador</td>
                             <td>@FormatoPesos.De(fila.ValorQueDebia)</td>
+                            <td class="recaudo-cifra">@FormatoPesos.De(fila.EntregarAdministracion)</td>
                             <td class="recaudo-cifra">@FormatoPesos.De(fila.ValorRecibido)</td>
                             <td>@FormatoPesos.De(fila.SaldoPendiente)</td>
                             <td>@(fila.FechaPago?.ToString("dd/MM/yyyy HH:mm") ?? UiTexts.NoAplica)</td>
@@ -236,7 +238,11 @@
                         <th>@UiTexts.Grupo</th>
                         <th>@UiTexts.Vendedor</th>
                         <th>@UiTexts.RecaudadorResponsable</th>
+                        @{ Encabezado(UiTexts.TotalVendido, UiTexts.AyudaColumnaTotalVendido); }
+                        @{ Encabezado(UiTexts.Porcentaje, UiTexts.AyudaColumnaPorcentaje); }
                         @{ Encabezado(UiTexts.ValorQueDebePagar, UiTexts.AyudaColumnaValorQueDebePagar); }
+                        @{ Encabezado(UiTexts.PorcentajeRecaudador, UiTexts.AyudaColumnaPorcentajeRecaudador); }
+                        @{ Encabezado(UiTexts.EntregarAdministracion, UiTexts.AyudaColumnaEntregarAdministracion); }
                         @{ Encabezado(UiTexts.DeudaAnterior, UiTexts.AyudaColumnaDeudaAnterior); }
                         @{ Encabezado(UiTexts.TotalPendiente, UiTexts.AyudaColumnaTotalPendienteDetalle); }
                         @{ Encabezado(UiTexts.Estado, UiTexts.AyudaColumnaEstado); }
@@ -259,7 +265,11 @@
                                 }
                             </td>
                             <td>@fila.Recaudador</td>
+                            <td>@FormatoPesos.De(fila.TotalVendido)</td>
+                            <td class="recaudo-cifra">@(fila.PorcentajeVendedor is int pv ? $"{pv} %" : UiTexts.NoAplica)</td>
                             <td>@FormatoPesos.De(fila.ValorQueDebe)</td>
+                            <td class="recaudo-cifra">@(fila.PorcentajeRecaudador is int pr ? $"{pr} %" : UiTexts.NoAplica)</td>
+                            <td class="recaudo-cifra">@FormatoPesos.De(fila.EntregarAdministracion)</td>
                             <td>@FormatoPesos.De(fila.DeudaAnterior)</td>
                             <td class="recaudo-cifra">@FormatoPesos.De(fila.TotalPendiente)</td>
                             <td><span class="estado-cobro @Color(fila.Color)">@Estado(fila.Estado)</span></td>

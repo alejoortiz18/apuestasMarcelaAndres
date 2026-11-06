@@ -132,6 +132,7 @@ public sealed partial class RecaudoService
             PeriodoRecortado = pedido < primerDia,
             TotalVendido = lineas.Sum(d => d.Vendido),
             TotalPorRecaudar = lineas.Sum(d => d.Generado),
+            TotalEntregarAdministracion = lineas.Sum(d => d.EntregarAdministracion),
             TotalRecaudado = totalRecaudado,
             TotalPendiente = totalPendiente,
             DeudaAnterior = composicion.Sum(c => c.DeudaAnterior),

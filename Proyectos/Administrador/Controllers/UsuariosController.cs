@@ -93,7 +93,8 @@ public sealed class UsuariosController : AdminControllerBase
             Email = model.Email,
             Rol = model.Rol,
             DispositivoId = model.DispositivoId,
-            GrupoId = model.GrupoId
+            GrupoId = model.GrupoId,
+            PorcentajesDia = PorcentajesDe(model)
         }, cancellationToken);
 
         var unauthorized = SalidaNoAutorizada(result);
@@ -143,7 +144,8 @@ public sealed class UsuariosController : AdminControllerBase
             Email = u.Email,
             Rol = u.Rol,
             Estado = u.Estado,
-            DispositivoId = u.DispositivoId
+            DispositivoId = u.DispositivoId,
+            PorcentajesDia = u.PorcentajesDia.Length == 7 ? u.PorcentajesDia : [1, 1, 1, 1, 1, 1, 1]
         }, cancellationToken));
     }
 
@@ -166,7 +168,8 @@ public sealed class UsuariosController : AdminControllerBase
             Celular = model.Celular,
             Email = model.Email,
             Estado = model.Estado,
-            DispositivoId = model.DispositivoId
+            DispositivoId = model.DispositivoId,
+            PorcentajesDia = PorcentajesDe(model)
         }, cancellationToken);
 
         var unauthorized = RedirectIfUnauthorized(result);
@@ -361,6 +364,9 @@ public sealed class UsuariosController : AdminControllerBase
             model.DispositivoId = null;
         }
     }
+
+    private static int[]? PorcentajesDe(UsuarioFormViewModel model) =>
+        model.Rol is RolUsuario.Vendedor or RolUsuario.Recaudador ? model.PorcentajesDia : null;
 
     private static bool Contains(string? value, string term) =>
         !string.IsNullOrWhiteSpace(value) && value.Contains(term, StringComparison.OrdinalIgnoreCase);

@@ -182,7 +182,7 @@ public sealed class ValidacionBoletoServiceTests
     public async Task ConsultarPorCodigo_con_ticket_ganador_permite_iniciar_caso()
     {
         var (sut, db) = CreateSut();
-        var boleto = await CrearBoletoConJuegoAsync(db, EstadoBoleto.Ganador, "1234");
+        var boleto = await CrearBoletoConJuegoAsync(db, EstadoBoleto.Ganador, "1234", DateTime.UtcNow);
         var loteriaId = boleto.Juegos.Single().JuegoLoterias.Single().LoteriaId;
         db.NumerosGanadores.Add(new NumeroGanador
         {
@@ -208,7 +208,7 @@ public sealed class ValidacionBoletoServiceTests
     public async Task ConsultarPorCodigo_ganador_con_caso_sigue_siendo_ganador_pero_no_inicia_otro()
     {
         var (sut, db) = CreateSut();
-        var boleto = await CrearBoletoConJuegoAsync(db, EstadoBoleto.Ganador, "1234");
+        var boleto = await CrearBoletoConJuegoAsync(db, EstadoBoleto.Ganador, "1234", DateTime.UtcNow);
         var loteriaId = boleto.Juegos.Single().JuegoLoterias.Single().LoteriaId;
         db.NumerosGanadores.Add(new NumeroGanador
         {

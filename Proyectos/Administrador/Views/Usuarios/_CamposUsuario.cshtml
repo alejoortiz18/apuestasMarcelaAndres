@@ -59,6 +59,28 @@
     </div>
 }
 <p class="hint" role="note" data-usuario-aviso-web="@((int)RolUsuario.VendedorWeb)" hidden="@(!RolConsola.SoloSitioVendedor(Model.Rol))">@UiTexts.VendedorWebSoloSitio</p>
+<fieldset class="comision-dias" data-usuario-comision="@((int)RolUsuario.Vendedor),@((int)RolUsuario.Recaudador)" hidden="@(Model.Rol is not (RolUsuario.Vendedor or RolUsuario.Recaudador))">
+    <legend>@UiTexts.ComisionPorDia</legend>
+    <div class="comision-dias-head">
+        <p class="field-help" id="comisionDiasAyuda">@UiTexts.ComisionPorDiaAyuda</p>
+        <button type="button" class="secondary comision-dias-todos" data-comision-todos>@UiTexts.ComisionAplicarTodos</button>
+    </div>
+    <div class="comision-dias-grid">
+        @{
+            var dias = new[] { "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo" };
+            for (var i = 0; i < dias.Length; i++)
+            {
+                <div class="comision-dia">
+                    <label for="PorcentajesDia_@i">@dias[i]</label>
+                    <div class="comision-dia-input">
+                        <input id="PorcentajesDia_@i" name="PorcentajesDia" type="number" inputmode="numeric" min="0" max="100" step="1" value="@(Model.PorcentajesDia.Length > i ? Model.PorcentajesDia[i] : 1)" required="@(Model.Rol is RolUsuario.Vendedor or RolUsuario.Recaudador)" aria-describedby="comisionDiasAyuda" />
+                        <span aria-hidden="true">%</span>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</fieldset>
 <div class="field" data-usuario-sin-dispositivo="@((int)RolUsuario.VendedorWeb)" hidden="@(RolConsola.SoloSitioVendedor(Model.Rol))">
     <label asp-for="DispositivoId"></label>
     <select asp-for="DispositivoId" class="searchable">

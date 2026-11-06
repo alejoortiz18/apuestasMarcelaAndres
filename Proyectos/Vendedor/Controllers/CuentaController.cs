@@ -31,7 +31,7 @@ public sealed class CuentaController : Controller
             return View(new LoginViewModel { Error = UiTexts.SesionExpirada });
         }
 
-        if (User.Identity?.IsAuthenticated == true && User.EsVendedor() && !User.DebeCambiarPassword())
+        if (User.Identity?.IsAuthenticated == true && User.EsVendedorWeb() && !User.DebeCambiarPassword())
         {
             return RedirectToAction("Index", "Inicio");
         }
@@ -61,9 +61,11 @@ public sealed class CuentaController : Controller
             return View(model);
         }
 
-        if (!RolConsola.EsVendedor(result.Data.Rol))
+        if (!RolConsola.SoloSitioVendedor(result.Data.Rol))
         {
-            model.Error = UiTexts.SoloVendedor;
+            model.Error = result.Data.Rol == RolUsuario.Vendedor
+                ? AuthMessages.VendedorSoloDispositivoAsignado
+                : UiTexts.SoloVendedorWeb;
             return View(model);
         }
 

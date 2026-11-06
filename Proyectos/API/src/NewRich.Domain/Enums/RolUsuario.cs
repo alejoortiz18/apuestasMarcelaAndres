@@ -19,8 +19,9 @@ public static class RolConsola
         rol is RolUsuario.Vendedor or RolUsuario.VendedorWeb;
 
     /// <summary>
-    /// El vendedor web solo opera desde el sitio web del vendedor: no usa PDA, no pertenece
-    /// a grupos de recaudo y no entra al administrador.
+    /// El vendedor web es el único que opera desde el sitio web del vendedor: no usa PDA,
+    /// no pertenece a grupos de recaudo y no entra al administrador. El vendedor de PDA
+    /// solo usa el dispositivo asociado.
     /// </summary>
     public static bool SoloSitioVendedor(RolUsuario rol) =>
         rol is RolUsuario.VendedorWeb;

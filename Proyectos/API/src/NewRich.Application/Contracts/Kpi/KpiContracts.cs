@@ -56,6 +56,13 @@ public sealed class KpiAlertaFilaResponse
     public string Url { get; set; } = string.Empty;
 }
 
+public sealed class KpiPremioLoteriaResponse
+{
+    public string Loteria { get; set; } = string.Empty;
+    public decimal Valor { get; set; }
+    public int Cantidad { get; set; }
+}
+
 public sealed class KpiResponse
 {
     public DateTime Corte { get; set; }
@@ -93,6 +100,7 @@ public sealed class KpiResponse
     public int PdasAsignados { get; set; }
     public decimal ValorPremiosEntregados { get; set; }
     public int EntregasPremio { get; set; }
+    public IReadOnlyList<KpiPremioLoteriaResponse> PremiosEntregadosPorLoteria { get; set; } = [];
     public int CasosAbiertos { get; set; }
     public int CasosCerrados { get; set; }
     public decimal PorcentajeCasosCerrados { get; set; }

@@ -48,6 +48,11 @@ public sealed class RecaudadorMetricasPage : ContentPage
 
             var m = metricas.Data;
             _cuerpo.Children.Add(Tarjeta(PdaTexts.RecaudoDelDia, RecaudoPagoVista.Miles(m.TotalRecaudado)));
+            if (obligaciones.IsSuccess && obligaciones.Data is not null)
+            {
+                _cuerpo.Children.Add(Tarjeta(PdaTexts.EntregarAdministracionTotal, RecaudoPagoVista.Miles(obligaciones.Data.Sum(f => f.EntregarAdministracion))));
+            }
+
             _cuerpo.Children.Add(Tarjeta(PdaTexts.TotalPendiente, RecaudoPagoVista.Miles(m.TotalPendiente)));
             _cuerpo.Children.Add(Tarjeta(PdaTexts.DeudaAcumulada, RecaudoPagoVista.Miles(m.TotalPendiente), Ui.Danger));
             _cuerpo.Children.Add(new Label { Text = $"Al día {m.VendedoresAlDia} · En deuda {m.VendedoresEnDeuda} · Avance {m.PorcentajeRecaudado}%", TextColor = Ui.Ink });

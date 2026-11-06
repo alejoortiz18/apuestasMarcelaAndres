@@ -42,9 +42,13 @@ public sealed class AuthManualService : IAuthManualService
             return Result<LoginResponse>.Fail(AuthMessages.CredencialesInvalidas, 401);
         }
 
-        if (!RolConsola.EsVendedor(usuario.Rol))
+        if (!RolConsola.SoloSitioVendedor(usuario.Rol))
         {
-            return Result<LoginResponse>.Fail(AuthMessages.CredencialesInvalidas, 403);
+            return Result<LoginResponse>.Fail(
+                usuario.Rol == RolUsuario.Vendedor
+                    ? AuthMessages.VendedorSoloDispositivoAsignado
+                    : AuthMessages.CredencialesInvalidas,
+                403);
         }
 
         if (usuario.Estado == EstadoUsuario.Inactivo)

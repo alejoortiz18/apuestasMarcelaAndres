@@ -6,11 +6,11 @@ public static class UiTexts
     public const string AppLema = "Visión, estrategia y resultados";
     public const string SitioVendedor = "Sitio del vendedor";
     public const string IniciarSesion = "Iniciar sesión";
-    public const string LoginAyuda = "Ingresa con el usuario y la contraseña de vendedor.";
+    public const string LoginAyuda = "Ingresa con el usuario y la contraseña de vendedor web.";
     public const string Usuario = "Usuario";
     public const string Contrasena = "Contraseña";
     public const string Ingresar = "Ingresar";
-    public const string SoloVendedor = "Este sitio es solo para vendedores.";
+    public const string SoloVendedorWeb = "Este sitio es solo para vendedores web.";
     public const string ApiNoDisponible = "No fue posible consultar el servidor. Intenta de nuevo.";
     public const string SesionExpirada = "La sesión venció. Ingresa de nuevo.";
     public const string CambiarContrasena = "Cambiar contraseña";
@@ -237,5 +237,5 @@ public static class AuthCookieNames
 
 public static class VendedorRoles
 {
-    public const string Sitio = "Vendedor,VendedorWeb";
+    public const string Sitio = "VendedorWeb";
 }

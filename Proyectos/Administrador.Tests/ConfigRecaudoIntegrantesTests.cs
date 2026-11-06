@@ -64,6 +64,8 @@ public sealed class ConfigRecaudoIntegrantesTests
     [InlineData("Porcentaje")]
     [InlineData("TotalVendido")]
     [InlineData("TotalPorRecaudar")]
+    [InlineData("PorcentajeRecaudador")]
+    [InlineData("EntregarAdministracion")]
     [InlineData("TotalRecaudado")]
     [InlineData("TotalPendiente")]
     [InlineData("Estado")]
@@ -79,7 +81,6 @@ public sealed class ConfigRecaudoIntegrantesTests
 
     [Theory]
     [InlineData("Recaudador")]
-    [InlineData("Porcentaje")]
     [InlineData("TotalPorRecaudar")]
     [InlineData("TotalRecaudado")]
     [InlineData("TotalPendiente")]

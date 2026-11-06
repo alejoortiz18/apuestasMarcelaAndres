@@ -71,7 +71,7 @@ BEGIN
         FechaUltimoAcceso   DATETIME2        NULL,
         CONSTRAINT PK_Usuarios PRIMARY KEY (UsuarioId),
         CONSTRAINT UQ_Usuarios_Usuario UNIQUE (Usuario),
-        CONSTRAINT CK_Usuarios_Rol CHECK (Rol IN ('Administrador', 'Vendedor', 'Observador', 'Super', 'Recaudador')),
+        CONSTRAINT CK_Usuarios_Rol CHECK (Rol IN ('Administrador', 'Vendedor', 'Observador', 'Super', 'Recaudador', 'VendedorWeb')),
         CONSTRAINT CK_Usuarios_Estado CHECK (Estado IN ('Activo', 'Inactivo'))
     );
     PRINT 'Tabla Usuarios creada.';
@@ -1337,6 +1337,8 @@ IF NOT EXISTS (SELECT 1 FROM dbo.Roles WHERE Nombre = 'Observador')
     INSERT INTO dbo.Roles (Nombre, Descripcion) VALUES ('Observador', 'Supervisa la operacion y valida boletos');
 IF NOT EXISTS (SELECT 1 FROM dbo.Roles WHERE Nombre = 'Recaudador')
     INSERT INTO dbo.Roles (Nombre, Descripcion) VALUES ('Recaudador', 'Recoge el dinero que los vendedores deben entregar');
+IF NOT EXISTS (SELECT 1 FROM dbo.Roles WHERE Nombre = 'VendedorWeb')
+    INSERT INTO dbo.Roles (Nombre, Descripcion) VALUES ('VendedorWeb', 'Vende unicamente desde el sitio web del vendedor, sin PDA');
 GO
 PRINT 'Datos maestros de Roles insertados.';
 

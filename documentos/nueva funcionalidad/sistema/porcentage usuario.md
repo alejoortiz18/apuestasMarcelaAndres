@@ -41,6 +41,8 @@ Esta configuración deberá estar disponible tanto al crear como al editar un us
 
 ## 3. Nuevo funcionamiento del módulo Cubierto
 
+> Decisión de implementación: en Cubierto solo se quitan la comisión y el descuento generales. El cálculo por usuario descrito abajo se aplica en el recaudo y en las aplicaciones del vendedor y del recaudador. Ver la sección 10.
+
 Se deberá modificar el cálculo actual del módulo Cubierto.
 
 El sistema ya no deberá tomar la comisión general ni el descuento general que actualmente se encuentran parametrizados en la parte superior de la vista.
@@ -140,6 +142,8 @@ Reglas de las aplicaciones:
 
 ## 5. Actualización del histórico de Cubierto
 
+> Decisión de implementación: el detalle por movimiento (venta, porcentajes, descuentos y valor a entregar) se ve en el recaudo del administrador. El histórico de Cubierto conserva los valores con que se guardó. Ver la sección 10.
+
 Se deberá actualizar la tabla de histórico de Cubierto para que permita visualizar detalladamente todos los movimientos realizados y los cálculos de las comisiones.
 
 El histórico deberá permitir identificar como mínimo:
@@ -212,5 +216,19 @@ Los vendedores de PDA y los recaudadores que ya existen al momento del cambio re
 10. Los registros históricos anteriores al cambio deberán conservar su información y no deberán modificarse retroactivamente.
 11. Los usuarios vendedor de PDA y recaudador que ya existen inician con 1 % en los siete días.
 12. El APK del vendedor muestra lo que debe entregar al recaudador. El APK del recaudador muestra lo que debe recaudar y lo que debe entregar a la administración. El administrador ve el movimiento completo.
+
+## 10. Cómo quedó aplicado
+
+Decisiones acordadas al implementar:
+
+- **Porcentaje individual, no colectivo.** El porcentaje del grupo desaparece. En Configuración de recaudo los grupos y los vendedores sueltos solo se asignan a un recaudador; ya no hay campo de porcentaje ni botón "Editar porcentajes".
+- **Usuarios.** Al crear o editar un vendedor de PDA o un recaudador se piden los siete porcentajes enteros (lunes a domingo, de 0 a 100). Los demás roles no los tienen.
+- **Recaudo.** Lo que el vendedor debe entregar es la venta menos su porcentaje del día. Lo que el recaudador debe entregar a la administración es eso menos su porcentaje del día. Los redondeos son al peso.
+- **Cada movimiento conserva su porcentaje.** La obligación del día guarda los porcentajes con que se creó. Las obligaciones creadas antes de esta versión siguen con el porcentaje del grupo que tenían; las del mismo día del despliegue también, si ya existían.
+- **Cubierto.** Solo se quitan la comisión y el descuento generales. Lo cubierto desde ahora va sin comisión ni descuento. El histórico de Cubierto no cambia.
+- **Administrador.** Panel, detalle del recaudador e integrantes del grupo muestran la venta, el porcentaje del vendedor, lo que entrega el vendedor, el porcentaje del recaudador y lo que se entrega a la administración.
+- **APK del vendedor.** En el inicio, una tarjeta muestra lo que debe entregar al recaudador hoy, su porcentaje y lo que gana.
+- **APK del recaudador.** Cada tarjeta muestra la entrega del vendedor y lo que va a la administración con sus porcentajes. El inicio, el cobro y las métricas muestran el total a entregar a la administración.
+- **Base de datos.** Los cambios están en la carpeta `actualización bd`.
 
 Resultado esperado: Cada vendedor de PDA y cada recaudador tendrá sus propios porcentajes de comisión para los siete días de la semana. El sistema identificará automáticamente el día correspondiente a cada venta y calculará los valores que se deben descontar, garantizando que Cubierto, sus históricos y todos los informes trabajen con la misma lógica de cálculo.

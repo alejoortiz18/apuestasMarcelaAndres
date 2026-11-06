@@ -15,6 +15,7 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
     }
 
     public DbSet<Usuario> Usuarios => Set<Usuario>();
+    public DbSet<UsuarioComisionDia> UsuariosComisionDia => Set<UsuarioComisionDia>();
     public DbSet<Rol> Roles => Set<Rol>();
     public DbSet<UsuarioRol> UsuariosRoles => Set<UsuarioRol>();
     public DbSet<Grupo> Grupos => Set<Grupo>();
@@ -180,6 +181,16 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
         await Database.ExecuteSqlRawAsync(EsquemaParametrosRevisadaManual.Tablas, cancellationToken);
     }
 
+    public async Task AsegurarEsquemaComisionDiaAsync(CancellationToken cancellationToken = default)
+    {
+        if (!Database.IsRelational())
+        {
+            return;
+        }
+
+        await Database.ExecuteSqlRawAsync(EsquemaComisionDia.Tablas, cancellationToken);
+    }
+
     public async Task AsegurarEsquemaInformesAsync(CancellationToken cancellationToken = default)
     {
         if (!Database.IsRelational())
@@ -306,6 +317,13 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
             e.Property(x => x.NombreUsuario).HasColumnName("Usuario").HasMaxLength(50);
             e.Property(x => x.Rol).HasConversion(rol).HasMaxLength(20);
             e.Property(x => x.Estado).HasConversion(estadoUsuario).HasMaxLength(20);
+        });
+
+        modelBuilder.Entity<UsuarioComisionDia>(e =>
+        {
+            e.ToTable("UsuarioComisionDia");
+            e.HasKey(x => new { x.UsuarioId, x.DiaSemana });
+            e.HasOne(x => x.Usuario).WithMany(x => x.ComisionesDia).HasForeignKey(x => x.UsuarioId);
         });
 
         modelBuilder.Entity<UsuarioRol>(e =>
@@ -780,6 +798,8 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
             e.Property(x => x.TotalVendido).HasColumnType("decimal(18,2)");
             e.Property(x => x.ValorGenerado).HasColumnType("decimal(18,2)");
             e.Property(x => x.SaldoAnterior).HasColumnType("decimal(18,2)");
+            e.Property(x => x.ComisionRecaudador).HasColumnType("decimal(18,2)");
+            e.Property(x => x.EntregarAdministracion).HasColumnType("decimal(18,2)");
         });
         modelBuilder.Entity<PagoRegistradoRecaudo>(e =>
         {

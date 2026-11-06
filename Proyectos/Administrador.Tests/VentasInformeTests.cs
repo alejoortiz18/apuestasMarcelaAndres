@@ -75,6 +75,54 @@ public sealed class VentasInformeTests
     }
 
     [Fact]
+    public void Los_premios_por_loteria_suman_los_del_observador_y_los_del_vendedor_web()
+    {
+        var fuente = new FuenteInformeVentas
+        {
+            Kpi = new KpiResponse
+            {
+                ValorPremiosEntregados = 200m,
+                EntregasPremio = 1,
+                PremiosEntregadosPorLoteria =
+                [
+                    new() { Loteria = "Cali", Valor = 200m, Cantidad = 1 }
+                ]
+            },
+            PremiosWeb = [Premio("Cali", 50m), Premio("Bogotá", 120m)]
+        };
+
+        var informe = VentasInforme.InformeEgresos(fuente, new FiltrosPeriodoInforme { Periodo = "hoy" }, [], Hoy, Hoy, DateTime.Now, 1, 10);
+
+        informe.Egresos.PremiosPorLoteria.Select(p => (p.Texto, p.Valor, p.Cantidad))
+            .Should().Equal(("Cali", 250m, 2), ("Bogotá", 120m, 1));
+        informe.Egresos.PremiosPorLoteria.Sum(p => p.Valor).Should().Be(informe.Resumen.TotalPremios);
+    }
+
+    [Fact]
+    public void FusionarKpi_suma_los_premios_del_observador_por_loteria()
+    {
+        var fusion = VentasInforme.FusionarKpi(
+        [
+            new KpiResponse
+            {
+                ValorPremiosEntregados = 200m,
+                EntregasPremio = 1,
+                PremiosEntregadosPorLoteria = [new() { Loteria = "Cali", Valor = 200m, Cantidad = 1 }]
+            },
+            new KpiResponse
+            {
+                ValorPremiosEntregados = 80m,
+                EntregasPremio = 1,
+                PremiosEntregadosPorLoteria = [new() { Loteria = "Cali", Valor = 50m, Cantidad = 1 }, new() { Loteria = "Bogotá", Valor = 30m, Cantidad = 1 }]
+            }
+        ])!;
+
+        fusion.ValorPremiosEntregados.Should().Be(280m);
+        fusion.PremiosEntregadosPorLoteria.Select(p => (p.Loteria, p.Valor, p.Cantidad))
+            .Should().Equal(("Cali", 250m, 2), ("Bogotá", 30m, 1));
+    }
+
+    [Fact]
     public void Los_numeros_cubiertos_se_listan_y_se_suman_por_loteria()
     {
         var fuente = new FuenteInformeVentas

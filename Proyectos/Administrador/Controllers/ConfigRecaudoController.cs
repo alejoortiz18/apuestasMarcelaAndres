@@ -47,7 +47,6 @@ public sealed class ConfigRecaudoController : AdminControllerBase
             GrupoId = g.GrupoId,
             Nombre = g.Nombre,
             Vendedores = g.Vendedores,
-            Porcentaje = g.Porcentaje,
             SinConfigurar = g.SinConfigurar,
             TotalPorRecaudar = g.TotalPorRecaudar,
             TotalRecaudado = g.TotalRecaudado,
@@ -58,7 +57,6 @@ public sealed class ConfigRecaudoController : AdminControllerBase
         {
             VendedorId = v.VendedorId,
             Nombre = v.Nombre,
-            Porcentaje = v.Porcentaje,
             RecaudadorNombre = string.IsNullOrWhiteSpace(v.RecaudadorNombre) ? UiTexts.NoAplica : v.RecaudadorNombre,
             SenalSinGrupo = true
         }).ToList();
@@ -120,6 +118,8 @@ public sealed class ConfigRecaudoController : AdminControllerBase
             RecaudadorNombre = string.IsNullOrWhiteSpace(v.RecaudadorNombre) ? UiTexts.NoAplica : v.RecaudadorNombre,
             TotalVendido = v.TotalVendido,
             ValorACobrar = v.ValorACobrar,
+            PorcentajeRecaudador = v.PorcentajeRecaudador,
+            EntregarAdministracion = v.EntregarAdministracion,
             TotalPendiente = v.TotalPendiente,
             PagosHoy = v.PagosHoy,
             Estado = v.Estado,
@@ -132,7 +132,6 @@ public sealed class ConfigRecaudoController : AdminControllerBase
             Nombre = datos.Nombre,
             Desde = inicio,
             Hasta = fin,
-            Porcentaje = datos.Porcentaje,
             SinConfigurar = datos.SinConfigurar,
             RecaudadorNombre = string.IsNullOrWhiteSpace(datos.RecaudadorNombre) ? UiTexts.NoAplica : datos.RecaudadorNombre,
             TotalPorRecaudar = datos.TotalPorRecaudar,
@@ -144,13 +143,12 @@ public sealed class ConfigRecaudoController : AdminControllerBase
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AsignarGrupo(Guid recaudadorId, Guid grupoId, int porcentaje, string? desde, string? hasta, CancellationToken cancellationToken)
+    public async Task<IActionResult> AsignarGrupo(Guid recaudadorId, Guid grupoId, string? desde, string? hasta, CancellationToken cancellationToken)
     {
         var result = await _api.AsignarGrupoRecaudoAsync(new AsignarGrupoRecaudoRequest
         {
             RecaudadorId = recaudadorId,
-            GrupoId = grupoId,
-            Porcentaje = porcentaje
+            GrupoId = grupoId
         }, cancellationToken);
         var unauthorized = RedirectIfUnauthorized(result);
         if (unauthorized is not null)
@@ -179,8 +177,7 @@ public sealed class ConfigRecaudoController : AdminControllerBase
                 ? await _api.AsignarGrupoRecaudoAsync(new AsignarGrupoRecaudoRequest
                 {
                     RecaudadorId = recaudadorId,
-                    GrupoId = item.GrupoId,
-                    Porcentaje = item.Porcentaje
+                    GrupoId = item.GrupoId
                 }, cancellationToken)
                 : await _api.RetirarGrupoRecaudoAsync(item.GrupoId, cancellationToken);
             var unauthorized = RedirectIfUnauthorized(result);
@@ -197,24 +194,6 @@ public sealed class ConfigRecaudoController : AdminControllerBase
         }
 
         SetFlash(UiTexts.RecaudadoresActualizados, true);
-        return RedirectToAction(nameof(Index), new { desde, hasta });
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> GuardarPorcentajesGrupos(List<PorcentajeGrupoRecaudoRequest> grupos, string? desde, string? hasta, CancellationToken cancellationToken)
-    {
-        var result = await _api.ActualizarPorcentajesGruposRecaudoAsync(new ActualizarPorcentajesGruposRecaudoRequest
-        {
-            Grupos = grupos ?? []
-        }, cancellationToken);
-        var unauthorized = RedirectIfUnauthorized(result);
-        if (unauthorized is not null)
-        {
-            return unauthorized;
-        }
-
-        SetFlash(result.Message, result.Success);
         return RedirectToAction(nameof(Index), new { desde, hasta });
     }
 
@@ -266,13 +245,12 @@ public sealed class ConfigRecaudoController : AdminControllerBase
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AsignarVendedor(Guid recaudadorId, Guid vendedorId, int porcentaje, string? desde, string? hasta, CancellationToken cancellationToken)
+    public async Task<IActionResult> AsignarVendedor(Guid recaudadorId, Guid vendedorId, string? desde, string? hasta, CancellationToken cancellationToken)
     {
         var result = await _api.AsignarVendedorRecaudoAsync(new AsignarVendedorRecaudoRequest
         {
             RecaudadorId = recaudadorId,
-            VendedorId = vendedorId,
-            Porcentaje = porcentaje
+            VendedorId = vendedorId
         }, cancellationToken);
         var unauthorized = RedirectIfUnauthorized(result);
         if (unauthorized is not null)

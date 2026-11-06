@@ -39,4 +39,5 @@ public class Usuario
     public ICollection<DispositivoUsuario> DispositivosUsuarios { get; set; } = new List<DispositivoUsuario>();
     public ICollection<Sesion> Sesiones { get; set; } = new List<Sesion>();
     public ICollection<Venta> Ventas { get; set; } = new List<Venta>();
+    public ICollection<UsuarioComisionDia> ComisionesDia { get; set; } = new List<UsuarioComisionDia>();
 }

@@ -140,6 +140,10 @@ public sealed class KpiService : IKpiService
 
         var casos = await _db.CasosGanadores
             .Include(c => c.EntregaGanador)
+            .Include(c => c.Boleto)
+            .ThenInclude(b => b!.Juegos)
+            .ThenInclude(j => j.JuegoLoterias)
+            .ThenInclude(l => l.Loteria)
             .Where(c => c.FechaReporte >= desde && c.FechaReporte < hastaExclusivo)
             .ToListAsync(cancellationToken);
         casos = casos.Where(c => filtroIds.Contains(c.VendedorQueReporto)).ToList();
@@ -255,6 +259,18 @@ public sealed class KpiService : IKpiService
             PdasAsignados = pdas.Count(d => d.DispositivosUsuarios.Any(x => x.Activo && filtroIds.Contains(x.UsuarioId))),
             ValorPremiosEntregados = entregas.Sum(e => e.ValorTotalGanado),
             EntregasPremio = entregas.Count,
+            PremiosEntregadosPorLoteria = casos
+                .Where(c => c.EntregaGanador is not null)
+                .GroupBy(c => NombreLoteriaPremio(c))
+                .Select(g => new KpiPremioLoteriaResponse
+                {
+                    Loteria = g.Key,
+                    Valor = g.Sum(c => c.EntregaGanador!.ValorTotalGanado),
+                    Cantidad = g.Count()
+                })
+                .OrderByDescending(p => p.Valor)
+                .ThenBy(p => p.Loteria, StringComparer.CurrentCultureIgnoreCase)
+                .ToList(),
             CasosAbiertos = abiertos,
             CasosCerrados = cerrados,
             PorcentajeCasosCerrados = totalCasos == 0 ? 0 : Math.Round((decimal)cerrados * 100 / totalCasos, 1),
@@ -289,5 +305,19 @@ public sealed class KpiService : IKpiService
         }
 
         return Math.Round((actual - anterior) * 100 / anterior, 1);
+    }
+
+    private const string SinLoteriaPremio = "Sin lotería";
+
+    private static string NombreLoteriaPremio(CasoGanador caso)
+    {
+        var loterias = caso.Boleto?.Juegos
+            .SelectMany(j => j.JuegoLoterias)
+            .Select(l => l.Loteria?.Nombre)
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Select(n => n!.Trim())
+            .Distinct(StringComparer.CurrentCultureIgnoreCase)
+            .ToList() ?? [];
+        return loterias.Count == 0 ? SinLoteriaPremio : loterias[0];
     }
 }

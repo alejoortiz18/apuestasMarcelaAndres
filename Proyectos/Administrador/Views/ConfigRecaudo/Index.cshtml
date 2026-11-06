@@ -54,15 +54,11 @@
                 }
             </select>
         </div>
-        <div class="field">
-            <label for="porcentajeGrupo">@UiTexts.Porcentaje</label>
-            <input id="porcentajeGrupo" name="porcentaje" type="number" min="1" max="100" step="1" />
-        </div>
         <button class="primary" type="submit">@UiTexts.GuardarAsignacion</button>
     </form>
     <p class="panel-sub">@UiTexts.AyudaPorcentaje</p>
 </div>
-<div class="panel" data-edicion-porcentajes>
+<div class="panel">
     <div class="panel-head">
         <div>
             <h2>@UiTexts.CatalogoGruposRecaudo</h2>
@@ -82,7 +78,6 @@
                     <th class="col-check"><span class="visually-hidden">@UiTexts.SeleccionarFila</span></th>
                     <th>@UiTexts.Grupo</th>
                     <th>@UiTexts.CantidadVendedores</th>
-                    <th>@UiTexts.Porcentaje</th>
                     <th>@UiTexts.TotalPorRecaudar</th>
                     <th>@UiTexts.TotalRecaudado</th>
                     <th>@UiTexts.Recaudador</th>
@@ -99,20 +94,10 @@
                         </td>
                         <td><strong>@fila.Nombre</strong> @(fila.SinConfigurar ? $"({UiTexts.SinConfigurar})" : "")</td>
                         <td>@fila.Vendedores</td>
-                        <td class="recaudo-cifra">
-                            <span data-porcentaje-texto>@fila.Porcentaje %</span>
-                            <input type="hidden" form="form-porcentajes-grupos" name="grupos[@i].GrupoId" value="@fila.GrupoId" />
-                            <span class="porcentaje-input" data-porcentaje-campo hidden>
-                                <input type="number" inputmode="numeric" form="form-porcentajes-grupos" name="grupos[@i].Porcentaje" value="@fila.Porcentaje"
-                                       min="0" max="100" step="1" data-porcentaje-input aria-label="@UiTexts.Porcentaje @fila.Nombre" />
-                                <span class="porcentaje-sufijo" aria-hidden="true">%</span>
-                            </span>
-                        </td>
                         <td class="recaudo-cifra">@FormatoPesos.De(fila.TotalPorRecaudar)</td>
                         <td class="recaudo-cifra">@FormatoPesos.De(fila.TotalRecaudado)</td>
                         <td class="recaudo-col-recaudador">
                             <input type="hidden" form="form-recaudadores-grupos" name="asignaciones[@i].GrupoId" value="@fila.GrupoId" />
-                            <input type="hidden" form="form-recaudadores-grupos" name="asignaciones[@i].Porcentaje" value="@fila.Porcentaje" />
                             <input type="hidden" form="form-recaudadores-grupos" name="asignaciones[@i].RecaudadorActualId" value="@fila.RecaudadorId" />
                             <select class="searchable" form="form-recaudadores-grupos" name="asignaciones[@i].RecaudadorId"
                                     data-recaudador-grupo data-recaudador-inicial="@(fila.RecaudadorId?.ToString() ?? "")"
@@ -145,10 +130,6 @@
             <h2>@UiTexts.AccionesDeRecaudo</h2>
             <p class="panel-sub">@UiTexts.SeleccionaParaAcciones</p>
             <div class="table-actions-buttons">
-                <button class="secondary boton-icono" type="button" data-editar-porcentajes>
-                    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-4-4L4 16v4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
-                    @UiTexts.EditarPorcentajes
-                </button>
                 <form id="form-recaudadores-grupos" method="post" asp-action="GuardarRecaudadoresGrupos" data-guardar-recaudadores data-protected-action="@AccionesProtegidas.GruposAsignar" data-protected-usos="1">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="desde" value="@Model.Desde.ToString("yyyy-MM-dd")" />
@@ -158,18 +139,7 @@
                         @UiTexts.Guardar
                     </button>
                 </form>
-                <form id="form-porcentajes-grupos" method="post" asp-action="GuardarPorcentajesGrupos" data-guardar-porcentajes hidden>
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="desde" value="@Model.Desde.ToString("yyyy-MM-dd")" />
-                    <input type="hidden" name="hasta" value="@Model.Hasta.ToString("yyyy-MM-dd")" />
-                    <button class="primary boton-icono" type="submit">
-                        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                        @UiTexts.GuardarPorcentajes
-                    </button>
-                </form>
-                <button class="secondary" type="button" data-cancelar-porcentajes hidden>@UiTexts.Cancelar</button>
             </div>
-            <p class="recaudo-edicion-ayuda" data-edicion-ayuda role="status" hidden>@UiTexts.AyudaEdicionPorcentajes</p>
         </div>
     }
 </div>
@@ -199,10 +169,6 @@
                 }
             </select>
         </div>
-        <div class="field">
-            <label for="porcentajeVendedor">@UiTexts.Porcentaje</label>
-            <input id="porcentajeVendedor" name="porcentaje" type="number" min="1" max="100" step="1" required />
-        </div>
         <button class="primary" type="submit">@UiTexts.GuardarAsignacion</button>
     </form>
 </div>
@@ -226,7 +192,6 @@
                 <tr>
                     <th class="col-check"><span class="visually-hidden">@UiTexts.SeleccionarFila</span></th>
                     <th>@UiTexts.Vendedor</th>
-                    <th>@UiTexts.Porcentaje</th>
                     <th>@UiTexts.Recaudador</th>
                     <th>@UiTexts.Estado</th>
                     <th>@UiTexts.AsignarUnGrupo</th>
@@ -241,7 +206,6 @@
                             <input class="row-check" type="checkbox" value="@fila.VendedorId" aria-label="@UiTexts.SeleccionarFila @fila.Nombre" />
                         </td>
                         <td><strong>@fila.Nombre</strong></td>
-                        <td class="recaudo-cifra">@fila.Porcentaje %</td>
                         <td>@fila.RecaudadorNombre</td>
                         <td>@UiTexts.SenalDebeGrupo</td>
                         <td class="recaudo-col-grupo">

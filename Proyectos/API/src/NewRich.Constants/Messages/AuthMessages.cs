@@ -26,6 +26,7 @@ public static class AuthMessages
     public const string TokenInvalido = "El token de autenticación no es válido.";
 
     public const string VendedorWebSoloSitioWeb = "El vendedor web solo puede ingresar desde el sitio web del vendedor.";
+    public const string VendedorSoloDispositivoAsignado = "El vendedor solo puede ingresar desde el PDA que tiene asignado.";
     public const string AdministradorNoOperaEnPda = "El perfil Administrador no puede operar desde el PDA.";
     public const string SoloAdministrador = "Solo un usuario con perfil Administrador puede ejecutar esta operación.";
     public const string SoloVendedor = "Solo un usuario con perfil Vendedor puede ejecutar esta operación.";

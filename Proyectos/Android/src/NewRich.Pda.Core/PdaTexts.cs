@@ -420,6 +420,19 @@ public static class PdaTexts
 
     public static string CobroRegistrado(decimal valor, decimal saldo) =>
         $"El cobro por {RecaudoPagoVista.Miles(valor)} quedó registrado. Saldo que queda: {RecaudoPagoVista.Miles(saldo)}.";
+    public static string EntregaDelVendedor(int? porcentaje) =>
+        porcentaje is int p ? $"Entrega del vendedor ({p} %)" : "Entrega del vendedor";
+    public static string EntregarAdministracion(int? porcentaje) =>
+        porcentaje is int p ? $"Entregar a la administración ({p} %)" : "Entregar a la administración";
+    public const string EntregarAdministracionTotal = "Debes entregar a la administración";
+    public const string DebeEntregarRecaudador = "DEBES ENTREGAR AL RECAUDADOR";
+    public static string TuPorcentajeHoy(int porcentaje, string ganancia) => $"Tu porcentaje hoy: {porcentaje} % · Ganas {ganancia}";
+    public const string EntregaAtrasado = "Atrasado de días anteriores";
+    public const string EntregaSinAtraso = "Sin atraso de días anteriores";
+    public const string EntregaAlDia = "Estás al día";
+    public const string EntregaDeHoy = "Nueva venta";
+    public const string EntregaTotal = "Total a entregar";
+    public static string YaEntregasteHoy(string valor) => $"Ya entregaste hoy {valor}";
     public const string TotalRecaudar = "Total recaudar";
     public const string TotalRecaudado = "Total recaudado";
     public const string GruposAsignados = "Total grupos asignados";

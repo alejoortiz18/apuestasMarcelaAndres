@@ -35,10 +35,4 @@ public sealed class GruposRecaudoController : ApiControllerBase
     {
         return From(await _recaudo.AsignarGrupoAsync(request, UsuarioId, cancellationToken));
     }
-
-    [HttpPut("/api/Recaudo/Grupos/Porcentajes")]
-    public async Task<IActionResult> ActualizarPorcentajes([FromBody] ActualizarPorcentajesGruposRecaudoRequest request, CancellationToken cancellationToken)
-    {
-        return From(await _recaudo.ActualizarPorcentajesGruposAsync(request, cancellationToken));
-    }
 }

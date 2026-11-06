@@ -9,6 +9,7 @@ public static class HubRutas
     public const string EventoCodigosOfflineAsignados = "codigosOfflineAsignados";
     public const string EventoLoteriasActualizadas = "loteriasActualizadas";
     public const string EventoActualizacionAplicacion = "actualizacionAplicacion";
+    public const string EventoRecaudoActualizado = "recaudoActualizado";
 
     public static bool AceptaTokenPorQuery(string path) =>
         path.StartsWith(Notificaciones, StringComparison.OrdinalIgnoreCase)

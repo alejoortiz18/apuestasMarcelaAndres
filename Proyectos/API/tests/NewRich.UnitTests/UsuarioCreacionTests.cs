@@ -180,6 +180,18 @@ public sealed class UsuarioCreacionTests
     }
 
     [Fact]
+    public void La_restriccion_de_rol_en_la_base_admite_vendedor_web()
+    {
+        var raiz = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "..", "BD"));
+        var esquema = File.ReadAllText(Path.Combine(raiz, "NewRich_Full_Database.sql"));
+        var actualizacion = File.ReadAllText(Path.Combine(raiz, "Actualizacion_RolVendedorWeb.sql"));
+
+        esquema.Should().Contain("VendedorWeb");
+        actualizacion.Should().Contain("N'VendedorWeb'");
+        actualizacion.Should().Contain("CK_Usuarios_Rol");
+    }
+
+    [Fact]
     public async Task CrearAsync_permite_observadores_sin_grupo()
     {
         var (sut, _) = CreateSut();
@@ -238,11 +250,27 @@ public sealed class UsuarioCreacionTests
         result.Data.GrupoId.Should().BeNull();
     }
 
+    [Fact]
+    public async Task CrearAsync_exige_siete_porcentajes_enteros_al_vendedor()
+    {
+        var (sut, db) = CreateSut();
+        var grupo = await AgregarGrupoAsync(db, "Grupo Norte");
+        var solicitud = Solicitud(RolUsuario.Vendedor);
+        solicitud.GrupoId = grupo.GrupoId;
+        solicitud.PorcentajesDia = null;
+
+        var result = await sut.CrearAsync(solicitud, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Message.Should().Be(UsuarioMessages.PorcentajesDiaRequeridos);
+    }
+
     private static CrearUsuarioRequest Solicitud(RolUsuario rol) => new()
     {
         NombreCompleto = "Ana Vendedora",
         Usuario = "ana.vendedora",
-        Rol = rol
+        Rol = rol,
+        PorcentajesDia = rol is RolUsuario.Vendedor or RolUsuario.Recaudador ? [1, 1, 1, 1, 1, 1, 1] : null
     };
 
     private static (UsuarioService Sut, NewRichDbContext Db) CreateSut()

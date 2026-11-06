@@ -316,7 +316,217 @@ public sealed class RecaudoPdaTests
     public void La_tarjeta_pendiente_no_muestra_pagado()
     {
         RecaudoPagoVista.CifrasTarjeta(TresFilas()[0])
-            .Select(c => c.Etiqueta).Should().Equal(PdaTexts.VendidoHoy, PdaTexts.SaldoAnterior, PdaTexts.PendienteDelDia);
+            .Select(c => c.Etiqueta).Should().Equal(
+                PdaTexts.VendidoHoy, PdaTexts.SaldoAnterior, PdaTexts.PendienteDelDia);
+    }
+
+    [Fact]
+    public void El_vendedor_ve_lo_que_debe_entregar_y_lo_que_gana_hoy()
+    {
+        var entrega = new ObligacionRecaudoResponse
+        {
+            TotalVendido = 100_000m,
+            PorcentajeVendedor = 10,
+            ComisionVendedor = 10_000m,
+            ValorACobrar = 90_000m
+        };
+
+        EntregaVendedorVista.Valor(entrega).Should().Be(90_000m);
+        EntregaVendedorVista.Detalle(entrega).Should().Be("Tu porcentaje hoy: 10 % · Ganas $10.000");
+    }
+
+    [Fact]
+    public void Sin_pagos_el_vendedor_ve_atrasado_hoy_y_total_que_suman()
+    {
+        var entrega = new ObligacionRecaudoResponse
+        {
+            SaldoAnterior = 5_196m,
+            ValorACobrar = 23_463m,
+            TotalPendiente = 28_659m,
+            PendienteDelDia = 23_463m
+        };
+
+        EntregaVendedorVista.Atrasado(entrega).Should().Be(5_196m);
+        EntregaVendedorVista.Hoy(entrega).Should().Be(23_463m);
+        EntregaVendedorVista.Total(entrega).Should().Be(28_659m);
+        EntregaVendedorVista.PagadoHoy(entrega).Should().BeNull();
+    }
+
+    [Fact]
+    public void El_pago_de_hoy_baja_primero_lo_atrasado()
+    {
+        var entrega = new ObligacionRecaudoResponse
+        {
+            SaldoAnterior = 5_196m,
+            ValorACobrar = 23_463m,
+            PagosHoy = 3_000m,
+            TotalPendiente = 25_659m,
+            PendienteDelDia = 23_463m
+        };
+
+        EntregaVendedorVista.Atrasado(entrega).Should().Be(2_196m);
+        EntregaVendedorVista.Hoy(entrega).Should().Be(23_463m);
+        EntregaVendedorVista.Total(entrega).Should().Be(25_659m);
+        EntregaVendedorVista.PagadoHoy(entrega).Should().Be("Ya entregaste hoy $3.000");
+    }
+
+    [Fact]
+    public void Si_el_pago_cubre_lo_atrasado_lo_que_queda_es_atraso()
+    {
+        var entrega = new ObligacionRecaudoResponse
+        {
+            SaldoAnterior = 5_196m,
+            ValorACobrar = 23_463m,
+            PagosHoy = 10_000m,
+            TotalPendiente = 18_659m,
+            PendienteDelDia = 0m
+        };
+
+        EntregaVendedorVista.Atrasado(entrega).Should().Be(18_659m);
+        EntregaVendedorVista.Hoy(entrega).Should().Be(0m);
+        EntregaVendedorVista.Total(entrega).Should().Be(18_659m);
+        EntregaVendedorVista.TituloAtrasado(entrega).Should().Be(PdaTexts.EntregaAtrasado);
+    }
+
+    [Fact]
+    public void Cubrir_el_atraso_no_pone_al_dia_si_aun_debe_lo_que_quedo_tras_el_cobro()
+    {
+        var entrega = new ObligacionRecaudoResponse
+        {
+            SaldoAnterior = 9_000m,
+            ValorACobrar = 45_000m,
+            PagosHoy = 9_000m,
+            TotalPendiente = 45_000m,
+            PendienteDelDia = 0m
+        };
+
+        EntregaVendedorVista.Atrasado(entrega).Should().Be(45_000m);
+        EntregaVendedorVista.Hoy(entrega).Should().Be(0m);
+        EntregaVendedorVista.EstaAlDia(entrega).Should().BeFalse();
+        EntregaVendedorVista.TituloAtrasado(entrega).Should().Be(PdaTexts.EntregaAtrasado);
+    }
+
+    [Fact]
+    public void Laura_tras_cobro_y_venta_nueva_ve_atraso_y_lo_de_hoy_igual_que_el_recaudador()
+    {
+        var entrega = new ObligacionRecaudoResponse
+        {
+            TotalVendido = 57_500m,
+            ValorACobrar = 51_750m,
+            SaldoAnterior = 9_000m,
+            PagosHoy = 9_000m,
+            TotalPendiente = 51_750m,
+            PendienteDelDia = 6_750m
+        };
+
+        EntregaVendedorVista.Atrasado(entrega).Should().Be(45_000m);
+        EntregaVendedorVista.Hoy(entrega).Should().Be(6_750m);
+        EntregaVendedorVista.Total(entrega).Should().Be(51_750m);
+        EntregaVendedorVista.EstaAlDia(entrega).Should().BeFalse();
+        EntregaVendedorVista.TituloAtrasado(entrega).Should().Be(PdaTexts.EntregaAtrasado);
+    }
+
+    [Fact]
+    public void Esta_al_dia_solo_cuando_el_total_a_entregar_es_cero()
+    {
+        var paz = new ObligacionRecaudoResponse { SaldoAnterior = 9_000m, ValorACobrar = 0m, PagosHoy = 9_000m };
+
+        EntregaVendedorVista.EstaAlDia(paz).Should().BeTrue();
+        EntregaVendedorVista.TituloAtrasado(paz).Should().Be(PdaTexts.EntregaAlDia);
+        EntregaVendedorVista.TituloAtrasado(new ObligacionRecaudoResponse
+            {
+                SaldoAnterior = 9_000m,
+                ValorACobrar = 45_000m,
+                TotalPendiente = 54_000m,
+                PendienteDelDia = 45_000m
+            }).Should().Be(PdaTexts.EntregaAtrasado);
+        EntregaVendedorVista.EstaAlDia(null).Should().BeTrue();
+    }
+
+    [Fact]
+    public void Sin_datos_los_tres_valores_quedan_en_cero()
+    {
+        EntregaVendedorVista.Atrasado(null).Should().Be(0m);
+        EntregaVendedorVista.Hoy(null).Should().Be(0m);
+        EntregaVendedorVista.Total(null).Should().Be(0m);
+    }
+
+    [Fact]
+    public void Sin_porcentaje_del_dia_el_vendedor_no_ve_el_detalle_de_lo_que_gana()
+    {
+        EntregaVendedorVista.Detalle(new ObligacionRecaudoResponse { ValorACobrar = 5_000m }).Should().BeNull();
+        EntregaVendedorVista.Detalle(null).Should().BeNull();
+        EntregaVendedorVista.Valor(null).Should().Be(0m);
+    }
+
+    [Fact]
+    public void El_aviso_de_recaudo_lo_reciben_el_vendedor_y_su_recaudador()
+    {
+        var vendedor = Guid.NewGuid();
+        var recaudador = Guid.NewGuid();
+        var aviso = new RecaudoCambioAviso { VendedorId = vendedor, RecaudadorId = recaudador };
+
+        RecaudoEnVivo.Acepta(vendedor, aviso).Should().BeTrue();
+        RecaudoEnVivo.Acepta(recaudador, aviso).Should().BeTrue();
+        RecaudoEnVivo.Acepta(Guid.NewGuid(), aviso).Should().BeFalse();
+        RecaudoEnVivo.Acepta(null, aviso).Should().BeFalse();
+    }
+
+    [Fact]
+    public void El_inicio_del_vendedor_y_el_cobro_del_recaudador_se_actualizan_en_vivo()
+    {
+        var home = File.ReadAllText(RutaMaui("Views", "Vendedor", "VendedorHomePage.cs"));
+        var cobro = File.ReadAllText(RutaMaui("Views", "Recaudador", "RecaudadorCobroPage.cs"));
+        var recaudadorHome = File.ReadAllText(RutaMaui("Views", "Recaudador", "RecaudadorHomePage.cs"));
+        var chat = File.ReadAllText(RutaMaui("Services", "ChatEnVivoServicio.cs"));
+
+        chat.Should().Contain("HubRutas.EventoRecaudoActualizado");
+        home.Should().Contain("RecaudoEnVivoServicio");
+        cobro.Should().Contain("RecaudoEnVivoServicio");
+        recaudadorHome.Should().Contain("RecaudoEnVivoServicio");
+        home.Should().Contain("RecargaRecaudo");
+        cobro.Should().Contain("RecargaRecaudo");
+        recaudadorHome.Should().Contain("RecargaRecaudo");
+        home.Should().NotContain("CambioRecibido -=");
+        cobro.Should().NotContain("CambioRecibido -=");
+        recaudadorHome.Should().NotContain("CambioRecibido -=");
+    }
+
+    [Fact]
+    public void La_recarga_en_vivo_no_pierde_un_aviso_si_ya_estaba_cargando()
+    {
+        var recarga = new RecargaRecaudo();
+        recarga.Intentar().Should().BeTrue();
+        recarga.Intentar().Should().BeFalse();
+        recarga.Terminar().Should().BeTrue();
+        recarga.Intentar().Should().BeTrue();
+        recarga.Terminar().Should().BeFalse();
+    }
+
+    [Fact]
+    public void La_recarga_en_vivo_descarta_datos_viejos()
+    {
+        var recarga = new RecargaRecaudo();
+        var primera = recarga.Nueva();
+        var segunda = recarga.Nueva();
+        recarga.Vigente(primera).Should().BeFalse();
+        recarga.Vigente(segunda).Should().BeTrue();
+    }
+
+    [Fact]
+    public void El_inicio_del_vendedor_y_el_cobro_del_recaudador_muestran_las_entregas()
+    {
+        var home = File.ReadAllText(RutaMaui("Views", "Vendedor", "VendedorHomePage.cs"));
+        var cobro = File.ReadAllText(RutaMaui("Views", "Recaudador", "RecaudadorCobroPage.cs"));
+
+        home.Should().Contain("MiEntregaRecaudoAsync");
+        home.Should().Contain("PdaTexts.DebeEntregarRecaudador");
+        home.Should().Contain("PdaTexts.EntregaDeHoy");
+        PdaTexts.EntregaDeHoy.Should().Be("Nueva venta");
+        home.Should().Contain("EntregaVendedorVista.TituloAtrasado");
+        home.Should().Contain("EntregaVendedorVista.EstaAlDia");
+        cobro.Should().Contain("PdaTexts.EntregarAdministracionTotal");
+        cobro.Should().Contain("EntregarAdministracion");
     }
 
     [Fact]

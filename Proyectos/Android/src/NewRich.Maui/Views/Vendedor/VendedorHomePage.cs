@@ -17,9 +17,18 @@ public sealed class VendedorHomePage : ContentPage
     private readonly LocalDatabase _offline;
     private readonly SincronizacionOfflineServicio _sincronizacion;
     private readonly CodigosOfflineEnVivoServicio _enVivo;
+    private readonly RecaudoEnVivoServicio _recaudoVivo;
+    private readonly RecargaRecaudo _recarga = new();
     private readonly Label _total = new() { FontSize = 30, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink };
     private readonly Label _boletos = new() { FontSize = 19, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink };
     private readonly Label _codigos = new() { Text = "0", FontSize = 19, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink };
+    private readonly Label _entregar = new() { FontSize = 26, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink };
+    private readonly Label _entregaDetalle = new() { FontSize = 12, TextColor = Ui.Muted, IsVisible = false };
+    private readonly Label _atrasadoTitulo = new() { Text = PdaTexts.EntregaAlDia, FontSize = 13, FontAttributes = FontAttributes.Bold, TextColor = Ui.Green };
+    private readonly Label _atrasado = new() { Text = "$0", FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = Ui.Green };
+    private readonly Label _hoy = new() { Text = "$0", FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink };
+    private readonly Label _pagadoHoy = new() { FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = Ui.Green, IsVisible = false };
+    private readonly Frame _atrasadoCaja;
     private readonly Label _estado = new() { FontSize = 11, TextColor = Color.FromArgb("#bce9cc") };
     private readonly VerticalStackLayout _banners = new() { Spacing = 8 };
     private readonly IServiceProvider _services;
@@ -31,6 +40,7 @@ public sealed class VendedorHomePage : ContentPage
         LocalDatabase offline,
         SincronizacionOfflineServicio sincronizacion,
         CodigosOfflineEnVivoServicio enVivo,
+        RecaudoEnVivoServicio recaudoVivo,
         IServiceProvider services)
     {
         _api = api;
@@ -38,10 +48,21 @@ public sealed class VendedorHomePage : ContentPage
         _offline = offline;
         _sincronizacion = sincronizacion;
         _enVivo = enVivo;
+        _recaudoVivo = recaudoVivo;
+        _recaudoVivo.CambioRecibido += OnRecaudoVivo;
         _services = services;
         Title = PdaTexts.Inicio;
         _juegoNuevo = Ui.Primario("+ " + PdaTexts.BotonJuegoNuevo);
         _juegoNuevo.Clicked += (_, _) => _ = Shell.Current.GoToAsync("//vender");
+        _atrasadoCaja = new Frame
+        {
+            BackgroundColor = Ui.Mint,
+            BorderColor = Ui.Green,
+            CornerRadius = 10,
+            Padding = new Thickness(12, 10),
+            HasShadow = false,
+            Content = FilaEntrega(_atrasadoTitulo, _atrasado)
+        };
 
         Content = new ScrollView
         {
@@ -91,6 +112,42 @@ public sealed class VendedorHomePage : ContentPage
                             }
                         }
                     },
+                    new Frame
+                    {
+                        BackgroundColor = Ui.Crema,
+                        BorderColor = Ui.Gold,
+                        CornerRadius = 15,
+                        Padding = 18,
+                        Content = new VerticalStackLayout
+                        {
+                            Spacing = 8,
+                            Children =
+                            {
+                                new Label { Text = PdaTexts.DebeEntregarRecaudador, FontAttributes = FontAttributes.Bold, FontSize = 12, TextColor = Ui.Ink },
+                                _atrasadoCaja,
+                                new Frame
+                                {
+                                    BackgroundColor = Colors.White,
+                                    BorderColor = Ui.Line,
+                                    CornerRadius = 10,
+                                    Padding = new Thickness(12, 10),
+                                    HasShadow = false,
+                                    Content = new VerticalStackLayout
+                                    {
+                                        Spacing = 2,
+                                        Children =
+                                        {
+                                            FilaEntrega(new Label { Text = PdaTexts.EntregaDeHoy, FontSize = 13, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink }, _hoy),
+                                            _entregaDetalle
+                                        }
+                                    }
+                                },
+                                new BoxView { HeightRequest = 1, Color = Ui.Gold, Margin = new Thickness(0, 2) },
+                                FilaEntrega(new Label { Text = PdaTexts.EntregaTotal, FontSize = 14, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink }, _entregar),
+                                _pagadoHoy
+                            }
+                        }
+                    },
                     new Label { Text = PdaTexts.ResumenTurno, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink },
                     new Grid
                     {
@@ -127,8 +184,18 @@ public sealed class VendedorHomePage : ContentPage
         }
     }
 
+    private void OnRecaudoVivo() => _ = ActualizarAsync();
+
     private async Task ActualizarAsync()
     {
+        if (!_recarga.Intentar())
+        {
+            return;
+        }
+
+        var serie = _recarga.Nueva();
+        try
+        {
         var ping = await _api.ConectarAsync(
             PdaConexion.UrlsPara(DeviceInfo.Current.DeviceType == DeviceType.Virtual),
             CancellationToken.None);
@@ -138,6 +205,7 @@ public sealed class VendedorHomePage : ContentPage
         if (conectado)
         {
             await _enVivo.AsegurarSesionAsync(CancellationToken.None);
+            await _recaudoVivo.AsegurarSesionAsync(CancellationToken.None);
             var operativa = await _api.OperativaAsync(CancellationToken.None);
             if (operativa.IsSuccess && operativa.Data is not null)
             {
@@ -158,6 +226,11 @@ public sealed class VendedorHomePage : ContentPage
             }
         }
         var offline = await _offline.ContarDisponiblesAsync();
+        if (!_recarga.Vigente(serie))
+        {
+            return;
+        }
+
         _sesion.HorarioCerrado = HorarioPda.EstaFuera(
             _sesion.Limites,
             ZonaHorariaColombia.ALocal(DateTime.UtcNow));
@@ -179,7 +252,7 @@ public sealed class VendedorHomePage : ContentPage
             _banners.Children.Add(Ui.Banner($"{PdaTexts.JuegosCerrados} {PdaTexts.JuegosCerradosDetalle}", Ui.DangerBg, Ui.Danger));
         }
 
-        var hoy = DateTime.Today;
+        var hoy = ZonaHorariaColombia.ALocal(DateTime.UtcNow).Date;
         var ventas = await _api.VentasAsync(new ConsultaVentasRequest
         {
             FechaInicial = hoy,
@@ -196,6 +269,47 @@ public sealed class VendedorHomePage : ContentPage
             _total.Text = FormatoDinero.Pesos(0);
             _boletos.Text = "0";
         }
+
+        var entrega = conectado ? await _api.MiEntregaRecaudoAsync(CancellationToken.None) : null;
+        var datos = entrega is { IsSuccess: true } ? entrega.Data : null;
+        var atrasado = EntregaVendedorVista.Atrasado(datos);
+        var conAtraso = atrasado > 0m;
+        var alDia = EntregaVendedorVista.EstaAlDia(datos);
+        _atrasadoTitulo.Text = EntregaVendedorVista.TituloAtrasado(datos);
+        _atrasadoTitulo.TextColor = conAtraso ? Ui.Danger : alDia ? Ui.Green : Ui.Ink;
+        _atrasado.Text = FormatoDinero.Pesos(atrasado);
+        _atrasado.TextColor = conAtraso ? Ui.Danger : alDia ? Ui.Green : Ui.Ink;
+        _atrasadoCaja.BackgroundColor = conAtraso ? Ui.DangerBg : alDia ? Ui.Mint : Colors.White;
+        _atrasadoCaja.BorderColor = conAtraso ? Ui.Danger : alDia ? Ui.Green : Ui.Line;
+        _hoy.Text = FormatoDinero.Pesos(EntregaVendedorVista.Hoy(datos));
+        _entregar.Text = FormatoDinero.Pesos(EntregaVendedorVista.Total(datos));
+        _entregaDetalle.Text = EntregaVendedorVista.Detalle(datos);
+        _entregaDetalle.IsVisible = !string.IsNullOrEmpty(_entregaDetalle.Text);
+        _pagadoHoy.Text = EntregaVendedorVista.PagadoHoy(datos);
+        _pagadoHoy.IsVisible = !string.IsNullOrEmpty(_pagadoHoy.Text);
+        }
+        finally
+        {
+            if (_recarga.Terminar())
+            {
+                _ = ActualizarAsync();
+            }
+        }
+    }
+
+    private static Grid FilaEntrega(Label titulo, Label valor)
+    {
+        titulo.VerticalOptions = LayoutOptions.Center;
+        valor.HorizontalOptions = LayoutOptions.End;
+        valor.VerticalOptions = LayoutOptions.Center;
+        var fila = new Grid
+        {
+            ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) },
+            ColumnSpacing = 8
+        };
+        fila.Add(titulo, 0, 0);
+        fila.Add(valor, 1, 0);
+        return fila;
     }
 
     private static Frame Mini(string titulo, View valor, int col, int row)

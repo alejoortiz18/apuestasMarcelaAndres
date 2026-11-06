@@ -1,28 +1,26 @@
+using System.Text.Json.Serialization;
+
 namespace NewRich.Application.Contracts.Recaudo;
+
+public sealed class RecaudoCambioAviso
+{
+    [JsonPropertyName("vendedorId")]
+    public Guid VendedorId { get; set; }
+
+    [JsonPropertyName("recaudadorId")]
+    public Guid RecaudadorId { get; set; }
+}
 
 public sealed class AsignarGrupoRecaudoRequest
 {
     public Guid RecaudadorId { get; set; }
     public Guid GrupoId { get; set; }
-    public int Porcentaje { get; set; }
-}
-
-public sealed class PorcentajeGrupoRecaudoRequest
-{
-    public Guid GrupoId { get; set; }
-    public int Porcentaje { get; set; }
-}
-
-public sealed class ActualizarPorcentajesGruposRecaudoRequest
-{
-    public List<PorcentajeGrupoRecaudoRequest> Grupos { get; set; } = [];
 }
 
 public sealed class AsignarVendedorRecaudoRequest
 {
     public Guid RecaudadorId { get; set; }
     public Guid VendedorId { get; set; }
-    public int Porcentaje { get; set; }
 }
 
 public sealed class RegistrarPagoRecaudoRequest
@@ -44,7 +42,18 @@ public sealed class ObligacionRecaudoResponse
     public string? Documento { get; set; }
     public string Grupo { get; set; } = string.Empty;
     public decimal TotalVendido { get; set; }
+
+    /// <summary>Vacío cuando la obligación es anterior al porcentaje por usuario.</summary>
+    public int? PorcentajeVendedor { get; set; }
+    public decimal ComisionVendedor { get; set; }
+
+    /// <summary>Lo que el vendedor debe entregar al recaudador por lo vendido ese día.</summary>
     public decimal ValorACobrar { get; set; }
+    public int? PorcentajeRecaudador { get; set; }
+    public decimal ComisionRecaudador { get; set; }
+
+    /// <summary>Lo que el recaudador debe entregar a la administración por lo de ese vendedor ese día.</summary>
+    public decimal EntregarAdministracion { get; set; }
     public decimal SaldoAnterior { get; set; }
     public decimal TotalPendiente { get; set; }
     public decimal PendienteDelDia { get; set; }
@@ -76,6 +85,7 @@ public sealed class RecaudadorResumenResponse
     public string Grupos { get; set; } = string.Empty;
     public int PersonasAsignadas { get; set; }
     public decimal TotalPorRecaudar { get; set; }
+    public decimal TotalEntregarAdministracion { get; set; }
     public decimal TotalRecaudado { get; set; }
     public decimal SaldoPendiente { get; set; }
     public int PorcentajeRecaudado { get; set; }
@@ -158,6 +168,8 @@ public sealed class IntegranteGrupoRecaudoResponse
     public string RecaudadorNombre { get; set; } = string.Empty;
     public decimal TotalVendido { get; set; }
     public decimal ValorACobrar { get; set; }
+    public int PorcentajeRecaudador { get; set; }
+    public decimal EntregarAdministracion { get; set; }
     public decimal TotalPendiente { get; set; }
     public decimal PagosHoy { get; set; }
     public string Estado { get; set; } = string.Empty;
@@ -184,6 +196,7 @@ public sealed class DetalleRecaudadorResponse
     public string Usuario { get; set; } = string.Empty;
     public string? Documento { get; set; }
     public decimal TotalPorRecaudar { get; set; }
+    public decimal TotalEntregarAdministracion { get; set; }
     public decimal TotalRecaudado { get; set; }
     public decimal SaldoPendiente { get; set; }
     public int PorcentajeRecaudado { get; set; }
@@ -201,6 +214,7 @@ public sealed class LineaRecaudoDiaResponse
 
     /// <summary>Lo generado ese día por las ventas, sin deudas anteriores.</summary>
     public decimal Generado { get; set; }
+    public decimal EntregarAdministracion { get; set; }
     public decimal Vendido { get; set; }
     public IReadOnlyList<LineaGrupoDiaResponse> Grupos { get; set; } = [];
 }
@@ -224,6 +238,7 @@ public sealed class TableroRecaudoResponse
     public bool PeriodoRecortado { get; set; }
     public decimal TotalVendido { get; set; }
     public decimal TotalPorRecaudar { get; set; }
+    public decimal TotalEntregarAdministracion { get; set; }
     public decimal TotalRecaudado { get; set; }
     public decimal TotalPendiente { get; set; }
 

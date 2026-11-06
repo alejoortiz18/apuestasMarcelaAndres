@@ -3,6 +3,7 @@ using NewRich.Pda.Core;
 using NewRich.Pda.Core.Api;
 using NewRich.Pda.Core.Auth;
 using NewRich.Maui.Data;
+using NewRich.Maui.Services;
 using NewRich.Maui.Views;
 
 namespace NewRich.Maui.Views.Recaudador;
@@ -13,6 +14,8 @@ public sealed class RecaudadorHomePage : ContentPage
     private readonly SesionPda _sesion;
     private readonly LocalDatabase _local;
     private readonly IServiceProvider _services;
+    private readonly RecaudoEnVivoServicio _recaudoVivo;
+    private readonly RecargaRecaudo _recarga = new();
     private readonly Label _estado = new() { FontSize = 11, TextColor = Color.FromArgb("#bce9cc") };
     private readonly Label _fecha = new()
     {
@@ -38,15 +41,24 @@ public sealed class RecaudadorHomePage : ContentPage
         Text = RecaudoPagoVista.Miles(0),
         HorizontalTextAlignment = TextAlignment.Center
     };
+    private readonly Label _entregarAdministracion = new()
+    {
+        FontSize = 14,
+        FontAttributes = FontAttributes.Bold,
+        TextColor = Ui.Ink,
+        HorizontalTextAlignment = TextAlignment.Center
+    };
     private readonly Label _grupos = new() { FontSize = 19, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink, Text = "0" };
     private readonly Label _vendedores = new() { FontSize = 19, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink, Text = "0" };
     private readonly Button _recaudar;
 
-    public RecaudadorHomePage(NewRichApiClient api, SesionPda sesion, LocalDatabase local, IServiceProvider services)
+    public RecaudadorHomePage(NewRichApiClient api, SesionPda sesion, LocalDatabase local, RecaudoEnVivoServicio recaudoVivo, IServiceProvider services)
     {
         _api = api;
         _sesion = sesion;
         _local = local;
+        _recaudoVivo = recaudoVivo;
+        _recaudoVivo.CambioRecibido += OnRecaudoVivo;
         _services = services;
         Title = PdaTexts.Inicio;
         _recaudar = Ui.Primario(PdaTexts.Recaudar);
@@ -100,6 +112,7 @@ public sealed class RecaudadorHomePage : ContentPage
                                         Columna(PdaTexts.TotalRecaudado, _recaudado, 1)
                                     }
                                 },
+                                _entregarAdministracion,
                                 _recaudar
                             }
                         }
@@ -140,13 +153,27 @@ public sealed class RecaudadorHomePage : ContentPage
         }
     }
 
+    private void OnRecaudoVivo() => _ = ActualizarAsync();
+
     private async Task ActualizarAsync()
     {
+        if (!_recarga.Intentar())
+        {
+            return;
+        }
+
+        var serie = _recarga.Nueva();
+        try
+        {
         var ping = await _api.ConectarAsync(
             PdaConexion.UrlsPara(DeviceInfo.Current.DeviceType == DeviceType.Virtual),
             CancellationToken.None);
         var conectado = ping.IsSuccess;
         _estado.Text = $"PDA {_sesion.CodigoDispositivo} · {(conectado ? PdaTexts.Conectado : PdaTexts.SinConexion)}";
+        if (conectado)
+        {
+            await _recaudoVivo.AsegurarSesionAsync(CancellationToken.None);
+        }
 
         IReadOnlyList<ObligacionRecaudoResponse> filas;
         if (conectado)
@@ -167,12 +194,26 @@ public sealed class RecaudadorHomePage : ContentPage
             filas = await _local.ObligacionesRecaudoLocalAsync();
         }
 
+        if (!_recarga.Vigente(serie))
+        {
+            return;
+        }
+
         var resumen = RecaudoListas.Resumen(filas);
         _fecha.Text = RecaudoListas.FechaDelDia(DateTime.UtcNow);
         _total.Text = RecaudoPagoVista.Miles(resumen.TotalPorRecaudar);
         _recaudado.Text = RecaudoPagoVista.Miles(resumen.TotalRecaudado);
+        _entregarAdministracion.Text = $"{PdaTexts.EntregarAdministracionTotal}: {RecaudoPagoVista.Miles(filas.Sum(f => f.EntregarAdministracion))}";
         _grupos.Text = resumen.Grupos.ToString();
         _vendedores.Text = resumen.Vendedores.ToString();
+        }
+        finally
+        {
+            if (_recarga.Terminar())
+            {
+                _ = ActualizarAsync();
+            }
+        }
     }
 
     private static VerticalStackLayout Columna(string titulo, View valor, int col)

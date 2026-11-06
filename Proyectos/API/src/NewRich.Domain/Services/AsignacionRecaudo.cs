@@ -15,16 +15,10 @@ public static class AsignacionRecaudo
     public static ResultadoAsignacion AsignarGrupo(
         Guid grupoId,
         Guid recaudadorId,
-        int porcentaje,
         IReadOnlyCollection<Guid> vendedoresDelGrupo,
         IReadOnlyCollection<GrupoEnRecaudo> grupos,
         IReadOnlyCollection<VendedorEnRecaudo> vendedores)
     {
-        if (!CalculoRecaudo.PorcentajeValido(porcentaje))
-        {
-            return new ResultadoAsignacion(false, "El porcentaje debe estar entre 1 y 100.");
-        }
-
         if (grupos.Any(g => g.GrupoId == grupoId && g.RecaudadorId != recaudadorId))
         {
             return new ResultadoAsignacion(false, "El grupo ya esta asignado a otro recaudador.");

@@ -53,6 +53,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<ActualizacionEnVivoServicio>();
         builder.Services.AddSingleton<CodigosOfflineEnVivoServicio>();
         builder.Services.AddSingleton<LoteriasEnVivoServicio>();
+        builder.Services.AddSingleton<RecaudoEnVivoServicio>();
         builder.Services.AddSingleton<JuegoNumerosManualApiClient>();
         builder.Services.AddSingleton<JuegoNumerosManualServicio>();
         builder.Services.AddTransient<JuegoNumerosManualPage>();
@@ -92,6 +93,7 @@ public static class MauiProgram
 
         var app = builder.Build();
         _ = app.Services.GetRequiredService<ActualizacionEnVivoServicio>();
+        _ = app.Services.GetRequiredService<RecaudoEnVivoServicio>();
         return app;
     }
 

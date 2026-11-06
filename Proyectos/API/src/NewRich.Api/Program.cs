@@ -26,6 +26,7 @@ builder.Services.AddScoped<IChatTiempoReal, SignalRChatTiempoReal>();
 builder.Services.AddScoped<ICodigosOfflineTiempoReal, SignalRCodigosOfflineTiempoReal>();
 builder.Services.AddScoped<ILoteriasTiempoReal, SignalRLoteriasTiempoReal>();
 builder.Services.AddScoped<IVersionesTiempoReal, SignalRVersionesTiempoReal>();
+builder.Services.AddScoped<IRecaudoTiempoReal, SignalRRecaudoTiempoReal>();
 builder.Services.AddControllers(options =>
 {
     options.Filters.Add<SesionYPasswordActionFilter>();
@@ -135,6 +136,7 @@ using (var alcance = app.Services.CreateScope())
     await db.AsegurarEsquemaRegistroJuegoNumerosWebAsync(CancellationToken.None);
     await db.AsegurarEsquemaRevisadaManualAsync(CancellationToken.None);
     await db.AsegurarEsquemaParametrosRevisadaManualAsync(CancellationToken.None);
+    await db.AsegurarEsquemaComisionDiaAsync(CancellationToken.None);
     await db.AsegurarEsquemaUtilidadesAsync(CancellationToken.None);
     await db.AsegurarEsquemaInformesAsync(CancellationToken.None);
     await db.AsegurarEsquemaAvisosChatAsync(CancellationToken.None);

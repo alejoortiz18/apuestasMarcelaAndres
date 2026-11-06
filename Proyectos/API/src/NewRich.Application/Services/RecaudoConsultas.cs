@@ -38,6 +38,7 @@ public sealed partial class RecaudoService
                 Grupos = nombres.Count == 0 ? "Sin grupos" : string.Join(", ", nombres),
                 PersonasAsignadas = personas,
                 TotalPorRecaudar = porRecaudar,
+                TotalEntregarAdministracion = dias.Sum(d => d.EntregarAdministracion),
                 TotalRecaudado = recaudado,
                 SaldoPendiente = pendiente,
                 PorcentajeRecaudado = PorcentajeDe(recaudado, pendiente)
@@ -59,7 +60,6 @@ public sealed partial class RecaudoService
         var asignaciones = await _db.AsignacionesGrupoRecaudo.Where(a => a.Estado == "Activa").ToListAsync(cancellationToken);
         var recaudadores = await _db.Usuarios.Where(u => u.Rol == RolUsuario.Recaudador).ToListAsync(cancellationToken);
         var miembros = await _db.UsuariosGrupos.ToListAsync(cancellationToken);
-        var guardados = await _db.PorcentajesGrupoRecaudo.ToListAsync(cancellationToken);
         var filas = new List<GrupoConfigRecaudoResponse>();
         var alarmas = new List<string>();
         foreach (var grupo in grupos)
@@ -81,9 +81,6 @@ public sealed partial class RecaudoService
                 GrupoId = grupo.GrupoId,
                 Nombre = grupo.Nombre,
                 Vendedores = miembros.Count(m => m.GrupoId == grupo.GrupoId),
-                Porcentaje = recaudador is null
-                    ? asignacion?.Porcentaje ?? guardados.FirstOrDefault(p => p.GrupoId == grupo.GrupoId)?.Porcentaje ?? 0
-                    : asignacion!.Porcentaje,
                 SinConfigurar = sinConfigurar,
                 TotalPorRecaudar = porRecaudar,
                 TotalRecaudado = recaudado,
@@ -104,7 +101,6 @@ public sealed partial class RecaudoService
             {
                 VendedorId = v.UsuarioId,
                 Nombre = v.NombreCompleto,
-                Porcentaje = asignado?.Porcentaje ?? 0,
                 RecaudadorId = asignado?.RecaudadorId,
                 RecaudadorNombre = nombre
             };
@@ -151,10 +147,10 @@ public sealed partial class RecaudoService
             .Where(u => ids.Contains(u.UsuarioId))
             .OrderBy(u => u.NombreCompleto)
             .ToListAsync(cancellationToken);
-        var porcentaje = asignacion?.Porcentaje
-            ?? (await _db.PorcentajesGrupoRecaudo.FirstOrDefaultAsync(p => p.GrupoId == grupoId, cancellationToken))?.Porcentaje
-            ?? 0;
         var inicio = hasta.ToDateTime(TimeOnly.MinValue);
+        var delDia = await _db.ObligacionesRecaudo.Where(o => ids.Contains(o.VendedorId) && o.Fecha == inicio).ToListAsync(cancellationToken);
+        var comisiones = await ComisionesAsync(recaudador is null ? ids : ids.Append(recaudador.UsuarioId), cancellationToken);
+        var porcentajeRecaudador = recaudador is null ? 0 : Porcentaje(comisiones, recaudador.UsuarioId, hasta);
         var inicioPago = ZonaHorariaColombia.InicioLocalDelDia(hasta);
         var finPago = ZonaHorariaColombia.InicioLocalDelDia(hasta.AddDays(1));
         var ventas = await _db.Ventas.Where(v => ids.Contains(v.UsuarioId) && v.FechaVenta >= inicioPago && v.FechaVenta < finPago).ToListAsync(cancellationToken);
@@ -164,7 +160,8 @@ public sealed partial class RecaudoService
         var integrantes = usuarios.Select(u =>
         {
             var vendido = ventas.Where(v => v.UsuarioId == u.UsuarioId).Sum(v => v.Total);
-            var generado = CalculoRecaudo.ObligacionDelDia(vendido, porcentaje);
+            var comision = Calcular(vendido, delDia.FirstOrDefault(o => o.VendedorId == u.UsuarioId), Porcentaje(comisiones, u.UsuarioId, hasta), porcentajeRecaudador);
+            var generado = comision.Entregar;
             var anterior = Math.Max(0m,
                 anteriores.Where(o => o.VendedorId == u.UsuarioId).Sum(o => o.ValorGenerado)
                 - pagosPrevios.Where(p => p.VendedorId == u.UsuarioId).Sum(p => p.Valor));
@@ -176,10 +173,12 @@ public sealed partial class RecaudoService
                 NombreCompleto = u.NombreCompleto,
                 Alias = u.Alias,
                 Usuario = u.NombreUsuario,
-                Porcentaje = porcentaje,
+                Porcentaje = comision.PorcentajeVendedor ?? 0,
                 RecaudadorNombre = recaudador?.NombreCompleto ?? string.Empty,
                 TotalVendido = vendido,
                 ValorACobrar = generado,
+                PorcentajeRecaudador = comision.PorcentajeRecaudador ?? 0,
+                EntregarAdministracion = comision.EntregarAdministracion,
                 TotalPendiente = CalculoRecaudo.Pendiente(anterior, generado, pagado),
                 PagosHoy = pagado,
                 Estado = clasificacion?.Estado.ToString() ?? string.Empty,
@@ -191,7 +190,6 @@ public sealed partial class RecaudoService
         {
             GrupoId = grupo.GrupoId,
             Nombre = grupo.Nombre,
-            Porcentaje = porcentaje,
             SinConfigurar = asignacion is null,
             RecaudadorNombre = recaudador?.NombreCompleto ?? string.Empty,
             TotalPorRecaudar = integrantes.Sum(i => i.ValorACobrar),
@@ -306,6 +304,7 @@ public sealed partial class RecaudoService
             Usuario = recaudador.NombreUsuario,
             Documento = recaudador.Documento,
             TotalPorRecaudar = dias.Sum(d => d.Generado),
+            TotalEntregarAdministracion = dias.Sum(d => d.EntregarAdministracion),
             TotalRecaudado = recaudado,
             SaldoPendiente = pendiente,
             PorcentajeRecaudado = PorcentajeDe(recaudado, pendiente),
@@ -355,6 +354,7 @@ public sealed partial class RecaudoService
                 Debia = filas.Sum(f => f.SaldoAnterior + f.ValorACobrar),
                 Cobrado = filas.Sum(f => f.PagosHoy),
                 Generado = filas.Sum(f => f.ValorACobrar),
+                EntregarAdministracion = filas.Sum(f => f.EntregarAdministracion),
                 Vendido = filas.Sum(f => f.TotalVendido),
                 Grupos = filas
                     .GroupBy(f => f.Grupo)
@@ -480,7 +480,7 @@ public sealed partial class RecaudoService
             vendedor.UsuarioGrupos.FirstOrDefault()?.GrupoId,
             grupos.Select(g => new GrupoEnRecaudo(g.GrupoId, g.RecaudadorId, g.Porcentaje)).ToList(),
             sueltos.Select(s => new VendedorEnRecaudo(s.VendedorId, null, s.RecaudadorId, s.Porcentaje)).ToList());
-        if (cobro is null || cobro.Value.Porcentaje <= 0)
+        if (cobro is null)
         {
             return Result.Ok(SuccessMessages.OperacionExitosa);
         }
@@ -492,10 +492,15 @@ public sealed partial class RecaudoService
         var total = await _db.Ventas
             .Where(v => v.UsuarioId == vendedorId && v.FechaVenta >= inicioLocal && v.FechaVenta < finLocal)
             .SumAsync(v => v.Total, cancellationToken);
-        var generado = CalculoRecaudo.ObligacionDelDia(total, cobro.Value.Porcentaje);
         var existente = await _db.ObligacionesRecaudo.FirstOrDefaultAsync(
             o => o.VendedorId == vendedorId && o.Fecha == inicio,
             cancellationToken);
+        var comisiones = await ComisionesAsync([vendedorId, cobro.Value.RecaudadorId], cancellationToken);
+        var comision = Calcular(
+            total,
+            existente,
+            Porcentaje(comisiones, vendedorId, hoy),
+            Porcentaje(comisiones, cobro.Value.RecaudadorId, hoy));
         if (existente is null)
         {
             var pagosPrevios = await _db.PagosRecaudo.Where(p => p.VendedorId == vendedorId && p.FechaHora < ZonaHorariaColombia.InicioLocalDelDia(hoy))
@@ -508,27 +513,31 @@ public sealed partial class RecaudoService
                 saldoAnterior = 0m;
             }
 
-            _db.ObligacionesRecaudo.Add(new ObligacionRecaudo
+            var nueva = new ObligacionRecaudo
             {
                 ObligacionId = Guid.NewGuid(),
                 VendedorId = vendedorId,
                 RecaudadorId = cobro.Value.RecaudadorId,
                 Fecha = inicio,
                 TotalVendido = total,
-                Porcentaje = cobro.Value.Porcentaje,
-                ValorGenerado = generado,
                 SaldoAnterior = saldoAnterior,
                 FechaGeneracion = _clock.LocalNow
-            });
+            };
+            Guardar(nueva, comision);
+            _db.ObligacionesRecaudo.Add(nueva);
         }
         else
         {
             existente.TotalVendido = total;
-            existente.Porcentaje = cobro.Value.Porcentaje;
-            existente.ValorGenerado = generado;
+            Guardar(existente, comision);
         }
 
         await _db.SaveChangesAsync(cancellationToken);
+        await _vivo.AvisarCambioAsync(new RecaudoCambioAviso
+        {
+            VendedorId = vendedorId,
+            RecaudadorId = cobro.Value.RecaudadorId
+        }, cancellationToken);
         return Result.Ok(SuccessMessages.OperacionExitosa);
     }
 }

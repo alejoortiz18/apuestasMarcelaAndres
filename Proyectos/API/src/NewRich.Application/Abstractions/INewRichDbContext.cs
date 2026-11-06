@@ -6,6 +6,7 @@ namespace NewRich.Application.Abstractions;
 public interface INewRichDbContext
 {
     DbSet<Usuario> Usuarios { get; }
+    DbSet<UsuarioComisionDia> UsuariosComisionDia { get; }
     DbSet<Rol> Roles { get; }
     DbSet<UsuarioRol> UsuariosRoles { get; }
     DbSet<Grupo> Grupos { get; }
@@ -70,6 +71,7 @@ public interface INewRichDbContext
     Task AsegurarEsquemaRegistroJuegoNumerosWebAsync(CancellationToken cancellationToken = default);
     Task AsegurarEsquemaRevisadaManualAsync(CancellationToken cancellationToken = default);
     Task AsegurarEsquemaParametrosRevisadaManualAsync(CancellationToken cancellationToken = default);
+    Task AsegurarEsquemaComisionDiaAsync(CancellationToken cancellationToken = default);
     Task AsegurarEsquemaUtilidadesAsync(CancellationToken cancellationToken = default);
     Task AsegurarEsquemaInformesAsync(CancellationToken cancellationToken = default);
     Task AsegurarEsquemaAvisosChatAsync(CancellationToken cancellationToken = default);

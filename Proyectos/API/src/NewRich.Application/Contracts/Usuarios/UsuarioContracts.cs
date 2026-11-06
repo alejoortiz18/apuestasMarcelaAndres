@@ -13,6 +13,7 @@ public sealed class CrearUsuarioRequest
     public RolUsuario Rol { get; set; }
     public Guid? DispositivoId { get; set; }
     public Guid? GrupoId { get; set; }
+    public int[]? PorcentajesDia { get; set; }
 }
 
 public sealed class ActualizarUsuarioRequest
@@ -24,6 +25,7 @@ public sealed class ActualizarUsuarioRequest
     public string? Email { get; set; }
     public EstadoUsuario Estado { get; set; }
     public Guid? DispositivoId { get; set; }
+    public int[]? PorcentajesDia { get; set; }
 }
 
 public sealed class UsuarioResponse
@@ -43,6 +45,7 @@ public sealed class UsuarioResponse
     public string? CodigoDispositivo { get; set; }
     public Guid? GrupoId { get; set; }
     public string? GrupoNombre { get; set; }
+    public int[] PorcentajesDia { get; set; } = [];
 }
 
 public sealed class RestablecerPasswordResponse

@@ -15,12 +15,14 @@ public sealed class RecaudadorCobroPage : ContentPage
     private readonly SesionPda _sesion;
     private readonly LocalDatabase _local;
     private readonly IPrinterService _impresora;
+    private readonly RecaudoEnVivoServicio _recaudoVivo;
     private readonly VerticalStackLayout _lista = new() { Spacing = 10 };
     private readonly HorizontalStackLayout _grupos = new() { Spacing = 8 };
     private readonly Label _estado = new() { FontSize = 11, TextColor = Color.FromArgb("#bce9cc") };
     private readonly Label _porCobrar = new() { FontSize = 22, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink };
     private readonly Label _recaudado = new() { FontSize = 22, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink };
     private readonly Label _pendiente = new() { FontSize = 22, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink };
+    private readonly Label _entregarAdministracion = new() { FontSize = 22, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink };
     private readonly Entry _buscar = Ui.Entrada(PdaTexts.BuscarVendedorAyuda);
     private readonly Picker _orden = new() { Title = PdaTexts.OrdenarPor, ItemsSource = new[] { "vendedor", "vendido", "cobrar", "pendiente", "recibido", "estado" } };
     private readonly ActivityIndicator _spinner = new() { IsRunning = false, IsVisible = false, Color = Ui.Gold };
@@ -34,14 +36,17 @@ public sealed class RecaudadorCobroPage : ContentPage
     private string _consulta = string.Empty;
     private FiltroCobro _filtroLista = FiltroCobro.Hoy;
     private IReadOnlyList<ObligacionRecaudoResponse> _filas = [];
+    private readonly RecargaRecaudo _recarga = new();
     private bool _ocupado;
 
-    public RecaudadorCobroPage(NewRichApiClient api, SesionPda sesion, LocalDatabase local, IPrinterService impresora)
+    public RecaudadorCobroPage(NewRichApiClient api, SesionPda sesion, LocalDatabase local, IPrinterService impresora, RecaudoEnVivoServicio recaudoVivo)
     {
         _api = api;
         _sesion = sesion;
         _local = local;
         _impresora = impresora;
+        _recaudoVivo = recaudoVivo;
+        _recaudoVivo.CambioRecibido += OnRecaudoVivo;
         Title = PdaTexts.Recaudar;
         _orden.SelectedIndex = 0;
         _orden.SelectedIndexChanged += (_, _) => Pintar();
@@ -80,6 +85,8 @@ public sealed class RecaudadorCobroPage : ContentPage
         base.OnAppearing();
         await CargarAsync();
     }
+
+    private void OnRecaudoVivo() => _ = CargarAsync();
 
     private View Encabezado() => new Frame
     {
@@ -169,19 +176,28 @@ public sealed class RecaudadorCobroPage : ContentPage
         };
     }
 
-    private View Indicadores() => new Grid
+    private View Indicadores()
     {
-        ColumnDefinitions = new ColumnDefinitionCollection { new(GridLength.Star), new(GridLength.Star), new(GridLength.Star) },
-        ColumnSpacing = 8,
-        Children =
+        var entregar = Mini(PdaTexts.EntregarAdministracionTotal, _entregarAdministracion, 0);
+        Grid.SetRow(entregar, 1);
+        Grid.SetColumnSpan(entregar, 3);
+        return new Grid
         {
-            Mini(PdaTexts.PorCobrarHoy, _porCobrar, 0),
-            Mini(PdaTexts.RecaudadoHoy, _recaudado, 1),
-            Mini(PdaTexts.PendienteHoy, _pendiente, 2)
-        }
-    };
+            ColumnDefinitions = new ColumnDefinitionCollection { new(GridLength.Star), new(GridLength.Star), new(GridLength.Star) },
+            RowDefinitions = new RowDefinitionCollection { new(GridLength.Auto), new(GridLength.Auto) },
+            ColumnSpacing = 8,
+            RowSpacing = 8,
+            Children =
+            {
+                Mini(PdaTexts.PorCobrarHoy, _porCobrar, 0),
+                Mini(PdaTexts.RecaudadoHoy, _recaudado, 1),
+                Mini(PdaTexts.PendienteHoy, _pendiente, 2),
+                entregar
+            }
+        };
+    }
 
-    private static View Mini(string titulo, Label valor, int col)
+    private static Frame Mini(string titulo, Label valor, int col)
     {
         var marco = new Frame
         {
@@ -204,12 +220,12 @@ public sealed class RecaudadorCobroPage : ContentPage
 
     private async Task CargarAsync()
     {
-        if (_ocupado)
+        if (!_recarga.Intentar())
         {
             return;
         }
 
-        _ocupado = true;
+        var serie = _recarga.Nueva();
         _spinner.IsVisible = _spinner.IsRunning = true;
         try
         {
@@ -219,6 +235,7 @@ public sealed class RecaudadorCobroPage : ContentPage
             _estado.Text = $"PDA {_sesion.CodigoDispositivo} · {(ping.IsSuccess ? PdaTexts.Conectado : PdaTexts.SinConexion)}";
             if (ping.IsSuccess)
             {
+                await _recaudoVivo.AsegurarSesionAsync(CancellationToken.None);
                 await SubirPendientesAsync();
                 var remoto = await _api.ObligacionesRecaudoAsync(null, CancellationToken.None);
                 if (remoto.IsSuccess && remoto.Data is not null)
@@ -236,13 +253,21 @@ public sealed class RecaudadorCobroPage : ContentPage
                 _filas = await _local.ObligacionesRecaudoLocalAsync();
             }
 
+            if (!_recarga.Vigente(serie))
+            {
+                return;
+            }
+
             ArmarGrupos();
             Pintar();
         }
         finally
         {
             _spinner.IsVisible = _spinner.IsRunning = false;
-            _ocupado = false;
+            if (_recarga.Terminar())
+            {
+                _ = CargarAsync();
+            }
         }
     }
 
@@ -308,6 +333,7 @@ public sealed class RecaudadorCobroPage : ContentPage
         _porCobrar.Text = RecaudoPagoVista.Miles(_filas.Sum(f => f.ValorACobrar));
         _recaudado.Text = RecaudoPagoVista.Miles(_filas.Sum(f => f.PagosHoy));
         _pendiente.Text = RecaudoPagoVista.Miles(_filas.Sum(f => f.TotalPendiente));
+        _entregarAdministracion.Text = RecaudoPagoVista.Miles(_filas.Sum(f => f.EntregarAdministracion));
         _lista.Children.Clear();
         if (visibles.Count == 0)
         {

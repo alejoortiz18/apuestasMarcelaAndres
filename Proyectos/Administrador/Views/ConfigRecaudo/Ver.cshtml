@@ -76,7 +76,6 @@
 <div class="recaudo-metricas">
     @{
         Tarjeta(UiTexts.Recaudador, UiTexts.AyudaTarjetaRecaudador, Model.RecaudadorNombre, false);
-        Tarjeta(UiTexts.Porcentaje, UiTexts.AyudaTarjetaPorcentaje, $"{Model.Porcentaje} %", true);
         Tarjeta(UiTexts.TotalPorRecaudar, UiTexts.AyudaTarjetaTotalPorRecaudar, FormatoPesos.De(Model.TotalPorRecaudar), true);
         Tarjeta(UiTexts.TotalRecaudado, UiTexts.AyudaTarjetaTotalRecaudado, FormatoPesos.De(Model.TotalRecaudado), true);
         Tarjeta(UiTexts.TotalPendiente, UiTexts.AyudaTarjetaTotalPendiente, FormatoPesos.De(Model.TotalPendiente), true);
@@ -107,6 +106,8 @@
                         Encabezado(UiTexts.Porcentaje, UiTexts.AyudaColumnaPorcentaje);
                         Encabezado(UiTexts.TotalVendido, UiTexts.AyudaColumnaTotalVendido);
                         Encabezado(UiTexts.TotalPorRecaudar, UiTexts.AyudaColumnaTotalPorRecaudar);
+                        Encabezado(UiTexts.PorcentajeRecaudador, UiTexts.AyudaColumnaPorcentajeRecaudador);
+                        Encabezado(UiTexts.EntregarAdministracion, UiTexts.AyudaColumnaEntregarAdministracion);
                         Encabezado(UiTexts.TotalRecaudado, UiTexts.AyudaColumnaTotalRecaudado);
                         Encabezado(UiTexts.TotalPendiente, UiTexts.AyudaColumnaTotalPendiente);
                         Encabezado(UiTexts.Estado, UiTexts.AyudaColumnaEstado);
@@ -132,6 +133,8 @@
                         <td class="recaudo-cifra">@fila.Porcentaje %</td>
                         <td>@FormatoPesos.De(fila.TotalVendido)</td>
                         <td class="recaudo-cifra">@FormatoPesos.De(fila.ValorACobrar)</td>
+                        <td class="recaudo-cifra">@fila.PorcentajeRecaudador %</td>
+                        <td class="recaudo-cifra">@FormatoPesos.De(fila.EntregarAdministracion)</td>
                         <td class="recaudo-cifra">@FormatoPesos.De(fila.PagosHoy)</td>
                         <td>@FormatoPesos.De(fila.TotalPendiente)</td>
                         <td><span class="estado-cobro @Color(fila.Color)">@Estado(fila.Estado)</span></td>

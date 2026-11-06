@@ -52,10 +52,30 @@ public sealed class UsuarioVendedorWebTests
         vista.Should().Contain("!RolConsola.SoloSitioVendedor(x.Rol)");
     }
 
+    [Fact]
+    public void El_sitio_web_del_vendedor_solo_acepta_el_rol_vendedor_web()
+    {
+        var cuenta = File.ReadAllText(RutaVendedor("Controllers", "CuentaController.cs"));
+        var roles = File.ReadAllText(RutaVendedor("Constants", "UiTexts.cs"));
+
+        cuenta.Should().Contain("RolConsola.SoloSitioVendedor");
+        cuenta.Should().NotContain("RolConsola.EsVendedor(result.Data.Rol)");
+        roles.Should().Contain("Sitio = \"VendedorWeb\"");
+        roles.Should().NotContain("Sitio = \"Vendedor,VendedorWeb\"");
+    }
+
     private static string Ruta(params string[] partes)
     {
         var ruta = Path.GetFullPath(Path.Combine(
             [AppContext.BaseDirectory, "..", "..", "..", "..", "Administrador", .. partes]));
+        File.Exists(ruta).Should().BeTrue($"se esperaba el archivo en {ruta}");
+        return ruta;
+    }
+
+    private static string RutaVendedor(params string[] partes)
+    {
+        var ruta = Path.GetFullPath(Path.Combine(
+            [AppContext.BaseDirectory, "..", "..", "..", "..", "Vendedor", .. partes]));
         File.Exists(ruta).Should().BeTrue($"se esperaba el archivo en {ruta}");
         return ruta;
     }

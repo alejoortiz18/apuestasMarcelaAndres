@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using NewRich.Application.Contracts.Chat;
 using NewRich.Application.Contracts.Offline;
 using NewRich.Application.Contracts.ApkStore;
+using NewRich.Application.Contracts.Recaudo;
 using NewRich.Pda.Core.Api;
 using NewRich.Shared;
 
@@ -17,6 +18,7 @@ public sealed class ChatEnVivoServicio : IAsyncDisposable
     public event Action? LoteriasActualizadas;
     public event Action? ConexionLista;
     public event Action<VersionApkResponse>? ActualizacionRecibida;
+    public event Action<RecaudoCambioAviso>? RecaudoActualizado;
 
     public async Task AsegurarConectadoAsync(string baseUrl, string token, CancellationToken cancellationToken)
     {
@@ -56,6 +58,10 @@ public sealed class ChatEnVivoServicio : IAsyncDisposable
         _hub.On<VersionApkResponse>(HubRutas.EventoActualizacionAplicacion, aviso =>
         {
             MainThread.BeginInvokeOnMainThread(() => ActualizacionRecibida?.Invoke(aviso));
+        });
+        _hub.On<RecaudoCambioAviso>(HubRutas.EventoRecaudoActualizado, aviso =>
+        {
+            MainThread.BeginInvokeOnMainThread(() => RecaudoActualizado?.Invoke(aviso));
         });
         _hub.Reconnected += _ =>
         {

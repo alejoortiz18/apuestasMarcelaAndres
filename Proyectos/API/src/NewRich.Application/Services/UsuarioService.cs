@@ -4,6 +4,7 @@ using NewRich.Application.Contracts.Usuarios;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
 using NewRich.Domain.Enums;
+using NewRich.Domain.Services;
 using NewRich.Shared.Results;
 
 namespace NewRich.Application.Services;
@@ -72,6 +73,11 @@ public sealed class UsuarioService : IUsuarioService
             return Result<UsuarioResponse>.Fail(UsuarioMessages.GrupoRequeridoParaVendedor);
         }
 
+        if (!PorcentajesValidos(request.Rol, request.PorcentajesDia))
+        {
+            return Result<UsuarioResponse>.Fail(UsuarioMessages.PorcentajesDiaRequeridos);
+        }
+
         if (request.Rol != RolUsuario.Vendedor && request.GrupoId.HasValue)
         {
             return Result<UsuarioResponse>.Fail(UsuarioMessages.SoloVendedoresPertenecenGrupos);
@@ -133,6 +139,8 @@ public sealed class UsuarioService : IUsuarioService
             }
         }
 
+        GuardarPorcentajes(usuario.UsuarioId, request.Rol, request.PorcentajesDia);
+
         try
         {
             await _db.SaveChangesAsync(cancellationToken);
@@ -164,6 +172,11 @@ public sealed class UsuarioService : IUsuarioService
             return Result<UsuarioResponse>.Fail(UsuarioMessages.VendedorWebSinDispositivo);
         }
 
+        if (!PorcentajesValidos(usuario.Rol, request.PorcentajesDia))
+        {
+            return Result<UsuarioResponse>.Fail(UsuarioMessages.PorcentajesDiaRequeridos);
+        }
+
         usuario.NombreCompleto = request.NombreCompleto.Trim();
         usuario.Alias = request.Alias;
         usuario.Documento = request.Documento;
@@ -184,6 +197,8 @@ public sealed class UsuarioService : IUsuarioService
                 return Result<UsuarioResponse>.Fail(asociar.Message, asociar.StatusCode);
             }
         }
+
+        GuardarPorcentajes(usuarioId, usuario.Rol, request.PorcentajesDia);
 
         await _db.SaveChangesAsync(cancellationToken);
         return Result<UsuarioResponse>.Ok(Map(await QueryUsuarios().FirstAsync(u => u.UsuarioId == usuarioId, cancellationToken)), SuccessMessages.UsuarioActualizado);
@@ -420,7 +435,8 @@ public sealed class UsuarioService : IUsuarioService
     private IQueryable<Usuario> QueryUsuarios() =>
         _db.Usuarios
             .Include(u => u.DispositivosUsuarios).ThenInclude(d => d.Dispositivo)
-            .Include(u => u.UsuarioGrupos).ThenInclude(g => g.Grupo);
+            .Include(u => u.UsuarioGrupos).ThenInclude(g => g.Grupo)
+            .Include(u => u.ComisionesDia);
 
     private async Task<Result> AsociarInterno(Guid usuarioId, Guid dispositivoId, CancellationToken cancellationToken)
     {
@@ -472,8 +488,39 @@ public sealed class UsuarioService : IUsuarioService
             DispositivoId = asociacion?.DispositivoId,
             CodigoDispositivo = asociacion?.Dispositivo?.CodigoDispositivo,
             GrupoId = grupo?.GrupoId,
-            GrupoNombre = grupo?.Nombre
+            GrupoNombre = grupo?.Nombre,
+            PorcentajesDia = usuario.ComisionesDia.OrderBy(c => c.DiaSemana).Select(c => (int)c.Porcentaje).ToArray()
         };
+    }
+
+    private static bool PorcentajesValidos(RolUsuario rol, int[]? porcentajes)
+    {
+        if (rol is not (RolUsuario.Vendedor or RolUsuario.Recaudador))
+        {
+            return porcentajes is null || porcentajes.Length == 0;
+        }
+
+        return porcentajes is { Length: 7 } && porcentajes.All(p => ComisionDiaCalculo.PorcentajeValido(p));
+    }
+
+    private void GuardarPorcentajes(Guid usuarioId, RolUsuario rol, int[]? porcentajes)
+    {
+        if (rol is not (RolUsuario.Vendedor or RolUsuario.Recaudador) || porcentajes is not { Length: 7 })
+        {
+            return;
+        }
+
+        var actuales = _db.UsuariosComisionDia.Where(c => c.UsuarioId == usuarioId).ToList();
+        _db.UsuariosComisionDia.RemoveRange(actuales);
+        for (var i = 0; i < 7; i++)
+        {
+            _db.UsuariosComisionDia.Add(new UsuarioComisionDia
+            {
+                UsuarioId = usuarioId,
+                DiaSemana = (byte)(i + 1),
+                Porcentaje = (byte)porcentajes[i]
+            });
+        }
     }
 
     private static bool EsConflictoUnicoDocumento(DbUpdateException ex)

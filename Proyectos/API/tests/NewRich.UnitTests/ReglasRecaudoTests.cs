@@ -107,7 +107,6 @@ public sealed class ReglasRecaudoTests
         var resultado = AsignacionRecaudo.AsignarGrupo(
             grupo,
             recaudador,
-            80,
             [miembro],
             [],
             [new VendedorEnRecaudo(miembro, null, otro, 70)]);
@@ -125,7 +124,6 @@ public sealed class ReglasRecaudoTests
         var resultado = AsignacionRecaudo.AsignarGrupo(
             grupo,
             recaudador,
-            10,
             [miembro],
             [],
             [new VendedorEnRecaudo(miembro, null, recaudador, 15)]);
@@ -137,8 +135,8 @@ public sealed class ReglasRecaudoTests
     public void Un_recaudador_puede_tener_varios_grupos()
     {
         var recaudador = Guid.NewGuid();
-        var primero = AsignacionRecaudo.AsignarGrupo(Guid.NewGuid(), recaudador, 80, [], [new GrupoEnRecaudo(Guid.NewGuid(), recaudador, 50)], []);
-        var segundo = AsignacionRecaudo.AsignarGrupo(Guid.NewGuid(), recaudador, 70, [], [new GrupoEnRecaudo(Guid.NewGuid(), recaudador, 50)], []);
+        var primero = AsignacionRecaudo.AsignarGrupo(Guid.NewGuid(), recaudador, [], [new GrupoEnRecaudo(Guid.NewGuid(), recaudador, 50)], []);
+        var segundo = AsignacionRecaudo.AsignarGrupo(Guid.NewGuid(), recaudador, [], [new GrupoEnRecaudo(Guid.NewGuid(), recaudador, 50)], []);
 
         primero.Aceptada.Should().BeTrue();
         segundo.Aceptada.Should().BeTrue();

@@ -38,6 +38,7 @@ public sealed class PanelRecaudoController : AdminControllerBase
             Grupos = r.Grupos,
             PersonasAsignadas = r.PersonasAsignadas,
             TotalPorRecaudar = r.TotalPorRecaudar,
+            TotalEntregarAdministracion = r.TotalEntregarAdministracion,
             TotalRecaudado = r.TotalRecaudado,
             SaldoPendiente = r.SaldoPendiente,
             PorcentajeRecaudado = r.PorcentajeRecaudado

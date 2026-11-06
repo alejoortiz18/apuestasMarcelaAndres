@@ -20,7 +20,6 @@ public sealed class ConfigRecaudoVistaTests
         grupos.Should().Contain("UiTexts.SinAsignar");
         grupos.Should().Contain("name=\"asignaciones[@i].RecaudadorId\"");
         grupos.Should().Contain("name=\"asignaciones[@i].GrupoId\"");
-        grupos.Should().Contain("name=\"asignaciones[@i].Porcentaje\"");
         grupos.Should().Contain("name=\"asignaciones[@i].RecaudadorActualId\"");
         grupos.Should().Contain("fila.RecaudadorId == item.Id");
         grupos.Should().NotContain("@fila.RecaudadorNombre");
@@ -30,15 +29,13 @@ public sealed class ConfigRecaudoVistaTests
     }
 
     [Fact]
-    public void Guardar_recaudadores_esta_junto_a_editar_porcentajes_deshabilitado_y_pide_contrasena()
+    public void Guardar_recaudadores_esta_deshabilitado_y_pide_contrasena()
     {
         var vista = File.ReadAllText(RutaVista("Index.cshtml"));
         var panel = vista.IndexOf("data-table-panel=\"grupos-recaudo\"", StringComparison.Ordinal);
         var acciones = vista[panel..vista.IndexOf("data-asignar-grupos", StringComparison.Ordinal)];
-        var editar = acciones.IndexOf("data-editar-porcentajes", StringComparison.Ordinal);
-        var guardar = acciones.IndexOf("data-guardar-recaudadores", StringComparison.Ordinal);
 
-        guardar.Should().BeGreaterThan(editar);
+        acciones.Should().Contain("data-guardar-recaudadores");
         acciones.Should().Contain("asp-action=\"GuardarRecaudadoresGrupos\"");
         acciones.Should().Contain("data-protected-action=\"@AccionesProtegidas.GruposAsignar\"");
         acciones.Should().Contain("UiTexts.Guardar");
@@ -72,6 +69,8 @@ public sealed class ConfigRecaudoVistaTests
         vista.Should().Contain("fila.TotalVendido");
         vista.Should().Contain("fila.ValorACobrar");
         vista.Should().Contain("fila.TotalPendiente");
+        vista.Should().Contain("fila.PorcentajeRecaudador");
+        vista.Should().Contain("fila.EntregarAdministracion");
         vista.Should().Contain("asp-action=\"Index\"");
     }
 
