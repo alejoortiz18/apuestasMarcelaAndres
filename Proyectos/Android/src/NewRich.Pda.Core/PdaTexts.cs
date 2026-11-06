@@ -425,6 +425,7 @@ public static class PdaTexts
     public static string EntregarAdministracion(int? porcentaje) =>
         porcentaje is int p ? $"Entregar a la administración ({p} %)" : "Entregar a la administración";
     public const string EntregarAdministracionTotal = "Debes entregar a la administración";
+    public const string GananciaRecaudador = "Tu ganancia";
     public const string DebeEntregarRecaudador = "DEBES ENTREGAR AL RECAUDADOR";
     public static string TuPorcentajeHoy(int porcentaje, string ganancia) => $"Tu porcentaje hoy: {porcentaje} % · Ganas {ganancia}";
     public const string EntregaAtrasado = "Atrasado de días anteriores";

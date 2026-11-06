@@ -33,6 +33,32 @@ public sealed class RecaudoComisionDiaTests
     }
 
     [Fact]
+    public async Task Tras_cobrar_el_panel_conserva_por_recaudar_entregar_y_recaudado()
+    {
+        var (sut, _, recaudador, vendedor) = await EscenarioAsync([10, 11, 12, 13, 14, 15, 16], [5, 5, 6, 7, 8, 9, 3]);
+
+        await sut.RegistrarPagoAsync(recaudador.UsuarioId, new RegistrarPagoRecaudoRequest
+        {
+            VendedorId = vendedor.UsuarioId,
+            Valor = 21_000m,
+            ClaveIdempotencia = "cobro-cifras"
+        }, CancellationToken.None);
+
+        var fila = (await sut.ObligacionesAsync(recaudador.UsuarioId, Lunes, CancellationToken.None)).Data!.Single();
+        fila.ValorACobrar.Should().Be(90_000m);
+        fila.EntregarAdministracion.Should().Be(85_500m);
+        fila.PagosHoy.Should().Be(21_000m);
+        fila.TotalPendiente.Should().Be(69_000m);
+
+        var panel = await sut.PanelAsync(Lunes, Lunes, CancellationToken.None);
+        var resumen = panel.Data!.Single(p => p.RecaudadorId == recaudador.UsuarioId);
+        resumen.TotalPorRecaudar.Should().Be(90_000m);
+        resumen.TotalEntregarAdministracion.Should().Be(85_500m);
+        resumen.TotalRecaudado.Should().Be(21_000m);
+        resumen.SaldoPendiente.Should().Be(69_000m);
+    }
+
+    [Fact]
     public async Task Usa_el_porcentaje_del_dia_de_la_semana_de_la_venta()
     {
         var (sut, _, recaudador, _) = await EscenarioAsync([20, 11, 12, 13, 14, 15, 16], [4, 5, 6, 7, 8, 9, 3]);

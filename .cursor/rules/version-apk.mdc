@@ -5,6 +5,8 @@ alwaysApply: true
 
 # Versión nueva del APK
 
+No aumentar `ApplicationVersion` ni `ApplicationDisplayVersion` en `NewRich.Maui.csproj`. Esos números los cambia solo el usuario. Compilar y copiar el APK con los valores que ya estén en el proyecto.
+
 Cuando se cree una compilación nueva de la app móvil (`ApplicationVersion` en `NewRich.Maui.csproj`), hacer estas dos cosas antes de dar el trabajo por listo. No instalar esa compilación en el celular y no publicarla en el blob ni en SQL: el usuario la sube.
 
 1. Dejar el APK para subida manual en `documentos\APKTrest\newrich-{nombre}-{compilacion}.apk`. El nombre de versión es `ApplicationDisplayVersion` (hoy `1.0`) y el número de compilación es `ApplicationVersion`.

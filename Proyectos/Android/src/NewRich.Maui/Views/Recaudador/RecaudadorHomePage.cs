@@ -48,6 +48,13 @@ public sealed class RecaudadorHomePage : ContentPage
         TextColor = Ui.Ink,
         HorizontalTextAlignment = TextAlignment.Center
     };
+    private readonly Label _ganancia = new()
+    {
+        FontSize = 14,
+        FontAttributes = FontAttributes.Bold,
+        TextColor = Ui.Ink,
+        HorizontalTextAlignment = TextAlignment.Center
+    };
     private readonly Label _grupos = new() { FontSize = 19, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink, Text = "0" };
     private readonly Label _vendedores = new() { FontSize = 19, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink, Text = "0" };
     private readonly Button _recaudar;
@@ -112,7 +119,16 @@ public sealed class RecaudadorHomePage : ContentPage
                                         Columna(PdaTexts.TotalRecaudado, _recaudado, 1)
                                     }
                                 },
-                                _entregarAdministracion,
+                                new Grid
+                                {
+                                    ColumnDefinitions = new ColumnDefinitionCollection { new(GridLength.Star), new(GridLength.Star) },
+                                    ColumnSpacing = 12,
+                                    Children =
+                                    {
+                                        Columna(PdaTexts.EntregarAdministracionTotal, _entregarAdministracion, 0),
+                                        Columna(PdaTexts.GananciaRecaudador, _ganancia, 1)
+                                    }
+                                },
                                 _recaudar
                             }
                         }
@@ -200,10 +216,12 @@ public sealed class RecaudadorHomePage : ContentPage
         }
 
         var resumen = RecaudoListas.Resumen(filas);
+        var cifras = RecaudoPagoVista.CifrasTurno(filas);
         _fecha.Text = RecaudoListas.FechaDelDia(DateTime.UtcNow);
-        _total.Text = RecaudoPagoVista.Miles(resumen.TotalPorRecaudar);
-        _recaudado.Text = RecaudoPagoVista.Miles(resumen.TotalRecaudado);
-        _entregarAdministracion.Text = $"{PdaTexts.EntregarAdministracionTotal}: {RecaudoPagoVista.Miles(filas.Sum(f => f.EntregarAdministracion))}";
+        _total.Text = RecaudoPagoVista.Miles(cifras.TotalPorRecaudar);
+        _recaudado.Text = RecaudoPagoVista.Miles(cifras.TotalRecaudado);
+        _entregarAdministracion.Text = RecaudoPagoVista.Miles(cifras.EntregarAdministracion);
+        _ganancia.Text = RecaudoPagoVista.Miles(cifras.Ganancia);
         _grupos.Text = resumen.Grupos.ToString();
         _vendedores.Text = resumen.Vendedores.ToString();
         }

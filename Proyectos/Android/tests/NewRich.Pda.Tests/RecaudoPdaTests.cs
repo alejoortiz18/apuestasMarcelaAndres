@@ -201,6 +201,10 @@ public sealed class RecaudoPdaTests
         PdaTexts.CobroRegistrado(150_000m, 50_000m).Should().Be(
             $"El cobro por {RecaudoPagoVista.Miles(150_000m)} quedó registrado. Saldo que queda: {RecaudoPagoVista.Miles(50_000m)}.");
         registrar.Should().Contain("PdaTexts.CobroRegistrado(");
+        registrar.IndexOf("TrasCobro(fila, valor)", StringComparison.Ordinal)
+            .Should().BeLessThan(registrar.IndexOf("Pintar();", StringComparison.Ordinal));
+        registrar.IndexOf("Pintar();", StringComparison.Ordinal)
+            .Should().BeLessThan(registrar.IndexOf("await CargarAsync();", StringComparison.Ordinal));
         registrar.IndexOf("await CargarAsync();", StringComparison.Ordinal)
             .Should().BeLessThan(registrar.LastIndexOf("DisplayAlert", StringComparison.Ordinal));
     }
@@ -527,6 +531,110 @@ public sealed class RecaudoPdaTests
         home.Should().Contain("EntregaVendedorVista.EstaAlDia");
         cobro.Should().Contain("PdaTexts.EntregarAdministracionTotal");
         cobro.Should().Contain("EntregarAdministracion");
+    }
+
+    [Fact]
+    public void Un_cobro_de_veintiun_mil_llena_todas_las_cifras_como_en_recaudo()
+    {
+        var fila = new ObligacionRecaudoResponse
+        {
+            ValorACobrar = 0m,
+            EntregarAdministracion = 0m,
+            SaldoAnterior = 0m,
+            PagosHoy = 21_000m,
+            TotalPendiente = 0m,
+            PorcentajeRecaudador = 5
+        };
+
+        var cifras = RecaudoPagoVista.CifrasTurno([fila]);
+
+        cifras.TotalPorRecaudar.Should().Be(21_000m);
+        cifras.TotalRecaudado.Should().Be(21_000m);
+        cifras.Ganancia.Should().Be(1_050m);
+        cifras.EntregarAdministracion.Should().Be(19_950m);
+        cifras.SaldoPendiente.Should().Be(0m);
+    }
+
+    [Fact]
+    public void Las_cifras_del_turno_coinciden_con_el_panel_de_recaudo_despues_del_cobro()
+    {
+        var fila = new ObligacionRecaudoResponse
+        {
+            ValorACobrar = 90_000m,
+            EntregarAdministracion = 85_500m,
+            PagosHoy = 21_000m,
+            TotalPendiente = 69_000m,
+            PorcentajeRecaudador = 5
+        };
+
+        var cifras = RecaudoPagoVista.CifrasTurno([fila]);
+
+        cifras.TotalPorRecaudar.Should().Be(90_000m);
+        cifras.TotalRecaudado.Should().Be(21_000m);
+        cifras.EntregarAdministracion.Should().Be(85_500m);
+        cifras.Ganancia.Should().Be(1_050m);
+        cifras.SaldoPendiente.Should().Be(69_000m);
+    }
+
+    [Fact]
+    public void La_ganancia_del_recaudador_crece_con_cada_cobro()
+    {
+        var sinCobro = new ObligacionRecaudoResponse
+        {
+            ValorACobrar = 90_000m,
+            EntregarAdministracion = 85_500m,
+            PagosHoy = 0m,
+            PorcentajeRecaudador = 5
+        };
+        RecaudoPagoVista.GananciaCobrada(sinCobro).Should().Be(0m);
+        RecaudoPagoVista.EntregarAdministracionPendiente(sinCobro).Should().Be(85_500m);
+
+        var cobroParcial = new ObligacionRecaudoResponse
+        {
+            ValorACobrar = 90_000m,
+            EntregarAdministracion = 85_500m,
+            PendienteDelDia = 90_000m,
+            PagosHoy = 20_000m,
+            PorcentajeRecaudador = 5
+        };
+        RecaudoPagoVista.GananciaCobrada(cobroParcial).Should().Be(1_000m);
+        RecaudoPagoVista.EntregarAdministracionPendiente(cobroParcial).Should().Be(85_500m);
+
+        RecaudoListas.TrasCobro(sinCobro, 20_000m);
+        RecaudoPagoVista.GananciaCobrada(sinCobro).Should().Be(1_000m);
+        RecaudoPagoVista.EntregarAdministracionPendiente(sinCobro).Should().Be(85_500m);
+    }
+
+    [Fact]
+    public void Si_no_viene_entregar_administracion_se_calcula_con_lo_del_dia_y_baja_al_cobrar()
+    {
+        var fila = new ObligacionRecaudoResponse
+        {
+            ValorACobrar = 90_000m,
+            EntregarAdministracion = 0m,
+            PagosHoy = 0m,
+            PorcentajeRecaudador = 5
+        };
+        RecaudoPagoVista.EntregarAdministracionPendiente(fila).Should().Be(85_500m);
+
+        RecaudoListas.TrasCobro(fila, 20_000m);
+        RecaudoPagoVista.GananciaCobrada(fila).Should().Be(1_000m);
+        RecaudoPagoVista.EntregarAdministracionPendiente(fila).Should().Be(85_500m);
+    }
+
+    [Fact]
+    public void El_inicio_y_recaudar_muestran_la_ganancia_al_lado_de_lo_que_entrega()
+    {
+        var inicio = File.ReadAllText(RutaMaui("Views", "Recaudador", "RecaudadorHomePage.cs"));
+        var cobro = File.ReadAllText(RutaMaui("Views", "Recaudador", "RecaudadorCobroPage.cs"));
+
+        PdaTexts.GananciaRecaudador.Should().Be("Tu ganancia");
+        inicio.Should().Contain("PdaTexts.GananciaRecaudador");
+        inicio.Should().Contain("RecaudoPagoVista.CifrasTurno");
+        cobro.Should().Contain("PdaTexts.GananciaRecaudador");
+        cobro.Should().Contain("RecaudoPagoVista.CifrasTurno");
+        cobro.IndexOf("PdaTexts.EntregarAdministracionTotal", StringComparison.Ordinal)
+            .Should().BeLessThan(cobro.IndexOf("PdaTexts.GananciaRecaudador", StringComparison.Ordinal));
     }
 
     [Fact]

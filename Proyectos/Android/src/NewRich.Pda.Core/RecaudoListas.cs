@@ -26,9 +26,10 @@ public static class RecaudoListas
     public static ResumenTurnoRecaudo Resumen(IEnumerable<ObligacionRecaudoResponse> filas)
     {
         var lista = filas as IReadOnlyCollection<ObligacionRecaudoResponse> ?? filas.ToList();
+        var cifras = RecaudoPagoVista.CifrasTurno(lista);
         return new ResumenTurnoRecaudo(
-            lista.Sum(f => f.ValorACobrar),
-            lista.Sum(f => f.PagosHoy),
+            cifras.TotalPorRecaudar,
+            cifras.TotalRecaudado,
             Grupos(lista).Count,
             lista.Count);
     }

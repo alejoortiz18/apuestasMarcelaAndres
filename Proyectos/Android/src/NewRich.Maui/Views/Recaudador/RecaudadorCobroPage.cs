@@ -23,6 +23,7 @@ public sealed class RecaudadorCobroPage : ContentPage
     private readonly Label _recaudado = new() { FontSize = 22, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink };
     private readonly Label _pendiente = new() { FontSize = 22, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink };
     private readonly Label _entregarAdministracion = new() { FontSize = 22, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink };
+    private readonly Label _ganancia = new() { FontSize = 22, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink };
     private readonly Entry _buscar = Ui.Entrada(PdaTexts.BuscarVendedorAyuda);
     private readonly Picker _orden = new() { Title = PdaTexts.OrdenarPor, ItemsSource = new[] { "vendedor", "vendido", "cobrar", "pendiente", "recibido", "estado" } };
     private readonly ActivityIndicator _spinner = new() { IsRunning = false, IsVisible = false, Color = Ui.Gold };
@@ -178,9 +179,18 @@ public sealed class RecaudadorCobroPage : ContentPage
 
     private View Indicadores()
     {
-        var entregar = Mini(PdaTexts.EntregarAdministracionTotal, _entregarAdministracion, 0);
-        Grid.SetRow(entregar, 1);
-        Grid.SetColumnSpan(entregar, 3);
+        var entregarYGanancia = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitionCollection { new(GridLength.Star), new(GridLength.Star) },
+            ColumnSpacing = 8,
+            Children =
+            {
+                Mini(PdaTexts.EntregarAdministracionTotal, _entregarAdministracion, 0),
+                Mini(PdaTexts.GananciaRecaudador, _ganancia, 1)
+            }
+        };
+        Grid.SetRow(entregarYGanancia, 1);
+        Grid.SetColumnSpan(entregarYGanancia, 3);
         return new Grid
         {
             ColumnDefinitions = new ColumnDefinitionCollection { new(GridLength.Star), new(GridLength.Star), new(GridLength.Star) },
@@ -192,7 +202,7 @@ public sealed class RecaudadorCobroPage : ContentPage
                 Mini(PdaTexts.PorCobrarHoy, _porCobrar, 0),
                 Mini(PdaTexts.RecaudadoHoy, _recaudado, 1),
                 Mini(PdaTexts.PendienteHoy, _pendiente, 2),
-                entregar
+                entregarYGanancia
             }
         };
     }
@@ -330,10 +340,12 @@ public sealed class RecaudadorCobroPage : ContentPage
 
         var orden = _orden.SelectedItem as string ?? "vendedor";
         var visibles = RecaudoListas.De(_filas, _filtroLista, _consulta, orden, _grupo);
-        _porCobrar.Text = RecaudoPagoVista.Miles(_filas.Sum(f => f.ValorACobrar));
-        _recaudado.Text = RecaudoPagoVista.Miles(_filas.Sum(f => f.PagosHoy));
-        _pendiente.Text = RecaudoPagoVista.Miles(_filas.Sum(f => f.TotalPendiente));
-        _entregarAdministracion.Text = RecaudoPagoVista.Miles(_filas.Sum(f => f.EntregarAdministracion));
+        var cifras = RecaudoPagoVista.CifrasTurno(_filas);
+        _porCobrar.Text = RecaudoPagoVista.Miles(cifras.TotalPorRecaudar);
+        _recaudado.Text = RecaudoPagoVista.Miles(cifras.TotalRecaudado);
+        _pendiente.Text = RecaudoPagoVista.Miles(cifras.SaldoPendiente);
+        _entregarAdministracion.Text = RecaudoPagoVista.Miles(cifras.EntregarAdministracion);
+        _ganancia.Text = RecaudoPagoVista.Miles(cifras.Ganancia);
         _lista.Children.Clear();
         if (visibles.Count == 0)
         {
@@ -643,6 +655,7 @@ public sealed class RecaudadorCobroPage : ContentPage
             {
                 RecaudoListas.TrasCobro(fila, valor);
                 await _local.GuardarObligacionesRecaudoAsync(_filas);
+                Pintar();
             }
 
             _spinner.IsVisible = _spinner.IsRunning = false;

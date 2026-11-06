@@ -50,7 +50,7 @@ public sealed class RecaudadorMetricasPage : ContentPage
             _cuerpo.Children.Add(Tarjeta(PdaTexts.RecaudoDelDia, RecaudoPagoVista.Miles(m.TotalRecaudado)));
             if (obligaciones.IsSuccess && obligaciones.Data is not null)
             {
-                _cuerpo.Children.Add(Tarjeta(PdaTexts.EntregarAdministracionTotal, RecaudoPagoVista.Miles(obligaciones.Data.Sum(f => f.EntregarAdministracion))));
+                _cuerpo.Children.Add(Tarjeta(PdaTexts.EntregarAdministracionTotal, RecaudoPagoVista.Miles(RecaudoPagoVista.CifrasTurno(obligaciones.Data).EntregarAdministracion)));
             }
 
             _cuerpo.Children.Add(Tarjeta(PdaTexts.TotalPendiente, RecaudoPagoVista.Miles(m.TotalPendiente)));
@@ -61,9 +61,10 @@ public sealed class RecaudadorMetricasPage : ContentPage
             {
                 foreach (var grupo in RecaudoListas.Agrupar(obligaciones.Data))
                 {
-                    var porRecaudar = grupo.Sum(f => f.ValorACobrar);
-                    var recaudado = grupo.Sum(f => f.PagosHoy);
-                    var pendiente = grupo.Sum(f => f.TotalPendiente);
+                    var cifrasGrupo = RecaudoPagoVista.CifrasTurno(grupo);
+                    var porRecaudar = cifrasGrupo.TotalPorRecaudar;
+                    var recaudado = cifrasGrupo.TotalRecaudado;
+                    var pendiente = cifrasGrupo.SaldoPendiente;
                     _cuerpo.Children.Add(new Label { Text = grupo.Key, FontAttributes = FontAttributes.Bold, TextColor = Ui.Ink, Margin = new Thickness(0, 8, 0, 0) });
                     _cuerpo.Children.Add(Barra(recaudado, porRecaudar <= 0m ? 1m : porRecaudar));
                     _cuerpo.Children.Add(new Label
