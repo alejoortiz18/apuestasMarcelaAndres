@@ -8,6 +8,7 @@ public class RegistroJuegoNumerosWebManual
     public DateTime FechaRegistro { get; set; }
     public string CodigoPublico { get; set; } = string.Empty;
     public decimal ValorJugado { get; set; }
+    public Guid? CierreId { get; set; }
     public ICollection<ApuestaRegistroJuegoNumerosWebManual> Apuestas { get; set; } = new List<ApuestaRegistroJuegoNumerosWebManual>();
 }
 

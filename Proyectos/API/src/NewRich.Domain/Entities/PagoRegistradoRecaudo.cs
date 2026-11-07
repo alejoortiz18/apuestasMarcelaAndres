@@ -10,4 +10,5 @@ public class PagoRegistradoRecaudo
     public decimal SaldoResultante { get; set; }
     public string ClaveIdempotencia { get; set; } = string.Empty;
     public DateTime FechaHora { get; set; }
+    public Guid? CierreId { get; set; }
 }

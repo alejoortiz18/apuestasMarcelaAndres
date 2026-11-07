@@ -52,6 +52,17 @@ public static class OrdenSeccionesInforme
                 ("linea", UiTexts.InformeRecaudoLinea),
                 ("recaudadores", UiTexts.InformeRecaudadores),
                 ("atrasos", UiTexts.InformeRecaudoAtrasos)
+            ],
+            ["cierres"] =
+            [
+                ("nuevo", UiTexts.CierreNuevo),
+                ("historial", UiTexts.CierreHistorial),
+                ("detalle", UiTexts.CierreDetalle)
+            ],
+            ["cierre-graficos"] =
+            [
+                ("movimientos", UiTexts.CierreCompararMovimientos),
+                ("conceptos", UiTexts.CierreCompararConceptos)
             ]
         };
 

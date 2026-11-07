@@ -18,6 +18,7 @@ public class OperacionRevisadaManual
     public decimal? DescuentoPorcentaje { get; set; }
     public decimal? DescuentoValor { get; set; }
     public decimal? TotalPagar { get; set; }
+    public Guid? CierreId { get; set; }
     public ICollection<LineaRevisadaManual> Lineas { get; set; } = new List<LineaRevisadaManual>();
 }
 

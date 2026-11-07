@@ -8,6 +8,7 @@ using NewRich.Admin.Constants;
 using NewRich.Admin.Controllers;
 using NewRich.Admin.Models;
 using NewRich.Admin.Services;
+using NewRich.Application.Contracts.Cierre;
 using NewRich.Application.Contracts.Grupos;
 using NewRich.Application.Contracts.Informes;
 using NewRich.Application.Contracts.Kpi;
@@ -242,6 +243,10 @@ public sealed class InformesControllerTests
             ], "Listo."));
         api.Setup(a => a.ListarGruposAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(ApiCallResult<List<GrupoResponse>>.Ok([], "Listo."));
+        api.Setup(a => a.ListarCierresAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ApiCallResult<List<CierreResumenResponse>>.Ok([], "Listo."));
+        api.Setup(a => a.PreviaCierreAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ApiCallResult<CierrePreviaResponse>.Ok(new(), "Listo."));
         return api;
     }
 

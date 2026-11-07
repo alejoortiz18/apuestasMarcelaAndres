@@ -524,8 +524,11 @@
   // Cada sección se mueve solo dentro de su informe. El orden se pinta con la propiedad order
   // de CSS que deja el servidor, así la página no salta al cargar ni se mueve el DOM.
   function iniciarSecciones() {
-    const raiz = document.getElementById("informeSeleccionados");
-    const url = raiz ? raiz.getAttribute("data-orden-url") : null;
+    document.querySelectorAll("[data-orden-url]").forEach(iniciarOrden);
+  }
+
+  function iniciarOrden(raiz) {
+    const url = raiz.getAttribute("data-orden-url");
     if (!url) {
       return;
     }
@@ -712,4 +715,41 @@
   }
 
   iniciarSecciones();
+
+  document.addEventListener("click", function (event) {
+    const enlace = event.target.closest("[data-navegando]");
+    if (!enlace || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+      return;
+    }
+    if (enlace.getAttribute("aria-current") === "page" || enlace.getAttribute("aria-disabled") === "true") {
+      event.preventDefault();
+      return;
+    }
+    enlace.classList.add("boton-cargando");
+    enlace.setAttribute("aria-busy", "true");
+    const texto = enlace.getAttribute("data-cargando");
+    if (texto) {
+      enlace.textContent = texto;
+    }
+  });
+
+  document.querySelectorAll("[data-cierre-confirmar]").forEach(function (form) {
+    form.addEventListener("submit", function () {
+      const boton = form.querySelector('button[type="submit"]');
+      const cancelar = form.querySelector("a[data-navegando]");
+      if (boton) {
+        boton.disabled = true;
+        boton.classList.add("boton-cargando");
+        boton.setAttribute("aria-busy", "true");
+        const texto = boton.getAttribute("data-cargando");
+        if (texto) {
+          boton.textContent = texto;
+        }
+      }
+      if (cancelar) {
+        cancelar.classList.add("boton-cargando");
+        cancelar.setAttribute("aria-disabled", "true");
+      }
+    });
+  });
 })();

@@ -13,6 +13,7 @@ public class Venta
     public string? EstadoSincronizacion { get; set; }
     public string? IdempotencyKey { get; set; }
     public DateTime? FechaSincronizacion { get; set; }
+    public Guid? CierreId { get; set; }
     public Usuario? Usuario { get; set; }
     public Dispositivo? Dispositivo { get; set; }
     public ICollection<Boleto> Boletos { get; set; } = new List<Boleto>();

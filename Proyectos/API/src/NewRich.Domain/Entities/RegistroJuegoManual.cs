@@ -8,6 +8,7 @@ public class RegistroJuegoManual
     public DateTime FechaRegistro { get; set; }
     public string CodigoPublico { get; set; } = string.Empty;
     public string IdempotencyKey { get; set; } = string.Empty;
+    public Guid? CierreId { get; set; }
     public ICollection<FilaRegistroJuegoManual> Filas { get; set; } = new List<FilaRegistroJuegoManual>();
 }
 

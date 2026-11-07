@@ -11,4 +11,5 @@ public class PremioEntregadoWeb
     public decimal ValorPremio { get; set; }
     public DateOnly FechaPremio { get; set; }
     public DateTime FechaRegistro { get; set; }
+    public Guid? CierreId { get; set; }
 }

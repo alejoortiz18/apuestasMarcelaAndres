@@ -13,4 +13,5 @@ public sealed class ColumnaOrdenViewModel
     public string? Ancla { get; init; }
     public string Clase { get; init; } = "table-sort";
     public bool Numero { get; init; }
+    public bool Navegando { get; init; }
 }

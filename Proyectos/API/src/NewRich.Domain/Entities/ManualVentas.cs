@@ -10,6 +10,7 @@ public class VentaManual
     public decimal Total { get; set; }
     public TipoApuesta TipoApuesta { get; set; }
     public string IdempotencyKey { get; set; } = string.Empty;
+    public Guid? CierreId { get; set; }
     public ICollection<BoletoManual> Boletos { get; set; } = new List<BoletoManual>();
 }
 

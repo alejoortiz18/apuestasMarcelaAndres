@@ -1,0 +1,389 @@
+@using System.Globalization
+@using NewRich.Admin.Constants
+@using NewRich.Admin.Models
+@using NewRich.Admin.Services
+@using NewRich.Application.Contracts.Cierre
+@model InformesViewModel
+@{
+    var cultura = CultureInfo.GetCultureInfo("es-CO");
+    var secciones = OrdenSeccionesInforme.Vista(ViewData, "cierres");
+    var graficos = OrdenSeccionesInforme.Vista(ViewData, "cierre-graficos");
+    string Cuando(DateTime? fecha) => fecha is null ? UiTexts.CierreSinAnterior : fecha.Value.ToString("dd/MM/yyyy HH:mm:ss", cultura);
+    string Fecha(DateTime fecha) => fecha.ToString("dd/MM/yyyy", cultura);
+    string Hora(DateTime fecha) => fecha.ToString("HH:mm:ss", cultura);
+    string Dinero(decimal valor) => valor.ToString("C0", cultura);
+    string Nombre(string clave) => clave switch
+    {
+        ClavesCierre.Ventas => UiTexts.CierreVentas,
+        ClavesCierre.Recaudos => UiTexts.CierreRecaudos,
+        ClavesCierre.Premios => UiTexts.CierrePremios,
+        ClavesCierre.Gastos => UiTexts.CierreGastos,
+        ClavesCierre.GastosTipo => UiTexts.CierreGastosTipo,
+        ClavesCierre.Cubierto => UiTexts.CierreCubierto,
+        ClavesCierre.Comisiones => UiTexts.CierreComisiones,
+        ClavesCierre.Salarios => UiTexts.CierreSalarios,
+        _ => UiTexts.CierreOtros
+    };
+    var previa = Model.Previa;
+    var detalle = Model.Detalle;
+    ColumnaOrdenViewModel ColumnaHistorial(string clave, string texto, bool numero = false) => new()
+    {
+        Clave = clave, Texto = texto, Estado = Model.OrdenHistorial, ParamOrden = "ordenH", ParamDireccion = "dirH",
+        ParamPagina = "pageH", Ancla = "cierreHistorial", Numero = numero, Navegando = true
+    };
+    ColumnaOrdenViewModel ColumnaDetalle(string clave, string texto, bool numero = false) => new()
+    {
+        Clave = clave, Texto = texto, Estado = Model.OrdenDetalle, ParamOrden = "ordenD", ParamDireccion = "dirD",
+        ParamPagina = "pageD", Ancla = "cierreDetalle", Numero = numero, Navegando = true
+    };
+}
+<section id="cierreInforme" data-orden-url="@Url.Action("OrdenSecciones")" data-orden-error="@UiTexts.InformeOrdenNoGuardado">
+    @Html.AntiForgeryToken()
+    <div class="informe-secciones" data-secciones="cierres">
+    <div class="informe-movible" data-seccion="nuevo" style="order: @secciones.Posicion("nuevo")">
+        <partial name="_MoverSeccion" model='(secciones, "nuevo")' />
+        @if (Model.MostrarNuevo && previa is not null)
+        {
+            <div class="dialog-back" role="dialog" aria-modal="true" aria-labelledby="cierreDialogTitulo">
+                <div class="dialog dialog-cierre">
+                    <div class="cierre-dialogo-cuerpo">
+                        <h2 id="cierreDialogTitulo">@UiTexts.CierreNuevo</h2>
+                        <p class="cierre-dialogo-ayuda">@UiTexts.CierreDialogoAyuda</p>
+                        <div class="cierre-periodo">
+                            <article>
+                                <small>@UiTexts.CierreUltimo</small>
+                                @if (previa.HayCierreAnterior && previa.FechaUltimoCierre is DateTime ultimo)
+                                {
+                                    <strong>@Fecha(ultimo)<span>@Hora(ultimo)</span></strong>
+                                }
+                                else
+                                {
+                                    <strong>@UiTexts.CierreSinAnterior</strong>
+                                }
+                            </article>
+                            <article>
+                                <small>@UiTexts.CierreNuevoMomento</small>
+                                <strong>@Fecha(previa.FechaCierre)<span>@Hora(previa.FechaCierre)</span></strong>
+                            </article>
+                            <article>
+                                <small>@UiTexts.CierreDias</small>
+                                <strong>@previa.Dias</strong>
+                            </article>
+                            <article>
+                                <small>@UiTexts.CierreInicio</small>
+                                @if (previa.FechaInicio is DateTime inicio)
+                                {
+                                    <strong>@Fecha(inicio)<span>@Hora(inicio)</span></strong>
+                                }
+                                else
+                                {
+                                    <strong>@UiTexts.CierreSinAnterior</strong>
+                                }
+                            </article>
+                            <article>
+                                <small>@UiTexts.CierreFin</small>
+                                <strong>@Fecha(previa.FechaFin)<span>@Hora(previa.FechaFin)</span></strong>
+                            </article>
+                            <article>
+                                <small>@UiTexts.CierreAbre</small>
+                                <strong>@Fecha(previa.AperturaSiguiente)<span>@Hora(previa.AperturaSiguiente)</span></strong>
+                            </article>
+                        </div>
+                        <article class="cierre-ganancia @(previa.TotalGanancia < 0 ? "is-negativo" : "is-positivo")">
+                            <small>@UiTexts.CierreGanancia</small>
+                            <strong>@Dinero(previa.TotalGanancia)</strong>
+                            <em>@UiTexts.CierreGananciaFormula</em>
+                        </article>
+                        <div class="table-wrap">
+                            <table class="cierre-tabla">
+                                <thead>
+                                    <tr>
+                                        <th>@UiTexts.CierreConcepto</th>
+                                        <th>@UiTexts.CierreCantidad</th>
+                                        <th>@UiTexts.CierreValor</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                @foreach (var categoria in previa.Categorias.Where(c => c.Clave != ClavesCierre.GastosTipo))
+                                {
+                                    <tr class="@(categoria.Cantidad == 0 ? "is-cero" : null)">
+                                        <td>@Nombre(categoria.Clave)</td>
+                                        <td>@categoria.Cantidad</td>
+                                        <td>@Dinero(categoria.Valor)</td>
+                                    </tr>
+                                }
+                                </tbody>
+                            </table>
+                        </div>
+                        @if (previa.GastosPorTipo.Count > 0)
+                        {
+                            <h3>@UiTexts.CierreGastosTipo</h3>
+                            <div class="table-wrap">
+                                <table class="cierre-tabla">
+                                    <thead>
+                                        <tr>
+                                            <th>@UiTexts.CierreConcepto</th>
+                                            <th>@UiTexts.CierreCantidad</th>
+                                            <th>@UiTexts.CierreValor</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    @foreach (var tipo in previa.GastosPorTipo)
+                                    {
+                                        <tr>
+                                            <td>@tipo.Tipo</td>
+                                            <td>@tipo.Cantidad</td>
+                                            <td>@Dinero(tipo.Valor)</td>
+                                        </tr>
+                                    }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                    <form class="cierre-dialogo-pie" method="post" asp-action="Cerrar" data-cierre-confirmar>
+                        @Html.AntiForgeryToken()
+                        <div class="field">
+                            <label for="cierrePassword">@UiTexts.CierreContrasena</label>
+                            <input id="cierrePassword" name="password" type="password" autocomplete="current-password" required />
+                        </div>
+                        <div class="dialog-actions">
+                            <a class="secondary" asp-action="Index" asp-route-pestana="cierres" data-navegando="si" data-cargando="@UiTexts.CierreCancelando">@UiTexts.Cancelar</a>
+                            <button class="primary" type="submit" data-cargando="@UiTexts.CierreCerrando">@UiTexts.CierreConfirmar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="panel informe-movible" id="cierreHistorial" data-seccion="historial" style="order: @secciones.Posicion("historial")">
+        <partial name="_MoverSeccion" model='(secciones, "historial")' />
+        <h2>@UiTexts.CierreHistorial</h2>
+        @if (!Model.Historial.Items.Any())
+        {
+            <div class="empty">@UiTexts.CierreVacio</div>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table data-table-select="cierres">
+                    <thead>
+                        <tr>
+                            <th class="col-check"><span class="visually-hidden">@UiTexts.SeleccionarFila</span></th>
+                            <partial name="_ColumnaOrden" model='ColumnaHistorial("inicio", UiTexts.CierreInicio)' />
+                            <partial name="_ColumnaOrden" model='ColumnaHistorial("fin", UiTexts.CierreFin)' />
+                            <partial name="_ColumnaOrden" model='ColumnaHistorial("dias", UiTexts.CierreDias, true)' />
+                            <partial name="_ColumnaOrden" model='ColumnaHistorial("ventas", UiTexts.CierreVentas, true)' />
+                            <partial name="_ColumnaOrden" model='ColumnaHistorial("recaudos", UiTexts.CierreRecaudos, true)' />
+                            <partial name="_ColumnaOrden" model='ColumnaHistorial("premios", UiTexts.CierrePremios, true)' />
+                            <partial name="_ColumnaOrden" model='ColumnaHistorial("gastos", UiTexts.CierreGastos, true)' />
+                            <partial name="_ColumnaOrden" model='ColumnaHistorial("salarios", UiTexts.CierreSalarios, true)' />
+                            <partial name="_ColumnaOrden" model='ColumnaHistorial("ganancia", UiTexts.CierreGanancia, true)' />
+                            <partial name="_ColumnaOrden" model='ColumnaHistorial("ejecutado", UiTexts.CierreEjecutado)' />
+                            <partial name="_ColumnaOrden" model='ColumnaHistorial("administrador", UiTexts.CierreAdministrador)' />
+                            <th>@UiTexts.CierreVer</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var fila in Model.Historial.Items)
+                    {
+                        var elegido = detalle?.Cierre.CierreId == fila.CierreId;
+                        <tr tabindex="0" data-row-id="@fila.CierreId" class="@(elegido ? "selected" : null)">
+                            <td class="col-check">
+                                <input class="row-check" type="checkbox" value="@fila.CierreId" @(elegido ? "checked" : null) aria-label="@UiTexts.SeleccionarFila @Cuando(fila.FechaFin)" />
+                            </td>
+                            <td>@(fila.FechaInicio is null ? UiTexts.CierreSinAnterior : Cuando(fila.FechaInicio))</td>
+                            <td>@Cuando(fila.FechaFin)</td>
+                            <td>@fila.Dias</td>
+                            <td>@Dinero(fila.TotalVentas)</td>
+                            <td>@Dinero(fila.TotalRecaudos)</td>
+                            <td>@Dinero(fila.TotalPremios)</td>
+                            <td>@Dinero(fila.TotalGastos)</td>
+                            <td>@Dinero(fila.TotalSalarios)</td>
+                            <td class="@(fila.TotalGanancia < 0 ? "is-negativo" : "is-positivo")">@Dinero(fila.TotalGanancia)</td>
+                            <td>@Cuando(fila.FechaEjecucion)</td>
+                            <td>@fila.Administrador</td>
+                            <td><a class="secondary" asp-action="Index" asp-route-pestana="cierres" asp-route-cierre="@fila.CierreId" data-navegando="si" data-cargando="@UiTexts.CierreCargando">@UiTexts.CierreVer</a></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            ViewData["PagerPageKey"] = "pageH";
+            ViewData["PagerPageSizeKey"] = "pageSizeH";
+            <partial name="_Pager" model="Model.Historial" />
+        }
+    </div>
+
+    <div class="panel informe-movible" id="cierreDetalle" data-seccion="detalle" style="order: @secciones.Posicion("detalle")">
+        <partial name="_MoverSeccion" model='(secciones, "detalle")' />
+        <h2>@UiTexts.CierreDetalle</h2>
+        @if (detalle is null)
+        {
+            <div class="empty">@UiTexts.CierreElige</div>
+        }
+        else
+        {
+            var activa = detalle.Categorias.FirstOrDefault(c => c.Clave == detalle.Grupo);
+            var conceptos = detalle.Categorias.Where(c => c.Clave != ClavesCierre.GastosTipo).ToList();
+            var mayorConcepto = conceptos.Count == 0 ? 0m : conceptos.Max(c => Math.Abs(c.Valor));
+            var mayorMovimiento = detalle.Comparacion.Count == 0 ? 0m : detalle.Comparacion.Max(c => Math.Abs(c.Valor));
+            string Ancho(decimal valor, decimal mayor) => mayor <= 0 ? "0" : Math.Clamp(Math.Abs(valor) / mayor * 100m, 0m, 100m).ToString("0.##", CultureInfo.InvariantCulture);
+            <div class="cierre-periodo">
+                <article>
+                    <small>@UiTexts.CierreInicio</small>
+                    @if (detalle.Cierre.FechaInicio is DateTime inicioDetalle)
+                    {
+                        <strong>@Fecha(inicioDetalle)<span>@Hora(inicioDetalle)</span></strong>
+                    }
+                    else
+                    {
+                        <strong>@UiTexts.CierreSinAnterior</strong>
+                    }
+                </article>
+                <article>
+                    <small>@UiTexts.CierreFin</small>
+                    <strong>@Fecha(detalle.Cierre.FechaFin)<span>@Hora(detalle.Cierre.FechaFin)</span></strong>
+                </article>
+                <article>
+                    <small>@UiTexts.CierreAbre</small>
+                    <strong>@Fecha(detalle.Cierre.AperturaSiguiente)<span>@Hora(detalle.Cierre.AperturaSiguiente)</span></strong>
+                </article>
+                <article>
+                    <small>@UiTexts.CierreDias</small>
+                    <strong>@detalle.Cierre.Dias</strong>
+                </article>
+                <article class="@(detalle.Cierre.TotalGanancia < 0 ? "is-negativo" : "is-positivo")">
+                    <small>@UiTexts.CierreGanancia</small>
+                    <strong>@Dinero(detalle.Cierre.TotalGanancia)</strong>
+                </article>
+                <article>
+                    <small>@UiTexts.CierreAdministrador</small>
+                    <strong>@detalle.Cierre.Administrador</strong>
+                </article>
+            </div>
+            <nav class="view-tabs cierre-grupos" aria-label="@UiTexts.CierreDetalle">
+                @foreach (var categoria in detalle.Categorias)
+                {
+                    <a class="view-tab@(detalle.Grupo == categoria.Clave ? " is-active" : "")"
+                       asp-action="Index" asp-route-pestana="cierres" asp-route-cierre="@detalle.Cierre.CierreId" asp-route-grupo="@categoria.Clave"
+                       aria-current="@(detalle.Grupo == categoria.Clave ? "page" : null)"
+                       data-navegando="si" data-cargando="@UiTexts.CierreCargando">@Nombre(categoria.Clave)</a>
+                }
+            </nav>
+            <div class="cierre-periodo cierre-cifras">
+                <article>
+                    <small>@UiTexts.CierreCantidad</small>
+                    <strong>@(activa?.Cantidad ?? 0)</strong>
+                </article>
+                <article>
+                    <small>@UiTexts.CierreValor</small>
+                    <strong>@Dinero(activa?.Valor ?? 0)</strong>
+                </article>
+            </div>
+            @if (detalle.Grupo is ClavesCierre.Comisiones or ClavesCierre.Salarios && (activa?.Cantidad ?? 0) == 0)
+            {
+                <div class="empty">@UiTexts.CierreSinPagos</div>
+            }
+            else if (detalle.TotalFilas == 0)
+            {
+                <div class="empty">@UiTexts.CierreSinMovimientos</div>
+            }
+            else
+            {
+                <div class="table-wrap">
+                    <table class="cierre-tabla">
+                        <thead>
+                            <tr>
+                                <partial name="_ColumnaOrden" model='ColumnaDetalle("fecha", UiTexts.Fecha)' />
+                                <partial name="_ColumnaOrden" model='ColumnaDetalle("detalle", UiTexts.CierreDetalle)' />
+                                <partial name="_ColumnaOrden" model='ColumnaDetalle("valor", UiTexts.CierreValor, true)' />
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var movimiento in detalle.Movimientos)
+                        {
+                            <tr tabindex="0">
+                                <td>@(movimiento.ConHora ? Cuando(movimiento.Fecha) : movimiento.Fecha.ToString("dd/MM/yyyy", cultura))</td>
+                                <td>@movimiento.Detalle</td>
+                                <td>@Dinero(movimiento.Valor)</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+                ViewData["PagerPageKey"] = "pageD";
+                ViewData["PagerPageSizeKey"] = "pageSizeD";
+                <partial name="_Pager" model="@(new PagerInfo { Page = detalle.Pagina, PageSize = detalle.Filas, TotalCount = detalle.TotalFilas })" />
+            }
+            <div class="informe-secciones cierre-graficos" data-secciones="cierre-graficos">
+                <div class="informe-movible is-media" data-seccion="movimientos" style="order: @graficos.Posicion("movimientos")">
+                    <partial name="_MoverSeccion" model='(graficos, "movimientos")' />
+                    <section class="informe-grafico" aria-labelledby="cierreMovimientosTitulo">
+                        <h3 id="cierreMovimientosTitulo">@UiTexts.CierreCompararMovimientos</h3>
+                        <p>@UiTexts.CierreCompararMovimientosAyuda</p>
+                        @if (detalle.Comparacion.Count == 0)
+                        {
+                            <div class="empty">@UiTexts.CierreSinMovimientos</div>
+                        }
+                        else
+                        {
+                            <ul class="informe-barras">
+                                @foreach (var grupo in detalle.Comparacion)
+                                {
+                                    <li>
+                                        <div class="informe-barra-head">
+                                            <span>@grupo.Detalle</span>
+                                            <strong>@grupo.Cantidad · @Dinero(grupo.Valor)</strong>
+                                        </div>
+                                        <div class="informe-barra" aria-hidden="true"><i style="width: @Ancho(grupo.Valor, mayorMovimiento)%"></i></div>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                    </section>
+                </div>
+                <div class="informe-movible is-media" data-seccion="conceptos" style="order: @graficos.Posicion("conceptos")">
+                    <partial name="_MoverSeccion" model='(graficos, "conceptos")' />
+                    <section class="informe-grafico" aria-labelledby="cierreConceptosTitulo">
+                        <h3 id="cierreConceptosTitulo">@UiTexts.CierreCompararConceptos</h3>
+                        <p>@UiTexts.CierreCompararConceptosAyuda</p>
+                        @if (conceptos.All(c => c.Valor == 0))
+                        {
+                            <div class="empty">@UiTexts.CierreSinMovimientos</div>
+                        }
+                        else
+                        {
+                            <ul class="informe-barras">
+                                @foreach (var concepto in conceptos.Where(c => c.Valor != 0))
+                                {
+                                    <li>
+                                        <div class="informe-barra-head">
+                                            <span>@Nombre(concepto.Clave)</span>
+                                            <strong class="@(concepto.Valor < 0 ? "is-negativo" : null)">@concepto.Cantidad · @Dinero(concepto.Valor)</strong>
+                                        </div>
+                                        <div class="informe-barra" aria-hidden="true"><i style="width: @Ancho(concepto.Valor, mayorConcepto)%"></i></div>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                    </section>
+                </div>
+            </div>
+        }
+    </div>
+    </div>
+</section>
+<div id="cierrePdfResumen" class="informe-pdf-resumen" aria-hidden="true">
+    <header class="informe-pdf-encabezado" data-pdf-encabezado>
+        <p class="informe-pdf-kicker">@UiTexts.InformePdfKicker</p>
+        <h2>@UiTexts.PestanaCierres</h2>
+        <p>@UiTexts.CierreCompararAyuda</p>
+        <p class="informe-pdf-corte">@UiTexts.CorteDeInformacion: @Model.Corte.ToString("dd/MM/yyyy HH:mm") · @UiTexts.FuenteSql</p>
+    </header>
+    <section class="informe-pdf-filtros" data-pdf-filtros>
+        <h3>@UiTexts.CierrePdfResumen</h3>
+        <p>@Model.Cierres.Count</p>
+    </section>
+</div>

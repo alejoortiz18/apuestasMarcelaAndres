@@ -19,5 +19,5 @@
     var etiqueta = string.Format(siguiente == OrdenTabla.Ascendente ? UiTexts.OrdenarColumnaAsc : UiTexts.OrdenarColumnaDesc, Model.Texto);
 }
 <th scope="col" class="@(Model.Numero ? "num" : null)" aria-sort="@OrdenTabla.Sort(Model.Clave, orden, direccion)">
-    <a class="@Model.Clase" href="@url" aria-label="@etiqueta">@Model.Texto <span aria-hidden="true">@OrdenTabla.Marca(Model.Clave, orden, direccion)</span></a>
+    <a class="@Model.Clase" href="@url" aria-label="@etiqueta" data-navegando="@(Model.Navegando ? "si" : null)">@Model.Texto <span aria-hidden="true">@OrdenTabla.Marca(Model.Clave, orden, direccion)</span></a>
 </th>

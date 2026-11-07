@@ -60,6 +60,7 @@ public interface INewRichDbContext
     DbSet<LlaveFirmaApk> LlavesFirmaApk { get; }
     DbSet<VersionApk> VersionesApk { get; }
     DbSet<AuditoriaApk> AuditoriaApk { get; }
+    DbSet<Cierre> Cierres { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     Task ExecuteInTransactionAsync(Func<CancellationToken, Task> action, CancellationToken cancellationToken = default);
@@ -78,6 +79,8 @@ public interface INewRichDbContext
     Task AsegurarEsquemaVentasRegistradasWebAsync(CancellationToken cancellationToken = default);
     Task AsegurarEsquemaPremiosEntregadosWebAsync(CancellationToken cancellationToken = default);
     Task AsegurarEsquemaApkStoreAsync(CancellationToken cancellationToken = default);
+    Task AsegurarEsquemaCierreAsync(CancellationToken cancellationToken = default);
+    Task BloquearCierreAsync(CancellationToken cancellationToken = default);
     Task<bool> IntentarBloquearRetencionAsync(CancellationToken cancellationToken = default);
     void DescartarCambios();
 }

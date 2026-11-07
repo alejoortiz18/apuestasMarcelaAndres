@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using NewRich.Admin.Constants;
 using NewRich.Admin.Models;
 using NewRich.Admin.Services;
+using NewRich.Application.Contracts.Cierre;
 using NewRich.Application.Contracts.Grupos;
 using NewRich.Application.Contracts.Usuarios;
 using NewRich.Constants;
@@ -47,11 +48,23 @@ public sealed class InformesController : AdminControllerBase
         string? dirC = null,
         int pageC = 1,
         int pageSizeC = 10,
+        string? pestana = null,
+        Guid? cierre = null,
+        string? grupo = null,
+        int pageH = 1,
+        int pageSizeH = 10,
+        int pageD = 1,
+        int pageSizeD = 10,
+        string? ordenH = null,
+        string? dirH = null,
+        string? ordenD = null,
+        string? dirD = null,
+        bool nuevo = false,
         CancellationToken cancellationToken = default)
     {
         SetNav("informes", UiTexts.NavInformes);
         var premios = new OrdenesInforme(ordenP, dirP, pageP, pageSizeP, ordenG, dirG, ordenV, dirV, ordenAt, dirAt, pageAt, pageSizeAt, ordenC, dirC, pageC, pageSizeC);
-        var (modelo, salida) = await ConstruirAsync(orden, dir, page, pageSize, pageV, pageSizeV, pageG, pageSizeG, premios, cancellationToken);
+        var (modelo, salida) = await ConstruirAsync(orden, dir, page, pageSize, pageV, pageSizeV, pageG, pageSizeG, premios, pestana, cierre, grupo, pageH, pageSizeH, pageD, pageSizeD, ordenH, dirH, ordenD, dirD, nuevo, cancellationToken);
         return salida ?? View(modelo);
     }
 
@@ -65,6 +78,18 @@ public sealed class InformesController : AdminControllerBase
         int pageG,
         int pageSizeG,
         OrdenesInforme premios,
+        string? pestana,
+        Guid? cierre,
+        string? grupo,
+        int pageH,
+        int pageSizeH,
+        int pageD,
+        int pageSizeD,
+        string? ordenH,
+        string? dirH,
+        string? ordenD,
+        string? dirD,
+        bool nuevo,
         CancellationToken cancellationToken)
     {
         var configuraciones = await _api.ListarConfiguracionesInformeAsync(cancellationToken);
@@ -116,10 +141,56 @@ public sealed class InformesController : AdminControllerBase
         if (new[] { cargaVentas.Carga, cargaEgresos.Carga, cargaRecaudo.Carga }.Any(c => c?.Unauthorized == true))
             return (null, RedirectToAction("Ingresar", "Cuenta", new { expired = true }));
 
+        var enCierres = string.Equals(pestana, "cierres", StringComparison.OrdinalIgnoreCase);
+        var listaCierres = await _api.ListarCierresAsync(cancellationToken);
+        if (listaCierres.Unauthorized) return (null, RedirectToAction("Ingresar", "Cuenta", new { expired = true }));
+        if (!avisado && !listaCierres.Success)
+        {
+            SetAvisoModal(listaCierres.Message);
+            avisado = true;
+        }
+
+        CierrePreviaResponse? previa = null;
+        CierreDetalleResponse? detalle = null;
+        if (enCierres)
+        {
+            var previaResultado = await _api.PreviaCierreAsync(cancellationToken);
+            if (previaResultado.Unauthorized) return (null, RedirectToAction("Ingresar", "Cuenta", new { expired = true }));
+            if (!avisado && !previaResultado.Success)
+            {
+                SetAvisoModal(previaResultado.Message);
+                avisado = true;
+            }
+
+            previa = previaResultado.Data;
+            if (cierre is not null)
+            {
+                var detalleResultado = await _api.DetalleCierreAsync(cierre.Value, grupo, pageD, pageSizeD, ordenD, dirD, cancellationToken);
+                if (detalleResultado.Unauthorized) return (null, RedirectToAction("Ingresar", "Cuenta", new { expired = true }));
+                if (!avisado && !detalleResultado.Success)
+                {
+                    SetAvisoModal(detalleResultado.Message);
+                    avisado = true;
+                }
+
+                detalle = detalleResultado.Data;
+            }
+        }
+
+        var historial = listaCierres.Data ?? [];
+
         return (new InformesViewModel
         {
             Corte = ahora,
             OrdenSecciones = OrdenSeccionesInforme.Leer(configuraciones.Data?.FirstOrDefault(c => c.Categoria == CategoriasInforme.OrdenSecciones)?.Filtros),
+            Pestana = enCierres ? "cierres" : "informes",
+            MostrarNuevo = enCierres && nuevo && previa is not null,
+            Previa = previa,
+            Cierres = historial,
+            Historial = PagingHelper.Paginate(CierreTablas.OrdenarHistorial(historial, ordenH, dirH), pageH, pageSizeH),
+            OrdenHistorial = CierreTablas.Historial(ordenH, dirH),
+            OrdenDetalle = CierreTablas.Detalle(ordenD, dirD),
+            Detalle = detalle,
             Vendedores = vendedores,
             Informe = vendedores.Configurada
                 ? PersonalInforme.Informe(personal, listaGrupos, filtros, ahora, orden, dir, page, pageSize)
@@ -270,6 +341,17 @@ public sealed class InformesController : AdminControllerBase
 
         SetAvisoModal(result.Message);
         return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Cerrar(string? password, CancellationToken cancellationToken)
+    {
+        var resultado = await _api.ConfirmarCierreAsync(new ConfirmarCierreRequest { Password = password ?? string.Empty }, cancellationToken);
+        if (RedirectIfUnauthorized(resultado) is { } negadoCierre) return negadoCierre;
+
+        SetAvisoModal(resultado.Message);
+        return RedirectToAction(nameof(Index), new { pestana = "cierres" });
     }
 
     [HttpPost]

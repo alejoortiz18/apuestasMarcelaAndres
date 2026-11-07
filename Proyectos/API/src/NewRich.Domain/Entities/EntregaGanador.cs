@@ -12,6 +12,7 @@ public class EntregaGanador
     public decimal ValorTotalGanado { get; set; }
     public Guid PersonaQueEntrega { get; set; }
     public DateTime FechaEntrega { get; set; }
+    public Guid? CierreId { get; set; }
     public CasoGanador? CasoGanador { get; set; }
     public Usuario? PersonaQueEntregaNavigation { get; set; }
     public ICollection<EvidenciaGanador> Evidencias { get; set; } = new List<EvidenciaGanador>();

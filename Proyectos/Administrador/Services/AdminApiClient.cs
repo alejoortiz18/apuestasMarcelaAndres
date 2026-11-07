@@ -7,6 +7,7 @@ using NewRich.Admin.Models;
 using NewRich.Application.Contracts.Auth;
 using NewRich.Application.Contracts.Boletos;
 using NewRich.Application.Contracts.Chat;
+using NewRich.Application.Contracts.Cierre;
 using NewRich.Application.Contracts.Configuracion;
 using NewRich.Application.Contracts.Consultas;
 using NewRich.Application.Contracts.Dispositivos;
@@ -172,6 +173,10 @@ public interface IAdminApiClient
     Task<ApiCallResult<List<TipoGastoCatalogoResponse>>> UtilidadesCatalogoAsync(CancellationToken cancellationToken);
     Task<ApiCallResult<TipoGastoCatalogoResponse>> UtilidadesCrearTipoAsync(GuardarTipoGastoRequest request, CancellationToken cancellationToken);
     Task<ApiCallResult<TipoGastoCatalogoResponse>> UtilidadesActualizarTipoAsync(Guid id, ActualizarTipoGastoRequest request, CancellationToken cancellationToken);
+    Task<ApiCallResult<List<CierreResumenResponse>>> ListarCierresAsync(CancellationToken cancellationToken);
+    Task<ApiCallResult<CierrePreviaResponse>> PreviaCierreAsync(CancellationToken cancellationToken);
+    Task<ApiCallResult<CierreResumenResponse>> ConfirmarCierreAsync(ConfirmarCierreRequest request, CancellationToken cancellationToken);
+    Task<ApiCallResult<CierreDetalleResponse>> DetalleCierreAsync(Guid id, string? grupo, int page, int pageSize, string? orden, string? direccion, CancellationToken cancellationToken);
 }
 
 public sealed class AdminApiClient : IAdminApiClient
@@ -742,6 +747,31 @@ public sealed class AdminApiClient : IAdminApiClient
 
     public Task<ApiCallResult<TipoGastoCatalogoResponse>> UtilidadesActualizarTipoAsync(Guid id, ActualizarTipoGastoRequest request, CancellationToken cancellationToken) =>
         SendAsync<TipoGastoCatalogoResponse>(HttpMethod.Put, "api/utilidades/tipos-gasto/" + id, request, true, cancellationToken);
+
+    public Task<ApiCallResult<List<CierreResumenResponse>>> ListarCierresAsync(CancellationToken cancellationToken) =>
+        SendAsync<List<CierreResumenResponse>>(HttpMethod.Get, "api/Cierre", null, true, cancellationToken);
+
+    public Task<ApiCallResult<CierrePreviaResponse>> PreviaCierreAsync(CancellationToken cancellationToken) =>
+        SendAsync<CierrePreviaResponse>(HttpMethod.Get, "api/Cierre/previa", null, true, cancellationToken);
+
+    public Task<ApiCallResult<CierreResumenResponse>> ConfirmarCierreAsync(ConfirmarCierreRequest request, CancellationToken cancellationToken) =>
+        SendAsync<CierreResumenResponse>(HttpMethod.Post, "api/Cierre", request, true, cancellationToken);
+
+    public Task<ApiCallResult<CierreDetalleResponse>> DetalleCierreAsync(Guid id, string? grupo, int page, int pageSize, string? orden, string? direccion, CancellationToken cancellationToken)
+    {
+        var consulta = "api/Cierre/" + id + "?page=" + page + "&pageSize=" + pageSize;
+        if (!string.IsNullOrWhiteSpace(grupo))
+        {
+            consulta += "&grupo=" + Uri.EscapeDataString(grupo);
+        }
+
+        if (!string.IsNullOrWhiteSpace(orden))
+        {
+            consulta += "&orden=" + Uri.EscapeDataString(orden) + "&dir=" + Uri.EscapeDataString(direccion ?? "desc");
+        }
+
+        return SendAsync<CierreDetalleResponse>(HttpMethod.Get, consulta, null, true, cancellationToken);
+    }
 
     private static string Periodo(string periodo, DateOnly? desde, DateOnly? hasta)
     {

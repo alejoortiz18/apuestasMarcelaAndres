@@ -48,6 +48,7 @@
         }, Nombre: UiTexts.InformeCategoriaRecaudo)
     };
     var algunaConfigurada = vendedores.Configurada || porPeriodo.Any(c => c.Modal.Config.Configurada);
+    var enCierres = string.Equals(Model.Pestana, "cierres", StringComparison.OrdinalIgnoreCase);
     var incluidos = (vendedores.Configurada ? new[] { (Nombre: UiTexts.InformeCategoriaVendedores, Detalle: vendedores.Detalle) } : [])
         .Concat(porPeriodo.Where(c => c.Modal.Config.Configurada).Select(c => (c.Nombre, c.Modal.Config.Detalle)))
         .ToList();
@@ -59,7 +60,21 @@
         <h1>@UiTexts.NavInformes</h1>
         <p>@UiTexts.InformesSub</p>
     </div>
-    @if (algunaConfigurada)
+    @if (enCierres)
+    {
+        <div class="heading-actions">
+            <button class="primary informe-exportar" type="button" title="@UiTexts.CierrePdfAyuda"
+                    data-informe-exportar="cierreInforme"
+                    data-resumen="cierrePdfResumen"
+                    data-titulo="@UiTexts.PestanaCierres"
+                    data-fuentes="@Url.Content("~/lib/fuentes-pdf/fuentes.css")"
+                    data-archivo="cierres-@(Model.Corte.ToString("yyyyMMdd-HHmm")).pdf"
+                    data-generando="@UiTexts.InformePdfGenerando"
+                    data-error="@UiTexts.InformePdfError">@UiTexts.InformeExportarPdf</button>
+            <a class="primary" asp-action="Index" asp-route-pestana="cierres" asp-route-nuevo="true" data-navegando="si" data-cargando="@UiTexts.CierreCreando">@UiTexts.CierreNuevo</a>
+        </div>
+    }
+    else if (algunaConfigurada)
     {
         <button class="primary informe-exportar" type="button" title="@UiTexts.InformeExportarPdfAyuda"
                 data-informe-exportar="informeSeleccionados"
@@ -76,6 +91,13 @@
     }
 </div>
 
+<nav class="view-tabs" aria-label="@UiTexts.InformesPestanas">
+    <a class="view-tab@(enCierres ? "" : " is-active")" asp-action="Index" aria-current="@(enCierres ? null : "page")" data-navegando="si" data-cargando="@UiTexts.CierreCargando">@UiTexts.PestanaInformes</a>
+    <a class="view-tab@(enCierres ? " is-active" : "")" asp-action="Index" asp-route-pestana="cierres" aria-current="@(enCierres ? "page" : null)" data-navegando="si" data-cargando="@UiTexts.CierreCargando">@UiTexts.PestanaCierres</a>
+</nav>
+
+@if (!enCierres)
+{
 <section class="panel informe-seccion" aria-labelledby="informeOpcionesTitulo">
     <h2 id="informeOpcionesTitulo">@UiTexts.InformeOpcionesTitulo</h2>
     <p class="panel-sub">@UiTexts.InformeOpcionesAyuda</p>
@@ -189,6 +211,7 @@
             }
         </div>
     }
+    <partial name="_ComparacionCierres" model="Model" />
 </section>
 
 @if (algunaConfigurada)
@@ -294,6 +317,11 @@
 @foreach (var categoria in porPeriodo)
 {
     <partial name="_ModalPeriodoInforme" model="categoria.Modal" />
+}
+}
+else
+{
+    <partial name="_Cierres" model="Model" />
 }
 
 @section Scripts {

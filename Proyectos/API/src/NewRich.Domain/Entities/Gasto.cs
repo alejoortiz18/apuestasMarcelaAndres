@@ -15,5 +15,6 @@ public class Gasto
     public DateTime FechaCreacion { get; set; }
     public DateTime? FechaActualizacion { get; set; }
     public Guid? UsuarioActualizacionId { get; set; }
+    public Guid? CierreId { get; set; }
     public TipoGasto? Tipo { get; set; }
 }

@@ -1,0 +1,130 @@
+@using System.Globalization
+@using NewRich.Admin.Constants
+@using NewRich.Admin.Models
+@using NewRich.Admin.Services
+@using NewRich.Application.Contracts.Cierre
+@model InformesViewModel
+@{
+    var cultura = CultureInfo.GetCultureInfo("es-CO");
+    var ordenR = Context.Request.Query["ordenR"].ToString();
+    var dirR = Context.Request.Query["dirR"].ToString();
+    int.TryParse(Context.Request.Query["pageR"], out var pageR);
+    int.TryParse(Context.Request.Query["pageSizeR"], out var pageSizeR);
+    var estado = CierreTablas.Historial(ordenR, dirR);
+    var ordenados = CierreTablas.OrdenarHistorial(Model.Cierres.ToList(), ordenR, dirR);
+    var pagina = PagingHelper.Paginate(ordenados, pageR < 1 ? 1 : pageR, pageSizeR);
+    var cierres = ordenados.OrderBy(c => c.FechaFin).ToList();
+    var mayorGanancia = cierres.Count == 0 ? 0m : cierres.Max(c => Math.Abs(c.TotalGanancia));
+    var mayorGasto = cierres.Count == 0 ? 0m : cierres.Max(c => Math.Abs(c.TotalGastos));
+    string Dinero(decimal valor) => valor.ToString("C0", cultura);
+    string Cuando(DateTime? fecha) => fecha is null ? UiTexts.CierreSinAnterior : fecha.Value.ToString("dd/MM/yyyy HH:mm:ss", cultura);
+    string Periodo(CierreResumenResponse cierre) => Cuando(cierre.FechaInicio) + " — " + Cuando(cierre.FechaFin);
+    string Ancho(decimal valor, decimal mayor) => mayor <= 0 ? "0" : Math.Clamp(Math.Abs(valor) / mayor * 100m, 0m, 100m).ToString("0.##", CultureInfo.InvariantCulture);
+    string Variacion(decimal? valor) => valor is null ? UiTexts.CierreSinAnterior : string.Format(cultura, UiTexts.CierreVariacion, Dinero(valor.Value));
+    ColumnaOrdenViewModel Columna(string clave, string texto, bool numero = false) => new()
+    {
+        Clave = clave, Texto = texto, Estado = estado, ParamOrden = "ordenR", ParamDireccion = "dirR",
+        ParamPagina = "pageR", Ancla = "cierreGeneral", Numero = numero, Navegando = true
+    };
+}
+<section id="cierreGeneral" class="cierre-general" aria-labelledby="cierreCompararTitulo">
+    <h2 id="cierreCompararTitulo">@UiTexts.CierreComparar</h2>
+    <p>@UiTexts.CierreCompararAyuda</p>
+    @if (cierres.Count == 0)
+    {
+        <div class="empty">@UiTexts.CierreVacio</div>
+    }
+    else
+    {
+        <div class="informe-graficos">
+            <section class="informe-grafico" aria-labelledby="cierreGananciasTitulo">
+                <h3 id="cierreGananciasTitulo">@UiTexts.CierreGraficoGanancias</h3>
+                <ul class="informe-barras">
+                    @foreach (var cierre in cierres)
+                    {
+                        <li>
+                            <div class="informe-barra-head">
+                                <span>@Periodo(cierre)</span>
+                                <strong class="@(cierre.TotalGanancia < 0 ? "is-negativo" : "is-positivo")">@Dinero(cierre.TotalGanancia)</strong>
+                            </div>
+                            <div class="informe-barra" aria-hidden="true"><i style="width: @Ancho(cierre.TotalGanancia, mayorGanancia)%"></i></div>
+                            <small>@Variacion(cierre.VariacionGanancia)</small>
+                        </li>
+                    }
+                </ul>
+            </section>
+            <section class="informe-grafico" aria-labelledby="cierreGastosTitulo">
+                <h3 id="cierreGastosTitulo">@UiTexts.CierreGraficoGastos</h3>
+                <ul class="informe-barras">
+                    @foreach (var cierre in cierres)
+                    {
+                        <li>
+                            <div class="informe-barra-head">
+                                <span>@Periodo(cierre)</span>
+                                <strong>@Dinero(cierre.TotalGastos)</strong>
+                            </div>
+                            <div class="informe-barra is-gasto" aria-hidden="true"><i style="width: @Ancho(cierre.TotalGastos, mayorGasto)%"></i></div>
+                            <small>@Variacion(cierre.VariacionGastos)</small>
+                        </li>
+                    }
+                </ul>
+            </section>
+        </div>
+        <div class="informe-tabla-head">
+            <div>
+                <h3>@UiTexts.CierreHistorial</h3>
+            </div>
+            <form method="get" asp-action="Index" class="informe-filas" data-submit-on-change>
+                @foreach (var q in Context.Request.Query)
+                {
+                    if (q.Key is "pageR" or "pageSizeR")
+                    {
+                        continue;
+                    }
+                    <input type="hidden" name="@q.Key" value="@q.Value.ToString()" />
+                }
+                <label for="cierreGeneralFilas">@UiTexts.FilasPorPagina</label>
+                <select id="cierreGeneralFilas" name="pageSizeR">
+                    @foreach (var size in PagingHelper.PageSizes)
+                    {
+                        <option value="@size" selected="@(pagina.PageSize == size)">@size</option>
+                    }
+                </select>
+            </form>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <partial name="_ColumnaOrden" model='Columna("inicio", UiTexts.CierreInicio)' />
+                        <partial name="_ColumnaOrden" model='Columna("fin", UiTexts.CierreFin)' />
+                        <partial name="_ColumnaOrden" model='Columna("dias", UiTexts.CierreDias, true)' />
+                        <partial name="_ColumnaOrden" model='Columna("ventas", UiTexts.CierreVentas, true)' />
+                        <partial name="_ColumnaOrden" model='Columna("recaudos", UiTexts.CierreRecaudos, true)' />
+                        <partial name="_ColumnaOrden" model='Columna("premios", UiTexts.CierrePremios, true)' />
+                        <partial name="_ColumnaOrden" model='Columna("gastos", UiTexts.CierreGastos, true)' />
+                        <partial name="_ColumnaOrden" model='Columna("ganancia", UiTexts.CierreGanancia, true)' />
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var fila in pagina.Items)
+                {
+                    <tr tabindex="0">
+                        <td>@Cuando(fila.FechaInicio)</td>
+                        <td>@Cuando(fila.FechaFin)</td>
+                        <td>@fila.Dias</td>
+                        <td>@Dinero(fila.TotalVentas)</td>
+                        <td>@Dinero(fila.TotalRecaudos)</td>
+                        <td>@Dinero(fila.TotalPremios)</td>
+                        <td>@Dinero(fila.TotalGastos)</td>
+                        <td class="@(fila.TotalGanancia < 0 ? "is-negativo" : "is-positivo")">@Dinero(fila.TotalGanancia)</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        ViewData["PagerPageKey"] = "pageR";
+        ViewData["PagerPageSizeKey"] = "pageSizeR";
+        <partial name="_Pager" model="pagina" />
+    }
+</section>

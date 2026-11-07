@@ -1,4 +1,4 @@
-<#
+﻿<#
 Publica en el IIS de este equipo el administrador y el sitio del vendedor de producción, apuntando al API de Azure.
 
 - Administrador: sitio IIS richProduccionWeb (puerto 5000), carpeta C:\inetpub\RichProduccionWeb.

@@ -15,6 +15,14 @@ public sealed class InformesViewModel
     public PeriodoInformeViewModel Recaudo { get; init; } = new();
     public InformeRecaudoViewModel? InformeRecaudo { get; init; }
     public IReadOnlyDictionary<string, List<string>> OrdenSecciones { get; init; } = new Dictionary<string, List<string>>();
+    public string Pestana { get; init; } = "informes";
+    public bool MostrarNuevo { get; init; }
+    public NewRich.Application.Contracts.Cierre.CierrePreviaResponse? Previa { get; init; }
+    public IReadOnlyList<NewRich.Application.Contracts.Cierre.CierreResumenResponse> Cierres { get; init; } = [];
+    public PagedViewModel<NewRich.Application.Contracts.Cierre.CierreResumenResponse> Historial { get; init; } = new();
+    public EstadoOrden OrdenHistorial { get; init; } = new("fin", "desc");
+    public EstadoOrden OrdenDetalle { get; init; } = new("fecha", "desc");
+    public NewRich.Application.Contracts.Cierre.CierreDetalleResponse? Detalle { get; init; }
 }
 
 public sealed class TarjetaInforme

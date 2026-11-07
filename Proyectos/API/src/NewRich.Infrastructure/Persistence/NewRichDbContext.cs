@@ -73,6 +73,7 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
     public DbSet<LlaveFirmaApk> LlavesFirmaApk => Set<LlaveFirmaApk>();
     public DbSet<VersionApk> VersionesApk => Set<VersionApk>();
     public DbSet<AuditoriaApk> AuditoriaApk => Set<AuditoriaApk>();
+    public DbSet<Cierre> Cierres => Set<Cierre>();
 
     public async Task AsegurarEsquemaRetencionAsync(CancellationToken cancellationToken = default)
     {
@@ -229,6 +230,41 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
         }
 
         await Database.ExecuteSqlRawAsync(EsquemaPremiosEntregadosWeb.Tablas, cancellationToken);
+    }
+
+    public async Task AsegurarEsquemaCierreAsync(CancellationToken cancellationToken = default)
+    {
+        if (!Database.IsRelational())
+        {
+            return;
+        }
+
+        await Database.ExecuteSqlRawAsync(CierreEsquema.Sql, cancellationToken);
+    }
+
+    public async Task BloquearCierreAsync(CancellationToken cancellationToken = default)
+    {
+        if (!Database.IsRelational())
+        {
+            return;
+        }
+
+        try
+        {
+            await Database.ExecuteSqlRawAsync("""
+                DECLARE @resultado int;
+                EXEC @resultado = sp_getapplock
+                    @Resource = 'cierre-operacional',
+                    @LockMode = 'Exclusive',
+                    @LockOwner = 'Transaction',
+                    @LockTimeout = 15000;
+                IF @resultado < 0 THROW 50001, 'otro-cierre', 1;
+                """, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not InvalidOperationException)
+        {
+            throw new InvalidOperationException("otro-cierre", ex);
+        }
     }
 
     public async Task AsegurarEsquemaApkStoreAsync(CancellationToken cancellationToken = default)
@@ -863,6 +899,42 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
             e.Property(x => x.EstadoNuevo).HasMaxLength(20);
             e.Property(x => x.Motivo).HasMaxLength(300);
             e.HasIndex(x => x.GastoId);
+        });
+
+        modelBuilder.Entity<Cierre>(e =>
+        {
+            e.ToTable("Cierres", "cierre");
+            e.HasKey(x => x.CierreId);
+            e.Property(x => x.TotalVentas).HasColumnType("decimal(18,2)");
+            e.Property(x => x.TotalRecaudos).HasColumnType("decimal(18,2)");
+            e.Property(x => x.TotalPremios).HasColumnType("decimal(18,2)");
+            e.Property(x => x.TotalGastos).HasColumnType("decimal(18,2)");
+            e.Property(x => x.TotalCubierto).HasColumnType("decimal(18,2)");
+            e.Property(x => x.TotalComisiones).HasColumnType("decimal(18,2)");
+            e.Property(x => x.TotalSalarios).HasColumnType("decimal(18,2)");
+            e.Property(x => x.TotalGanancia).HasColumnType("decimal(18,2)");
+            e.HasIndex(x => x.FechaFin);
+            e.HasOne(x => x.Usuario).WithMany().HasForeignKey(x => x.UsuarioId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        RelacionCierre<Venta>(modelBuilder);
+        RelacionCierre<VentaManual>(modelBuilder);
+        RelacionCierre<VentaRegistradaWeb>(modelBuilder);
+        RelacionCierre<RegistroJuegoManual>(modelBuilder);
+        RelacionCierre<RegistroJuegoNumerosWebManual>(modelBuilder);
+        RelacionCierre<PagoRegistradoRecaudo>(modelBuilder);
+        RelacionCierre<EntregaGanador>(modelBuilder);
+        RelacionCierre<PremioEntregadoWeb>(modelBuilder);
+        RelacionCierre<Gasto>(modelBuilder);
+        RelacionCierre<OperacionRevisadaManual>(modelBuilder);
+    }
+
+    private static void RelacionCierre<T>(ModelBuilder modelBuilder) where T : class
+    {
+        modelBuilder.Entity<T>(entidad =>
+        {
+            entidad.HasIndex("CierreId");
+            entidad.HasOne<Cierre>().WithMany().HasForeignKey("CierreId").OnDelete(DeleteBehavior.Restrict);
         });
     }
 

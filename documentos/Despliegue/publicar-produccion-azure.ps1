@@ -1,4 +1,4 @@
-<#
+﻿<#
 Publica el API de producción en Azure.
 
 - API: App Service newrich (Linux con .NET 10), contra la base dbnewrich de srvdb-newrich.

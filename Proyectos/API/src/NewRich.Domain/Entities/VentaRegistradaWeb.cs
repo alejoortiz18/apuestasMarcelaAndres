@@ -8,4 +8,5 @@ public class VentaRegistradaWeb
     public DateOnly FechaVenta { get; set; }
     public decimal Valor { get; set; }
     public DateTime FechaRegistro { get; set; }
+    public Guid? CierreId { get; set; }
 }
