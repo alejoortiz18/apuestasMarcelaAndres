@@ -11,6 +11,7 @@ using NewRich.Application.Contracts.Kpi;
 using NewRich.Application.Contracts.PremiosEntregadosWeb;
 using NewRich.Application.Contracts.Usuarios;
 using NewRich.Application.Contracts.VentasRegistradasWeb;
+using NewRich.Constants;
 using NewRich.Domain.Enums;
 
 namespace NewRich.Admin.Tests;
@@ -88,6 +89,30 @@ public sealed class PremiosEntregadosWebAdminTests
         porDefecto.Egresos.DireccionPremios.Should().Be("desc");
         porPremio.Egresos.PremiosWeb.Items.Select(p => p.ValorPremio).Should().Equal(10_000m, 30_000m, 90_000m);
         porPremio.Egresos.PremiosWeb.TotalCount.Should().Be(3);
+        porDefecto.Egresos.PremiosWeb.Items.Should().OnlyContain(p => p.Entrega == InformeTextos.EntregaVendedorWeb);
+    }
+
+    [Fact]
+    public void Egresos_lista_tambien_los_premios_entregados_por_el_observador()
+    {
+        var fuente = new FuenteInformeVentas
+        {
+            Kpi = new KpiResponse
+            {
+                PremiosEntregados =
+                [
+                    new() { Fecha = Hoy, Vendedor = "Camila Rojas", Loteria = "chontico", Numero = "1111", ValorApostado = 2_000m, ValorPremio = 1_000_000m }
+                ]
+            },
+            PremiosWeb = [Premio("maria jose", 1_200_000m, Hoy)]
+        };
+
+        var informe = VentasInforme.InformeEgresos(fuente, new FiltrosPeriodoInforme { Periodo = "hoy" }, [], Hoy, Hoy, DateTime.Now, 1, 10);
+
+        informe.Egresos.PremiosWeb.Items.Select(p => (p.Vendedor, p.Entrega, p.Numero))
+            .Should().Equal(
+                ("Camila Rojas", InformeTextos.EntregaObservador, "1111"),
+                ("maria jose", InformeTextos.EntregaVendedorWeb, "1234"));
     }
 
     private static PremioEntregadoWebResponse Premio(string vendedor, decimal valor, DateOnly fecha) =>

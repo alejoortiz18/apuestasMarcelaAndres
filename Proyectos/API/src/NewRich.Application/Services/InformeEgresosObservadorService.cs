@@ -89,6 +89,7 @@ public sealed class InformeEgresosObservadorService : IInformeEgresosObservadorS
         return Result<InformeEgresosObservadorResponse>.Ok(
             InformeEgresosLectura.Armar(
                 indicadores.Data.PremiosEntregadosPorLoteria,
+                indicadores.Data.PremiosEntregados,
                 web.Data,
                 gastos.Data.PorTipo,
                 cubierto.Data.Grupos,

@@ -147,6 +147,7 @@ public sealed class PremioWebInforme
     public string Numero { get; init; } = string.Empty;
     public decimal ValorApostado { get; init; }
     public decimal ValorPremio { get; init; }
+    public string Entrega { get; init; } = string.Empty;
 }
 
 public sealed class EgresosInforme

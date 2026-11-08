@@ -63,6 +63,16 @@ public sealed class KpiPremioLoteriaResponse
     public int Cantidad { get; set; }
 }
 
+public sealed class KpiPremioEntregadoResponse
+{
+    public DateOnly Fecha { get; set; }
+    public string Vendedor { get; set; } = string.Empty;
+    public string Loteria { get; set; } = string.Empty;
+    public string Numero { get; set; } = string.Empty;
+    public decimal ValorApostado { get; set; }
+    public decimal ValorPremio { get; set; }
+}
+
 public sealed class KpiResponse
 {
     public DateTime Corte { get; set; }
@@ -101,6 +111,7 @@ public sealed class KpiResponse
     public decimal ValorPremiosEntregados { get; set; }
     public int EntregasPremio { get; set; }
     public IReadOnlyList<KpiPremioLoteriaResponse> PremiosEntregadosPorLoteria { get; set; } = [];
+    public IReadOnlyList<KpiPremioEntregadoResponse> PremiosEntregados { get; set; } = [];
     public int CasosAbiertos { get; set; }
     public int CasosCerrados { get; set; }
     public decimal PorcentajeCasosCerrados { get; set; }

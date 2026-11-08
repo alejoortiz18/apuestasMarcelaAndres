@@ -11,8 +11,9 @@ public static class InformePremiosWebOrden
     public const string Numero = "numero";
     public const string Apostado = "apostado";
     public const string Premio = "premio";
+    public const string Entrega = "entrega";
 
-    private static readonly string[] Columnas = [Fecha, Vendedor, Loteria, Numero, Apostado, Premio];
+    private static readonly string[] Columnas = [Fecha, Vendedor, Entrega, Loteria, Numero, Apostado, Premio];
     private static readonly StringComparer Texto = StringComparer.Create(CultureInfo.GetCultureInfo("es-CO"), CompareOptions.IgnoreCase | CompareOptions.NumericOrdering);
 
     public static string Normalizar(string? orden)
@@ -41,6 +42,7 @@ public static class InformePremiosWebOrden
         {
             Vendedor => ascendente ? premios.OrderBy(p => p.Vendedor, Texto) : premios.OrderByDescending(p => p.Vendedor, Texto),
             Loteria => ascendente ? premios.OrderBy(p => p.Loteria, Texto) : premios.OrderByDescending(p => p.Loteria, Texto),
+            Entrega => ascendente ? premios.OrderBy(p => p.Entrega, Texto) : premios.OrderByDescending(p => p.Entrega, Texto),
             Numero => ascendente ? premios.OrderBy(p => p.Numero, Texto) : premios.OrderByDescending(p => p.Numero, Texto),
             Apostado => ascendente ? premios.OrderBy(p => p.ValorApostado) : premios.OrderByDescending(p => p.ValorApostado),
             Premio => ascendente ? premios.OrderBy(p => p.ValorPremio) : premios.OrderByDescending(p => p.ValorPremio),

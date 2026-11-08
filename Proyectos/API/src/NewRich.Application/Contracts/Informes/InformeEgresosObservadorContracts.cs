@@ -17,6 +17,7 @@ public sealed class PremioInformeFilaResponse
     public string Numero { get; set; } = string.Empty;
     public decimal ValorApostado { get; set; }
     public decimal ValorPremio { get; set; }
+    public string Entrega { get; set; } = string.Empty;
 }
 
 public sealed class CubiertoInformeFilaResponse

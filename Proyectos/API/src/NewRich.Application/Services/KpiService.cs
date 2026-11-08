@@ -4,6 +4,7 @@ using NewRich.Application.Contracts.Kpi;
 using NewRich.Constants.Messages;
 using NewRich.Domain.Entities;
 using NewRich.Domain.Enums;
+using NewRich.Domain.Services;
 using NewRich.Shared.Results;
 
 namespace NewRich.Application.Services;
@@ -271,6 +272,20 @@ public sealed class KpiService : IKpiService
                 .OrderByDescending(p => p.Valor)
                 .ThenBy(p => p.Loteria, StringComparer.CurrentCultureIgnoreCase)
                 .ToList(),
+            PremiosEntregados = casos
+                .Where(c => c.EntregaGanador is not null)
+                .Select(c => new KpiPremioEntregadoResponse
+                {
+                    Fecha = FechaLocal(c.EntregaGanador!.FechaEntrega),
+                    Vendedor = c.EntregaGanador.NombreVendedor,
+                    Loteria = NombreLoteriaPremio(c),
+                    Numero = NumeroPremio(c),
+                    ValorApostado = c.Boleto?.Juegos.Sum(j => j.Valor) ?? 0m,
+                    ValorPremio = c.EntregaGanador.ValorTotalGanado
+                })
+                .OrderByDescending(p => p.Fecha)
+                .ThenBy(p => p.Vendedor, StringComparer.CurrentCultureIgnoreCase)
+                .ToList(),
             CasosAbiertos = abiertos,
             CasosCerrados = cerrados,
             PorcentajeCasosCerrados = totalCasos == 0 ? 0 : Math.Round((decimal)cerrados * 100 / totalCasos, 1),
@@ -319,5 +334,21 @@ public sealed class KpiService : IKpiService
             .Distinct(StringComparer.CurrentCultureIgnoreCase)
             .ToList() ?? [];
         return loterias.Count == 0 ? SinLoteriaPremio : loterias[0];
+    }
+
+    private static string NumeroPremio(CasoGanador caso)
+    {
+        var numeros = caso.Boleto?.Juegos
+            .Select(j => j.Numero.Trim())
+            .Where(n => n.Length > 0)
+            .Distinct(StringComparer.Ordinal)
+            .ToList() ?? [];
+        return numeros.Count == 0 ? "-" : string.Join(", ", numeros);
+    }
+
+    private static DateOnly FechaLocal(DateTime fecha)
+    {
+        var local = fecha.Kind == DateTimeKind.Utc ? ZonaHorariaColombia.ALocal(fecha) : fecha;
+        return DateOnly.FromDateTime(local);
     }
 }

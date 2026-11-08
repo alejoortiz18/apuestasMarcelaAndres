@@ -1,3 +1,5 @@
+using NewRich.Constants;
+
 namespace NewRich.Pda.Core;
 
 public static class PdaTexts
@@ -231,8 +233,9 @@ public static class PdaTexts
     public const string InformeAlcanceTexto = "Grupos: {0}";
     public const string InformeRangoTexto = "{0} al {1}";
     public const string InformePremiosWeb = "Premios";
-    public const string InformePremiosWebAyuda = "Premios que los vendedores web cargaron en Entrega de premio, por fecha del premio.";
-    public const string InformeSinPremiosWeb = "No hay premios cargados por vendedores web en el periodo.";
+    public const string InformePremiosWebAyuda = InformeTextos.PremiosAyuda;
+    public const string InformeSinPremiosWeb = InformeTextos.SinPremios;
+    public const string InformeColumnaEntrega = InformeTextos.ColumnaEntrega;
     public const string InformePremiosPorLoteria = "Premios por lotería";
     public const string InformePremiosPorLoteriaAyuda = "Total de premios entregados por el observador y por el vendedor web en cada lotería.";
     public const string InformeSinPremiosPorLoteria = "No hay premios entregados por observador ni por vendedor web en el periodo.";

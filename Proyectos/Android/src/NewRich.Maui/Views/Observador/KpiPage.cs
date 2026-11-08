@@ -928,6 +928,7 @@ public sealed class KpiPage : ContentPage
             [
                 (PdaTexts.Fecha, premio.Fecha.ToString("dd/MM/yyyy", Cultura)),
                 (PdaTexts.Vendedor, premio.Vendedor),
+                (PdaTexts.InformeColumnaEntrega, premio.Entrega),
                 (PdaTexts.Loteria, premio.Loteria),
                 (PdaTexts.InformeColumnaNumero, premio.Numero),
                 (PdaTexts.ValorApostado, Pesos(premio.ValorApostado)),

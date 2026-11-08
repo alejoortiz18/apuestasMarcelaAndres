@@ -1,4 +1,5 @@
 using NewRich.Application.Contracts.Informes;
+using NewRich.Constants;
 using NewRich.Application.Contracts.Kpi;
 using NewRich.Application.Contracts.PremiosEntregadosWeb;
 using NewRich.Application.Contracts.RevisadaManual;
@@ -14,6 +15,7 @@ public static class InformeEgresosLectura
 {
     public static InformeEgresosObservadorResponse Armar(
         IReadOnlyList<KpiPremioLoteriaResponse> premiosObservador,
+        IReadOnlyList<KpiPremioEntregadoResponse> premiosObservadorFilas,
         IReadOnlyList<PremioEntregadoWebResponse> premiosWeb,
         IReadOnlyList<GastoPorTipoResponse> gastos,
         IReadOnlyList<GrupoRevisadaManualResponse> cubiertos,
@@ -56,8 +58,21 @@ public static class InformeEgresosLectura
                 Loteria = p.Loteria,
                 Numero = p.Numero,
                 ValorApostado = p.ValorApostado,
-                ValorPremio = p.ValorPremio
-            }).ToList(),
+                ValorPremio = p.ValorPremio,
+                Entrega = InformeTextos.EntregaVendedorWeb
+            }).Concat(premiosObservadorFilas.Select(p => new PremioInformeFilaResponse
+            {
+                Fecha = p.Fecha,
+                Vendedor = p.Vendedor,
+                Loteria = p.Loteria,
+                Numero = p.Numero,
+                ValorApostado = p.ValorApostado,
+                ValorPremio = p.ValorPremio,
+                Entrega = InformeTextos.EntregaObservador
+            }))
+            .OrderByDescending(p => p.Fecha)
+            .ThenBy(p => p.Vendedor, StringComparer.CurrentCultureIgnoreCase)
+            .ToList(),
             PremiosPorLoteria = Barras(porLoteria),
             GastosPorTipo = Barras(gastos.Select(t => (Texto: t.Tipo, t.Valor, t.Cantidad)).ToList()),
             CubiertoPorLoteria = Barras(porCubierto),

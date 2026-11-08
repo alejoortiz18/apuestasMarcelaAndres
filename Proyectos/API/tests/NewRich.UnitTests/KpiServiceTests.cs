@@ -202,6 +202,11 @@ public sealed class KpiServiceTests
         result.Data!.ValorPremiosEntregados.Should().Be(230_000m);
         result.Data.PremiosEntregadosPorLoteria.Select(p => (p.Loteria, p.Valor, p.Cantidad))
             .Should().Equal(("Cali", 150_000m, 2), ("Bogotá", 80_000m, 1));
+        result.Data.PremiosEntregados.Select(p => (p.Loteria, p.Numero, p.ValorApostado, p.ValorPremio, p.Vendedor))
+            .Should().Equal(
+                ("Cali", "1234", 1_000m, 50_000m, "Camila Rojas"),
+                ("Bogotá", "1234", 1_000m, 80_000m, "Camila Rojas"),
+                ("Cali", "1234", 1_000m, 100_000m, "Camila Rojas"));
     }
 
     private static (KpiService Sut, NewRichDbContext Db) CreateSut()

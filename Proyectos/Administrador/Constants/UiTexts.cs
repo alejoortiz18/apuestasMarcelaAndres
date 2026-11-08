@@ -1,3 +1,5 @@
+using NewRich.Constants;
+
 namespace NewRich.Admin.Constants;
 
 /// <summary>Textos de interfaz del administrador. Español de Colombia.</summary>
@@ -437,8 +439,11 @@ public static class UiTexts
     public const string InformeSinEgresos = "No hay egresos en el periodo.";
     public const string InformeSinGastos = "No hay gastos en el periodo.";
     public const string InformePremiosWeb = "Premios";
-    public const string InformePremiosWebAyuda = "Premios que los vendedores web cargaron en Entrega de premio, por fecha del premio.";
-    public const string InformeSinPremiosWeb = "No hay premios cargados por vendedores web en el periodo.";
+    public const string InformePremiosWebAyuda = InformeTextos.PremiosAyuda;
+    public const string InformeSinPremiosWeb = InformeTextos.SinPremios;
+    public const string InformeColumnaEntrega = InformeTextos.ColumnaEntrega;
+    public const string InformeEntregaVendedorWeb = InformeTextos.EntregaVendedorWeb;
+    public const string InformeEntregaObservador = InformeTextos.EntregaObservador;
     public const string InformeSinPremiosPorLoteria = "No hay premios entregados por observador ni por vendedor web en el periodo.";
     public const string InformeColumnaNumero = "Número";
     public const string InformeColumnaValorPremio = "Valor premio";

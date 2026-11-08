@@ -43,6 +43,7 @@
     {
         (InformePremiosWebOrden.Fecha, UiTexts.Fecha, false),
         (InformePremiosWebOrden.Vendedor, UiTexts.Vendedor, false),
+        (InformePremiosWebOrden.Entrega, UiTexts.InformeColumnaEntrega, false),
         (InformePremiosWebOrden.Loteria, UiTexts.Loteria, false),
         (InformePremiosWebOrden.Numero, UiTexts.InformeColumnaNumero, false),
         (InformePremiosWebOrden.Apostado, UiTexts.ValorApostado, true),
@@ -236,6 +237,7 @@
                             <tr>
                                 <td>@Fecha(p.Fecha)</td>
                                 <td><strong>@p.Vendedor</strong></td>
+                                <td>@p.Entrega</td>
                                 <td>@p.Loteria</td>
                                 <td>@p.Numero</td>
                                 <td class="num">@Pesos(p.ValorApostado)</td>

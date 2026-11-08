@@ -1,5 +1,6 @@
 using FluentAssertions;
 using NewRich.Application.Contracts.Kpi;
+using NewRich.Constants;
 using NewRich.Application.Contracts.PremiosEntregadosWeb;
 using NewRich.Application.Contracts.RevisadaManual;
 using NewRich.Application.Contracts.Utilidades;
@@ -14,6 +15,7 @@ public class InformeEgresosLecturaTests
     {
         var informe = InformeEgresosLectura.Armar(
             [new KpiPremioLoteriaResponse { Loteria = "Cali", Valor = 200m, Cantidad = 1 }],
+            [new KpiPremioEntregadoResponse { Fecha = new DateOnly(2026, 11, 4), Vendedor = "Hugo", Loteria = "Cali", Numero = "2222", ValorApostado = 1_000m, ValorPremio = 200m }],
             [Premio("Cali", 50m), Premio("Bogotá", 120m)],
             [],
             [],
@@ -22,7 +24,10 @@ public class InformeEgresosLecturaTests
         informe.PremiosPorLoteria.Select(p => (p.Texto, p.Valor, p.Cantidad))
             .Should().Equal(("Cali", 250m, 2), ("Bogotá", 120m, 1));
         informe.PremiosPorLoteria.Sum(p => p.Valor).Should().Be(370m);
-        informe.Premios.Should().HaveCount(2);
+        informe.Premios.Select(p => (p.Entrega, p.Vendedor)).Should().Equal(
+            (InformeTextos.EntregaVendedorWeb, "web"),
+            (InformeTextos.EntregaVendedorWeb, "web"),
+            (InformeTextos.EntregaObservador, "Hugo"));
     }
 
     [Fact]
@@ -30,6 +35,7 @@ public class InformeEgresosLecturaTests
     {
         var informe = InformeEgresosLectura.Armar(
             [new KpiPremioLoteriaResponse { Loteria = "chontico", Valor = 1_000_000m, Cantidad = 1 }],
+            [new KpiPremioEntregadoResponse { Fecha = new DateOnly(2026, 11, 4), Vendedor = "Hugo", Loteria = "chontico", Numero = "1111", ValorApostado = 2_000m, ValorPremio = 1_000_000m }],
             [Premio("Bogotá", 1_200_000m, "4545", 5_000m, "maria jose")],
             [
                 new GastoPorTipoResponse("NOMINA", 1_200_000m, 1),
@@ -57,7 +63,9 @@ public class InformeEgresosLecturaTests
             .Should().Equal(("NOMINA", 1_200_000m, 60.9m), ("ARRIENDOS", 750_000m, 38.1m), ("Alimentación", 20_000m, 1.0m));
         informe.CubiertoPorLoteria.Select(c => (c.Texto, c.Valor, c.Cantidad, c.Porcentaje))
             .Should().Equal(("Cali", 350m, 1, 100m));
-        informe.Premios.Single().Numero.Should().Be("4545");
+        informe.Premios.Select(p => (p.Entrega, p.Numero)).Should().Equal(
+            (InformeTextos.EntregaVendedorWeb, "4545"),
+            (InformeTextos.EntregaObservador, "1111"));
         informe.Cubiertos.Single().CubiertoPor.Should().Be("Hugo");
     }
 

@@ -188,6 +188,7 @@ public static class VentasInforme
                 .OrderByDescending(p => p.Valor)
                 .ThenBy(p => p.Loteria, StringComparer.CurrentCultureIgnoreCase)
                 .ToList(),
+            PremiosEntregados = partes.SelectMany(p => p.PremiosEntregados).ToList(),
             IngresosPorGrupo = partes.SelectMany(p => p.IngresosPorGrupo)
                 .GroupBy(b => b.Nombre)
                 .Select(g => new KpiBarraGrupoResponse { Nombre = g.Key, Total = g.Sum(b => b.Total) })
@@ -327,8 +328,20 @@ public static class VentasInforme
             Loteria = p.Loteria,
             Numero = p.Numero,
             ValorApostado = p.ValorApostado,
-            ValorPremio = p.ValorPremio
-        }), orden, direccion);
+            ValorPremio = p.ValorPremio,
+            Entrega = InformeTextos.EntregaVendedorWeb
+        }).Concat(conPremios
+            ? (fuente.Kpi?.PremiosEntregados ?? []).Select(p => new PremioWebInforme
+            {
+                Fecha = p.Fecha,
+                Vendedor = p.Vendedor,
+                Loteria = p.Loteria,
+                Numero = p.Numero,
+                ValorApostado = p.ValorApostado,
+                ValorPremio = p.ValorPremio,
+                Entrega = InformeTextos.EntregaObservador
+            })
+            : []), orden, direccion);
         var egresos = Egresos(resumen, fuente, paginaGastos, filasGastos, columnaGastos, sentidoGastos, conPremios, conGastos, conCubierto);
         var porLoteria = premiosWeb
             .GroupBy(p => p.Loteria)
