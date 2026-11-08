@@ -470,6 +470,10 @@ public static class UiTexts
     public const string InformeCategoriaEgresosAyuda = "Premio, gastos y número cubierto";
     public const string InformeCategoriaRecaudo = "Recaudo";
     public const string InformeCategoriaRecaudoAyuda = "Cobrado, pendiente y atrasos";
+    public const string InformeCategoriaCierres = "Cierres";
+    public const string InformeCategoriaCierresAyuda = "Períodos cerrados y ganancia";
+    public const string InformeCierresTitulo = "Configuración del informe de cierres";
+    public const string InformeCierresModalAyuda = "Incluye el resumen de los períodos cerrados. El detalle de cada movimiento está en la pestaña Cierres.";
     public const string InformeSeleccionada = "Seleccionada";
     public const string InformeConfigurar = "Configurar {0}";
     public const string InformeEditarFiltros = "Editar filtros";

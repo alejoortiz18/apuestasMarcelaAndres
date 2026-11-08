@@ -142,6 +142,7 @@ public sealed class InformesController : AdminControllerBase
             return (null, RedirectToAction("Ingresar", "Cuenta", new { expired = true }));
 
         var enCierres = string.Equals(pestana, "cierres", StringComparison.OrdinalIgnoreCase);
+        var cierresIncluidos = configuraciones.Data?.Any(c => c.Categoria == CategoriasInforme.Cierres) == true;
         var listaCierres = await _api.ListarCierresAsync(cancellationToken);
         if (listaCierres.Unauthorized) return (null, RedirectToAction("Ingresar", "Cuenta", new { expired = true }));
         if (!avisado && !listaCierres.Success)
@@ -184,6 +185,7 @@ public sealed class InformesController : AdminControllerBase
             Corte = ahora,
             OrdenSecciones = OrdenSeccionesInforme.Leer(configuraciones.Data?.FirstOrDefault(c => c.Categoria == CategoriasInforme.OrdenSecciones)?.Filtros),
             Pestana = enCierres ? "cierres" : "informes",
+            CierresIncluidos = cierresIncluidos,
             MostrarNuevo = enCierres && nuevo && previa is not null,
             Previa = previa,
             Cierres = historial,
@@ -248,6 +250,15 @@ public sealed class InformesController : AdminControllerBase
                     Habilitada = true,
                     Configurada = recaudo.Configurada,
                     Resumen = recaudo.Configurada ? recaudo.ResumenCorto : null
+                },
+                new()
+                {
+                    Clave = CategoriasInforme.Cierres,
+                    Nombre = UiTexts.InformeCategoriaCierres,
+                    Descripcion = UiTexts.InformeCategoriaCierresAyuda,
+                    Habilitada = true,
+                    Configurada = cierresIncluidos,
+                    Resumen = cierresIncluidos ? $"{(listaCierres.Data ?? []).Count} períodos" : null
                 }
             ]
         }, null);
@@ -337,6 +348,17 @@ public sealed class InformesController : AdminControllerBase
             clave!,
             JsonSerializer.Serialize(filtros, PersonalInforme.Json),
             cancellationToken);
+        if (RedirectIfUnauthorized(result) is { } negado) return negado;
+
+        SetAvisoModal(result.Message);
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> GuardarCierres(CancellationToken cancellationToken)
+    {
+        var result = await _api.GuardarConfiguracionInformeAsync(CategoriasInforme.Cierres, "{}", cancellationToken);
         if (RedirectIfUnauthorized(result) is { } negado) return negado;
 
         SetAvisoModal(result.Message);

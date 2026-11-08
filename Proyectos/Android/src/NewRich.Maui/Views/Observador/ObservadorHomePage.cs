@@ -106,7 +106,7 @@ public sealed class ObservadorHomePage : ContentPage
                     Menu(PdaTexts.CasosPremios, PdaTexts.CasosPremiosAyuda, async () =>
                         await Navigation.PushAsync(_services.GetRequiredService<CasosPage>())),
                     Menu(PdaTexts.Consultas, PdaTexts.ConsultasAyuda, async () => await Shell.Current.GoToAsync("//consultas")),
-                    Menu(PdaTexts.Kpi, PdaTexts.KpiAyuda, async () => await Navigation.PushAsync(_services.GetRequiredService<KpiPage>())),
+                    Menu(PdaTexts.InformeObservador, PdaTexts.InformeObservadorAyuda, async () => await Navigation.PushAsync(_services.GetRequiredService<KpiPage>())),
                     VersionInstaladaPie.Crear()
                 }
             }

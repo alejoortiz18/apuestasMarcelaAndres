@@ -27,9 +27,7 @@
         ParamPagina = "pageR", Ancla = "cierreGeneral", Numero = numero, Navegando = true
     };
 }
-<section id="cierreGeneral" class="cierre-general" aria-labelledby="cierreCompararTitulo">
-    <h2 id="cierreCompararTitulo">@UiTexts.CierreComparar</h2>
-    <p>@UiTexts.CierreCompararAyuda</p>
+<section id="cierreGeneral" class="cierre-general" aria-label="@UiTexts.InformeCategoriaCierres">
     @if (cierres.Count == 0)
     {
         <div class="empty">@UiTexts.CierreVacio</div>

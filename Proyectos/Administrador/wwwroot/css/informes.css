@@ -1223,21 +1223,7 @@
 .cierre-graficos { margin-top: 36px; }
 
 .cierre-general {
-    margin-top: 28px;
-    padding-top: 22px;
-    border-top: 1px solid var(--line);
-}
-
-.cierre-general > h2 {
-    margin: 0 0 6px;
-    font-family: Cinzel, "Times New Roman", serif;
-    font-size: 22px;
-}
-
-.cierre-general > p {
-    margin: 0 0 16px;
-    color: var(--muted);
-    font-size: 13px;
+    margin-top: 18px;
 }
 
 .cierre-general .informe-tabla-head {

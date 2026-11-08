@@ -16,6 +16,7 @@ public sealed class InformesViewModel
     public InformeRecaudoViewModel? InformeRecaudo { get; init; }
     public IReadOnlyDictionary<string, List<string>> OrdenSecciones { get; init; } = new Dictionary<string, List<string>>();
     public string Pestana { get; init; } = "informes";
+    public bool CierresIncluidos { get; init; }
     public bool MostrarNuevo { get; init; }
     public NewRich.Application.Contracts.Cierre.CierrePreviaResponse? Previa { get; init; }
     public IReadOnlyList<NewRich.Application.Contracts.Cierre.CierreResumenResponse> Cierres { get; init; } = [];

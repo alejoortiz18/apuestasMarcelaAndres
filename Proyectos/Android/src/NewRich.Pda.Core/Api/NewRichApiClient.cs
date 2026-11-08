@@ -6,6 +6,7 @@ using NewRich.Application.Contracts.Auth;
 using NewRich.Pda.Core.Actualizacion;
 using NewRich.Application.Contracts.Boletos;
 using NewRich.Application.Contracts.Chat;
+using NewRich.Application.Contracts.Cierre;
 using NewRich.Application.Contracts.Configuracion;
 using NewRich.Application.Contracts.Dispositivos;
 using NewRich.Application.Contracts.Grupos;
@@ -211,6 +212,9 @@ public sealed class NewRichApiClient
         var url = q.Count == 0 ? "api/KpiAndroid/ConsultarMob" : "api/KpiAndroid/ConsultarMob?" + string.Join("&", q);
         return Enviar<KpiResponse>(HttpMethod.Get, url, null, ct);
     }
+
+    public Task<Result<IReadOnlyList<CierreResumenResponse>>> CierresAsync(CancellationToken ct) =>
+        Enviar<IReadOnlyList<CierreResumenResponse>>(HttpMethod.Get, "api/Cierre", null, ct);
 
     public Task<Result<CasoGanadorResponse>> ReportarPremioAsync(ReportarCasoGanadorRequest request, CancellationToken ct) =>
         Enviar<CasoGanadorResponse>(HttpMethod.Post, "api/PremiosAndroid/ReportarMob", request, ct);
