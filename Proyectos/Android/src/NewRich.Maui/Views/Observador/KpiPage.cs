@@ -21,7 +21,6 @@ public sealed class KpiPage : ContentPage
     private readonly VerticalStackLayout _tablero = new() { Spacing = 14 };
     private readonly CargandoOverlay _cargando = new();
     private readonly HashSet<string> _elegidas = new(StringComparer.Ordinal);
-    private bool _enCierres;
     private KpiResponse? _kpi;
     private bool _filtroVendedor;
     private DateOnly _desdeFecha = DateOnly.FromDateTime(DateTime.Today.AddDays(-7));
@@ -38,6 +37,7 @@ public sealed class KpiPage : ContentPage
     private static readonly Color BarraGasto = Color.FromArgb("#8d5a2b");
     private View? _filtros;
     private IReadOnlyList<(string Nombre, Guid? Id)> _opcionesGrupo = [];
+    private IReadOnlyList<(string Nombre, Guid? Id, Guid? GrupoId)> _vendedoresTodos = [];
     private IReadOnlyList<(string Nombre, Guid? Id, Guid? GrupoId)> _opcionesVendedor = [];
 
     public KpiPage(NewRichApiClient api)
@@ -55,6 +55,7 @@ public sealed class KpiPage : ContentPage
         _vendedores.TitleColor = Ui.Muted;
         _vendedores.BackgroundColor = Colors.White;
         _vendedores.FontSize = 16;
+        _grupos.SelectedIndexChanged += (_, _) => AplicarVendedoresDelGrupo();
         var buscar = Ui.Primario(PdaTexts.Buscar);
         buscar.Clicked += async (_, _) => await CargarAsync();
         var limpiar = Ui.Secundario(PdaTexts.Limpiar);
@@ -158,12 +159,31 @@ public sealed class KpiPage : ContentPage
                 .Select(u => (u.NombreCompleto, (Guid?)u.UsuarioId, u.GrupoId)));
         }
 
-        _opcionesVendedor = opcionesVendedor;
-        _vendedores.ItemsSource = opcionesVendedor.Select(x => x.Nombre).ToList();
-        if (_vendedores.SelectedIndex < 0)
+        _vendedoresTodos = opcionesVendedor;
+        AplicarVendedoresDelGrupo();
+    }
+
+    private void AplicarVendedoresDelGrupo()
+    {
+        Guid? grupoId = null;
+        if (_grupos.SelectedIndex >= 0 && _grupos.SelectedIndex < _opcionesGrupo.Count)
         {
-            _vendedores.SelectedIndex = 0;
+            grupoId = _opcionesGrupo[_grupos.SelectedIndex].Id;
         }
+
+        var visibles = grupoId is null
+            ? _vendedoresTodos
+            : _vendedoresTodos.Where(v => v.Id is null || v.GrupoId == grupoId).ToList();
+        Guid? elegido = null;
+        if (_vendedores.SelectedIndex >= 0 && _vendedores.SelectedIndex < _opcionesVendedor.Count)
+        {
+            elegido = _opcionesVendedor[_vendedores.SelectedIndex].Id;
+        }
+
+        _opcionesVendedor = visibles;
+        _vendedores.ItemsSource = visibles.Select(v => v.Nombre).ToList();
+        var indice = elegido is null ? 0 : visibles.ToList().FindIndex(v => v.Id == elegido);
+        _vendedores.SelectedIndex = indice >= 0 ? indice : 0;
     }
 
     private async Task CargarAsync()
@@ -252,13 +272,6 @@ public sealed class KpiPage : ContentPage
             FontSize = 13,
             LineBreakMode = LineBreakMode.WordWrap
         });
-        _raiz.Children.Add(Pestanas());
-        if (_enCierres)
-        {
-            _raiz.Children.Add(BloqueCierres());
-            return;
-        }
-
         _raiz.Children.Add(new Label
         {
             Text = PdaTexts.InformeOpcionesTitulo,
@@ -351,50 +364,6 @@ public sealed class KpiPage : ContentPage
             _raiz.Children.Add(TituloCategoria(PdaTexts.KpiCierres));
             _raiz.Children.Add(BloqueCierres());
         }
-    }
-
-    private View Pestanas()
-    {
-        var informes = Pestana(PdaTexts.PestanaInformes, !_enCierres, () =>
-        {
-            _enCierres = false;
-            Dibujar();
-        });
-        var cierres = Pestana(PdaTexts.PestanaCierres, _enCierres, () =>
-        {
-            _enCierres = true;
-            Dibujar();
-        });
-        return new Grid
-        {
-            ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Star) },
-            Children = { Columna(informes, 0), Columna(cierres, 1) }
-        };
-    }
-
-    private static View Pestana(string texto, bool activa, Action alPulsar)
-    {
-        var boton = new Button
-        {
-            Text = texto.ToUpperInvariant(),
-            BackgroundColor = Colors.Transparent,
-            TextColor = activa ? Ui.Ink : Ui.Muted,
-            FontAttributes = FontAttributes.Bold,
-            FontSize = 13,
-            BorderWidth = 0,
-            CornerRadius = 0,
-            HeightRequest = 48
-        };
-        boton.Clicked += (_, _) => alPulsar();
-        return new VerticalStackLayout
-        {
-            Spacing = 0,
-            Children =
-            {
-                boton,
-                new BoxView { HeightRequest = 3, Color = activa ? Ui.Gold : Colors.Transparent }
-            }
-        };
     }
 
     private View GrillaOpciones()
