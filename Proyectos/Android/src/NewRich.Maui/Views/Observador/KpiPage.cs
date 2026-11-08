@@ -1,4 +1,7 @@
+using System.Globalization;
 using NewRich.Application.Contracts.Cierre;
+using NewRich.Application.Contracts.Informes;
+using NewRich.Application.Informes;
 using NewRich.Application.Contracts.Kpi;
 using NewRich.Domain.Enums;
 using NewRich.Pda.Core;
@@ -24,8 +27,15 @@ public sealed class KpiPage : ContentPage
     private DateOnly _desdeFecha = DateOnly.FromDateTime(DateTime.Today.AddDays(-7));
     private DateOnly _hastaFecha = DateOnly.FromDateTime(DateTime.Today);
     private IReadOnlyList<CierreResumenResponse> _cierres = [];
+    private InformeEgresosObservadorResponse? _egresos;
     private string? _errorCierres;
     private string? _errorKpi;
+    private string? _errorEgresos;
+    private int _paginaPremios = 1;
+    private int _paginaCubiertos = 1;
+    private static readonly CultureInfo Cultura = CultureInfo.GetCultureInfo("es-CO");
+    private static readonly Color BarraPremio = Color.FromArgb("#1f4e45");
+    private static readonly Color BarraGasto = Color.FromArgb("#8d5a2b");
     private View? _filtros;
     private IReadOnlyList<(string Nombre, Guid? Id)> _opcionesGrupo = [];
     private IReadOnlyList<(string Nombre, Guid? Id, Guid? GrupoId)> _opcionesVendedor = [];
@@ -179,6 +189,8 @@ public sealed class KpiPage : ContentPage
             _desdeFecha = desde;
             _hastaFecha = hasta;
             _filtroVendedor = vendedorId.HasValue;
+            _paginaPremios = 1;
+            _paginaCubiertos = 1;
             var cierres = await _api.CierresAsync(CancellationToken.None);
             if (!cierres.IsSuccess || cierres.Data is null)
             {
@@ -208,6 +220,18 @@ public sealed class KpiPage : ContentPage
             {
                 _kpi = resultado.Data;
                 _errorKpi = null;
+            }
+
+            var egresos = await _api.InformeEgresosAsync(desde, hasta, grupoId, vendedorId, CancellationToken.None);
+            if (!egresos.IsSuccess || egresos.Data is null)
+            {
+                _egresos = null;
+                _errorEgresos = egresos.Message;
+            }
+            else
+            {
+                _egresos = egresos.Data;
+                _errorEgresos = null;
             }
 
             Dibujar();
@@ -297,13 +321,17 @@ public sealed class KpiPage : ContentPage
             if (_elegidas.Contains("egresos"))
             {
                 _raiz.Children.Add(TituloCategoria(PdaTexts.InformeCategoriaEgresos));
-                _raiz.Children.Add(Seccion(PdaTexts.InformeCategoriaEgresos, new Label
+                if (_errorEgresos is not null)
                 {
-                    Text = $"{PdaTexts.KpiCierrePremios}: {FormatoDinero.Pesos(_kpi.ValorPremiosEntregados)}",
-                    FontSize = 18,
-                    FontAttributes = FontAttributes.Bold,
-                    TextColor = Ui.Ink
-                }));
+                    _raiz.Children.Add(new Label { Text = _errorEgresos, TextColor = Ui.Danger, LineBreakMode = LineBreakMode.WordWrap });
+                }
+                else if (_egresos is not null)
+                {
+                    foreach (var vista in InformeEgresos(_egresos))
+                    {
+                        _raiz.Children.Add(vista);
+                    }
+                }
             }
         }
 
@@ -865,6 +893,349 @@ public sealed class KpiPage : ContentPage
         Grid.SetColumn(frame, col);
         return frame;
     }
+
+    private IEnumerable<View> InformeEgresos(InformeEgresosObservadorResponse informe)
+    {
+        yield return EncabezadoEgresos();
+        yield return TablaPremios(informe.Premios);
+        yield return GraficoBarras(PdaTexts.InformePremiosPorLoteria, PdaTexts.InformePremiosPorLoteriaAyuda, informe.PremiosPorLoteria, PdaTexts.InformeSinPremiosPorLoteria, PdaTexts.InformePremiosCantidad, BarraPremio);
+        yield return GraficoBarras(PdaTexts.InformeCubiertoPorLoteria, PdaTexts.InformeCubiertoPorLoteriaAyuda, informe.CubiertoPorLoteria, PdaTexts.InformeSinCubiertos, PdaTexts.InformeCubiertosCantidad, BarraPremio);
+        yield return GraficoBarras(PdaTexts.InformeGastosPorTipo, PdaTexts.InformeGastosPorTipoAyuda, informe.GastosPorTipo, PdaTexts.InformeSinGastos, null, BarraGasto);
+        yield return ListaCubiertos(informe.Cubiertos);
+        yield return Conceptos(informe);
+    }
+
+    private View EncabezadoEgresos()
+    {
+        var desde = _desdeFecha.ToString("dd/MM/yyyy", Cultura);
+        var hasta = _hastaFecha.ToString("dd/MM/yyyy", Cultura);
+        var periodo = _desdeFecha == _hastaFecha ? desde : string.Format(PdaTexts.InformeRangoTexto, desde, hasta);
+        var grupo = PdaTexts.TodosLosGrupos;
+        if (_grupos.SelectedIndex >= 0 && _grupos.SelectedIndex < _opcionesGrupo.Count && _opcionesGrupo[_grupos.SelectedIndex].Id is not null)
+        {
+            grupo = _opcionesGrupo[_grupos.SelectedIndex].Nombre;
+        }
+
+        return new VerticalStackLayout
+        {
+            Spacing = 8,
+            Children =
+            {
+                new Label
+                {
+                    Text = PdaTexts.InformeEgresosNombre.ToUpperInvariant(),
+                    FontSize = 22,
+                    FontAttributes = FontAttributes.Bold,
+                    TextColor = Ui.Ink
+                },
+                new Label
+                {
+                    Text = string.Format(PdaTexts.InformeCorte, DateTime.Now.ToString("dd/MM/yyyy hh:mm tt", Cultura)),
+                    TextColor = Ui.Muted,
+                    FontSize = 13
+                },
+                Pastilla(string.Format(PdaTexts.InformePeriodoTexto, periodo)),
+                Pastilla(string.Format(PdaTexts.InformeAlcanceTexto, grupo))
+            }
+        };
+    }
+
+    private View TablaPremios(IReadOnlyList<PremioInformeFilaResponse> premios)
+    {
+        var cuerpo = new VerticalStackLayout { Spacing = 8 };
+        cuerpo.Children.Add(FilasPorPagina());
+        cuerpo.Children.Add(Ayuda(PdaTexts.InformePremiosWebAyuda));
+        if (premios.Count == 0)
+        {
+            cuerpo.Children.Add(Vacio(PdaTexts.InformeSinPremiosWeb));
+            return Seccion(PdaTexts.InformePremiosWeb, cuerpo);
+        }
+
+        var pagina = PaginaActual(_paginaPremios, premios.Count);
+        _paginaPremios = pagina;
+        foreach (var premio in premios.Skip((pagina - 1) * 10).Take(10))
+        {
+            cuerpo.Children.Add(TarjetaDatos(
+            [
+                (PdaTexts.Fecha, premio.Fecha.ToString("dd/MM/yyyy", Cultura)),
+                (PdaTexts.Vendedor, premio.Vendedor),
+                (PdaTexts.Loteria, premio.Loteria),
+                (PdaTexts.InformeColumnaNumero, premio.Numero),
+                (PdaTexts.ValorApostado, Pesos(premio.ValorApostado)),
+                (PdaTexts.InformeColumnaValorPremio, Pesos(premio.ValorPremio))
+            ]));
+        }
+
+        cuerpo.Children.Add(Paginador(premios.Count, pagina, n =>
+        {
+            _paginaPremios = n;
+            Dibujar();
+        }));
+        return Seccion(PdaTexts.InformePremiosWeb, cuerpo);
+    }
+
+    private View ListaCubiertos(IReadOnlyList<CubiertoInformeFilaResponse> cubiertos)
+    {
+        var cuerpo = new VerticalStackLayout { Spacing = 8 };
+        cuerpo.Children.Add(FilasPorPagina());
+        cuerpo.Children.Add(Ayuda(PdaTexts.InformeCubiertosAyuda));
+        if (cubiertos.Count == 0)
+        {
+            cuerpo.Children.Add(Vacio(PdaTexts.InformeSinCubiertos));
+            return Seccion(PdaTexts.InformeCubiertos, cuerpo);
+        }
+
+        var pagina = PaginaActual(_paginaCubiertos, cubiertos.Count);
+        _paginaCubiertos = pagina;
+        foreach (var cubierto in cubiertos.Skip((pagina - 1) * 10).Take(10))
+        {
+            cuerpo.Children.Add(TarjetaDatos(
+            [
+                (PdaTexts.Fecha, cubierto.Fecha.ToString("dd/MM/yyyy", Cultura)),
+                (PdaTexts.Loteria, cubierto.Loteria),
+                (PdaTexts.InformeColumnaNumero, cubierto.Numero),
+                (PdaTexts.InformeColumnaQuienCubrio, cubierto.CubiertoPor),
+                (PdaTexts.Subtotal, Pesos(cubierto.Subtotal)),
+                (PdaTexts.Descuento, $"{Pesos(cubierto.Descuento)} ({Porcentaje(cubierto.DescuentoPorcentaje)} %)"),
+                (PdaTexts.InformeColumnaValorPagado, Pesos(cubierto.Pagado))
+            ]));
+        }
+
+        cuerpo.Children.Add(Paginador(cubiertos.Count, pagina, n =>
+        {
+            _paginaCubiertos = n;
+            Dibujar();
+        }));
+        return Seccion(PdaTexts.InformeCubiertos, cuerpo);
+    }
+
+    private static View GraficoBarras(string titulo, string ayuda, IReadOnlyList<BarraInformeResponse> barras, string vacio, string? cantidadFormato, Color color)
+    {
+        var cuerpo = new VerticalStackLayout { Spacing = 12 };
+        cuerpo.Children.Add(Ayuda(ayuda));
+        if (barras.Count == 0)
+        {
+            cuerpo.Children.Add(Vacio(vacio));
+            return Seccion(titulo, cuerpo);
+        }
+
+        foreach (var barra in barras)
+        {
+            var nombre = new FormattedString();
+            nombre.Spans.Add(new Span { Text = barra.Texto, TextColor = Ui.Ink, FontSize = 14 });
+            if (cantidadFormato is not null)
+            {
+                nombre.Spans.Add(new Span
+                {
+                    Text = "  " + string.Format(cantidadFormato, barra.Cantidad.ToString("N0", Cultura)),
+                    TextColor = Ui.Muted,
+                    FontSize = 12
+                });
+            }
+
+            var valor = new FormattedString();
+            valor.Spans.Add(new Span { Text = Pesos(barra.Valor), TextColor = Ui.Ink, FontSize = 14, FontAttributes = FontAttributes.Bold });
+            valor.Spans.Add(new Span { Text = "  " + Porcentaje(barra.Porcentaje) + " %", TextColor = Ui.Muted, FontSize = 12 });
+            cuerpo.Children.Add(new VerticalStackLayout
+            {
+                Spacing = 4,
+                Children =
+                {
+                    new Grid
+                    {
+                        ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) },
+                        ColumnSpacing = 8,
+                        Children =
+                        {
+                            new Label { FormattedText = nombre, LineBreakMode = LineBreakMode.WordWrap },
+                            Columna(new Label { FormattedText = valor, HorizontalTextAlignment = TextAlignment.End }, 1)
+                        }
+                    },
+                    Barra((int)Math.Clamp(Math.Round(barra.Ancho, MidpointRounding.AwayFromZero), 0m, 100m), color)
+                }
+            });
+        }
+
+        return Seccion(titulo, cuerpo);
+    }
+
+    private static View Conceptos(InformeEgresosObservadorResponse informe)
+    {
+        var partes = new (string Texto, decimal Valor, int Cantidad, Color Color)[]
+        {
+            (PdaTexts.InformeConceptoPremios, informe.PremiosPorLoteria.Sum(p => p.Valor), informe.PremiosPorLoteria.Sum(p => p.Cantidad), BarraPremio),
+            (PdaTexts.InformeConceptoGastos, informe.GastosPorTipo.Sum(p => p.Valor), informe.GastosPorTipo.Sum(p => p.Cantidad), BarraGasto),
+            (PdaTexts.InformeConceptoCubierto, informe.CubiertoPorLoteria.Sum(p => p.Valor), informe.CubiertoPorLoteria.Sum(p => p.Cantidad), Ui.Gold)
+        };
+        var conValor = partes.Where(p => p.Valor > 0).ToList();
+        var cuerpo = new VerticalStackLayout { Spacing = 10 };
+        cuerpo.Children.Add(Ayuda(PdaTexts.InformeEgresosPorConceptoAyuda));
+        if (conValor.Count == 0)
+        {
+            cuerpo.Children.Add(Vacio(PdaTexts.InformeSinEgresos));
+            return Seccion(PdaTexts.InformeEgresosPorConcepto, cuerpo);
+        }
+
+        var barras = InformeEgresosLectura.Barras(conValor.Select(p => (p.Texto, p.Valor, p.Cantidad)).ToList());
+        foreach (var barra in barras)
+        {
+            var color = conValor.First(p => p.Texto == barra.Texto).Color;
+            cuerpo.Children.Add(new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition(GridLength.Auto),
+                    new ColumnDefinition(GridLength.Star),
+                    new ColumnDefinition(GridLength.Auto)
+                },
+                ColumnSpacing = 8,
+                Children =
+                {
+                    new BoxView { Color = color, WidthRequest = 12, HeightRequest = 12, CornerRadius = 6, VerticalOptions = LayoutOptions.Center },
+                    Columna(new Label { Text = barra.Texto, TextColor = Ui.Ink, FontSize = 14, VerticalOptions = LayoutOptions.Center }, 1),
+                    Columna(new Label
+                    {
+                        Text = $"{Pesos(barra.Valor)}  {Porcentaje(barra.Porcentaje)} %",
+                        TextColor = Ui.Ink,
+                        FontSize = 13,
+                        FontAttributes = FontAttributes.Bold,
+                        HorizontalTextAlignment = TextAlignment.End
+                    }, 2)
+                }
+            });
+        }
+
+        return Seccion(PdaTexts.InformeEgresosPorConcepto, cuerpo);
+    }
+
+    private static View FilasPorPagina() =>
+        new Label
+        {
+            Text = $"{PdaTexts.FilasPorPagina}  10",
+            TextColor = Ui.Muted,
+            FontSize = 12,
+            HorizontalTextAlignment = TextAlignment.End
+        };
+
+    private static View Pastilla(string texto) =>
+        new Border
+        {
+            BackgroundColor = Ui.Crema,
+            Stroke = Ui.Gold,
+            StrokeThickness = 1,
+            StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 16 },
+            Padding = new Thickness(12, 6),
+            HorizontalOptions = LayoutOptions.Start,
+            Content = new Label { Text = texto, TextColor = Ui.Ink, FontSize = 12 }
+        };
+
+    private static Label Ayuda(string texto) =>
+        new() { Text = texto, TextColor = Ui.Muted, FontSize = 12, LineBreakMode = LineBreakMode.WordWrap };
+
+    private static Label Vacio(string texto) =>
+        new() { Text = texto, TextColor = Ui.Muted, FontSize = 13, LineBreakMode = LineBreakMode.WordWrap };
+
+    private static View TarjetaDatos(IReadOnlyList<(string Etiqueta, string Valor)> filas)
+    {
+        var lista = new VerticalStackLayout { Spacing = 4 };
+        foreach (var (etiqueta, valor) in filas)
+        {
+            lista.Children.Add(new Grid
+            {
+                ColumnDefinitions = { new ColumnDefinition(new GridLength(130)), new ColumnDefinition(GridLength.Star) },
+                ColumnSpacing = 8,
+                Children =
+                {
+                    new Label { Text = etiqueta, TextColor = Ui.Muted, FontSize = 12 },
+                    Columna(new Label { Text = valor, TextColor = Ui.Ink, FontSize = 14, FontAttributes = FontAttributes.Bold, LineBreakMode = LineBreakMode.WordWrap }, 1)
+                }
+            });
+        }
+
+        return new Border
+        {
+            BackgroundColor = Ui.Paper,
+            Stroke = Ui.Line,
+            StrokeThickness = 1,
+            StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 10 },
+            Padding = 10,
+            Content = lista
+        };
+    }
+
+    private View Paginador(int total, int pagina, Action<int> ir)
+    {
+        var paginas = Math.Max(1, (int)Math.Ceiling(total / 10d));
+        var inicio = ((pagina - 1) * 10) + 1;
+        var fin = Math.Min(total, pagina * 10);
+        var botones = new FlexLayout
+        {
+            Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap,
+            Direction = Microsoft.Maui.Layouts.FlexDirection.Row,
+            JustifyContent = Microsoft.Maui.Layouts.FlexJustify.End,
+            AlignItems = Microsoft.Maui.Layouts.FlexAlignItems.Center
+        };
+        botones.Children.Add(BotonPagina(PdaTexts.Inicio, pagina > 1, () => ir(1)));
+        botones.Children.Add(BotonPagina(PdaTexts.Anterior, pagina > 1, () => ir(pagina - 1)));
+        botones.Children.Add(new Border
+        {
+            BackgroundColor = Ui.Dark,
+            StrokeThickness = 0,
+            StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 8 },
+            Padding = new Thickness(12, 8),
+            Margin = new Thickness(4, 4, 0, 0),
+            Content = new Label { Text = pagina.ToString(Cultura), TextColor = Colors.White, FontSize = 12, FontAttributes = FontAttributes.Bold }
+        });
+        botones.Children.Add(BotonPagina(PdaTexts.Siguiente, pagina < paginas, () => ir(pagina + 1)));
+        botones.Children.Add(BotonPagina(PdaTexts.Ultimo, pagina < paginas, () => ir(paginas)));
+        return new VerticalStackLayout
+        {
+            Spacing = 6,
+            Children =
+            {
+                new Label
+                {
+                    Text = string.Format(PdaTexts.MostrandoFormato, inicio, fin, total),
+                    TextColor = Ui.Muted,
+                    FontSize = 12
+                },
+                botones
+            }
+        };
+    }
+
+    private static View BotonPagina(string texto, bool activo, Action pulsar)
+    {
+        var boton = new Button
+        {
+            Text = texto,
+            FontSize = 12,
+            TextColor = activo ? Ui.Ink : Ui.Muted,
+            BackgroundColor = Colors.White,
+            BorderColor = Ui.Line,
+            BorderWidth = 1,
+            CornerRadius = 8,
+            Padding = new Thickness(10, 6),
+            Margin = new Thickness(4, 4, 0, 0),
+            IsEnabled = activo
+        };
+        if (activo)
+        {
+            boton.Clicked += (_, _) => MainThread.BeginInvokeOnMainThread(pulsar);
+        }
+
+        return boton;
+    }
+
+    private static int PaginaActual(int pagina, int total)
+    {
+        var paginas = Math.Max(1, (int)Math.Ceiling(total / 10d));
+        return Math.Clamp(pagina, 1, paginas);
+    }
+
+    private static string Pesos(decimal valor) => valor.ToString("C0", Cultura);
+
+    private static string Porcentaje(decimal valor) => valor.ToString("0.#", Cultura);
 
     private static Frame Seccion(string titulo, View contenido) =>
         new()

@@ -63,6 +63,12 @@ public static class OrdenSeccionesInforme
             [
                 ("movimientos", UiTexts.CierreCompararMovimientos),
                 ("conceptos", UiTexts.CierreCompararConceptos)
+            ],
+            ["cierres-general"] =
+            [
+                ("ganancias", UiTexts.CierreGraficoGanancias),
+                ("gastos", UiTexts.CierreGraficoGastos),
+                ("historial", UiTexts.CierreHistorial)
             ]
         };
 

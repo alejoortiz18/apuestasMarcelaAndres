@@ -21,6 +21,7 @@
     string Periodo(CierreResumenResponse cierre) => Cuando(cierre.FechaInicio) + " — " + Cuando(cierre.FechaFin);
     string Ancho(decimal valor, decimal mayor) => mayor <= 0 ? "0" : Math.Clamp(Math.Abs(valor) / mayor * 100m, 0m, 100m).ToString("0.##", CultureInfo.InvariantCulture);
     string Variacion(decimal? valor) => valor is null ? UiTexts.CierreSinAnterior : string.Format(cultura, UiTexts.CierreVariacion, Dinero(valor.Value));
+    var secciones = OrdenSeccionesInforme.Vista(ViewData, "cierres-general");
     ColumnaOrdenViewModel Columna(string clave, string texto, bool numero = false) => new()
     {
         Clave = clave, Texto = texto, Estado = estado, ParamOrden = "ordenR", ParamDireccion = "dirR",
@@ -34,40 +35,47 @@
     }
     else
     {
-        <div class="informe-graficos">
-            <section class="informe-grafico" aria-labelledby="cierreGananciasTitulo">
-                <h3 id="cierreGananciasTitulo">@UiTexts.CierreGraficoGanancias</h3>
-                <ul class="informe-barras">
-                    @foreach (var cierre in cierres)
-                    {
-                        <li>
-                            <div class="informe-barra-head">
-                                <span>@Periodo(cierre)</span>
-                                <strong class="@(cierre.TotalGanancia < 0 ? "is-negativo" : "is-positivo")">@Dinero(cierre.TotalGanancia)</strong>
-                            </div>
-                            <div class="informe-barra" aria-hidden="true"><i style="width: @Ancho(cierre.TotalGanancia, mayorGanancia)%"></i></div>
-                            <small>@Variacion(cierre.VariacionGanancia)</small>
-                        </li>
-                    }
-                </ul>
-            </section>
-            <section class="informe-grafico" aria-labelledby="cierreGastosTitulo">
-                <h3 id="cierreGastosTitulo">@UiTexts.CierreGraficoGastos</h3>
-                <ul class="informe-barras">
-                    @foreach (var cierre in cierres)
-                    {
-                        <li>
-                            <div class="informe-barra-head">
-                                <span>@Periodo(cierre)</span>
-                                <strong>@Dinero(cierre.TotalGastos)</strong>
-                            </div>
-                            <div class="informe-barra is-gasto" aria-hidden="true"><i style="width: @Ancho(cierre.TotalGastos, mayorGasto)%"></i></div>
-                            <small>@Variacion(cierre.VariacionGastos)</small>
-                        </li>
-                    }
-                </ul>
-            </section>
-        </div>
+        <div class="informe-secciones" data-secciones="cierres-general">
+            <div class="informe-movible is-media" data-seccion="ganancias" style="order: @secciones.Posicion("ganancias")">
+                <partial name="_MoverSeccion" model='(secciones, "ganancias")' />
+                <section class="informe-grafico" aria-labelledby="cierreGananciasTitulo">
+                    <h3 id="cierreGananciasTitulo">@UiTexts.CierreGraficoGanancias</h3>
+                    <ul class="informe-barras">
+                        @foreach (var cierre in cierres)
+                        {
+                            <li>
+                                <div class="informe-barra-head">
+                                    <span>@Periodo(cierre)</span>
+                                    <strong class="@(cierre.TotalGanancia < 0 ? "is-negativo" : "is-positivo")">@Dinero(cierre.TotalGanancia)</strong>
+                                </div>
+                                <div class="informe-barra" aria-hidden="true"><i style="width: @Ancho(cierre.TotalGanancia, mayorGanancia)%"></i></div>
+                                <small>@Variacion(cierre.VariacionGanancia)</small>
+                            </li>
+                        }
+                    </ul>
+                </section>
+            </div>
+            <div class="informe-movible is-media" data-seccion="gastos" style="order: @secciones.Posicion("gastos")">
+                <partial name="_MoverSeccion" model='(secciones, "gastos")' />
+                <section class="informe-grafico" aria-labelledby="cierreGastosTitulo">
+                    <h3 id="cierreGastosTitulo">@UiTexts.CierreGraficoGastos</h3>
+                    <ul class="informe-barras">
+                        @foreach (var cierre in cierres)
+                        {
+                            <li>
+                                <div class="informe-barra-head">
+                                    <span>@Periodo(cierre)</span>
+                                    <strong>@Dinero(cierre.TotalGastos)</strong>
+                                </div>
+                                <div class="informe-barra is-gasto" aria-hidden="true"><i style="width: @Ancho(cierre.TotalGastos, mayorGasto)%"></i></div>
+                                <small>@Variacion(cierre.VariacionGastos)</small>
+                            </li>
+                        }
+                    </ul>
+                </section>
+            </div>
+            <div class="informe-movible" data-seccion="historial" style="order: @secciones.Posicion("historial")">
+                <partial name="_MoverSeccion" model='(secciones, "historial")' />
         <div class="informe-tabla-head">
             <div>
                 <h3>@UiTexts.CierreHistorial</h3>
@@ -121,8 +129,12 @@
                 </tbody>
             </table>
         </div>
-        ViewData["PagerPageKey"] = "pageR";
-        ViewData["PagerPageSizeKey"] = "pageSizeR";
+        @{
+            ViewData["PagerPageKey"] = "pageR";
+            ViewData["PagerPageSizeKey"] = "pageSizeR";
+        }
         <partial name="_Pager" model="pagina" />
+            </div>
+        </div>
     }
 </section>

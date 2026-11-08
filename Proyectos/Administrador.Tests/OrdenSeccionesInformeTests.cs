@@ -17,6 +17,8 @@ public sealed class OrdenSeccionesInformeTests
             .Should().Equal("encabezado", "tipos", "premios", "loterias", "cubiertoloterias", "cubiertos", "conceptos", "gastos");
         OrdenSeccionesInforme.Orden(guardado, CategoriasInforme.Vendedores)
             .Should().Equal("encabezado", "tarjetas", "tipos", "grupos", "estado", "tabla");
+        OrdenSeccionesInforme.Orden(guardado, "cierres-general")
+            .Should().Equal("ganancias", "gastos", "historial");
     }
 
     [Fact]

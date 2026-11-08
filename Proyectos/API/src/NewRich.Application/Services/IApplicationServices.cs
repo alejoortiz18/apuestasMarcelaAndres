@@ -156,6 +156,7 @@ public interface IPremioEntregadoWebService
     Task<Result<PremiosEntregadosWebResponse>> ListarPropiosAsync(Guid vendedorId, int page, int pageSize, CancellationToken cancellationToken);
     Task<Result<TotalPremiosEntregadosWebResponse>> TotalAsync(DateOnly desde, DateOnly hasta, Guid? grupoId, Guid? vendedorId, CancellationToken cancellationToken);
     Task<Result<IReadOnlyList<PremioEntregadoWebResponse>>> ListadoAsync(DateOnly desde, DateOnly hasta, Guid? grupoId, CancellationToken cancellationToken);
+    Task<Result<IReadOnlyList<PremioEntregadoWebResponse>>> ListadoAsync(DateOnly desde, DateOnly hasta, Guid? grupoId, Guid? vendedorId, CancellationToken cancellationToken);
 }
 
 public interface IKpiService

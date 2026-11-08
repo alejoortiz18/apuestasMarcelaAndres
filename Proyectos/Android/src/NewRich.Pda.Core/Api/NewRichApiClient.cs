@@ -10,6 +10,7 @@ using NewRich.Application.Contracts.Cierre;
 using NewRich.Application.Contracts.Configuracion;
 using NewRich.Application.Contracts.Dispositivos;
 using NewRich.Application.Contracts.Grupos;
+using NewRich.Application.Contracts.Informes;
 using NewRich.Application.Contracts.Kpi;
 using NewRich.Application.Contracts.Loterias;
 using NewRich.Application.Contracts.Offline;
@@ -211,6 +212,26 @@ public sealed class NewRichApiClient
 
         var url = q.Count == 0 ? "api/KpiAndroid/ConsultarMob" : "api/KpiAndroid/ConsultarMob?" + string.Join("&", q);
         return Enviar<KpiResponse>(HttpMethod.Get, url, null, ct);
+    }
+
+    public Task<Result<InformeEgresosObservadorResponse>> InformeEgresosAsync(DateOnly desde, DateOnly hasta, Guid? grupoId, Guid? vendedorId, CancellationToken ct)
+    {
+        var q = new List<string>
+        {
+            $"desde={desde:yyyy-MM-dd}",
+            $"hasta={hasta:yyyy-MM-dd}"
+        };
+        if (grupoId.HasValue)
+        {
+            q.Add($"grupoId={grupoId}");
+        }
+
+        if (vendedorId.HasValue)
+        {
+            q.Add($"vendedorId={vendedorId}");
+        }
+
+        return Enviar<InformeEgresosObservadorResponse>(HttpMethod.Get, "api/InformeEgresosObservador?" + string.Join("&", q), null, ct);
     }
 
     public Task<Result<IReadOnlyList<CierreResumenResponse>>> CierresAsync(CancellationToken ct) =>

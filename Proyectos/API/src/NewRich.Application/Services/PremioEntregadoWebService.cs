@@ -124,13 +124,21 @@ public sealed class PremioEntregadoWebService : IPremioEntregadoWebService
             SuccessMessages.OperacionExitosa);
     }
 
+    public Task<Result<IReadOnlyList<PremioEntregadoWebResponse>>> ListadoAsync(
+        DateOnly desde,
+        DateOnly hasta,
+        Guid? grupoId,
+        CancellationToken cancellationToken) =>
+        ListadoAsync(desde, hasta, grupoId, null, cancellationToken);
+
     public async Task<Result<IReadOnlyList<PremioEntregadoWebResponse>>> ListadoAsync(
         DateOnly desde,
         DateOnly hasta,
         Guid? grupoId,
+        Guid? vendedorId,
         CancellationToken cancellationToken)
     {
-        var items = await Proyectar(Filtrar(desde, hasta, grupoId, null).OrderByDescending(p => p.FechaPremio).ThenByDescending(p => p.FechaRegistro))
+        var items = await Proyectar(Filtrar(desde, hasta, grupoId, vendedorId).OrderByDescending(p => p.FechaPremio).ThenByDescending(p => p.FechaRegistro))
             .ToListAsync(cancellationToken);
         return Result<IReadOnlyList<PremioEntregadoWebResponse>>.Ok(items, SuccessMessages.OperacionExitosa);
     }

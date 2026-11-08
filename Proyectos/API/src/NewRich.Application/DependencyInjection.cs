@@ -53,6 +53,7 @@ public static class DependencyInjection
         services.AddScoped<IRecaudoService, RecaudoService>();
         services.AddScoped<IGastosUtilidadesService, GastosUtilidadesService>();
         services.AddScoped<ICierreService, CierreService>();
+        services.AddScoped<IInformeEgresosObservadorService, InformeEgresosObservadorService>();
         return services;
     }
 }
