@@ -234,6 +234,26 @@ public sealed class NewRichApiClient
         return Enviar<InformeEgresosObservadorResponse>(HttpMethod.Get, "api/InformeEgresosObservador?" + string.Join("&", q), null, ct);
     }
 
+    public Task<Result<TableroRecaudoResponse>> InformeRecaudoAsync(DateOnly desde, DateOnly hasta, string? grupo, Guid? vendedorId, CancellationToken ct)
+    {
+        var q = new List<string>
+        {
+            $"desde={desde:yyyy-MM-dd}",
+            $"hasta={hasta:yyyy-MM-dd}"
+        };
+        if (!string.IsNullOrWhiteSpace(grupo))
+        {
+            q.Add($"grupo={Uri.EscapeDataString(grupo)}");
+        }
+
+        if (vendedorId.HasValue)
+        {
+            q.Add($"vendedorId={vendedorId}");
+        }
+
+        return Enviar<TableroRecaudoResponse>(HttpMethod.Get, "api/InformeRecaudoObservador?" + string.Join("&", q), null, ct);
+    }
+
     public Task<Result<IReadOnlyList<CierreResumenResponse>>> CierresAsync(CancellationToken ct) =>
         Enviar<IReadOnlyList<CierreResumenResponse>>(HttpMethod.Get, "api/Cierre", null, ct);
 

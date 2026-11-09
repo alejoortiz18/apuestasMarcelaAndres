@@ -3,6 +3,7 @@ using NewRich.Application.Contracts.Cierre;
 using NewRich.Application.Contracts.Informes;
 using NewRich.Application.Informes;
 using NewRich.Application.Contracts.Kpi;
+using NewRich.Application.Contracts.Recaudo;
 using NewRich.Domain.Enums;
 using NewRich.Pda.Core;
 using NewRich.Pda.Core.Api;
@@ -17,6 +18,7 @@ public sealed class KpiPage : ContentPage
     private readonly DatePicker _hasta = new() { Date = DateTime.Today };
     private readonly Picker _grupos = new();
     private readonly Picker _vendedores = new();
+    private readonly Label _etiquetaVendedor = Ui.Campo(PdaTexts.Vendedor);
     private readonly VerticalStackLayout _raiz = new() { Padding = 16, Spacing = 16 };
     private readonly VerticalStackLayout _tablero = new() { Spacing = 14 };
     private readonly CargandoOverlay _cargando = new();
@@ -27,11 +29,14 @@ public sealed class KpiPage : ContentPage
     private DateOnly _hastaFecha = DateOnly.FromDateTime(DateTime.Today);
     private IReadOnlyList<CierreResumenResponse> _cierres = [];
     private InformeEgresosObservadorResponse? _egresos;
+    private TableroRecaudoResponse? _recaudo;
     private string? _errorCierres;
     private string? _errorKpi;
     private string? _errorEgresos;
+    private string? _errorRecaudo;
     private int _paginaPremios = 1;
     private int _paginaCubiertos = 1;
+    private int _paginaDeudores = 1;
     private static readonly CultureInfo Cultura = CultureInfo.GetCultureInfo("es-CO");
     private static readonly Color BarraPremio = Color.FromArgb("#1f4e45");
     private static readonly Color BarraGasto = Color.FromArgb("#8d5a2b");
@@ -101,7 +106,7 @@ public sealed class KpiPage : ContentPage
                     fechas,
                     Ui.Campo(PdaTexts.Grupo),
                     _grupos,
-                    Ui.Campo(PdaTexts.Vendedor),
+                    _etiquetaVendedor,
                     _vendedores,
                     acciones
                 }
@@ -192,13 +197,15 @@ public sealed class KpiPage : ContentPage
         var desde = DateOnly.FromDateTime((_desde.Date ?? DateTime.Today.AddDays(-7)).Date);
         var hasta = DateOnly.FromDateTime((_hasta.Date ?? DateTime.Today).Date);
         Guid? grupoId = null;
+        string? grupoNombre = null;
         if (_grupos.SelectedIndex >= 0 && _grupos.SelectedIndex < _opcionesGrupo.Count)
         {
             grupoId = _opcionesGrupo[_grupos.SelectedIndex].Id;
+            grupoNombre = grupoId is null ? null : _opcionesGrupo[_grupos.SelectedIndex].Nombre;
         }
 
         Guid? vendedorId = null;
-        if (_vendedores.SelectedIndex >= 0 && _vendedores.SelectedIndex < _opcionesVendedor.Count)
+        if (_vendedores.IsVisible && _vendedores.SelectedIndex >= 0 && _vendedores.SelectedIndex < _opcionesVendedor.Count)
         {
             vendedorId = _opcionesVendedor[_vendedores.SelectedIndex].Id;
         }
@@ -211,6 +218,7 @@ public sealed class KpiPage : ContentPage
             _filtroVendedor = vendedorId.HasValue;
             _paginaPremios = 1;
             _paginaCubiertos = 1;
+            _paginaDeudores = 1;
             var cierres = await _api.CierresAsync(CancellationToken.None);
             if (!cierres.IsSuccess || cierres.Data is null)
             {
@@ -240,6 +248,18 @@ public sealed class KpiPage : ContentPage
             {
                 _kpi = resultado.Data;
                 _errorKpi = null;
+            }
+
+            var recaudo = await _api.InformeRecaudoAsync(desde, hasta, grupoNombre, vendedorId, CancellationToken.None);
+            if (!recaudo.IsSuccess || recaudo.Data is null)
+            {
+                _recaudo = null;
+                _errorRecaudo = recaudo.Message;
+            }
+            else
+            {
+                _recaudo = recaudo.Data;
+                _errorRecaudo = null;
             }
 
             var egresos = await _api.InformeEgresosAsync(desde, hasta, grupoId, vendedorId, CancellationToken.None);
@@ -299,8 +319,11 @@ public sealed class KpiPage : ContentPage
             return;
         }
 
-        if (_elegidas.Contains("personas") || _elegidas.Contains("ventas") || _elegidas.Contains("egresos"))
+        if (_elegidas.Contains("personas") || _elegidas.Contains("ventas") || _elegidas.Contains("egresos") || _elegidas.Contains("recaudo"))
         {
+            var muestraVendedor = _elegidas.Contains("ventas") || _elegidas.Contains("egresos") || _elegidas.Contains("recaudo");
+            _etiquetaVendedor.IsVisible = muestraVendedor;
+            _vendedores.IsVisible = muestraVendedor;
             if (_filtros is not null)
             {
                 _raiz.Children.Add(_filtros);
@@ -351,12 +374,17 @@ public sealed class KpiPage : ContentPage
         if (_elegidas.Contains("recaudo"))
         {
             _raiz.Children.Add(TituloCategoria(PdaTexts.InformeCategoriaRecaudo));
-            _raiz.Children.Add(new Label
+            if (_errorRecaudo is not null)
             {
-                Text = PdaTexts.InformeCategoriaRecaudoAyuda,
-                TextColor = Ui.Muted,
-                FontSize = 13
-            });
+                _raiz.Children.Add(new Label { Text = _errorRecaudo, TextColor = Ui.Danger, LineBreakMode = LineBreakMode.WordWrap });
+            }
+            else if (_recaudo is not null)
+            {
+                foreach (var vista in InformeRecaudo(_recaudo))
+                {
+                    _raiz.Children.Add(vista);
+                }
+            }
         }
 
         if (_elegidas.Contains("cierres"))
@@ -862,6 +890,197 @@ public sealed class KpiPage : ContentPage
         Grid.SetColumn(frame, col);
         return frame;
     }
+
+    private IEnumerable<View> InformeRecaudo(TableroRecaudoResponse tablero)
+    {
+        var avance = AvanceRecaudo(tablero.TotalRecaudado, tablero.TotalPendiente);
+        yield return new VerticalStackLayout
+        {
+            Spacing = 8,
+            Children =
+            {
+                new Label
+                {
+                    Text = PdaTexts.InformeRecaudoNombre.ToUpperInvariant(),
+                    FontSize = 22,
+                    FontAttributes = FontAttributes.Bold,
+                    TextColor = Ui.Ink
+                },
+                new Label
+                {
+                    Text = string.Format(PdaTexts.InformeCorte, DateTime.Now.ToString("dd/MM/yyyy hh:mm tt", Cultura)),
+                    TextColor = Ui.Muted,
+                    FontSize = 13
+                },
+                Pastilla(string.Format(PdaTexts.InformePeriodoTexto, PeriodoTexto())),
+                Pastilla(string.Format(PdaTexts.InformeAlcanceTexto, AlcanceTexto()))
+            }
+        };
+
+        var metricas = new VerticalStackLayout { Spacing = 10 };
+        metricas.Children.Add(Ayuda(PdaTexts.InformeSeccionRecaudoAyuda));
+        metricas.Children.Add(Metrica(PdaTexts.InformeRecaudoPorRecaudar, Pesos(tablero.TotalPorRecaudar), null));
+        metricas.Children.Add(Metrica(PdaTexts.InformeRecaudoRecaudado, Pesos(tablero.TotalRecaudado), null));
+        metricas.Children.Add(Metrica(
+            PdaTexts.InformeRecaudoPendiente,
+            Pesos(tablero.TotalPendiente),
+            string.Format(PdaTexts.InformeRecaudoPendienteNota, Pesos(tablero.DeudaAnterior), Pesos(tablero.PendienteDelDia))));
+        var avanceBloque = new VerticalStackLayout
+        {
+            Spacing = 4,
+            Children =
+            {
+                new Label { Text = PdaTexts.InformeRecaudoAvance, TextColor = Ui.Muted, FontSize = 12 },
+                new Label { Text = $"{avance} %", TextColor = Ui.Ink, FontSize = 20, FontAttributes = FontAttributes.Bold },
+                Barra(avance, Ui.Green),
+                new Label
+                {
+                    Text = string.Format(PdaTexts.InformeRecaudoAvanceNota, tablero.VendedoresAlDia.ToString("N0", Cultura), tablero.VendedoresPorCobrar.ToString("N0", Cultura), tablero.VendedoresEnDeuda.ToString("N0", Cultura)),
+                    TextColor = Ui.Muted,
+                    FontSize = 12,
+                    LineBreakMode = LineBreakMode.WordWrap
+                }
+            }
+        };
+        metricas.Children.Add(avanceBloque);
+        yield return Seccion(PdaTexts.InformeCategoriaRecaudo, metricas);
+
+        var dias = (tablero.Dias ?? []).OrderBy(d => d.Fecha).ToList();
+        var linea = new VerticalStackLayout { Spacing = 8 };
+        linea.Children.Add(Ayuda(PdaTexts.InformeRecaudoLineaAyuda));
+        if (dias.Count == 0 || dias.All(d => d.Debia == 0 && d.Cobrado == 0 && d.Generado == 0))
+        {
+            linea.Children.Add(Vacio(PdaTexts.InformeSinRecaudo));
+        }
+        else
+        {
+            foreach (var dia in dias)
+            {
+                linea.Children.Add(TarjetaDatos(
+                [
+                    (PdaTexts.Fecha, dia.Fecha.ToString("dd/MM/yyyy", Cultura)),
+                    (PdaTexts.LoQueDebian, Pesos(dia.Debia)),
+                    (PdaTexts.LoCobrado, Pesos(dia.Cobrado)),
+                    (PdaTexts.LoGenerado, Pesos(dia.Generado))
+                ]));
+            }
+        }
+
+        yield return Seccion(PdaTexts.InformeRecaudoLinea, linea);
+
+        var recaudadores = (tablero.Recaudadores ?? [])
+            .OrderByDescending(r => r.TotalPendiente)
+            .ThenByDescending(r => r.TotalRecaudado)
+            .ThenBy(r => r.Nombre, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+        var barras = new VerticalStackLayout { Spacing = 12 };
+        barras.Children.Add(Ayuda(PdaTexts.InformeRecaudadoresAyuda));
+        if (recaudadores.Count == 0)
+        {
+            barras.Children.Add(Vacio(PdaTexts.InformeSinRecaudo));
+        }
+        else
+        {
+            foreach (var rec in recaudadores)
+            {
+                var dato = string.Format(PdaTexts.InformeRecaudadorDato, Pesos(rec.TotalRecaudado), Pesos(rec.TotalPendiente), rec.Vendedores.ToString("N0", Cultura));
+                barras.Children.Add(new VerticalStackLayout
+                {
+                    Spacing = 4,
+                    Children =
+                    {
+                        new Label { Text = rec.Nombre, TextColor = Ui.Ink, FontAttributes = FontAttributes.Bold, FontSize = 14 },
+                        new Label { Text = string.IsNullOrWhiteSpace(rec.Detalle) ? $"{AvanceRecaudo(rec.TotalRecaudado, rec.TotalPendiente)} %" : $"{rec.Detalle} · {AvanceRecaudo(rec.TotalRecaudado, rec.TotalPendiente)} %", TextColor = Ui.Muted, FontSize = 12, LineBreakMode = LineBreakMode.WordWrap },
+                        Barra(AvanceRecaudo(rec.TotalRecaudado, rec.TotalPendiente), Ui.Green),
+                        new Label { Text = dato, TextColor = Ui.Ink, FontSize = 12, LineBreakMode = LineBreakMode.WordWrap }
+                    }
+                });
+            }
+        }
+
+        yield return Seccion(PdaTexts.InformeRecaudadores, barras);
+
+        var deudores = (tablero.SaldosPendientes ?? [])
+            .OrderByDescending(s => s.TotalPendiente)
+            .ThenBy(s => s.Nombre, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+        var lista = new VerticalStackLayout { Spacing = 8 };
+        lista.Children.Add(FilasPorPagina());
+        lista.Children.Add(Ayuda(PdaTexts.InformeRecaudoAtrasosAyuda));
+        if (deudores.Count == 0)
+        {
+            lista.Children.Add(Vacio(PdaTexts.InformeSinAtrasos));
+        }
+        else
+        {
+            var pagina = PaginaActual(_paginaDeudores, deudores.Count);
+            _paginaDeudores = pagina;
+            foreach (var saldo in deudores.Skip((pagina - 1) * 10).Take(10))
+            {
+                lista.Children.Add(TarjetaDatos(
+                [
+                    (PdaTexts.Vendedor, saldo.Nombre),
+                    (PdaTexts.Grupo, string.IsNullOrWhiteSpace(saldo.Grupo) ? PdaTexts.SinGrupo : saldo.Grupo),
+                    (PdaTexts.Recaudador, string.IsNullOrWhiteSpace(saldo.Recaudador) ? "-" : saldo.Recaudador),
+                    (PdaTexts.InformeColumnaDeudaAnterior, Pesos(saldo.DeudaAnterior)),
+                    (PdaTexts.InformeColumnaPendienteDia, Pesos(saldo.PendienteDelDia)),
+                    (PdaTexts.InformeColumnaTotalPendiente, Pesos(saldo.TotalPendiente))
+                ]));
+            }
+
+            lista.Children.Add(Paginador(deudores.Count, pagina, n =>
+            {
+                _paginaDeudores = n;
+                Dibujar();
+            }));
+        }
+
+        if (tablero.PeriodoRecortado)
+        {
+            lista.Children.Add(new Label { Text = PdaTexts.InformeRecaudoRecortado, TextColor = Ui.Muted, FontSize = 12, LineBreakMode = LineBreakMode.WordWrap });
+        }
+
+        yield return Seccion(PdaTexts.InformeRecaudoAtrasos, lista);
+    }
+
+    private string PeriodoTexto()
+    {
+        var desde = _desdeFecha.ToString("dd/MM/yyyy", Cultura);
+        var hasta = _hastaFecha.ToString("dd/MM/yyyy", Cultura);
+        return _desdeFecha == _hastaFecha ? desde : string.Format(PdaTexts.InformeRangoTexto, desde, hasta);
+    }
+
+    private string AlcanceTexto()
+    {
+        if (_grupos.SelectedIndex >= 0 && _grupos.SelectedIndex < _opcionesGrupo.Count && _opcionesGrupo[_grupos.SelectedIndex].Id is not null)
+        {
+            return _opcionesGrupo[_grupos.SelectedIndex].Nombre;
+        }
+
+        return PdaTexts.TodosLosGrupos;
+    }
+
+    private static View Metrica(string titulo, string valor, string? nota)
+    {
+        var bloque = new VerticalStackLayout
+        {
+            Spacing = 2,
+            Children =
+            {
+                new Label { Text = titulo, TextColor = Ui.Muted, FontSize = 12 },
+                new Label { Text = valor, TextColor = Ui.Ink, FontSize = 20, FontAttributes = FontAttributes.Bold }
+            }
+        };
+        if (!string.IsNullOrWhiteSpace(nota))
+        {
+            bloque.Children.Add(new Label { Text = nota, TextColor = Ui.Muted, FontSize = 12, LineBreakMode = LineBreakMode.WordWrap });
+        }
+
+        return bloque;
+    }
+
+    private static int AvanceRecaudo(decimal recaudado, decimal pendiente) =>
+        recaudado + pendiente <= 0 ? 0 : (int)Math.Round(recaudado * 100m / (recaudado + pendiente), MidpointRounding.AwayFromZero);
 
     private IEnumerable<View> InformeEgresos(InformeEgresosObservadorResponse informe)
     {
