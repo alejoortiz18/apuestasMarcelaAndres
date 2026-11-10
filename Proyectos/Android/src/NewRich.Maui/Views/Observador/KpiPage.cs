@@ -29,14 +29,17 @@ public sealed class KpiPage : ContentPage
     private DateOnly _hastaFecha = DateOnly.FromDateTime(DateTime.Today);
     private IReadOnlyList<CierreResumenResponse> _cierres = [];
     private InformeEgresosObservadorResponse? _egresos;
+    private InformePersonasObservadorResponse? _personas;
     private TableroRecaudoResponse? _recaudo;
     private string? _errorCierres;
     private string? _errorKpi;
     private string? _errorEgresos;
+    private string? _errorPersonas;
     private string? _errorRecaudo;
     private int _paginaPremios = 1;
     private int _paginaCubiertos = 1;
     private int _paginaDeudores = 1;
+    private int _paginaPersonas = 1;
     private static readonly CultureInfo Cultura = CultureInfo.GetCultureInfo("es-CO");
     private static readonly Color BarraPremio = Color.FromArgb("#1f4e45");
     private static readonly Color BarraGasto = Color.FromArgb("#8d5a2b");
@@ -219,6 +222,7 @@ public sealed class KpiPage : ContentPage
             _paginaPremios = 1;
             _paginaCubiertos = 1;
             _paginaDeudores = 1;
+            _paginaPersonas = 1;
             var cierres = await _api.CierresAsync(CancellationToken.None);
             if (!cierres.IsSuccess || cierres.Data is null)
             {
@@ -248,6 +252,24 @@ public sealed class KpiPage : ContentPage
             {
                 _kpi = resultado.Data;
                 _errorKpi = null;
+            }
+
+            var usuarios = await _api.UsuariosAsync(CancellationToken.None);
+            var gruposInforme = await _api.GruposAsync(CancellationToken.None);
+            if (!usuarios.IsSuccess || usuarios.Data is null)
+            {
+                _personas = null;
+                _errorPersonas = usuarios.Message;
+            }
+            else if (!gruposInforme.IsSuccess || gruposInforme.Data is null)
+            {
+                _personas = null;
+                _errorPersonas = gruposInforme.Message;
+            }
+            else
+            {
+                _personas = InformePersonasLectura.Armar(usuarios.Data, gruposInforme.Data, grupoId);
+                _errorPersonas = null;
             }
 
             var recaudo = await _api.InformeRecaudoAsync(desde, hasta, grupoNombre, vendedorId, CancellationToken.None);
@@ -330,18 +352,28 @@ public sealed class KpiPage : ContentPage
             }
         }
 
-        if (_errorKpi is not null && (_elegidas.Contains("personas") || _elegidas.Contains("ventas") || _elegidas.Contains("egresos")))
+        if (_elegidas.Contains("personas"))
+        {
+            _raiz.Children.Add(TituloCategoria(PdaTexts.InformeObservadorPersonas));
+            if (_errorPersonas is not null)
+            {
+                _raiz.Children.Add(new Label { Text = _errorPersonas, TextColor = Ui.Danger, LineBreakMode = LineBreakMode.WordWrap });
+            }
+            else if (_personas is not null)
+            {
+                foreach (var vista in InformePersonas(_personas))
+                {
+                    _raiz.Children.Add(vista);
+                }
+            }
+        }
+
+        if (_errorKpi is not null && (_elegidas.Contains("ventas") || _elegidas.Contains("egresos")))
         {
             _raiz.Children.Add(new Label { Text = _errorKpi, TextColor = Ui.Danger, LineBreakMode = LineBreakMode.WordWrap });
         }
         else if (_kpi is not null)
         {
-            if (_elegidas.Contains("personas"))
-            {
-                _raiz.Children.Add(TituloCategoria(PdaTexts.InformeObservadorPersonas));
-                _raiz.Children.Add(BloquePersonas(_kpi));
-            }
-
             if (_elegidas.Contains("ventas"))
             {
                 _raiz.Children.Add(TituloCategoria(PdaTexts.InformeObservadorVentas));
@@ -510,20 +542,175 @@ public sealed class KpiPage : ContentPage
         HorizontalTextAlignment = TextAlignment.Center
     };
 
-    private static View BloquePersonas(KpiResponse origen)
+    private IEnumerable<View> InformePersonas(InformePersonasObservadorResponse informe)
     {
-        var personas = new Grid
+        var incluidos = informe.Incluidos.ToString("N0", Cultura);
+        var registrados = informe.TotalRegistrados.ToString("N0", Cultura);
+        var sinGrupo = informe.VendedoresSinGrupo == 1
+            ? PdaTexts.InformeMetricaUnSinGrupo
+            : string.Format(PdaTexts.InformeMetricaVariosSinGrupo, informe.VendedoresSinGrupo.ToString("N0", Cultura));
+        var metricas = new VerticalStackLayout { Spacing = 10 };
+        metricas.Children.Add(Metrica(
+            PdaTexts.InformeMetricaIncluidos,
+            incluidos,
+            string.Format(PdaTexts.InformeMetricaIncluidosNota, Porcentaje(informe.PorcentajeIncluidos), registrados)));
+        metricas.Children.Add(Metrica(
+            PdaTexts.InformeMetricaVendedores,
+            informe.Vendedores.ToString("N0", Cultura),
+            string.Format(PdaTexts.InformeMetricaVendedoresNota, Porcentaje(informe.PorcentajeVendedores))));
+        metricas.Children.Add(Metrica(PdaTexts.InformeMetricaGrupos, informe.GruposConVendedores.ToString("N0", Cultura), sinGrupo));
+        metricas.Children.Add(Metrica(
+            PdaTexts.InformeMetricaActivos,
+            informe.Activos.ToString("N0", Cultura),
+            string.Format(PdaTexts.InformeMetricaActivosNota, Porcentaje(informe.PorcentajeActivos), informe.Inactivos.ToString("N0", Cultura))));
+
+        yield return new VerticalStackLayout
         {
-            ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Star) },
-            RowDefinitions = { new RowDefinition(GridLength.Auto), new RowDefinition(GridLength.Auto) },
-            ColumnSpacing = 8,
-            RowSpacing = 8
+            Spacing = 8,
+            Children =
+            {
+                new Label
+                {
+                    Text = PdaTexts.InformePersonasNombre.ToUpperInvariant(),
+                    FontSize = 22,
+                    FontAttributes = FontAttributes.Bold,
+                    TextColor = Ui.Ink
+                },
+                new Label
+                {
+                    Text = string.Format(PdaTexts.InformeCorte, DateTime.Now.ToString("dd/MM/yyyy hh:mm tt", Cultura)),
+                    TextColor = Ui.Muted,
+                    FontSize = 13
+                }
+            }
         };
-        personas.Add(Celda(PdaTexts.InformeObservadorPersonas, origen.PersonasTotales.ToString(), 0, 0));
-        personas.Add(Celda(PdaTexts.Vendedor, origen.Vendedores.ToString(), 1, 0));
-        personas.Add(Celda(PdaTexts.Grupo, origen.GruposConVendedores.ToString(), 0, 1));
-        personas.Add(Celda(PdaTexts.InformeObservadorActivos, origen.UsuariosActivos.ToString(), 1, 1));
-        return Seccion(PdaTexts.InformeObservadorPersonas, personas);
+        yield return Seccion(PdaTexts.InformeObservadorPersonas, metricas);
+        yield return BarrasCantidad(PdaTexts.InformeGraficoTipos, PdaTexts.InformeGraficoTiposAyuda, informe.PorTipo, PdaTexts.InformeSinCoincidencias, incluidos);
+        yield return BarrasCantidad(PdaTexts.InformeGraficoGrupos, PdaTexts.InformeGraficoGruposAyuda, informe.PorGrupo, PdaTexts.InformeSinVendedores, null);
+        yield return EstadoPersonal(informe);
+        yield return ListaPersonal(informe.Personal);
+    }
+
+    private static View BarrasCantidad(string titulo, string ayuda, IReadOnlyList<BarraInformeResponse> barras, string vacio, string? centro)
+    {
+        var cuerpo = new VerticalStackLayout { Spacing = 12 };
+        cuerpo.Children.Add(Ayuda(ayuda));
+        if (barras.Count == 0)
+        {
+            cuerpo.Children.Add(Vacio(vacio));
+            return Seccion(titulo, cuerpo);
+        }
+
+        if (centro is not null)
+        {
+            cuerpo.Children.Add(new Label
+            {
+                Text = $"{centro} {PdaTexts.InformeGraficoTiposCentro}",
+                TextColor = Ui.Ink,
+                FontSize = 16,
+                FontAttributes = FontAttributes.Bold
+            });
+        }
+
+        foreach (var barra in barras)
+        {
+            cuerpo.Children.Add(new VerticalStackLayout
+            {
+                Spacing = 4,
+                Children =
+                {
+                    new Label
+                    {
+                        Text = $"{barra.Texto}  {barra.Cantidad.ToString("N0", Cultura)}  {Porcentaje(barra.Porcentaje)} %",
+                        TextColor = Ui.Ink,
+                        FontSize = 14,
+                        LineBreakMode = LineBreakMode.WordWrap
+                    },
+                    Barra((int)Math.Round(barra.Ancho, MidpointRounding.AwayFromZero), Ui.Gold)
+                }
+            });
+        }
+
+        return Seccion(titulo, cuerpo);
+    }
+
+    private static View EstadoPersonal(InformePersonasObservadorResponse informe)
+    {
+        var inactivos = informe.Incluidos == 0 ? 0m : 100m - informe.PorcentajeActivos;
+        var cuerpo = new VerticalStackLayout { Spacing = 8 };
+        cuerpo.Children.Add(Ayuda(PdaTexts.InformeGraficoEstadoAyuda));
+        var activos = Math.Max(0, (double)informe.PorcentajeActivos);
+        var resto = Math.Max(0, (double)inactivos);
+        var barra = new Grid
+        {
+            HeightRequest = 12,
+            ColumnSpacing = 0,
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(new GridLength(Math.Max(activos, informe.Activos > 0 ? 1 : 0), GridUnitType.Star)),
+                new ColumnDefinition(new GridLength(Math.Max(resto, informe.Inactivos > 0 ? 1 : 0), GridUnitType.Star))
+            }
+        };
+        if (informe.Activos > 0)
+        {
+            barra.Add(new BoxView { Color = Ui.Green, HeightRequest = 12, CornerRadius = 6 });
+        }
+
+        if (informe.Inactivos > 0)
+        {
+            var caja = new BoxView { Color = Ui.Danger, HeightRequest = 12, CornerRadius = 6 };
+            Grid.SetColumn(caja, informe.Activos > 0 ? 1 : 0);
+            barra.Add(caja);
+        }
+
+        cuerpo.Children.Add(barra);
+        cuerpo.Children.Add(new Label
+        {
+            Text = $"{PdaTexts.InformeActivos}  {informe.Activos.ToString("N0", Cultura)}  {Porcentaje(informe.PorcentajeActivos)} %",
+            TextColor = Ui.Ink,
+            FontSize = 14
+        });
+        cuerpo.Children.Add(new Label
+        {
+            Text = $"{PdaTexts.InformeInactivos}  {informe.Inactivos.ToString("N0", Cultura)}  {Porcentaje(inactivos)} %",
+            TextColor = Ui.Ink,
+            FontSize = 14
+        });
+        return Seccion(PdaTexts.InformeGraficoEstado, cuerpo);
+    }
+
+    private View ListaPersonal(IReadOnlyList<PersonaInformeResponse> personal)
+    {
+        var lista = new VerticalStackLayout { Spacing = 8 };
+        lista.Children.Add(FilasPorPagina());
+        lista.Children.Add(Ayuda(PdaTexts.InformeTablaAyuda));
+        if (personal.Count == 0)
+        {
+            lista.Children.Add(Vacio(PdaTexts.InformeSinCoincidencias));
+            return Seccion(PdaTexts.InformeTablaTitulo, lista);
+        }
+
+        var pagina = PaginaActual(_paginaPersonas, personal.Count);
+        _paginaPersonas = pagina;
+        foreach (var persona in personal.Skip((pagina - 1) * 10).Take(10))
+        {
+            lista.Children.Add(TarjetaDatos(
+            [
+                (PdaTexts.InformeColumnaNombre, persona.Nombre),
+                (PdaTexts.Usuario, persona.Usuario),
+                (PdaTexts.Documento, string.IsNullOrWhiteSpace(persona.Documento) ? "-" : persona.Documento),
+                (PdaTexts.TipoUsuario, persona.Tipo),
+                (PdaTexts.Grupo, string.IsNullOrWhiteSpace(persona.Grupo) ? PdaTexts.SinGrupo : persona.Grupo),
+                (PdaTexts.Estado, persona.Estado)
+            ]));
+        }
+
+        lista.Children.Add(Paginador(personal.Count, pagina, n =>
+        {
+            _paginaPersonas = n;
+            Dibujar();
+        }));
+        return Seccion(PdaTexts.InformeTablaTitulo, lista);
     }
 
     private View BloqueCierres()
