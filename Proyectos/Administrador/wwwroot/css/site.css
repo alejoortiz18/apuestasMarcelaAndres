@@ -2356,6 +2356,56 @@ button.jornada-filtro-opcion {
   color: #4a4a4a;
 }
 .recaudo-fila-gris { background: #ececec; color: #5c5c5c; }
+.recaudo-fila-deuda td { background: #f8e4e4; }
+.recaudo-fila-deuda:hover td,
+.recaudo-fila-deuda:focus-within td { background: #f3d2d2; }
+.recaudo-fila-panel td {
+  font-size: 1.15rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  vertical-align: middle;
+}
+.recaudo-col-pago {
+  min-width: 9rem;
+}
+.recaudo-form-pago .money-input {
+  min-width: 8.5rem;
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+.recaudo-form-pago .money-visible {
+  font-size: 1.15rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.recaudo-form-pago .money-prefix {
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+.recaudo-recaudador-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+}
+.recaudo-recaudador-label .boton-lapiz {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  justify-content: center;
+}
+.recaudo-col-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.recaudo-col-acciones .secondary,
+.recaudo-col-acciones .primary {
+  font-size: 1rem;
+  font-weight: 700;
+}
 [data-edicion-porcentajes] [hidden],
 [data-asignar-grupos] [hidden] { display: none !important; }
 .recaudo-col-grupo { min-width: 14rem; }
@@ -2566,6 +2616,8 @@ th:nth-last-child(-n+3) .th-ayuda-texto { left: auto; right: 0; }
 }
 .grafico-dia-punto.debia { border-color: #a32626; box-shadow: 0 0 0 4px rgba(163, 38, 38, 0.16); }
 .grafico-dia-punto.cobrado { border-color: #1f7a45; box-shadow: 0 0 0 4px rgba(31, 122, 69, 0.16); }
+.grafico-dia-punto.entregar { border-color: #8a4b08; box-shadow: 0 0 0 4px rgba(138, 75, 8, 0.16); }
+.grafico-dia-punto.entregado { border-color: #2f5d9f; box-shadow: 0 0 0 4px rgba(47, 93, 159, 0.16); }
 .grafico-tip {
   position: absolute;
   top: 0;
@@ -2602,6 +2654,8 @@ th:nth-last-child(-n+3) .th-ayuda-texto { left: auto; right: 0; }
 .tip-marca { width: 10px; height: 10px; border-radius: 50%; border: 2px solid #fffdf8; }
 .tip-marca.debia { background: #e05a5a; }
 .tip-marca.cobrado { background: #4cc283; }
+.tip-marca.entregar { background: #d48a2a; }
+.tip-marca.entregado { background: #5b8fd6; }
 .grafico-tip .tip-pendiente { margin-top: 3px; padding-top: 6px; border-top: 1px solid rgba(255, 253, 248, 0.18); }
 .grafico-tip .tip-pendiente dt { color: #fffdf8; font-weight: 800; }
 .grafico-tip .tip-pendiente dd { color: #f0d078; font-size: 14px; }
@@ -2622,8 +2676,12 @@ th:nth-last-child(-n+3) .th-ayuda-texto { left: auto; right: 0; }
 .grafico-eje { fill: var(--muted); font-size: 11px; font-family: inherit; }
 .linea-debia { fill: none; stroke: #a32626; stroke-width: 2.5; stroke-linejoin: round; }
 .linea-cobrado { fill: none; stroke: #1f7a45; stroke-width: 2.5; stroke-linejoin: round; }
+.linea-entregar { fill: none; stroke: #8a4b08; stroke-width: 2.5; stroke-linejoin: round; stroke-dasharray: 6 4; }
+.linea-entregado { fill: none; stroke: #2f5d9f; stroke-width: 2.5; stroke-linejoin: round; stroke-dasharray: 2 4; }
 .punto-debia { fill: #fffdf8; stroke: #a32626; stroke-width: 2; }
 .punto-cobrado { fill: #fffdf8; stroke: #1f7a45; stroke-width: 2; }
+.punto-entregar { fill: #fffdf8; stroke: #8a4b08; stroke-width: 2; }
+.punto-entregado { fill: #fffdf8; stroke: #2f5d9f; stroke-width: 2; }
 .grafico-leyenda { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 8px; font-size: 12px; font-weight: 800; }
 .grafico-leyenda span { display: inline-flex; align-items: center; gap: 8px; }
 .grafico-leyenda span::before { content: ""; width: 22px; height: 3px; border-radius: 2px; }
@@ -2631,6 +2689,11 @@ th:nth-last-child(-n+3) .th-ayuda-texto { left: auto; right: 0; }
 .leyenda-debia::before { background: #a32626; }
 .leyenda-cobrado { color: #1f7a45; }
 .leyenda-cobrado::before { background: #1f7a45; }
+.leyenda-entregar { color: #8a4b08; }
+.leyenda-entregar::before { background: #8a4b08; }
+.leyenda-entregado { color: #2f5d9f; }
+.leyenda-entregado::before { background: #2f5d9f; }
+.informe-fila-deuda td { background: #f8e4e4; }
 @media (max-width: 520px) {
   .recaudo-grupo dl { grid-template-columns: 1fr; }
   .heading { flex-wrap: wrap; }

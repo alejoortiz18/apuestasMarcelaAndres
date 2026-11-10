@@ -34,13 +34,39 @@ public sealed partial class RecaudoService
         var barrasRecaudador = new List<RecaudoAgrupadoResponse>();
         var barrasGrupo = new Dictionary<string, (SortedSet<string> Recaudadores, RecaudoAgrupadoResponse Barra)>();
         var saldos = new List<(ObligacionRecaudoResponse Fila, string Recaudador)>();
+        var deudaAdmin = new List<RecaudadorDeudaAdministracionResponse>();
+        var pagosAdmin = await _db.PagosAdministracionRecaudo
+            .Where(p => p.FechaOperacion >= desde && p.FechaOperacion <= hasta)
+            .ToListAsync(cancellationToken);
+        Guid? grupoIdFiltro = null;
+        if (grupo is not null)
+        {
+            grupoIdFiltro = await _db.Grupos
+                .Where(g => g.Nombre == grupo)
+                .Select(g => (Guid?)g.GrupoId)
+                .FirstOrDefaultAsync(cancellationToken);
+            pagosAdmin = pagosAdmin.Where(p => p.GrupoId == grupoIdFiltro).ToList();
+        }
+
+        if (filtro.RecaudadorId is Guid recaudadorFiltro)
+        {
+            pagosAdmin = pagosAdmin.Where(p => p.RecaudadorId == recaudadorFiltro).ToList();
+        }
+
+        foreach (var pago in pagosAdmin)
+        {
+            if (dias.TryGetValue(pago.FechaOperacion, out var lineaPago))
+            {
+                lineaPago.EntregadoAdministracion += pago.Valor;
+            }
+        }
 
         foreach (var recaudador in recaudadores.Where(r => filtro.RecaudadorId is null || r.UsuarioId == filtro.RecaudadorId))
         {
             var (periodo, filasHasta) = await PeriodoAsync(recaudador.UsuarioId, desde, hasta, cancellationToken, filtro.Vendedores);
             var diasVista = periodo.Select(d => grupo is null ? d : DelGrupo(d, grupo)).ToList();
             var filas = filasHasta.Where(f => grupo is null || f.Grupo == grupo).ToList();
-            if ((grupo is not null || filtro.Vendedores is not null) && filas.Count == 0 && diasVista.All(d => d.Debia == 0m && d.Cobrado == 0m))
+            if ((grupo is not null || filtro.Vendedores is not null) && filas.Count == 0 && diasVista.All(d => d.Debia == 0m && d.Cobrado == 0m && d.EntregarAdministracion == 0m))
             {
                 continue;
             }
@@ -51,6 +77,7 @@ public sealed partial class RecaudoService
                 acumulado.Debia += d.Debia;
                 acumulado.Cobrado += d.Cobrado;
                 acumulado.Generado += d.Generado;
+                acumulado.EntregarAdministracion += d.EntregarAdministracion;
                 acumulado.Vendido += d.Vendido;
             }
 
@@ -70,7 +97,9 @@ public sealed partial class RecaudoService
             var nombresGrupo = periodo.SelectMany(d => d.Grupos).Select(g => g.Grupo)
                 .Concat(filasHasta.Select(f => f.Grupo))
                 .Where(n => grupo is null || n == grupo)
-                .Distinct();
+                .Distinct()
+                .OrderBy(n => n)
+                .ToList();
             foreach (var nombre in nombresGrupo)
             {
                 if (!barrasGrupo.TryGetValue(nombre, out var entrada))
@@ -86,6 +115,22 @@ public sealed partial class RecaudoService
                 entrada.Barra.TotalPorRecaudar += delGrupo.Sum(g => g.Generado);
                 entrada.Barra.TotalRecaudado += delGrupo.Sum(g => g.Cobrado);
                 entrada.Barra.TotalPendiente += filasGrupo.Sum(f => f.TotalPendiente);
+            }
+
+            var recibir = diasVista.Sum(d => d.EntregarAdministracion);
+            var entregado = pagosAdmin.Where(p => p.RecaudadorId == recaudador.UsuarioId).Sum(p => p.Valor);
+            var debe = PagoAdministracionRecaudo.Debe(recibir, entregado);
+            if (debe > 0m)
+            {
+                deudaAdmin.Add(new RecaudadorDeudaAdministracionResponse
+                {
+                    RecaudadorId = recaudador.UsuarioId,
+                    Nombre = recaudador.NombreCompleto,
+                    Grupos = nombresGrupo.Count == 0 ? string.Empty : string.Join(", ", nombresGrupo),
+                    Recibir = recibir,
+                    Entregado = entregado,
+                    Debe = debe
+                });
             }
 
             saldos.AddRange(filas.Select(f => (f, recaudador.NombreCompleto)));
@@ -133,6 +178,7 @@ public sealed partial class RecaudoService
             TotalVendido = lineas.Sum(d => d.Vendido),
             TotalPorRecaudar = lineas.Sum(d => d.Generado),
             TotalEntregarAdministracion = lineas.Sum(d => d.EntregarAdministracion),
+            TotalEntregadoAdministracion = lineas.Sum(d => d.EntregadoAdministracion),
             TotalRecaudado = totalRecaudado,
             TotalPendiente = totalPendiente,
             DeudaAnterior = composicion.Sum(c => c.DeudaAnterior),
@@ -147,6 +193,10 @@ public sealed partial class RecaudoService
             Grupos = grupos,
             MayoresSaldos = pendientes.Take(MayoresSaldosVisibles).ToList(),
             SaldosPendientes = pendientes,
+            RecaudadoresDeuda = deudaAdmin
+                .OrderByDescending(r => r.Debe)
+                .ThenBy(r => r.Nombre)
+                .ToList(),
             OpcionesRecaudadores = recaudadores.Select(r => new OpcionRecaudoResponse { Id = r.UsuarioId, Nombre = r.NombreCompleto }).ToList(),
             OpcionesGrupos = await OpcionesDeGrupoAsync(cancellationToken)
         }, SuccessMessages.OperacionExitosa);
@@ -161,6 +211,7 @@ public sealed partial class RecaudoService
             Debia = entrada?.Debia ?? 0m,
             Cobrado = entrada?.Cobrado ?? 0m,
             Generado = entrada?.Generado ?? 0m,
+            EntregarAdministracion = entrada?.EntregarAdministracion ?? 0m,
             Vendido = entrada?.Vendido ?? 0m
         };
     }

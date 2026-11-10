@@ -67,6 +67,48 @@ public sealed class CierreServiceTests
     }
 
     [Fact]
+    public async Task El_cierre_marca_los_pagos_a_la_administracion()
+    {
+        var corte = new DateTime(2026, 11, 6, 16, 0, 0);
+        var (sut, db, admin, _) = Crear(corte);
+        var grupoId = Guid.NewGuid();
+        db.Grupos.Add(new Grupo { GrupoId = grupoId, Nombre = "Norte", FechaCreacion = corte });
+        var dentro = new PagoAdministracionRecaudoEntity
+        {
+            PagoId = Guid.NewGuid(),
+            GrupoId = grupoId,
+            RecaudadorId = admin.UsuarioId,
+            Valor = 25_000m,
+            FechaOperacion = DateOnly.FromDateTime(corte),
+            FechaRegistroUtc = corte.ToUniversalTime()
+        };
+        var fuera = new PagoAdministracionRecaudoEntity
+        {
+            PagoId = Guid.NewGuid(),
+            GrupoId = grupoId,
+            RecaudadorId = admin.UsuarioId,
+            Valor = 5_000m,
+            FechaOperacion = DateOnly.FromDateTime(corte.AddDays(1)),
+            FechaRegistroUtc = corte.AddDays(1).ToUniversalTime()
+        };
+        db.PagosAdministracionRecaudo.AddRange(dentro, fuera);
+        await db.SaveChangesAsync();
+
+        var cerrado = await sut.ConfirmarAsync(admin.UsuarioId, new ConfirmarCierreRequest { Password = "clave" }, CancellationToken.None);
+
+        cerrado.IsSuccess.Should().BeTrue(cerrado.Message);
+        cerrado.Data!.TotalRecaudos.Should().Be(25_000m);
+        (await db.PagosAdministracionRecaudo.SingleAsync(p => p.PagoId == dentro.PagoId)).CierreId.Should().Be(cerrado.Data.CierreId);
+        (await db.PagosAdministracionRecaudo.SingleAsync(p => p.PagoId == fuera.PagoId)).CierreId.Should().BeNull();
+
+        var detalle = await sut.DetalleAsync(cerrado.Data.CierreId, ClavesCierre.Recaudos, 1, 10, "valor", "asc", CancellationToken.None);
+        detalle.Data!.Categorias.Should().ContainSingle(c => c.Clave == ClavesCierre.Recaudos && c.Cantidad == 1 && c.Valor == 25_000m);
+        detalle.Data.Movimientos.Should().ContainSingle()
+            .Which.Detalle.Should().Be("Pago a la administración");
+        detalle.Data.Movimientos[0].Valor.Should().Be(25_000m);
+    }
+
+    [Fact]
     public async Task Una_contrasena_incorrecta_no_crea_el_cierre()
     {
         var (sut, db, admin, _) = Crear(new DateTime(2026, 11, 6, 16, 0, 0));

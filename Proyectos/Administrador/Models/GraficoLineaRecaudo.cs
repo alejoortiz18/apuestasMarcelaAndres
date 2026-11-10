@@ -2,7 +2,13 @@ using System.Globalization;
 
 namespace NewRich.Admin.Models;
 
-public sealed record PuntoLineaRecaudo(DateOnly Fecha, decimal Debia, decimal Cobrado, decimal Generado = 0m)
+public sealed record PuntoLineaRecaudo(
+    DateOnly Fecha,
+    decimal Debia,
+    decimal Cobrado,
+    decimal Generado = 0m,
+    decimal EntregarAdministracion = 0m,
+    decimal EntregadoAdministracion = 0m)
 {
     public decimal Pendiente => Math.Max(0m, Debia - Cobrado);
 
@@ -40,12 +46,20 @@ public sealed class GraficoLineaRecaudo
 
     /// <summary>Dibuja una barra dorada por día con lo generado por las ventas.</summary>
     public bool MostrarGenerado { get; }
-    public bool SinMovimiento => Puntos.All(p => p.Debia <= 0m && p.Cobrado <= 0m && p.Generado <= 0m);
+    public bool SinMovimiento => Puntos.All(p =>
+        p.Debia <= 0m && p.Cobrado <= 0m && p.Generado <= 0m
+        && p.EntregarAdministracion <= 0m && p.EntregadoAdministracion <= 0m);
     public double Base => Alto - MargenInferior;
 
     public static GraficoLineaRecaudo De(IReadOnlyList<PuntoLineaRecaudo> puntos, bool mostrarGenerado = false)
     {
-        var mayor = puntos.Count == 0 ? 0m : puntos.Max(p => Math.Max(Math.Max(p.Debia, p.Cobrado), mostrarGenerado ? p.Generado : 0m));
+        var mayor = puntos.Count == 0
+            ? 0m
+            : puntos.Max(p =>
+            {
+                var tope = Math.Max(Math.Max(p.Debia, p.Cobrado), Math.Max(p.EntregarAdministracion, p.EntregadoAdministracion));
+                return mostrarGenerado ? Math.Max(tope, p.Generado) : tope;
+            });
         return new GraficoLineaRecaudo(puntos, Redondear(mayor), mostrarGenerado);
     }
 

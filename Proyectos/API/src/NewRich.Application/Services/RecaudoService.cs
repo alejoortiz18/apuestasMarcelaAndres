@@ -16,6 +16,7 @@ public interface IRecaudoService
     Task<Result> AsignarGrupoAsync(AsignarGrupoRecaudoRequest request, Guid usuarioId, CancellationToken cancellationToken);
     Task<Result> AsignarVendedorAsync(AsignarVendedorRecaudoRequest request, Guid usuarioId, CancellationToken cancellationToken);
     Task<Result<PagoRecaudoResponse>> RegistrarPagoAsync(Guid recaudadorId, RegistrarPagoRecaudoRequest request, CancellationToken cancellationToken);
+    Task<Result<PagoAdministracionResponse>> RegistrarPagoAdministracionAsync(RegistrarPagoAdministracionRequest request, Guid registradoPorUsuarioId, CancellationToken cancellationToken);
     Task<Result<IReadOnlyList<RecaudadorResumenResponse>>> PanelAsync(DateOnly desde, DateOnly hasta, CancellationToken cancellationToken);
     Task<Result<ConfiguracionRecaudoResponse>> ConfiguracionAsync(DateOnly desde, DateOnly hasta, CancellationToken cancellationToken);
     Task<Result<IReadOnlyList<MovimientoRecaudoResponse>>> HistorialAsync(FiltroHistorialRecaudo filtro, CancellationToken cancellationToken);
@@ -356,6 +357,65 @@ public sealed partial class RecaudoService : IRecaudoService
             RecaudadorNombre = recaudador.NombreCompleto,
             FechaHora = pago.FechaHora,
             Consecutivo = tirilla?.Consecutivo ?? 0
+        }, SuccessMessages.OperacionExitosa);
+    }
+
+    public async Task<Result<PagoAdministracionResponse>> RegistrarPagoAdministracionAsync(
+        RegistrarPagoAdministracionRequest request,
+        Guid registradoPorUsuarioId,
+        CancellationToken cancellationToken)
+    {
+        if (request.Valor <= 0m || decimal.Truncate(request.Valor) != request.Valor)
+        {
+            return Result<PagoAdministracionResponse>.Fail("El valor entregado debe ser un número de pesos mayor a cero, sin decimales.");
+        }
+
+        var grupo = await _db.Grupos.FirstOrDefaultAsync(g => g.GrupoId == request.GrupoId, cancellationToken);
+        if (grupo is null)
+        {
+            return Result<PagoAdministracionResponse>.Fail(UsuarioMessages.GrupoNoEncontrado, 404);
+        }
+
+        var asignacion = await _db.AsignacionesGrupoRecaudo
+            .FirstOrDefaultAsync(a => a.Estado == "Activa" && a.GrupoId == request.GrupoId, cancellationToken);
+        if (asignacion is null)
+        {
+            return Result<PagoAdministracionResponse>.Fail("El grupo no tiene recaudador asignado.", 409);
+        }
+
+        var recaudador = await _db.Usuarios.FirstOrDefaultAsync(
+            u => u.UsuarioId == asignacion.RecaudadorId && u.Rol == RolUsuario.Recaudador,
+            cancellationToken);
+        if (recaudador is null)
+        {
+            return Result<PagoAdministracionResponse>.Fail("El grupo no tiene recaudador asignado.", 409);
+        }
+
+        var hoy = DateOnly.FromDateTime(ZonaHorariaColombia.ALocal(_clock.UtcNow));
+        var pago = new PagoAdministracionRecaudoEntity
+        {
+            PagoId = Guid.NewGuid(),
+            GrupoId = request.GrupoId,
+            RecaudadorId = recaudador.UsuarioId,
+            Valor = request.Valor,
+            FechaOperacion = hoy,
+            FechaRegistroUtc = _clock.UtcNow,
+            RegistradoPorUsuarioId = registradoPorUsuarioId
+        };
+        _db.PagosAdministracionRecaudo.Add(pago);
+        await _db.SaveChangesAsync(cancellationToken);
+
+        var config = await ArmarConfiguracionAsync(hoy, hoy, cancellationToken);
+        var fila = config.Grupos.FirstOrDefault(g => g.GrupoId == request.GrupoId);
+        return Result<PagoAdministracionResponse>.Ok(new PagoAdministracionResponse
+        {
+            PagoId = pago.PagoId,
+            GrupoId = pago.GrupoId,
+            Valor = pago.Valor,
+            FechaOperacion = pago.FechaOperacion,
+            Recibir = fila?.Recibir ?? 0m,
+            Entregado = fila?.Entregado ?? 0m,
+            Debe = fila?.Debe ?? 0m
         }, SuccessMessages.OperacionExitosa);
     }
 

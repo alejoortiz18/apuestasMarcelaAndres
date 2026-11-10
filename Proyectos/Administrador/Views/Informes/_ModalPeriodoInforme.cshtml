@@ -75,14 +75,17 @@
                         <p class="informe-error" role="alert" data-informe-error hidden></p>
                     </fieldset>
                 }
-                <div class="informe-filtro-grupo">
-                    <partial name="_FiltroInforme" model="grupos" />
-                    @if (config.Vendedores.Count > 0)
-                    {
-                        <partial name="_FiltroInforme" model="vendedores" />
-                    }
-                    <p class="informe-filtro-nota">@Model.NotaGrupos</p>
-                </div>
+                @if (config.Clave != CategoriasInforme.General)
+                {
+                    <div class="informe-filtro-grupo">
+                        <partial name="_FiltroInforme" model="grupos" />
+                        @if (config.Vendedores.Count > 0)
+                        {
+                            <partial name="_FiltroInforme" model="vendedores" />
+                        }
+                        <p class="informe-filtro-nota">@Model.NotaGrupos</p>
+                    </div>
+                }
             </div>
             <div class="dialog-actions informe-acciones">
                 @if (config.Configurada)

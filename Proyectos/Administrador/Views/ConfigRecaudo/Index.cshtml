@@ -80,45 +80,66 @@
                     <th>@UiTexts.CantidadVendedores</th>
                     <th>@UiTexts.TotalPorRecaudar</th>
                     <th>@UiTexts.TotalRecaudado</th>
+                    <th title="@UiTexts.AyudaColumnaRecibir">@UiTexts.Recibir</th>
+                    <th title="@UiTexts.AyudaColumnaEntregado">@UiTexts.Entregado</th>
+                    <th title="@UiTexts.AyudaColumnaPago">@UiTexts.Pago</th>
+                    <th title="@UiTexts.AyudaColumnaDebe">@UiTexts.Debe</th>
                     <th>@UiTexts.Recaudador</th>
                     <th>@UiTexts.Acciones</th>
                 </tr>
                 </thead>
                 <tbody>
-                @{ var i = 0; }
                 @foreach (var fila in Model.Grupos.Items)
                 {
-                    <tr class="@(fila.SinConfigurar ? "recaudo-fila-gris" : null)" tabindex="0" data-row-id="@fila.GrupoId">
+                    var clasesFila = new List<string> { "recaudo-fila-panel" };
+                    if (fila.SinConfigurar) { clasesFila.Add("recaudo-fila-gris"); }
+                    if (fila.EnDeuda) { clasesFila.Add("recaudo-fila-deuda"); }
+                    <tr class="@string.Join(" ", clasesFila)" tabindex="0" data-row-id="@fila.GrupoId">
                         <td class="col-check">
                             <input class="row-check" type="checkbox" value="@fila.GrupoId" aria-label="@UiTexts.SeleccionarFila @fila.Nombre" />
                         </td>
-                        <td><strong>@fila.Nombre</strong> @(fila.SinConfigurar ? $"({UiTexts.SinConfigurar})" : "")</td>
-                        <td>@fila.Vendedores</td>
+                        <td class="recaudo-cifra">@fila.Nombre @(fila.SinConfigurar ? $"({UiTexts.SinConfigurar})" : "")</td>
+                        <td class="recaudo-cifra">@fila.Vendedores</td>
                         <td class="recaudo-cifra">@FormatoPesos.De(fila.TotalPorRecaudar)</td>
                         <td class="recaudo-cifra">@FormatoPesos.De(fila.TotalRecaudado)</td>
-                        <td class="recaudo-col-recaudador">
-                            <input type="hidden" form="form-recaudadores-grupos" name="asignaciones[@i].GrupoId" value="@fila.GrupoId" />
-                            <input type="hidden" form="form-recaudadores-grupos" name="asignaciones[@i].RecaudadorActualId" value="@fila.RecaudadorId" />
-                            <select class="searchable" form="form-recaudadores-grupos" name="asignaciones[@i].RecaudadorId"
-                                    data-recaudador-grupo data-recaudador-inicial="@(fila.RecaudadorId?.ToString() ?? "")"
-                                    aria-label="@UiTexts.Recaudador @fila.Nombre">
-                                <option value="">@UiTexts.SinAsignar</option>
-                                @foreach (var item in Model.Recaudadores)
-                                {
-                                    if (fila.RecaudadorId == item.Id)
-                                    {
-                                        <option value="@item.Id" selected>@item.Nombre</option>
-                                    }
-                                    else
-                                    {
-                                        <option value="@item.Id">@item.Nombre</option>
-                                    }
-                                }
-                            </select>
-                            @{ i++; }
+                        <td class="recaudo-cifra">@FormatoPesos.De(fila.Recibir)</td>
+                        <td class="recaudo-cifra">@FormatoPesos.De(fila.Entregado)</td>
+                        <td class="recaudo-col-pago">
+                            <form id="form-pago-@fila.GrupoId" method="post" asp-action="RegistrarPagoAdministracion" class="recaudo-form-pago" data-protected-action="@AccionesProtegidas.RecaudoRegistrarPagoAdmin" data-protected-usos="1">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="grupoId" value="@fila.GrupoId" />
+                                <input type="hidden" name="desde" value="@Model.Desde.ToString("yyyy-MM-dd")" />
+                                <input type="hidden" name="hasta" value="@Model.Hasta.ToString("yyyy-MM-dd")" />
+                                <div class="money-input">
+                                    <span class="money-prefix" aria-hidden="true">@UiTexts.SimboloPesos</span>
+                                    <input type="text"
+                                           class="money-visible"
+                                           inputmode="numeric"
+                                           autocomplete="off"
+                                           data-miles
+                                           aria-label="@UiTexts.ValorARegistrar @fila.Nombre" />
+                                    <input type="hidden" name="valor" value="0" />
+                                </div>
+                            </form>
                         </td>
-                        <td>
+                        <td class="recaudo-cifra">@FormatoPesos.De(fila.Debe)</td>
+                        <td class="recaudo-col-recaudador">
+                            <div class="recaudo-recaudador-label">
+                                <span class="recaudo-cifra">@fila.RecaudadorNombre</span>
+                                <button type="button"
+                                        class="secondary boton-icono boton-lapiz"
+                                        data-cambiar-recaudador
+                                        data-grupo-id="@fila.GrupoId"
+                                        data-grupo-nombre="@fila.Nombre"
+                                        data-recaudador-id="@(fila.RecaudadorId?.ToString() ?? "")"
+                                        aria-label="@UiTexts.CambiarRecaudador @fila.Nombre">
+                                    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M4 17.25V20h2.75L17.8 8.95l-2.75-2.75L4 17.25zm16.7-11.2a.73.73 0 0 0 0-1.04l-1.71-1.71a.73.73 0 0 0-1.04 0l-1.34 1.34 2.75 2.75 1.34-1.34z" fill="currentColor"/></svg>
+                                </button>
+                            </div>
+                        </td>
+                        <td class="recaudo-col-acciones">
                             <a class="secondary table-ver" asp-action="Ver" asp-route-id="@fila.GrupoId" asp-route-desde="@Model.Desde.ToString("yyyy-MM-dd")" asp-route-hasta="@Model.Hasta.ToString("yyyy-MM-dd")">@UiTexts.Ver</a>
+                            <button class="primary" type="submit" form="form-pago-@fila.GrupoId">@UiTexts.RegistrarPago</button>
                         </td>
                     </tr>
                 }
@@ -126,22 +147,33 @@
             </table>
         </div>
         <partial name="_Pager" model="Model.Grupos" />
-        <div class="table-actions" data-table-panel="grupos-recaudo">
-            <h2>@UiTexts.AccionesDeRecaudo</h2>
-            <p class="panel-sub">@UiTexts.SeleccionaParaAcciones</p>
-            <div class="table-actions-buttons">
-                <form id="form-recaudadores-grupos" method="post" asp-action="GuardarRecaudadoresGrupos" data-guardar-recaudadores data-protected-action="@AccionesProtegidas.GruposAsignar" data-protected-usos="1">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="desde" value="@Model.Desde.ToString("yyyy-MM-dd")" />
-                    <input type="hidden" name="hasta" value="@Model.Hasta.ToString("yyyy-MM-dd")" />
-                    <button class="primary boton-icono" type="submit" disabled>
-                        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                        @UiTexts.Guardar
-                    </button>
-                </form>
-            </div>
-        </div>
     }
+</div>
+<div id="dialogCambiarRecaudador" class="dialog-back hidden" role="dialog" aria-modal="true" aria-labelledby="dialogCambiarRecaudadorTitulo" hidden>
+    <div class="dialog">
+        <h2 id="dialogCambiarRecaudadorTitulo">@UiTexts.CambiarRecaudador</h2>
+        <p class="panel-sub" data-cambiar-recaudador-grupo></p>
+        <form method="post" asp-action="CambiarRecaudadorGrupo" data-protected-action="@AccionesProtegidas.GruposAsignar" data-protected-usos="1">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="grupoId" data-cambiar-recaudador-grupo-id />
+            <input type="hidden" name="desde" value="@Model.Desde.ToString("yyyy-MM-dd")" />
+            <input type="hidden" name="hasta" value="@Model.Hasta.ToString("yyyy-MM-dd")" />
+            <div class="field">
+                <label for="cambiarRecaudadorId">@UiTexts.Recaudador</label>
+                <select id="cambiarRecaudadorId" name="recaudadorId" class="searchable" data-cambiar-recaudador-select>
+                    <option value="">@UiTexts.SinAsignar</option>
+                    @foreach (var item in Model.Recaudadores)
+                    {
+                        <option value="@item.Id">@item.Nombre</option>
+                    }
+                </select>
+            </div>
+            <div class="dialog-actions">
+                <button type="button" class="secondary" data-cambiar-recaudador-cancelar>@UiTexts.Cancelar</button>
+                <button type="submit" class="primary">@UiTexts.Aceptar</button>
+            </div>
+        </form>
+    </div>
 </div>
 <div class="panel">
     <div class="panel-head"><h2>@UiTexts.AsignarVendedorRecaudo</h2></div>

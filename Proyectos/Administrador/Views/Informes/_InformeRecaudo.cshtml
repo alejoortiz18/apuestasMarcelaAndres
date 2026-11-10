@@ -55,6 +55,14 @@
                     <strong>@Pesos(recaudo.Pendiente)</strong>
                     <em>@string.Format(UiTexts.InformeRecaudoPendienteNota, Pesos(recaudo.DeudaAnterior), Pesos(recaudo.PendienteDelDia))</em>
                 </div>
+                <div class="informe-metrica@(recaudo.EnDeudaAdministracion ? " is-alerta" : "")">
+                    <small>@UiTexts.InformeRecaudoDebeEntregar</small>
+                    <strong>@Pesos(recaudo.DebeEntregar)</strong>
+                </div>
+                <div class="informe-metrica@(recaudo.EnDeudaAdministracion ? " is-alerta" : "")">
+                    <small>@UiTexts.InformeRecaudoValorEntregado</small>
+                    <strong>@Pesos(recaudo.ValorEntregado)</strong>
+                </div>
                 <div class="informe-metrica">
                     <small>@UiTexts.InformeRecaudoAvance</small>
                     <strong>@recaudo.Avance %</strong>
@@ -194,6 +202,64 @@
                 @if (recaudo.Recortado)
                 {
                     <p class="informe-nota">@UiTexts.InformeRecaudoRecortado</p>
+                }
+            </section>
+            </div>
+
+            <div class="informe-movible" data-seccion="recaudadoresDeuda" style="order: @secciones.Posicion("recaudadoresDeuda")">
+            <partial name="_MoverSeccion" model='(secciones, "recaudadoresDeuda")' />
+            <section class="informe-tabla" id="informeRecaudoRecaudadoresDeudaSeccion" aria-labelledby="informeRecaudoRecaudadoresDeuda">
+                <div class="informe-tabla-head">
+                    <div>
+                        <h5 id="informeRecaudoRecaudadoresDeuda">@UiTexts.InformeRecaudoRecaudadoresDeuda</h5>
+                        <p>@UiTexts.InformeRecaudoRecaudadoresDeudaAyuda</p>
+                    </div>
+                    <form method="get" asp-action="@ViewContext.RouteData.Values["action"]" class="informe-filas" data-submit-on-change>
+                        @foreach (var q in conservar(["pageRd", "pageSizeRd"]))
+                        {
+                            <input type="hidden" name="@q.Key" value="@q.Value" />
+                        }
+                        <label for="informeRecaudoPageSizeRd">@UiTexts.FilasPorPagina</label>
+                        <select id="informeRecaudoPageSizeRd" name="pageSizeRd">
+                            @foreach (var size in PagingHelper.PageSizes)
+                            {
+                                <option value="@size" selected="@(recaudo.RecaudadoresDeuda.PageSize == size)">@size</option>
+                            }
+                        </select>
+                    </form>
+                </div>
+                @if (recaudo.RecaudadoresDeuda.TotalCount == 0)
+                {
+                    <p class="empty">@UiTexts.InformeSinRecaudadoresDeuda</p>
+                }
+                else
+                {
+                    <div class="table-wrap">
+                        <table class="informe-table">
+                            <thead>
+                            <tr>
+                                <th>@UiTexts.Recaudador</th>
+                                <th>@UiTexts.Grupos</th>
+                                <th class="num">@UiTexts.Recibir</th>
+                                <th class="num">@UiTexts.Entregado</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            @foreach (var fila in recaudo.RecaudadoresDeuda.Items)
+                            {
+                                <tr class="@(fila.Debe > 0 ? "informe-fila-deuda" : null)">
+                                    <td><strong>@fila.Nombre</strong></td>
+                                    <td>@(string.IsNullOrWhiteSpace(fila.Grupos) ? UiTexts.SinGrupo : fila.Grupos)</td>
+                                    <td class="num">@Pesos(fila.Recibir)</td>
+                                    <td class="num">@Pesos(fila.Entregado)</td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                    ViewData["PagerPageKey"] = "pageRd";
+                    ViewData["PagerPageSizeKey"] = "pageSizeRd";
+                    <partial name="_Pager" model="recaudo.RecaudadoresDeuda" />
                 }
             </section>
             </div>

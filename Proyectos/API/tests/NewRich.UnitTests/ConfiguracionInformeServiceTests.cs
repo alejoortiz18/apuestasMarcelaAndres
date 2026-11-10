@@ -66,6 +66,7 @@ public sealed class ConfiguracionInformeServiceTests
     [Theory]
     [InlineData(CategoriasInforme.Egresos)]
     [InlineData(CategoriasInforme.Recaudo)]
+    [InlineData(CategoriasInforme.General)]
     public async Task Guardar_acepta_egresos_y_recaudo_como_categorias_propias(string categoria)
     {
         var (sut, _) = CreateSut();

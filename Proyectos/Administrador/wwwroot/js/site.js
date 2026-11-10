@@ -442,6 +442,58 @@
     actualizar();
   });
 
+  (function enlazarCambiarRecaudador() {
+    const dialog = document.getElementById("dialogCambiarRecaudador");
+    if (!dialog) {
+      return;
+    }
+    const grupoNombre = dialog.querySelector("[data-cambiar-recaudador-grupo]");
+    const grupoId = dialog.querySelector("[data-cambiar-recaudador-grupo-id]");
+    const select = dialog.querySelector("[data-cambiar-recaudador-select]");
+    const cancelar = dialog.querySelector("[data-cambiar-recaudador-cancelar]");
+
+    function cerrar() {
+      dialog.hidden = true;
+      dialog.classList.add("hidden");
+    }
+
+    function abrir(boton) {
+      if (!grupoNombre || !grupoId || !select) {
+        return;
+      }
+      grupoNombre.textContent = boton.getAttribute("data-grupo-nombre") || "";
+      grupoId.value = boton.getAttribute("data-grupo-id") || "";
+      select.value = boton.getAttribute("data-recaudador-id") || "";
+      const buscador = select.parentNode.querySelector(".search-select-input");
+      if (buscador) {
+        const opcion = select.options[select.selectedIndex];
+        buscador.value = opcion ? opcion.text : "";
+      }
+      dialog.hidden = false;
+      dialog.classList.remove("hidden");
+      select.focus();
+    }
+
+    document.querySelectorAll("[data-cambiar-recaudador]").forEach(function (boton) {
+      boton.addEventListener("click", function () {
+        abrir(boton);
+      });
+    });
+    if (cancelar) {
+      cancelar.addEventListener("click", cerrar);
+    }
+    dialog.addEventListener("click", function (evento) {
+      if (evento.target === dialog) {
+        cerrar();
+      }
+    });
+    dialog.addEventListener("keydown", function (evento) {
+      if (evento.key === "Escape") {
+        cerrar();
+      }
+    });
+  })();
+
   document.querySelectorAll("form[data-submit-on-change]").forEach(function (form) {
     form.addEventListener("change", function (event) {
       const target = event.target;

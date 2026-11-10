@@ -48,7 +48,7 @@ public static class VentasInforme
         filtros.TiposEgreso is null || filtros.TiposEgreso.Contains(tipo);
 
     public static readonly IReadOnlyList<string> CategoriasPorPeriodo =
-        [CategoriasInforme.Ventas, CategoriasInforme.Egresos, CategoriasInforme.Recaudo];
+        [CategoriasInforme.General, CategoriasInforme.Ventas, CategoriasInforme.Egresos, CategoriasInforme.Recaudo];
 
     private static readonly CultureInfo Cultura = CultureInfo.GetCultureInfo("es-CO");
 
@@ -112,9 +112,31 @@ public static class VentasInforme
     public static PeriodoInformeViewModel Construir(string clave, IReadOnlyList<GrupoResponse> grupos, FiltrosPeriodoInforme filtros, bool configurada, DateOnly hoy, IReadOnlyList<UsuarioResponse>? usuarios = null)
     {
         var periodos = OpcionesPeriodo();
-        var (desde, hasta) = Rango(filtros, hoy);
-        var periodo = $"{periodos.First(p => p.Valor == (filtros.Periodo is PeriodoHoy or Periodo15 or Periodo30 or PeriodoRango ? filtros.Periodo : Periodo7)).Texto} ({Fechas(desde, hasta)})";
-        var alcance = Alcance(filtros, grupos);
+        var filtrosUso = clave == CategoriasInforme.General
+            ? new FiltrosPeriodoInforme
+            {
+                Periodo = filtros.Periodo,
+                Desde = filtros.Desde,
+                Hasta = filtros.Hasta
+            }
+            : filtros;
+        var (desde, hasta) = Rango(filtrosUso, hoy);
+        var periodo = $"{periodos.First(p => p.Valor == (filtrosUso.Periodo is PeriodoHoy or Periodo15 or Periodo30 or PeriodoRango ? filtrosUso.Periodo : Periodo7)).Texto} ({Fechas(desde, hasta)})";
+        if (clave == CategoriasInforme.General)
+        {
+            return new PeriodoInformeViewModel
+            {
+                Clave = clave,
+                Configurada = configurada,
+                Filtros = filtrosUso,
+                Periodos = periodos,
+                Hoy = hoy,
+                Detalle = [new() { Etiqueta = UiTexts.InformeEtiquetaPeriodo, Valor = periodo }],
+                ResumenCorto = $"{periodo} · {UiTexts.InformeTodosGrupos}"
+            };
+        }
+
+        var alcance = Alcance(filtrosUso, grupos);
         var vendedores = usuarios is null ? [] : OpcionesVendedor(usuarios);
         var detalle = new List<DetalleFiltroInforme>
         {
@@ -125,7 +147,7 @@ public static class VentasInforme
         if (usuarios is not null)
         {
             var elegidos = Nombres(
-                filtros.Vendedores?.Select(id => vendedores.FirstOrDefault(v => v.Valor == id.ToString())?.Texto ?? id.ToString()).ToList(),
+                filtrosUso.Vendedores?.Select(id => vendedores.FirstOrDefault(v => v.Valor == id.ToString())?.Texto ?? id.ToString()).ToList(),
                 UiTexts.InformeTodosVendedores);
             detalle.Add(new() { Etiqueta = UiTexts.InformeEtiquetaVendedores, Valor = elegidos });
             resumen += $" · {elegidos}";
@@ -133,7 +155,7 @@ public static class VentasInforme
 
         if (clave == CategoriasInforme.Egresos)
         {
-            var tipos = string.Join(", ", TiposEgreso.Where(t => Incluye(filtros, t.Valor)).Select(t => t.Texto));
+            var tipos = string.Join(", ", TiposEgreso.Where(t => Incluye(filtrosUso, t.Valor)).Select(t => t.Texto));
             detalle.Add(new() { Etiqueta = UiTexts.InformeEtiquetaTiposEgreso, Valor = tipos });
             resumen += $" · {tipos}";
         }
@@ -142,7 +164,7 @@ public static class VentasInforme
         {
             Clave = clave,
             Configurada = configurada,
-            Filtros = filtros,
+            Filtros = filtrosUso,
             Periodos = periodos,
             Grupos = OpcionesGrupo(grupos),
             Vendedores = vendedores,
@@ -151,6 +173,23 @@ public static class VentasInforme
             ResumenCorto = resumen
         };
     }
+
+    public static InformeGeneralViewModel InformeGeneral(
+        FuenteInformeVentas fuente,
+        FiltrosPeriodoInforme filtros,
+        DateOnly desde,
+        DateOnly hasta,
+        DateTime corte) => new()
+    {
+        Corte = corte,
+        Desde = desde,
+        Hasta = hasta,
+        Alcance = UiTexts.InformeTodosGrupos,
+        TotalPorRecibir = fuente.Recaudo?.TotalEntregarAdministracion ?? 0m,
+        Recibido = fuente.Recaudo?.TotalEntregadoAdministracion ?? 0m,
+        EnDeuda = Math.Max(0m, (fuente.Recaudo?.TotalEntregarAdministracion ?? 0m) - (fuente.Recaudo?.TotalEntregadoAdministracion ?? 0m)) > 0m,
+        Recortado = fuente.Recaudo?.PeriodoRecortado ?? false
+    };
 
     public static IReadOnlyList<OpcionInforme> OpcionesVendedor(IEnumerable<UsuarioResponse> usuarios) => usuarios
         .Where(u => RolConsola.EsVendedor(u.Rol))
@@ -226,6 +265,8 @@ public static class VentasInforme
             PeriodoRecortado = partes.Any(p => p.PeriodoRecortado),
             TotalVendido = partes.Sum(p => p.TotalVendido),
             TotalPorRecaudar = partes.Sum(p => p.TotalPorRecaudar),
+            TotalEntregarAdministracion = partes.Sum(p => p.TotalEntregarAdministracion),
+            TotalEntregadoAdministracion = partes.Sum(p => p.TotalEntregadoAdministracion),
             TotalRecaudado = partes.Sum(p => p.TotalRecaudado),
             TotalPendiente = partes.Sum(p => p.TotalPendiente),
             DeudaAnterior = partes.Sum(p => p.DeudaAnterior),
@@ -242,6 +283,8 @@ public static class VentasInforme
                     Debia = g.Sum(d => d.Debia),
                     Cobrado = g.Sum(d => d.Cobrado),
                     Generado = g.Sum(d => d.Generado),
+                    EntregarAdministracion = g.Sum(d => d.EntregarAdministracion),
+                    EntregadoAdministracion = g.Sum(d => d.EntregadoAdministracion),
                     Vendido = g.Sum(d => d.Vendido)
                 })
                 .OrderBy(d => d.Fecha)
@@ -265,6 +308,29 @@ public static class VentasInforme
                 .ToList(),
             SaldosPendientes = partes.SelectMany(p => p.SaldosPendientes)
                 .OrderByDescending(s => s.TotalPendiente)
+                .ToList(),
+            RecaudadoresDeuda = partes.SelectMany(p => p.RecaudadoresDeuda)
+                .GroupBy(r => r.RecaudadorId == Guid.Empty ? r.Nombre : r.RecaudadorId.ToString())
+                .Select(g =>
+                {
+                    var recibir = g.Sum(r => r.Recibir);
+                    var entregado = g.Sum(r => r.Entregado);
+                    var grupos = g.SelectMany(r => r.Grupos.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+                        .Distinct(StringComparer.CurrentCultureIgnoreCase)
+                        .OrderBy(n => n, StringComparer.CurrentCultureIgnoreCase);
+                    return new RecaudadorDeudaAdministracionResponse
+                    {
+                        RecaudadorId = g.First().RecaudadorId,
+                        Nombre = g.First().Nombre,
+                        Grupos = string.Join(", ", grupos),
+                        Recibir = recibir,
+                        Entregado = entregado,
+                        Debe = Math.Max(0m, recibir - entregado)
+                    };
+                })
+                .Where(r => r.Debe > 0m)
+                .OrderByDescending(r => r.Debe)
+                .ThenBy(r => r.Nombre, StringComparer.CurrentCultureIgnoreCase)
                 .ToList()
         };
     }
@@ -421,13 +487,23 @@ public static class VentasInforme
         string? ordenAtrasos = null,
         string? direccionAtrasos = null,
         int paginaAtrasos = 1,
-        int filasAtrasos = 10) => new()
+        int filasAtrasos = 10,
+        int paginaRecaudadoresDeuda = 1,
+        int filasRecaudadoresDeuda = 10) => new()
     {
         Corte = corte,
         Desde = desde,
         Hasta = hasta,
         Alcance = Alcance(filtros, grupos),
-        Recaudo = fuente.Recaudo is null ? null : Recaudo(fuente.Recaudo, InformeOrden.EstadoAtrasos(ordenAtrasos, direccionAtrasos), paginaAtrasos, filasAtrasos)
+        Recaudo = fuente.Recaudo is null
+            ? null
+            : Recaudo(
+                fuente.Recaudo,
+                InformeOrden.EstadoAtrasos(ordenAtrasos, direccionAtrasos),
+                paginaAtrasos,
+                filasAtrasos,
+                paginaRecaudadoresDeuda,
+                filasRecaudadoresDeuda)
     };
 
     private static ResumenFinancieroInforme Resumen(FuenteInformeVentas fuente) => new()
@@ -573,9 +649,17 @@ public static class VentasInforme
         };
     }
 
-    private static RecaudoInforme Recaudo(TableroRecaudoResponse tablero, EstadoOrden ordenAtrasos, int paginaAtrasos, int filasAtrasos)
+    private static RecaudoInforme Recaudo(
+        TableroRecaudoResponse tablero,
+        EstadoOrden ordenAtrasos,
+        int paginaAtrasos,
+        int filasAtrasos,
+        int paginaRecaudadoresDeuda,
+        int filasRecaudadoresDeuda)
     {
         var mayor = tablero.Recaudadores.Count == 0 ? 0m : tablero.Recaudadores.Max(r => r.TotalRecaudado + r.TotalPendiente);
+        var debeEntregar = tablero.TotalEntregarAdministracion;
+        var valorEntregado = tablero.TotalEntregadoAdministracion;
         return new RecaudoInforme
         {
             PorRecaudar = tablero.TotalPorRecaudar,
@@ -583,12 +667,23 @@ public static class VentasInforme
             Pendiente = tablero.TotalPendiente,
             DeudaAnterior = tablero.DeudaAnterior,
             PendienteDelDia = tablero.PendienteDelDia,
+            DebeEntregar = debeEntregar,
+            ValorEntregado = valorEntregado,
+            EnDeudaAdministracion = Math.Max(0m, debeEntregar - valorEntregado) > 0m,
             Avance = Avance(tablero.TotalRecaudado, tablero.TotalPendiente),
             VendedoresAlDia = tablero.VendedoresAlDia,
             VendedoresPorCobrar = tablero.VendedoresPorCobrar,
             VendedoresEnDeuda = tablero.VendedoresEnDeuda,
             Grafico = GraficoLineaRecaudo.De(
-                tablero.Dias.OrderBy(d => d.Fecha).Select(d => new PuntoLineaRecaudo(d.Fecha, d.Debia, d.Cobrado, d.Generado)).ToList(),
+                tablero.Dias.OrderBy(d => d.Fecha)
+                    .Select(d => new PuntoLineaRecaudo(
+                        d.Fecha,
+                        d.Debia,
+                        d.Cobrado,
+                        d.Generado,
+                        d.EntregarAdministracion,
+                        d.EntregadoAdministracion))
+                    .ToList(),
                 mostrarGenerado: true),
             Recaudadores = tablero.Recaudadores
                 .OrderByDescending(r => r.TotalPendiente)
@@ -618,6 +713,22 @@ public static class VentasInforme
                     TotalPendiente = s.TotalPendiente
                 }), ordenAtrasos), paginaAtrasos, filasAtrasos),
             OrdenAtrasos = ordenAtrasos,
+            RecaudadoresDeuda = PagingHelper.Paginate(
+                tablero.RecaudadoresDeuda
+                    .Where(r => r.Debe > 0m)
+                    .OrderByDescending(r => r.Debe)
+                    .ThenBy(r => r.Nombre, StringComparer.CurrentCultureIgnoreCase)
+                    .Select(r => new RecaudadorDeudaInforme
+                    {
+                        Nombre = r.Nombre,
+                        Grupos = r.Grupos,
+                        Recibir = r.Recibir,
+                        Entregado = r.Entregado,
+                        Debe = r.Debe
+                    })
+                    .ToList(),
+                paginaRecaudadoresDeuda,
+                filasRecaudadoresDeuda),
             Recortado = tablero.PeriodoRecortado
         };
     }

@@ -13,6 +13,101 @@ namespace NewRich.UnitTests;
 public sealed class RecaudoServiceTests
 {
     [Fact]
+    public async Task Configuracion_suma_recibir_entregado_y_debe_por_grupo_en_el_periodo()
+    {
+        var (sut, db) = Crear(new DateTime(2026, 11, 9, 15, 0, 0, DateTimeKind.Utc));
+        var grupo = await AgregarGrupo(db, "Norte");
+        var recaudador = await AgregarUsuario(db, "Jose Recaudo", RolUsuario.Recaudador);
+        var vendedor = await AgregarUsuario(db, "Ana Vende", RolUsuario.Vendedor);
+        db.UsuariosGrupos.Add(new UsuarioGrupo { UsuarioId = vendedor.UsuarioId, GrupoId = grupo.GrupoId });
+        await sut.AsignarGrupoAsync(new AsignarGrupoRecaudoRequest
+        {
+            RecaudadorId = recaudador.UsuarioId,
+            GrupoId = grupo.GrupoId
+        }, recaudador.UsuarioId, CancellationToken.None);
+        db.ObligacionesRecaudo.Add(new ObligacionRecaudo
+        {
+            ObligacionId = Guid.NewGuid(),
+            VendedorId = vendedor.UsuarioId,
+            RecaudadorId = recaudador.UsuarioId,
+            Fecha = new DateTime(2026, 11, 8),
+            TotalVendido = 100_000m,
+            ValorGenerado = 90_000m,
+            EntregarAdministracion = 85_500m,
+            FechaGeneracion = new DateTime(2026, 11, 8, 12, 0, 0)
+        });
+        db.ObligacionesRecaudo.Add(new ObligacionRecaudo
+        {
+            ObligacionId = Guid.NewGuid(),
+            VendedorId = vendedor.UsuarioId,
+            RecaudadorId = recaudador.UsuarioId,
+            Fecha = new DateTime(2026, 11, 11),
+            TotalVendido = 50_000m,
+            ValorGenerado = 45_000m,
+            EntregarAdministracion = 40_000m,
+            FechaGeneracion = new DateTime(2026, 11, 11, 12, 0, 0)
+        });
+        await db.SaveChangesAsync();
+
+        var primerPago = await sut.RegistrarPagoAdministracionAsync(
+            new RegistrarPagoAdministracionRequest { GrupoId = grupo.GrupoId, Valor = 30_000m },
+            recaudador.UsuarioId,
+            CancellationToken.None);
+        primerPago.IsSuccess.Should().BeTrue();
+
+        var config = await sut.ConfiguracionAsync(new DateOnly(2026, 11, 7), new DateOnly(2026, 11, 10), CancellationToken.None);
+
+        var fila = config.Data!.Grupos.Should().ContainSingle(g => g.GrupoId == grupo.GrupoId).Subject;
+        fila.Recibir.Should().Be(85_500m);
+        fila.Entregado.Should().Be(30_000m);
+        fila.Debe.Should().Be(55_500m);
+        fila.EnDeuda.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Registrar_pago_administracion_suma_entregados_y_deja_debe_en_cero()
+    {
+        var (sut, db) = Crear(new DateTime(2026, 11, 10, 15, 0, 0, DateTimeKind.Utc));
+        var grupo = await AgregarGrupo(db, "Sur");
+        var recaudador = await AgregarUsuario(db, "Jose Recaudo", RolUsuario.Recaudador);
+        var vendedor = await AgregarUsuario(db, "Ana Vende", RolUsuario.Vendedor);
+        db.UsuariosGrupos.Add(new UsuarioGrupo { UsuarioId = vendedor.UsuarioId, GrupoId = grupo.GrupoId });
+        await sut.AsignarGrupoAsync(new AsignarGrupoRecaudoRequest
+        {
+            RecaudadorId = recaudador.UsuarioId,
+            GrupoId = grupo.GrupoId
+        }, recaudador.UsuarioId, CancellationToken.None);
+        db.ObligacionesRecaudo.Add(new ObligacionRecaudo
+        {
+            ObligacionId = Guid.NewGuid(),
+            VendedorId = vendedor.UsuarioId,
+            RecaudadorId = recaudador.UsuarioId,
+            Fecha = new DateTime(2026, 11, 10),
+            TotalVendido = 100_000m,
+            ValorGenerado = 90_000m,
+            EntregarAdministracion = 80_000m,
+            FechaGeneracion = new DateTime(2026, 11, 10, 12, 0, 0)
+        });
+        await db.SaveChangesAsync();
+
+        (await sut.RegistrarPagoAdministracionAsync(
+            new RegistrarPagoAdministracionRequest { GrupoId = grupo.GrupoId, Valor = 50_000m },
+            recaudador.UsuarioId,
+            CancellationToken.None)).IsSuccess.Should().BeTrue();
+        (await sut.RegistrarPagoAdministracionAsync(
+            new RegistrarPagoAdministracionRequest { GrupoId = grupo.GrupoId, Valor = 30_000m },
+            recaudador.UsuarioId,
+            CancellationToken.None)).IsSuccess.Should().BeTrue();
+
+        var config = await sut.ConfiguracionAsync(new DateOnly(2026, 11, 10), new DateOnly(2026, 11, 10), CancellationToken.None);
+        var fila = config.Data!.Grupos.Should().ContainSingle(g => g.GrupoId == grupo.GrupoId).Subject;
+        fila.Recibir.Should().Be(80_000m);
+        fila.Entregado.Should().Be(80_000m);
+        fila.Debe.Should().Be(0m);
+        fila.EnDeuda.Should().BeFalse();
+    }
+
+    [Fact]
     public async Task Configuracion_marca_en_gris_un_grupo_sin_asignar()
     {
         var (sut, db) = Crear();

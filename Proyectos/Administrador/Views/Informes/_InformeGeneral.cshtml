@@ -1,0 +1,47 @@
+@using System.Globalization
+@using NewRich.Admin.Constants
+@using NewRich.Admin.Models
+@using NewRich.Admin.Services
+@using NewRich.Constants
+@model InformeGeneralViewModel
+@{
+    var cultura = CultureInfo.GetCultureInfo("es-CO");
+    string Pesos(decimal valor) => FormatoPesos.De(valor);
+    string Fecha(DateOnly fecha) => fecha.ToString("dd/MM/yyyy", cultura);
+    string Periodo() => Model.Desde == Model.Hasta ? Fecha(Model.Desde) : string.Format(UiTexts.InformeRangoTexto, Fecha(Model.Desde), Fecha(Model.Hasta));
+    var secciones = OrdenSeccionesInforme.Vista(ViewData, CategoriasInforme.General);
+}
+<div class="informe-reporte informe-general informe-secciones" data-secciones="@secciones.Categoria" aria-labelledby="informeGeneralReporteTitulo">
+    <div class="informe-movible" data-seccion="encabezado" style="order: @secciones.Posicion("encabezado")">
+        <partial name="_MoverSeccion" model='(secciones, "encabezado")' />
+        <header class="informe-reporte-head">
+            <div>
+                <h3 id="informeGeneralReporteTitulo">@UiTexts.InformeGeneralNombre</h3>
+                <p>@string.Format(UiTexts.InformeCorte, Model.Corte.ToString("dd/MM/yyyy hh:mm tt", cultura))</p>
+            </div>
+            <ul class="informe-ventas-alcance">
+                <li>@string.Format(UiTexts.InformePeriodoTexto, Periodo())</li>
+                <li>@string.Format(UiTexts.InformeAlcanceTexto, Model.Alcance)</li>
+            </ul>
+        </header>
+    </div>
+
+    <div class="informe-movible" data-seccion="tarjetas" style="order: @secciones.Posicion("tarjetas")">
+        <partial name="_MoverSeccion" model='(secciones, "tarjetas")' />
+        <p class="informe-ventas-ayuda">@UiTexts.InformeGeneralSeccionAyuda</p>
+        <div class="informe-metricas">
+            <div class="informe-metrica@(Model.EnDeuda ? " is-alerta" : "")">
+                <small>@UiTexts.InformeGeneralPorRecibir</small>
+                <strong>@Pesos(Model.TotalPorRecibir)</strong>
+            </div>
+            <div class="informe-metrica is-principal@(Model.EnDeuda ? " is-alerta" : "")">
+                <small>@UiTexts.InformeGeneralRecibido</small>
+                <strong>@Pesos(Model.Recibido)</strong>
+            </div>
+        </div>
+        @if (Model.Recortado)
+        {
+            <p class="informe-nota">@UiTexts.InformeRecaudoRecortado</p>
+        }
+    </div>
+</div>

@@ -64,6 +64,7 @@ internal static class CierreEsquema
         EXEC cierre.AgregarCierreId N'manual', N'RegistrosJuego';
         EXEC cierre.AgregarCierreId N'manual', N'RegistrosJuegoNumerosWeb';
         EXEC cierre.AgregarCierreId N'recaudo', N'Pagos';
+        EXEC cierre.AgregarCierreId N'recaudo', N'PagosAdministracion';
         EXEC cierre.AgregarCierreId N'dbo', N'EntregasGanadores';
         EXEC cierre.AgregarCierreId N'manual', N'PremiosEntregadosWeb';
         EXEC cierre.AgregarCierreId N'utilidades', N'Gastos';

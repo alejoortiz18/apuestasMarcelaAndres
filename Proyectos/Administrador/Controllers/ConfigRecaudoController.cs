@@ -50,6 +50,10 @@ public sealed class ConfigRecaudoController : AdminControllerBase
             SinConfigurar = g.SinConfigurar,
             TotalPorRecaudar = g.TotalPorRecaudar,
             TotalRecaudado = g.TotalRecaudado,
+            Recibir = g.Recibir,
+            Entregado = g.Entregado,
+            Debe = g.Debe,
+            EnDeuda = g.EnDeuda,
             RecaudadorId = g.RecaudadorId,
             RecaudadorNombre = string.IsNullOrWhiteSpace(g.RecaudadorNombre) ? UiTexts.NoAplica : g.RecaudadorNombre
         }).ToList();
@@ -157,6 +161,44 @@ public sealed class ConfigRecaudoController : AdminControllerBase
         }
 
         SetFlash(result.Message, result.Success);
+        return RedirectToAction(nameof(Index), new { desde, hasta });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CambiarRecaudadorGrupo(Guid grupoId, Guid? recaudadorId, string? desde, string? hasta, CancellationToken cancellationToken)
+    {
+        var result = RecaudadorIdONulo(recaudadorId) is { } id
+            ? await _api.AsignarGrupoRecaudoAsync(new AsignarGrupoRecaudoRequest
+            {
+                RecaudadorId = id,
+                GrupoId = grupoId
+            }, cancellationToken)
+            : await _api.RetirarGrupoRecaudoAsync(grupoId, cancellationToken);
+        var unauthorized = RedirectIfUnauthorized(result);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
+        SetFlash(result.Success ? UiTexts.RecaudadoresActualizados : result.Message, result.Success);
+        return RedirectToAction(nameof(Index), new { desde, hasta });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RegistrarPagoAdministracion(Guid grupoId, decimal valor, string? desde, string? hasta, CancellationToken cancellationToken)
+    {
+        var result = await _api.RegistrarPagoAdministracionRecaudoAsync(
+            new RegistrarPagoAdministracionRequest { GrupoId = grupoId, Valor = valor },
+            cancellationToken);
+        var unauthorized = RedirectIfUnauthorized(result);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
+        SetFlash(result.Success ? UiTexts.PagoAdministracionRegistrado : result.Message, result.Success);
         return RedirectToAction(nameof(Index), new { desde, hasta });
     }
 

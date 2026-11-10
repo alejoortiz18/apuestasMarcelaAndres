@@ -44,6 +44,8 @@ public sealed class InformesController : AdminControllerBase
         string? dirAt = null,
         int pageAt = 1,
         int pageSizeAt = 10,
+        int pageRd = 1,
+        int pageSizeRd = 10,
         string? ordenC = null,
         string? dirC = null,
         int pageC = 1,
@@ -64,7 +66,7 @@ public sealed class InformesController : AdminControllerBase
     {
         SetNav("informes", UiTexts.NavInformes);
         var premios = new OrdenesInforme(ordenP, dirP, pageP, pageSizeP, ordenG, dirG, ordenV, dirV, ordenAt, dirAt, pageAt, pageSizeAt, ordenC, dirC, pageC, pageSizeC);
-        var (modelo, salida) = await ConstruirAsync(orden, dir, page, pageSize, pageV, pageSizeV, pageG, pageSizeG, premios, pestana, cierre, grupo, pageH, pageSizeH, pageD, pageSizeD, ordenH, dirH, ordenD, dirD, nuevo, cancellationToken);
+        var (modelo, salida) = await ConstruirAsync(orden, dir, page, pageSize, pageV, pageSizeV, pageG, pageSizeG, premios, pestana, cierre, grupo, pageH, pageSizeH, pageD, pageSizeD, ordenH, dirH, ordenD, dirD, nuevo, pageRd, pageSizeRd, cancellationToken);
         return salida ?? View(modelo);
     }
 
@@ -90,6 +92,8 @@ public sealed class InformesController : AdminControllerBase
         string? ordenD,
         string? dirD,
         bool nuevo,
+        int pageRd,
+        int pageSizeRd,
         CancellationToken cancellationToken)
     {
         var configuraciones = await _api.ListarConfiguracionesInformeAsync(cancellationToken);
@@ -131,14 +135,16 @@ public sealed class InformesController : AdminControllerBase
             return (carga, desde, hasta);
         }
 
+        var general = Configuracion(CategoriasInforme.General);
         var ventas = Configuracion(CategoriasInforme.Ventas);
         var egresos = Configuracion(CategoriasInforme.Egresos);
         var recaudo = Configuracion(CategoriasInforme.Recaudo);
 
+        var cargaGeneral = await Cargar(general, DatosInforme.Recaudo);
         var cargaVentas = await Cargar(ventas, DatosInforme.Ventas);
         var cargaEgresos = await Cargar(egresos, DatosInforme.Egresos);
         var cargaRecaudo = await Cargar(recaudo, DatosInforme.Recaudo);
-        if (new[] { cargaVentas.Carga, cargaEgresos.Carga, cargaRecaudo.Carga }.Any(c => c?.Unauthorized == true))
+        if (new[] { cargaGeneral.Carga, cargaVentas.Carga, cargaEgresos.Carga, cargaRecaudo.Carga }.Any(c => c?.Unauthorized == true))
             return (null, RedirectToAction("Ingresar", "Cuenta", new { expired = true }));
 
         var enCierres = string.Equals(pestana, "cierres", StringComparison.OrdinalIgnoreCase);
@@ -197,6 +203,10 @@ public sealed class InformesController : AdminControllerBase
             Informe = vendedores.Configurada
                 ? PersonalInforme.Informe(personal, listaGrupos, filtros, ahora, orden, dir, page, pageSize)
                 : null,
+            General = general,
+            InformeGeneral = cargaGeneral.Carga is { } fuenteGeneral
+                ? VentasInforme.InformeGeneral(fuenteGeneral.Fuente, general.Filtros, cargaGeneral.Desde, cargaGeneral.Hasta, ahora)
+                : null,
             Ventas = ventas,
             InformeVentas = cargaVentas.Carga is { } fuenteVentas
                 ? VentasInforme.Informe(fuenteVentas.Fuente, ventas.Filtros, listaGrupos, cargaVentas.Desde, cargaVentas.Hasta, ahora, pageV, pageSizeV,
@@ -211,7 +221,8 @@ public sealed class InformesController : AdminControllerBase
             Recaudo = recaudo,
             InformeRecaudo = cargaRecaudo.Carga is { } fuenteRecaudo
                 ? VentasInforme.InformeRecaudo(fuenteRecaudo.Fuente, recaudo.Filtros, listaGrupos, cargaRecaudo.Desde, cargaRecaudo.Hasta, ahora,
-                    premios.OrdenAtrasos, premios.DireccionAtrasos, premios.PaginaAtrasos, PagingHelper.NormalizePageSize(premios.FilasAtrasos))
+                    premios.OrdenAtrasos, premios.DireccionAtrasos, premios.PaginaAtrasos, PagingHelper.NormalizePageSize(premios.FilasAtrasos),
+                    pageRd, PagingHelper.NormalizePageSize(pageSizeRd))
                 : null,
             Tarjetas =
             [
@@ -223,6 +234,15 @@ public sealed class InformesController : AdminControllerBase
                     Habilitada = true,
                     Configurada = vendedores.Configurada,
                     Resumen = vendedores.Configurada ? vendedores.ResumenCorto : null
+                },
+                new()
+                {
+                    Clave = CategoriasInforme.General,
+                    Nombre = UiTexts.InformeCategoriaGeneral,
+                    Descripcion = UiTexts.InformeCategoriaGeneralAyuda,
+                    Habilitada = true,
+                    Configurada = general.Configurada,
+                    Resumen = general.Configurada ? general.ResumenCorto : null
                 },
                 new()
                 {
@@ -332,9 +352,9 @@ public sealed class InformesController : AdminControllerBase
             Periodo = periodo?.Trim() ?? string.Empty,
             Desde = rango ? desde : null,
             Hasta = rango ? hasta : null,
-            Grupos = Elegidos(modoGrupos, grupos?.Where(g => g != Guid.Empty)),
-            Vendedores = Elegidos(modoVendedores, vendedores?.Where(v => v != Guid.Empty)),
-            TiposEgreso = tipos
+            Grupos = clave == CategoriasInforme.General ? null : Elegidos(modoGrupos, grupos?.Where(g => g != Guid.Empty)),
+            Vendedores = clave == CategoriasInforme.General ? null : Elegidos(modoVendedores, vendedores?.Where(v => v != Guid.Empty)),
+            TiposEgreso = clave == CategoriasInforme.General ? null : tipos
         };
 
         var aviso = clave is null ? UiTexts.InformeCategoriaInvalida : VentasInforme.Validar(filtros);

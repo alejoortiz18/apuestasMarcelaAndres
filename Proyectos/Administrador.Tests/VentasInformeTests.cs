@@ -332,6 +332,130 @@ public sealed class VentasInformeTests
         informe.Recaudo.Grafico.Puntos.Should().ContainSingle().Which.Cobrado.Should().Be(300m);
     }
 
+    [Fact]
+    public void Informe_general_solo_muestra_totales_de_toda_la_empresa()
+    {
+        var fecha = new DateOnly(2026, 11, 10);
+        var fuente = new FuenteInformeVentas
+        {
+            Recaudo = new TableroRecaudoResponse
+            {
+                TotalEntregarAdministracion = 120_000m,
+                TotalEntregadoAdministracion = 80_000m,
+                PeriodoRecortado = false
+            }
+        };
+
+        var informe = VentasInforme.InformeGeneral(
+            fuente,
+            new FiltrosPeriodoInforme { Periodo = "hoy" },
+            fecha,
+            fecha,
+            DateTime.Now);
+
+        informe.TotalPorRecibir.Should().Be(120_000m);
+        informe.Recibido.Should().Be(80_000m);
+        informe.EnDeuda.Should().BeTrue();
+        informe.Alcance.Should().Be(UiTexts.InformeTodosGrupos);
+    }
+
+    [Fact]
+    public void Informe_recaudo_muestra_entrega_a_administracion_y_recaudadores_deudores()
+    {
+        var fecha = new DateOnly(2026, 11, 10);
+        var fuente = new FuenteInformeVentas
+        {
+            Recaudo = new TableroRecaudoResponse
+            {
+                TotalEntregarAdministracion = 85_500m,
+                TotalEntregadoAdministracion = 30_000m,
+                Dias =
+                [
+                    new()
+                    {
+                        Fecha = fecha,
+                        Debia = 100_000m,
+                        Cobrado = 40_000m,
+                        Generado = 90_000m,
+                        EntregarAdministracion = 85_500m,
+                        EntregadoAdministracion = 30_000m
+                    }
+                ],
+                RecaudadoresDeuda =
+                [
+                    new()
+                    {
+                        Nombre = "Luis",
+                        Grupos = "sur",
+                        Recibir = 85_500m,
+                        Entregado = 30_000m,
+                        Debe = 55_500m
+                    },
+                    new()
+                    {
+                        Nombre = "Jose",
+                        Grupos = "norte",
+                        Recibir = 10_000m,
+                        Entregado = 10_000m,
+                        Debe = 0m
+                    }
+                ]
+            }
+        };
+
+        var informe = VentasInforme.InformeRecaudo(fuente, new FiltrosPeriodoInforme { Periodo = "hoy" }, [], fecha, fecha, DateTime.Now);
+
+        informe.Recaudo!.DebeEntregar.Should().Be(85_500m);
+        informe.Recaudo.ValorEntregado.Should().Be(30_000m);
+        informe.Recaudo.EnDeudaAdministracion.Should().BeTrue();
+        informe.Recaudo.Grafico.Puntos.Should().ContainSingle().Which.EntregarAdministracion.Should().Be(85_500m);
+        informe.Recaudo.Grafico.Puntos[0].EntregadoAdministracion.Should().Be(30_000m);
+        informe.Recaudo.RecaudadoresDeuda.Items.Should().ContainSingle()
+            .Which.Should().BeEquivalentTo(new RecaudadorDeudaInforme
+            {
+                Nombre = "Luis",
+                Grupos = "sur",
+                Recibir = 85_500m,
+                Entregado = 30_000m,
+                Debe = 55_500m
+            });
+    }
+
+    [Fact]
+    public void Fusionar_tablero_suma_entrega_a_administracion_y_deudores()
+    {
+        var fecha = new DateOnly(2026, 11, 10);
+        var fusion = VentasInforme.FusionarTablero(
+        [
+            new TableroRecaudoResponse
+            {
+                TotalEntregarAdministracion = 50_000m,
+                TotalEntregadoAdministracion = 20_000m,
+                Dias = [new() { Fecha = fecha, EntregarAdministracion = 50_000m, EntregadoAdministracion = 20_000m }],
+                RecaudadoresDeuda = [new() { Nombre = "Luis", Grupos = "sur", Recibir = 50_000m, Entregado = 20_000m, Debe = 30_000m }]
+            },
+            new TableroRecaudoResponse
+            {
+                TotalEntregarAdministracion = 35_500m,
+                TotalEntregadoAdministracion = 10_000m,
+                Dias = [new() { Fecha = fecha, EntregarAdministracion = 35_500m, EntregadoAdministracion = 10_000m }],
+                RecaudadoresDeuda = [new() { Nombre = "Luis", Grupos = "norte", Recibir = 35_500m, Entregado = 10_000m, Debe = 25_500m }]
+            }
+        ])!;
+
+        fusion.TotalEntregarAdministracion.Should().Be(85_500m);
+        fusion.TotalEntregadoAdministracion.Should().Be(30_000m);
+        fusion.Dias.Should().ContainSingle();
+        fusion.Dias[0].EntregarAdministracion.Should().Be(85_500m);
+        fusion.Dias[0].EntregadoAdministracion.Should().Be(30_000m);
+        var luis = fusion.RecaudadoresDeuda.Should().ContainSingle().Subject;
+        luis.Nombre.Should().Be("Luis");
+        luis.Recibir.Should().Be(85_500m);
+        luis.Entregado.Should().Be(30_000m);
+        luis.Debe.Should().Be(55_500m);
+        luis.Grupos.Should().Contain("sur").And.Contain("norte");
+    }
+
     private static InformeGastosPropiosResponse Gastos(decimal total) =>
         new(Hoy, Hoy, total, 1, total, null, null, null, 0m, 0, [new GastoPorTipoResponse("Transporte", total, 1)], [], 0m, 0m);
 

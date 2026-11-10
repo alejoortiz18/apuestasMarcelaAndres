@@ -61,6 +61,7 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
     public DbSet<AsignacionVendedorRecaudo> AsignacionesVendedorRecaudo => Set<AsignacionVendedorRecaudo>();
     public DbSet<ObligacionRecaudo> ObligacionesRecaudo => Set<ObligacionRecaudo>();
     public DbSet<PagoRegistradoRecaudo> PagosRecaudo => Set<PagoRegistradoRecaudo>();
+    public DbSet<PagoAdministracionRecaudoEntity> PagosAdministracionRecaudo => Set<PagoAdministracionRecaudoEntity>();
     public DbSet<TirillaCobroRecaudo> TirillasCobroRecaudo => Set<TirillaCobroRecaudo>();
     public DbSet<ConfirmacionAccionPendiente> ConfirmacionesAccion => Set<ConfirmacionAccionPendiente>();
     public DbSet<TipoGasto> TiposGasto => Set<TipoGasto>();
@@ -240,6 +241,16 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
         }
 
         await Database.ExecuteSqlRawAsync(CierreEsquema.Sql, cancellationToken);
+    }
+
+    public async Task AsegurarEsquemaPagosAdministracionAsync(CancellationToken cancellationToken = default)
+    {
+        if (!Database.IsRelational())
+        {
+            return;
+        }
+
+        await Database.ExecuteSqlRawAsync(EsquemaPagosAdministracion.Tablas, cancellationToken);
     }
 
     public async Task BloquearCierreAsync(CancellationToken cancellationToken = default)
@@ -845,6 +856,14 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
             e.Property(x => x.SaldoResultante).HasColumnType("decimal(18,2)");
             e.Property(x => x.ClaveIdempotencia).HasMaxLength(80);
         });
+        modelBuilder.Entity<PagoAdministracionRecaudoEntity>(e =>
+        {
+            e.ToTable("PagosAdministracion", "recaudo");
+            e.HasKey(x => x.PagoId);
+            e.Property(x => x.Valor).HasColumnType("decimal(18,2)");
+            e.Property(x => x.FechaOperacion).HasColumnType("date");
+            e.HasIndex(x => new { x.GrupoId, x.FechaOperacion });
+        });
         modelBuilder.Entity<TirillaCobroRecaudo>(e =>
         {
             e.ToTable("TirillasCobro", "recaudo");
@@ -923,6 +942,7 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
         RelacionCierre<RegistroJuegoManual>(modelBuilder);
         RelacionCierre<RegistroJuegoNumerosWebManual>(modelBuilder);
         RelacionCierre<PagoRegistradoRecaudo>(modelBuilder);
+        RelacionCierre<PagoAdministracionRecaudoEntity>(modelBuilder);
         RelacionCierre<EntregaGanador>(modelBuilder);
         RelacionCierre<PremioEntregadoWeb>(modelBuilder);
         RelacionCierre<Gasto>(modelBuilder);

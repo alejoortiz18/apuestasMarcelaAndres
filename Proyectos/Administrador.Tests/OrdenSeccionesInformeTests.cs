@@ -49,7 +49,9 @@ public sealed class OrdenSeccionesInformeTests
         OrdenSeccionesInforme.Orden(guardado, CategoriasInforme.Ventas)
             .Should().Equal("vendedores", "grupo", "encabezado", "tarjetas", "dias");
         OrdenSeccionesInforme.Orden(guardado, CategoriasInforme.Recaudo)
-            .Should().Equal("encabezado", "tarjetas", "linea", "recaudadores", "atrasos");
+            .Should().Equal("encabezado", "tarjetas", "linea", "recaudadores", "atrasos", "recaudadoresDeuda");
+        OrdenSeccionesInforme.Orden(guardado, CategoriasInforme.General)
+            .Should().Equal("encabezado", "tarjetas");
     }
 
     [Fact]

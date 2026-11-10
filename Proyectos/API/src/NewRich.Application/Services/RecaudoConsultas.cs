@@ -60,6 +60,16 @@ public sealed partial class RecaudoService
         var asignaciones = await _db.AsignacionesGrupoRecaudo.Where(a => a.Estado == "Activa").ToListAsync(cancellationToken);
         var recaudadores = await _db.Usuarios.Where(u => u.Rol == RolUsuario.Recaudador).ToListAsync(cancellationToken);
         var miembros = await _db.UsuariosGrupos.ToListAsync(cancellationToken);
+        var inicioFecha = desde.ToDateTime(TimeOnly.MinValue);
+        var finFecha = hasta.ToDateTime(TimeOnly.MinValue);
+        var obligacionesPeriodo = await _db.ObligacionesRecaudo
+            .Where(o => o.Fecha >= inicioFecha && o.Fecha <= finFecha)
+            .Select(o => new { o.VendedorId, Entregar = o.EntregarAdministracion ?? 0m })
+            .ToListAsync(cancellationToken);
+        var pagosAdminPeriodo = await _db.PagosAdministracionRecaudo
+            .Where(p => p.FechaOperacion >= desde && p.FechaOperacion <= hasta)
+            .Select(p => new { p.GrupoId, p.Valor })
+            .ToListAsync(cancellationToken);
         var filas = new List<GrupoConfigRecaudoResponse>();
         var alarmas = new List<string>();
         foreach (var grupo in grupos)
@@ -69,6 +79,10 @@ public sealed partial class RecaudoService
             var integrantes = (await IntegrantesGrupoAsync(grupo.GrupoId, desde, hasta, cancellationToken)).Data;
             var porRecaudar = integrantes?.TotalPorRecaudar ?? 0m;
             var recaudado = integrantes?.TotalRecaudado ?? 0m;
+            var idsGrupo = miembros.Where(m => m.GrupoId == grupo.GrupoId).Select(m => m.UsuarioId).ToHashSet();
+            var recibir = obligacionesPeriodo.Where(o => idsGrupo.Contains(o.VendedorId)).Sum(o => o.Entregar);
+            var entregado = pagosAdminPeriodo.Where(p => p.GrupoId == grupo.GrupoId).Sum(p => p.Valor);
+            var debe = PagoAdministracionRecaudo.Debe(recibir, entregado);
 
             var sinConfigurar = recaudador is null;
             if (sinConfigurar)
@@ -84,6 +98,10 @@ public sealed partial class RecaudoService
                 SinConfigurar = sinConfigurar,
                 TotalPorRecaudar = porRecaudar,
                 TotalRecaudado = recaudado,
+                Recibir = recibir,
+                Entregado = entregado,
+                Debe = debe,
+                EnDeuda = PagoAdministracionRecaudo.FilaEnDeuda(debe),
                 RecaudadorId = recaudador?.UsuarioId,
                 RecaudadorNombre = recaudador?.NombreCompleto ?? string.Empty
             });
@@ -365,6 +383,7 @@ public sealed partial class RecaudoService
                         Debia = g.Sum(f => f.SaldoAnterior + f.ValorACobrar),
                         Cobrado = g.Sum(f => f.PagosHoy),
                         Generado = g.Sum(f => f.ValorACobrar),
+                        EntregarAdministracion = g.Sum(f => f.EntregarAdministracion),
                         Vendido = g.Sum(f => f.TotalVendido)
                     })
                     .ToList()

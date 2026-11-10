@@ -168,8 +168,8 @@ public sealed class CierreService : ICierreService
             UsuarioId = usuarioId,
             TotalVentas = ventas,
             CantidadVentas = abierto.VentasPda.Count + abierto.VentasManual.Count + abierto.VentasWeb.Count + abierto.Juegos.Count + abierto.JuegosWeb.Count,
-            TotalRecaudos = abierto.Recaudos.Sum(p => p.Valor),
-            CantidadRecaudos = abierto.Recaudos.Count,
+            TotalRecaudos = abierto.Recaudos.Sum(p => p.Valor) + abierto.PagosAdministracion.Sum(p => p.Valor),
+            CantidadRecaudos = abierto.Recaudos.Count + abierto.PagosAdministracion.Count,
             TotalPremios = abierto.Entregas.Sum(e => e.ValorTotalGanado) + abierto.PremiosWeb.Sum(p => p.ValorPremio),
             CantidadPremios = abierto.Entregas.Count + abierto.PremiosWeb.Count,
             TotalGastos = gastos,
@@ -188,6 +188,7 @@ public sealed class CierreService : ICierreService
         foreach (var item in abierto.Juegos) item.CierreId = cierreId;
         foreach (var item in abierto.JuegosWeb) item.CierreId = cierreId;
         foreach (var item in abierto.Recaudos) item.CierreId = cierreId;
+        foreach (var item in abierto.PagosAdministracion) item.CierreId = cierreId;
         foreach (var item in abierto.Entregas) item.CierreId = cierreId;
         foreach (var item in abierto.PremiosWeb) item.CierreId = cierreId;
         foreach (var item in abierto.Gastos) item.CierreId = cierreId;
@@ -203,6 +204,7 @@ public sealed class CierreService : ICierreService
         foreach (var item in abierto.JuegosAtrasados) item.CierreId = anterior;
         foreach (var item in abierto.JuegosWebAtrasados) item.CierreId = anterior;
         foreach (var item in abierto.RecaudosAtrasados) item.CierreId = anterior;
+        foreach (var item in abierto.PagosAdministracionAtrasados) item.CierreId = anterior;
         foreach (var item in abierto.EntregasAtrasadas) item.CierreId = anterior;
         foreach (var item in abierto.PremiosWebAtrasados) item.CierreId = anterior;
         foreach (var item in abierto.GastosAtrasados) item.CierreId = anterior;
@@ -240,6 +242,11 @@ public sealed class CierreService : ICierreService
         foreach (var pago in await _db.PagosRecaudo.Where(p => p.CierreId == null).ToListAsync(cancellationToken))
         {
             Clasificar(pago.FechaHora, corte, apertura, periodo, pago, periodo.Recaudos, periodo.RecaudosAtrasados);
+        }
+
+        foreach (var pago in await _db.PagosAdministracionRecaudo.Where(p => p.CierreId == null).ToListAsync(cancellationToken))
+        {
+            ClasificarDia(pago.FechaOperacion, corte, apertura, periodo, pago, periodo.PagosAdministracion, periodo.PagosAdministracionAtrasados);
         }
 
         foreach (var entrega in await _db.EntregasGanadores.Where(e => e.CierreId == null).ToListAsync(cancellationToken))
@@ -398,6 +405,8 @@ public sealed class CierreService : ICierreService
         {
             lineas.AddRange((await _db.PagosRecaudo.Where(p => p.CierreId == cierreId).ToListAsync(cancellationToken))
                 .Select(p => Linea(p.FechaHora, true, "Recaudo", p.Valor)));
+            lineas.AddRange((await _db.PagosAdministracionRecaudo.Where(p => p.CierreId == cierreId).ToListAsync(cancellationToken))
+                .Select(p => Linea(p.FechaOperacion.ToDateTime(TimeOnly.MinValue), false, "Pago a la administración", p.Valor)));
         }
         else if (grupo == ClavesCierre.Premios)
         {
@@ -466,6 +475,8 @@ public sealed class CierreService : ICierreService
         public List<RegistroJuegoNumerosWebManual> JuegosWebAtrasados { get; } = [];
         public List<PagoRegistradoRecaudo> Recaudos { get; } = [];
         public List<PagoRegistradoRecaudo> RecaudosAtrasados { get; } = [];
+        public List<PagoAdministracionRecaudoEntity> PagosAdministracion { get; } = [];
+        public List<PagoAdministracionRecaudoEntity> PagosAdministracionAtrasados { get; } = [];
         public List<EntregaGanador> Entregas { get; } = [];
         public List<EntregaGanador> EntregasAtrasadas { get; } = [];
         public List<PremioEntregadoWeb> PremiosWeb { get; } = [];

@@ -41,6 +41,8 @@
         }
         <polyline class="linea-debia" points="@grafico.Trazo(p => p.Debia)" />
         <polyline class="linea-cobrado" points="@grafico.Trazo(p => p.Cobrado)" />
+        <polyline class="linea-entregar" points="@grafico.Trazo(p => p.EntregarAdministracion)" />
+        <polyline class="linea-entregado" points="@grafico.Trazo(p => p.EntregadoAdministracion)" />
         @for (var i = 0; i < grafico.Puntos.Count; i++)
         {
             var punto = grafico.Puntos[i];
@@ -48,6 +50,8 @@
             <g>
                 <circle class="punto-debia" cx="@x" cy="@N(grafico.Y(punto.Debia))" r="4" />
                 <circle class="punto-cobrado" cx="@x" cy="@N(grafico.Y(punto.Cobrado))" r="4" />
+                <circle class="punto-entregar" cx="@x" cy="@N(grafico.Y(punto.EntregarAdministracion))" r="4" />
+                <circle class="punto-entregado" cx="@x" cy="@N(grafico.Y(punto.EntregadoAdministracion))" r="4" />
             </g>
         }
     </svg>
@@ -62,6 +66,8 @@
                 <span class="grafico-dia-guia" aria-hidden="true"></span>
                 <span class="grafico-dia-punto debia" style="top:@Pct(grafico.PosicionY(punto.Debia))" aria-hidden="true"></span>
                 <span class="grafico-dia-punto cobrado" style="top:@Pct(grafico.PosicionY(punto.Cobrado))" aria-hidden="true"></span>
+                <span class="grafico-dia-punto entregar" style="top:@Pct(grafico.PosicionY(punto.EntregarAdministracion))" aria-hidden="true"></span>
+                <span class="grafico-dia-punto entregado" style="top:@Pct(grafico.PosicionY(punto.EntregadoAdministracion))" aria-hidden="true"></span>
                 <div class="grafico-tip" aria-hidden="true">
                     <strong class="grafico-tip-fecha">@GraficoLineaRecaudo.FechaLarga(punto.Fecha)</strong>
                     <dl>
@@ -71,6 +77,8 @@
                         {
                             <div><dt><i class="tip-marca generado"></i>@UiTexts.TipSeGenero</dt><dd>@FormatoPesos.De(punto.Generado)</dd></div>
                         }
+                        <div><dt><i class="tip-marca entregar"></i>@UiTexts.TipDebeEntregar</dt><dd>@FormatoPesos.De(punto.EntregarAdministracion)</dd></div>
+                        <div><dt><i class="tip-marca entregado"></i>@UiTexts.TipValorEntregado</dt><dd>@FormatoPesos.De(punto.EntregadoAdministracion)</dd></div>
                         <div class="tip-pendiente"><dt>@UiTexts.TipQuedoPendiente</dt><dd>@FormatoPesos.De(punto.Pendiente)</dd></div>
                     </dl>
                     <div class="tip-avance">
@@ -89,6 +97,8 @@
         {
             <span class="leyenda-generado">@UiTexts.LoGenerado</span>
         }
+        <span class="leyenda-entregar">@UiTexts.LeyendaDebeEntregar</span>
+        <span class="leyenda-entregado">@UiTexts.LeyendaValorEntregado</span>
     </figcaption>
 </figure>
 @if (grafico.Puntos.Count == 1)

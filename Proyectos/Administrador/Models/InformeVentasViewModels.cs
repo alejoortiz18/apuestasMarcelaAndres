@@ -59,6 +59,14 @@ public sealed class InformeRecaudoViewModel : InformePorPeriodo
     public RecaudoInforme? Recaudo { get; init; }
 }
 
+public sealed class InformeGeneralViewModel : InformePorPeriodo
+{
+    public decimal TotalPorRecibir { get; init; }
+    public decimal Recibido { get; init; }
+    public bool EnDeuda { get; init; }
+    public bool Recortado { get; init; }
+}
+
 public sealed class ResumenFinancieroInforme
 {
     public decimal IngresosPda { get; init; }
@@ -194,6 +202,15 @@ public sealed class AtrasoInforme
     public decimal TotalPendiente { get; init; }
 }
 
+public sealed class RecaudadorDeudaInforme
+{
+    public string Nombre { get; init; } = string.Empty;
+    public string Grupos { get; init; } = string.Empty;
+    public decimal Recibir { get; init; }
+    public decimal Entregado { get; init; }
+    public decimal Debe { get; init; }
+}
+
 public sealed class RecaudoInforme
 {
     public decimal PorRecaudar { get; init; }
@@ -201,6 +218,9 @@ public sealed class RecaudoInforme
     public decimal Pendiente { get; init; }
     public decimal DeudaAnterior { get; init; }
     public decimal PendienteDelDia { get; init; }
+    public decimal DebeEntregar { get; init; }
+    public decimal ValorEntregado { get; init; }
+    public bool EnDeudaAdministracion { get; init; }
     public int Avance { get; init; }
     public int VendedoresAlDia { get; init; }
     public int VendedoresPorCobrar { get; init; }
@@ -209,5 +229,6 @@ public sealed class RecaudoInforme
     public IReadOnlyList<RecaudadorInforme> Recaudadores { get; init; } = [];
     public PagedViewModel<AtrasoInforme> Atrasos { get; init; } = new();
     public EstadoOrden OrdenAtrasos { get; init; } = new("pendiente", "desc");
+    public PagedViewModel<RecaudadorDeudaInforme> RecaudadoresDeuda { get; init; } = new();
     public bool Recortado { get; init; }
 }

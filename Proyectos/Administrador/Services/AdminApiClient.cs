@@ -142,6 +142,7 @@ public interface IAdminApiClient
     Task<ApiCallResult<IntegrantesGrupoRecaudoResponse>> IntegrantesGrupoRecaudoAsync(Guid grupoId, DateOnly desde, DateOnly hasta, CancellationToken cancellationToken);
     Task<ApiCallResult<object>> AsignarGrupoRecaudoAsync(AsignarGrupoRecaudoRequest request, CancellationToken cancellationToken);
     Task<ApiCallResult<object>> AsignarVendedorRecaudoAsync(AsignarVendedorRecaudoRequest request, CancellationToken cancellationToken);
+    Task<ApiCallResult<PagoAdministracionResponse>> RegistrarPagoAdministracionRecaudoAsync(RegistrarPagoAdministracionRequest request, CancellationToken cancellationToken);
     Task<ApiCallResult<object>> RetirarGrupoRecaudoAsync(Guid grupoId, CancellationToken cancellationToken);
     Task<ApiCallResult<object>> RetirarVendedorRecaudoAsync(Guid vendedorId, CancellationToken cancellationToken);
     Task<ApiCallResult<List<MovimientoRecaudoResponse>>> HistorialRecaudoAsync(FiltroHistorialRecaudo filtro, CancellationToken cancellationToken);
@@ -595,6 +596,11 @@ public sealed class AdminApiClient : IAdminApiClient
 
     public Task<ApiCallResult<object>> AsignarVendedorRecaudoAsync(AsignarVendedorRecaudoRequest request, CancellationToken cancellationToken) =>
         SendAsync<object>(HttpMethod.Post, "api/Recaudo/Vendedores", request, true, cancellationToken);
+
+    public Task<ApiCallResult<PagoAdministracionResponse>> RegistrarPagoAdministracionRecaudoAsync(
+        RegistrarPagoAdministracionRequest request,
+        CancellationToken cancellationToken) =>
+        SendAsync<PagoAdministracionResponse>(HttpMethod.Post, "api/Recaudo/PagosAdministracion", request, true, cancellationToken);
 
     public Task<ApiCallResult<object>> RetirarGrupoRecaudoAsync(Guid grupoId, CancellationToken cancellationToken) =>
         SendAsync<object>(HttpMethod.Post, $"api/Recaudo/Grupos/{grupoId}/retiro", new { }, true, cancellationToken);

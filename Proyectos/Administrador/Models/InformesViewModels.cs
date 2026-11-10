@@ -8,6 +8,8 @@ public sealed class InformesViewModel
     public IReadOnlyList<TarjetaInforme> Tarjetas { get; init; } = [];
     public VendedoresInformeViewModel Vendedores { get; init; } = new();
     public InformeVendedoresViewModel? Informe { get; init; }
+    public PeriodoInformeViewModel General { get; init; } = new();
+    public InformeGeneralViewModel? InformeGeneral { get; init; }
     public PeriodoInformeViewModel Ventas { get; init; } = new();
     public InformeVentasViewModel? InformeVentas { get; init; }
     public PeriodoInformeViewModel Egresos { get; init; } = new();

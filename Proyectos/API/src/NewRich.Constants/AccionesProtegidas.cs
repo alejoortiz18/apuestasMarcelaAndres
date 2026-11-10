@@ -37,4 +37,5 @@ public static class AccionesProtegidas
     public const string RevisadaMarcar = "revisada.marcar";
     public const string RevisadaCubrir = "revisada.cubrir";
     public const string RevisadaDescuento = "revisada.descuento";
+    public const string RecaudoRegistrarPagoAdmin = "recaudo.registrar-pago-admin";
 }

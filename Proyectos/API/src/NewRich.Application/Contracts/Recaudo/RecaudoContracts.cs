@@ -33,6 +33,23 @@ public sealed class RegistrarPagoRecaudoRequest
     public DateTime? FechaHoraCobro { get; set; }
 }
 
+public sealed class RegistrarPagoAdministracionRequest
+{
+    public Guid GrupoId { get; set; }
+    public decimal Valor { get; set; }
+}
+
+public sealed class PagoAdministracionResponse
+{
+    public Guid PagoId { get; set; }
+    public Guid GrupoId { get; set; }
+    public decimal Valor { get; set; }
+    public DateOnly FechaOperacion { get; set; }
+    public decimal Recibir { get; set; }
+    public decimal Entregado { get; set; }
+    public decimal Debe { get; set; }
+}
+
 public sealed class ObligacionRecaudoResponse
 {
     public Guid VendedorId { get; set; }
@@ -100,6 +117,17 @@ public sealed class GrupoConfigRecaudoResponse
     public bool SinConfigurar { get; set; }
     public decimal TotalPorRecaudar { get; set; }
     public decimal TotalRecaudado { get; set; }
+
+    /// <summary>Suma de EntregarAdministracion de los vendedores del grupo en el periodo (mismo concepto del APK).</summary>
+    public decimal Recibir { get; set; }
+
+    /// <summary>Suma de pagos del recaudador a la administración por el grupo en el periodo.</summary>
+    public decimal Entregado { get; set; }
+
+    /// <summary>Recibir menos Entregado, sin bajar de cero.</summary>
+    public decimal Debe { get; set; }
+
+    public bool EnDeuda { get; set; }
     public Guid? RecaudadorId { get; set; }
     public string RecaudadorNombre { get; set; } = string.Empty;
 }
@@ -215,6 +243,9 @@ public sealed class LineaRecaudoDiaResponse
     /// <summary>Lo generado ese día por las ventas, sin deudas anteriores.</summary>
     public decimal Generado { get; set; }
     public decimal EntregarAdministracion { get; set; }
+
+    /// <summary>Suma de pagos a la administración registrados ese día.</summary>
+    public decimal EntregadoAdministracion { get; set; }
     public decimal Vendido { get; set; }
     public IReadOnlyList<LineaGrupoDiaResponse> Grupos { get; set; } = [];
 }
@@ -225,6 +256,7 @@ public sealed class LineaGrupoDiaResponse
     public decimal Debia { get; set; }
     public decimal Cobrado { get; set; }
     public decimal Generado { get; set; }
+    public decimal EntregarAdministracion { get; set; }
     public decimal Vendido { get; set; }
 }
 
@@ -239,6 +271,9 @@ public sealed class TableroRecaudoResponse
     public decimal TotalVendido { get; set; }
     public decimal TotalPorRecaudar { get; set; }
     public decimal TotalEntregarAdministracion { get; set; }
+
+    /// <summary>Suma de pagos del recaudador a la administración en el periodo.</summary>
+    public decimal TotalEntregadoAdministracion { get; set; }
     public decimal TotalRecaudado { get; set; }
     public decimal TotalPendiente { get; set; }
 
@@ -259,8 +294,21 @@ public sealed class TableroRecaudoResponse
 
     /// <summary>Todos los vendedores con saldo pendiente al cierre, de mayor a menor (MayoresSaldos son los primeros).</summary>
     public IReadOnlyList<SaldoVendedorRecaudoResponse> SaldosPendientes { get; set; } = [];
+
+    /// <summary>Recaudadores con Debe &gt; 0 frente a la administración en el periodo.</summary>
+    public IReadOnlyList<RecaudadorDeudaAdministracionResponse> RecaudadoresDeuda { get; set; } = [];
     public IReadOnlyList<OpcionRecaudoResponse> OpcionesRecaudadores { get; set; } = [];
     public IReadOnlyList<string> OpcionesGrupos { get; set; } = [];
+}
+
+public sealed class RecaudadorDeudaAdministracionResponse
+{
+    public Guid RecaudadorId { get; set; }
+    public string Nombre { get; set; } = string.Empty;
+    public string Grupos { get; set; } = string.Empty;
+    public decimal Recibir { get; set; }
+    public decimal Entregado { get; set; }
+    public decimal Debe { get; set; }
 }
 
 /// <summary>Una barra del tablero: un recaudador o un grupo con sus valores del periodo.</summary>

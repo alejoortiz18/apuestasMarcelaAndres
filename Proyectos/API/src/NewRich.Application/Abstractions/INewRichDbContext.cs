@@ -44,6 +44,7 @@ public interface INewRichDbContext
     DbSet<AsignacionVendedorRecaudo> AsignacionesVendedorRecaudo { get; }
     DbSet<ObligacionRecaudo> ObligacionesRecaudo { get; }
     DbSet<PagoRegistradoRecaudo> PagosRecaudo { get; }
+    DbSet<PagoAdministracionRecaudoEntity> PagosAdministracionRecaudo { get; }
     DbSet<TirillaCobroRecaudo> TirillasCobroRecaudo { get; }
     DbSet<OperacionRevisadaManual> OperacionesRevisadaManual { get; }
     DbSet<ParametroRevisadaManual> ParametrosRevisadaManual { get; }
@@ -80,6 +81,7 @@ public interface INewRichDbContext
     Task AsegurarEsquemaPremiosEntregadosWebAsync(CancellationToken cancellationToken = default);
     Task AsegurarEsquemaApkStoreAsync(CancellationToken cancellationToken = default);
     Task AsegurarEsquemaCierreAsync(CancellationToken cancellationToken = default);
+    Task AsegurarEsquemaPagosAdministracionAsync(CancellationToken cancellationToken = default);
     Task BloquearCierreAsync(CancellationToken cancellationToken = default);
     Task<bool> IntentarBloquearRetencionAsync(CancellationToken cancellationToken = default);
     void DescartarCambios();

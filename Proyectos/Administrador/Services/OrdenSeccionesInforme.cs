@@ -45,13 +45,19 @@ public static class OrdenSeccionesInforme
                 ("conceptos", UiTexts.InformeEgresosPorConcepto),
                 ("gastos", UiTexts.InformeGastosPorPersona)
             ],
+            [CategoriasInforme.General] =
+            [
+                ("encabezado", UiTexts.InformeSeccionEncabezado),
+                ("tarjetas", UiTexts.InformeSeccionTarjetas)
+            ],
             [CategoriasInforme.Recaudo] =
             [
                 ("encabezado", UiTexts.InformeSeccionEncabezado),
                 ("tarjetas", UiTexts.InformeSeccionTarjetas),
                 ("linea", UiTexts.InformeRecaudoLinea),
                 ("recaudadores", UiTexts.InformeRecaudadores),
-                ("atrasos", UiTexts.InformeRecaudoAtrasos)
+                ("atrasos", UiTexts.InformeRecaudoAtrasos),
+                ("recaudadoresDeuda", UiTexts.InformeRecaudoRecaudadoresDeuda)
             ],
             ["cierres"] =
             [

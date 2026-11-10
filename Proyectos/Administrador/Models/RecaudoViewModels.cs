@@ -69,6 +69,10 @@ public sealed class FilaGrupoRecaudo
     public bool SinConfigurar { get; init; }
     public decimal TotalPorRecaudar { get; init; }
     public decimal TotalRecaudado { get; init; }
+    public decimal Recibir { get; init; }
+    public decimal Entregado { get; init; }
+    public decimal Debe { get; init; }
+    public bool EnDeuda { get; init; }
     public Guid? RecaudadorId { get; init; }
     public string RecaudadorNombre { get; init; } = string.Empty;
 }
