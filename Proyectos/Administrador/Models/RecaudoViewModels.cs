@@ -25,6 +25,7 @@ public sealed class OpcionRecaudo
 {
     public Guid Id { get; init; }
     public string Nombre { get; init; } = string.Empty;
+    public Guid? GrupoId { get; init; }
 }
 
 public sealed class PanelRecaudoViewModel

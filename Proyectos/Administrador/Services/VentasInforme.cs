@@ -160,9 +160,18 @@ public static class VentasInforme
             Valor = u.UsuarioId.ToString(),
             Texto = u.NombreCompleto,
             Detalle = $"{u.Usuario} {u.GrupoNombre}",
+            Grupo = u.GrupoId?.ToString() ?? string.Empty,
             Columnas = [u.Usuario, string.IsNullOrWhiteSpace(u.GrupoNombre) ? UiTexts.SinGrupo : u.GrupoNombre, RolUi.Nombre(u.Rol)]
         })
         .ToList();
+
+    /// <summary>Con grupos específicos, deja solo los vendedores de esos grupos; con todos, deja la lista completa.</summary>
+    public static IReadOnlyList<OpcionInforme> VendedoresDeLosGrupos(IEnumerable<OpcionInforme> vendedores, IReadOnlyCollection<Guid>? grupos)
+    {
+        if (grupos is null) return vendedores.ToList();
+        var claves = grupos.Select(g => g.ToString()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return vendedores.Where(v => claves.Contains(v.Grupo)).ToList();
+    }
 
     public static KpiResponse? FusionarKpi(IReadOnlyList<KpiResponse> partes)
     {

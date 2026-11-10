@@ -119,6 +119,12 @@
     gap: 12px;
 }
 
+@media (min-width: 1280px) {
+    .informe-tarjetas {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
 .informe-tarjeta {
     position: relative;
     display: flex;

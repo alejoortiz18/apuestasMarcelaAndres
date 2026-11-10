@@ -824,9 +824,12 @@ main::-webkit-scrollbar-button,
 }
 
 .content {
-  max-width: 1500px;
-  padding: 28px 28px 28px;
-  flex: 1 0 auto;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 28px;
+  flex: 1 1 auto;
 }
 .heading { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; margin-bottom: 25px; }
 .view-tabs {

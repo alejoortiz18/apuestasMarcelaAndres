@@ -75,7 +75,7 @@ public sealed class HistorialRecaudoController : AdminControllerBase
             Recaudadores = lista.Where(u => u.Rol == RolUsuario.Recaudador).OrderBy(u => u.NombreCompleto)
                 .Select(u => new OpcionRecaudo { Id = u.UsuarioId, Nombre = u.NombreCompleto }).ToList(),
             Vendedores = lista.Where(u => u.Rol == RolUsuario.Vendedor).OrderBy(u => u.NombreCompleto)
-                .Select(u => new OpcionRecaudo { Id = u.UsuarioId, Nombre = u.NombreCompleto }).ToList(),
+                .Select(u => new OpcionRecaudo { Id = u.UsuarioId, Nombre = u.NombreCompleto, GrupoId = u.GrupoId }).ToList(),
             Grupos = (grupos.Data ?? []).OrderBy(g => g.Nombre)
                 .Select(g => new OpcionRecaudo { Id = g.GrupoId, Nombre = g.Nombre }).ToList(),
             Pagina = PagingHelper.Paginate(filas, page, pageSize)

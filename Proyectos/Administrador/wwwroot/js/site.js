@@ -38,7 +38,7 @@
     function render(query) {
       const q = (query || "").toLowerCase().trim();
       const matches = Array.from(select.options).filter((opt) =>
-        opt.text.toLowerCase().includes(q)
+        !opt.hidden && opt.text.toLowerCase().includes(q)
       );
       menu.innerHTML = "";
       if (!matches.length) {
@@ -96,6 +96,37 @@
   }
 
   document.querySelectorAll("select.searchable").forEach(enhanceSelect);
+
+  // En KPI e historial, el listado de vendedor solo muestra los del grupo elegido.
+  function sincronizarVendedorPorGrupo(grupoSelect, vendedorSelect) {
+    if (!grupoSelect || !vendedorSelect) {
+      return;
+    }
+    const grupo = (grupoSelect.value || "").toLowerCase();
+    Array.from(vendedorSelect.options).forEach(function (opt) {
+      if (!opt.value) {
+        opt.hidden = false;
+        return;
+      }
+      const delGrupo = (opt.getAttribute("data-grupo") || "").toLowerCase();
+      opt.hidden = !!grupo && delGrupo !== grupo;
+    });
+    if (vendedorSelect.selectedOptions[0] && vendedorSelect.selectedOptions[0].hidden) {
+      vendedorSelect.value = "";
+    }
+    const input = vendedorSelect.parentElement && vendedorSelect.parentElement.querySelector(".search-select-input");
+    if (input) {
+      input.value = vendedorSelect.selectedOptions[0] ? vendedorSelect.selectedOptions[0].text : "";
+    }
+  }
+
+  document.querySelectorAll("[data-filtra-vendedores]").forEach(function (grupoSelect) {
+    const vendedorSelect = document.getElementById(grupoSelect.getAttribute("data-filtra-vendedores"));
+    sincronizarVendedorPorGrupo(grupoSelect, vendedorSelect);
+    grupoSelect.addEventListener("change", function () {
+      sincronizarVendedorPorGrupo(grupoSelect, vendedorSelect);
+    });
+  });
 
   document.querySelectorAll("table[data-kpi-sort-table]").forEach(function (table) {
     const headers = Array.from(table.querySelectorAll("thead th"));

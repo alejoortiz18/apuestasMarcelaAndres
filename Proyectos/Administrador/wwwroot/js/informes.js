@@ -51,11 +51,25 @@
       return c && especificos(c) ? new Set(elegidos(c)) : null;
     }
 
+    function gruposElegidos() {
+      const grupos = campo("grupos");
+      return grupos && especificos(grupos) ? new Set(elegidos(grupos)) : null;
+    }
+
+    // En Ventas, Egresos y Recaudo, con grupos específicos el listado de vendedores solo muestra los de esos grupos.
     function filtrarOpciones(c) {
       const termino = normalizar(c.buscar ? c.buscar.value : "");
+      const grupos = c.nombre === "vendedores" ? gruposElegidos() : null;
       let visibles = 0;
       c.opciones.forEach(function (li) {
-        const coincide = !termino || normalizar(li.getAttribute("data-texto")).includes(termino);
+        const delGrupo = !grupos || grupos.has((li.getAttribute("data-grupo") || "").toLowerCase());
+        if (grupos && !delGrupo) {
+          const casilla = li.querySelector('input[type="checkbox"]');
+          if (casilla) {
+            casilla.checked = false;
+          }
+        }
+        const coincide = delGrupo && (!termino || normalizar(li.getAttribute("data-texto")).includes(termino));
         li.hidden = !coincide;
         if (coincide) {
           visibles += 1;

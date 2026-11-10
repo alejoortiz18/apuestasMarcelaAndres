@@ -50,7 +50,7 @@
             </div>
             <div class="field">
                 <label for="grupoId">@UiTexts.Grupo</label>
-                <select id="grupoId" name="grupoId" class="searchable">
+                <select id="grupoId" name="grupoId" class="searchable" data-filtra-vendedores="vendedorId">
                     <option value="">@UiTexts.General</option>
                     @foreach (var g in Model.Grupos)
                     {
@@ -64,7 +64,7 @@
                     <option value="">@UiTexts.Todos</option>
                     @foreach (var v in Model.Vendedores)
                     {
-                        <option value="@v.UsuarioId" @(Model.VendedorId == v.UsuarioId ? "selected" : null)>@v.NombreCompleto</option>
+                        <option value="@v.UsuarioId" data-grupo="@v.GrupoId" @(Model.VendedorId == v.UsuarioId ? "selected" : null)>@v.NombreCompleto</option>
                     }
                 </select>
             </div>

@@ -193,6 +193,24 @@ public sealed class VentasInformeTests
     }
 
     [Fact]
+    public void Las_opciones_de_vendedor_llevan_el_grupo_para_filtrar_el_listado()
+    {
+        var norte = Guid.NewGuid();
+        var ana = Guid.NewGuid();
+        var maria = Guid.NewGuid();
+        var opciones = VentasInforme.OpcionesVendedor(
+        [
+            new() { UsuarioId = ana, NombreCompleto = "Ana", Usuario = "ana", Rol = NewRich.Domain.Enums.RolUsuario.Vendedor, GrupoId = norte, GrupoNombre = "norte" },
+            new() { UsuarioId = maria, NombreCompleto = "Maria Jose", Usuario = "mariajose", Rol = NewRich.Domain.Enums.RolUsuario.VendedorWeb }
+        ]);
+
+        opciones.Should().ContainSingle(v => v.Texto == "Ana" && v.Grupo == norte.ToString());
+        opciones.Should().ContainSingle(v => v.Texto == "Maria Jose" && v.Grupo == string.Empty);
+        VentasInforme.VendedoresDeLosGrupos(opciones, [norte]).Select(v => v.Texto).Should().Equal("Ana");
+        VentasInforme.VendedoresDeLosGrupos(opciones, null).Select(v => v.Texto).Should().Equal("Ana", "Maria Jose");
+    }
+
+    [Fact]
     public void Las_tarjetas_suman_egresos_y_calculan_la_ganancia()
     {
         var fuente = new FuenteInformeVentas
