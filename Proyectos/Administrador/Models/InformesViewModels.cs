@@ -62,8 +62,11 @@ public sealed class OpcionInforme
     public string Texto { get; init; } = string.Empty;
     public string? Detalle { get; init; }
 
-    /// <summary>Grupo del vendedor; vacío si no tiene. Sirve para limitar el listado al filtrar por grupo.</summary>
+    /// <summary>Grupo del vendedor o clave de grupo del personal. Sirve para limitar el listado al filtrar por grupo.</summary>
     public string Grupo { get; init; } = string.Empty;
+
+    /// <summary>Tipo de usuario (número del rol). Sirve para limitar el listado de personas al filtrar por tipo.</summary>
+    public string Tipo { get; init; } = string.Empty;
 
     /// <summary>Celdas extra cuando la lista se muestra como tabla (después de la columna del texto).</summary>
     public IReadOnlyList<string> Columnas { get; init; } = [];

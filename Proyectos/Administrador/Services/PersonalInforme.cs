@@ -47,7 +47,7 @@ public static class PersonalInforme
             .OrderBy(g => g.Nombre, StringComparer.CurrentCultureIgnoreCase)
             .Select(g => new OpcionInforme { Valor = $"g:{g.GrupoId}", Texto = g.Nombre });
         var porRol = usuarios
-            .Where(u => u.GrupoId is null)
+            .Where(u => u.GrupoId is null && u.Rol != RolUsuario.Super)
             .Select(u => u.Rol)
             .Distinct()
             .OrderBy(r => (int)r)
@@ -56,19 +56,31 @@ public static class PersonalInforme
     }
 
     public static IReadOnlyList<OpcionInforme> OpcionesUsuario(IEnumerable<UsuarioResponse> usuarios) => usuarios
+        .Where(u => u.Rol != RolUsuario.Super)
         .OrderBy(u => u.NombreCompleto, StringComparer.CurrentCultureIgnoreCase)
         .Select(u => new OpcionInforme
         {
             Valor = u.UsuarioId.ToString(),
             Texto = u.NombreCompleto,
-            Detalle = $"{u.Usuario} · {RolUi.Nombre(u.Rol)}"
+            Detalle = $"{u.Usuario} · {RolUi.Nombre(u.Rol)}",
+            Grupo = ClaveGrupo(u),
+            Tipo = ((int)u.Rol).ToString()
         })
         .ToList();
 
     public static IReadOnlyList<OpcionInforme> OpcionesTipo() => Enum.GetValues<RolUsuario>()
+        .Where(r => r != RolUsuario.Super)
         .OrderBy(r => (int)r)
         .Select(r => new OpcionInforme { Valor = ((int)r).ToString(), Texto = RolUi.Nombre(r) })
         .ToList();
+
+    /// <summary>Con grupos específicos, deja solo los usuarios de esos grupos; con todos, deja la lista completa.</summary>
+    public static IReadOnlyList<OpcionInforme> UsuariosDeLosGrupos(IEnumerable<OpcionInforme> usuarios, IReadOnlyCollection<string>? grupos)
+    {
+        if (grupos is null) return usuarios.ToList();
+        var claves = grupos.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return usuarios.Where(u => claves.Contains(u.Grupo)).ToList();
+    }
 
     public static ResumenPersonalInforme Resumir(
         IReadOnlyList<UsuarioResponse> usuarios,
@@ -112,6 +124,7 @@ public static class PersonalInforme
         int page,
         int pageSize)
     {
+        usuarios = usuarios.Where(u => u.Rol != RolUsuario.Super).ToList();
         var incluidos = Aplicar(usuarios, filtros);
         var nombresGrupo = NombresGrupo(grupos, usuarios);
         var vendedores = incluidos.Where(u => u.Rol == RolUsuario.Vendedor).ToList();
@@ -185,6 +198,7 @@ public static class PersonalInforme
         FiltrosVendedoresInforme filtros,
         bool configurada)
     {
+        usuarios = usuarios.Where(u => u.Rol != RolUsuario.Super).ToList();
         var opcionesGrupo = OpcionesGrupo(grupos, usuarios);
         var opcionesUsuario = OpcionesUsuario(usuarios);
         var opcionesTipo = OpcionesTipo();

@@ -87,6 +87,24 @@ public sealed class PersonalInformeTests
         resumen.Usuarios.Select(u => u.Nombre).Should().Equal("Ana", "Beto", "Ciro", "Eva");
     }
 
+    [Fact]
+    public void El_filtro_de_personas_omite_al_super_y_deja_el_grupo_en_cada_usuario()
+    {
+        var super = Usuario("Super", RolUsuario.Super, null, null);
+        var opciones = PersonalInforme.OpcionesUsuario([.. Todos, super]);
+        var tipos = PersonalInforme.OpcionesTipo().Select(t => t.Texto).ToList();
+        var grupos = PersonalInforme.OpcionesGrupo(Grupos, [.. Todos, super]).Select(o => o.Texto).ToList();
+
+        opciones.Select(o => o.Texto).Should().NotContain("Super");
+        opciones.Should().Contain(o => o.Texto == "Ana" && o.Grupo == PersonalInforme.ClaveGrupo(Ana));
+        opciones.Should().Contain(o => o.Texto == "Eva" && o.Grupo == PersonalInforme.ClaveGrupo(Eva));
+        tipos.Should().NotContain(RolUsuario.Super.ToString());
+        grupos.Should().NotContain(string.Format(UiTexts.InformeRolSinGrupo, RolUsuario.Super.ToString()));
+        PersonalInforme.UsuariosDeLosGrupos(opciones, [PersonalInforme.ClaveGrupo(Ana)])
+            .Select(o => o.Texto)
+            .Should().Equal("Ana", "Ciro");
+    }
+
     private static UsuarioResponse Usuario(string nombre, RolUsuario rol, Guid? grupoId, string? grupo) => new()
     {
         UsuarioId = Guid.NewGuid(),

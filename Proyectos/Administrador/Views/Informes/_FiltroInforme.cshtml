@@ -36,7 +36,7 @@
                     {
                         var opcion = Model.Opciones[i];
                         var id = $"{Model.Id}Opcion{i}";
-                        <tr data-informe-opcion data-grupo="@opcion.Grupo" data-texto="@opcion.Texto @string.Join(" ", opcion.Columnas)">
+                        <tr data-informe-opcion data-grupo="@opcion.Grupo" data-tipo="@opcion.Tipo" data-texto="@opcion.Texto @string.Join(" ", opcion.Columnas)">
                             <td><input id="@id" type="checkbox" name="@Model.Nombre" value="@opcion.Valor" checked="@(Model.Elegidos?.Contains(opcion.Valor) == true)" /></td>
                             <td><label for="@id"><strong>@opcion.Texto</strong></label></td>
                             @foreach (var celda in opcion.Columnas)
@@ -54,7 +54,7 @@
         <ul class="informe-opciones">
             @foreach (var opcion in Model.Opciones)
             {
-                <li data-informe-opcion data-grupo="@opcion.Grupo" data-texto="@opcion.Texto @opcion.Detalle">
+                <li data-informe-opcion data-grupo="@opcion.Grupo" data-tipo="@opcion.Tipo" data-texto="@opcion.Texto @opcion.Detalle">
                     <label>
                         <input type="checkbox" name="@Model.Nombre" value="@opcion.Valor" checked="@(Model.Elegidos?.Contains(opcion.Valor) == true)" />
                         <span>
