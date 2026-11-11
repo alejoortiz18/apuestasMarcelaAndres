@@ -1212,6 +1212,8 @@ public static class UiTexts
     public const string RevisadaResumenSub = "Jugadas de Registrar juego del sitio del vendedor, pendientes de cubrir.";
     public const string RevisadaCubiertoSub = "Grupos cubiertos con su subtotal y el total a pagar.";
     public const string ValorMinimoVisualizar = "Valor mínimo para visualizar";
+    public const string ValorMinimoMaximo = "El valor máximo es 999.999.";
+    public const decimal ValorMinimoTope = 999_999m;
     public const string JugadasVisibles = "Jugadas visibles";
     public const string LoteriasVisibles = "Loterías";
     public const string TotalAgrupado = "Total";

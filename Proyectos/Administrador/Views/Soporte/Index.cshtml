@@ -107,7 +107,7 @@
             <div class="chat-messages" data-chat-scroll role="log" aria-live="polite" aria-label="@UiTexts.MensajesConversacionAria">
                 <div class="empty">@string.Format(UiTexts.PrimerMensajeChat, destino.NombreCompleto)</div>
             </div>
-            <form class="chat-compose" asp-controller="Soporte" asp-action="Iniciar" method="post" enctype="multipart/form-data">
+            <form class="chat-compose" asp-controller="Soporte" asp-action="Iniciar" method="post" enctype="multipart/form-data" data-chat-form>
                 <input type="hidden" name="destinoId" value="@destino.UsuarioId" />
                 <div class="chat-attach" data-chat-adjunto>
                     <input id="archivoInicio" class="sr-only" name="archivo" type="file" accept=".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf" data-chat-archivo />
@@ -203,7 +203,7 @@
             </div>
             @if (puedeEscribir)
             {
-                <form class="chat-compose" asp-controller="@controladorChat" asp-action="Enviar" asp-route-id="@conv.ConversacionId" method="post" enctype="multipart/form-data">
+                <form class="chat-compose" asp-controller="@controladorChat" asp-action="Enviar" asp-route-id="@conv.ConversacionId" method="post" enctype="multipart/form-data" data-chat-form>
                     <div class="chat-attach" data-chat-adjunto>
                         <input id="archivoMensaje" class="sr-only" name="archivo" type="file" accept=".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf" data-chat-archivo />
                         <label class="chat-attach-btn" for="archivoMensaje" title="@UiTexts.AdjuntarArchivo">

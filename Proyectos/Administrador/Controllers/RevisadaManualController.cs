@@ -136,6 +136,10 @@ public sealed class RevisadaManualController : AdminControllerBase
             {
                 SetAvisoModal(RevisadaManualMessages.ValorMinimoInvalido);
             }
+            else if (valor > UiTexts.ValorMinimoTope)
+            {
+                SetAvisoModal(UiTexts.ValorMinimoMaximo);
+            }
             else
             {
                 minimo = valor;

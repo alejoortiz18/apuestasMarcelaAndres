@@ -1543,9 +1543,15 @@ iniciarDiasVenta();
     const grupo = visible.closest(".money-input") || visible.parentElement;
     const oculto = grupo ? grupo.querySelector('input[type="hidden"]') : null;
     const digitosAntes = digitosAntesDelCursor(visible.value, visible.selectionStart);
-    const digitos = soloDigitos(visible.value);
-    const formateado = conMiles(digitos);
+    let digitos = soloDigitos(visible.value);
+    const maximo = Number(visible.getAttribute("data-maximo") || 0);
+    let formateado = conMiles(digitos);
+    if (maximo > 0 && digitos !== "" && Number(digitos) > maximo) {
+      formateado = visible.dataset.valorPrevio || conMiles(String(maximo));
+      digitos = soloDigitos(formateado);
+    }
     visible.value = formateado;
+    visible.dataset.valorPrevio = formateado;
     if (oculto) {
       oculto.value = digitos === "" ? "0" : digitos;
     }

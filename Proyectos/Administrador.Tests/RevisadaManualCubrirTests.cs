@@ -45,6 +45,30 @@ public sealed class RevisadaManualCubrirTests
     }
 
     [Fact]
+    public void El_valor_minimo_de_la_barra_tiene_tope_de_999999()
+    {
+        var vista = File.ReadAllText(Path.GetFullPath(Path.Combine(
+            AppContext.BaseDirectory, "..", "..", "..", "..", "Administrador", "Views", "RevisadaManual", "_Contenido.cshtml")));
+
+        vista.Should().Contain("id=\"valorMinimo\"");
+        vista.Should().Contain("data-maximo=\"999999\"");
+    }
+
+    [Fact]
+    public async Task Resumen_rechaza_un_valor_minimo_mayor_al_tope()
+    {
+        var api = Api();
+        var sut = Crear(api.Object);
+
+        var result = await sut.Resumen(DateTime.Today, DateTime.Today, "1.000.000", cancellationToken: CancellationToken.None);
+
+        result.Should().BeOfType<ViewResult>();
+        sut.TempData["AvisoModal"].Should().Be(UiTexts.ValorMinimoMaximo);
+        api.Verify(a => a.RevisadaResumenAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), null, It.IsAny<CancellationToken>()), Times.Once);
+        api.Verify(a => a.RevisadaResumenAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.Is<decimal?>(v => v.HasValue), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task Cubierto_con_rango_que_incluye_hoy_muestra_lo_cubierto_hoy_y_el_historico()
     {
         var api = Api();

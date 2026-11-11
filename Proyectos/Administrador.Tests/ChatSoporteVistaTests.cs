@@ -17,6 +17,18 @@ public sealed class ChatSoporteVistaTests
     }
 
     [Fact]
+    public void El_formulario_de_enviar_conserva_el_foco_del_texto()
+    {
+        var vista = File.ReadAllText(RutaVista());
+        var script = File.ReadAllText(RutaScript());
+
+        vista.Should().Contain("asp-action=\"Enviar\"");
+        vista.Should().Contain("data-chat-form");
+        script.Should().Contain("form[data-chat-form]");
+        script.Should().Contain("campo.focus()");
+    }
+
+    [Fact]
     public void El_inicio_de_conversacion_no_quita_alto_del_hilo()
     {
         var vista = File.ReadAllText(RutaVista());
@@ -38,6 +50,16 @@ public sealed class ChatSoporteVistaTests
             "..", "..", "..", "..",
             "Administrador", "Views", "Soporte", "Index.cshtml"));
         File.Exists(ruta).Should().BeTrue($"se esperaba la vista en {ruta}");
+        return ruta;
+    }
+
+    private static string RutaScript()
+    {
+        var ruta = Path.GetFullPath(Path.Combine(
+            AppContext.BaseDirectory,
+            "..", "..", "..", "..",
+            "Administrador", "wwwroot", "js", "soporte.js"));
+        File.Exists(ruta).Should().BeTrue($"se esperaba el script en {ruta}");
         return ruta;
     }
 }

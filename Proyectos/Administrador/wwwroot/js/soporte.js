@@ -30,6 +30,29 @@
       boton.focus();
     });
   });
+
+  document.querySelectorAll("form[data-chat-form]").forEach(function (form) {
+    const campo = form.querySelector(".chat-compose-text");
+    const archivo = form.querySelector("[data-chat-archivo]");
+    const enviar = form.querySelector("button[type=submit]");
+    if (campo && !campo.disabled) {
+      campo.focus();
+    }
+    form.addEventListener("submit", function (evento) {
+      const hayTexto = campo && campo.value.trim().length > 0;
+      const hayArchivo = archivo && archivo.files && archivo.files.length > 0;
+      if (!hayTexto && !hayArchivo) {
+        evento.preventDefault();
+        if (campo) {
+          campo.focus();
+        }
+        return;
+      }
+      if (enviar) {
+        enviar.disabled = true;
+      }
+    });
+  });
 })();
 
 (function () {
