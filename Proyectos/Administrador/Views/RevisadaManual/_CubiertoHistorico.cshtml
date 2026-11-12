@@ -16,8 +16,8 @@
         ("comision", UiTexts.Comision, true, false, null),
         ("valorcomision", UiTexts.ValorComision, true, false, null),
         ("totalcomision", UiTexts.TotalConComision, true, false, null),
-        ("descuento", UiTexts.Descuento, true, false, null),
-        ("valordescuento", UiTexts.ValorDescuento, true, false, null),
+        ("descuento", UiTexts.Descuento, true, true, UiTexts.Descuento),
+        ("valordescuento", UiTexts.ValorDescuento, true, true, UiTexts.ValorDescuento),
         ("totalpagar", UiTexts.TotalAPagar, true, true, null)
     };
 
@@ -78,8 +78,8 @@
         </div>
     }
     <dl class="revisada-totales-lista revisada-historico-pie">
-        <div><dt data-pdf-texto="@UiTexts.Valor">@UiTexts.Subtotal</dt><dd>@Pesos(historico.Subtotal)</dd></div>
+        <div><dt data-pdf-texto="@UiTexts.Valor">@UiTexts.Subtotal</dt><dd>@Pesos(historico.TotalConComision)</dd></div>
         <div><dt>@UiTexts.TotalValorDescuento</dt><dd>@Pesos(historico.DescuentoValor)</dd></div>
-        <div class="is-principal"><dt>@UiTexts.TotalAPagar</dt><dd data-pdf-texto="@Pesos(historico.Subtotal - historico.DescuentoValor)">@Pesos(historico.TotalPagar)</dd></div>
+        <div class="is-principal"><dt>@UiTexts.TotalAPagar</dt><dd>@Pesos(historico.TotalPagar)</dd></div>
     </dl>
 </section>

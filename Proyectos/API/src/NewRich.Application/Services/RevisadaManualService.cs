@@ -394,7 +394,7 @@ public sealed class RevisadaManualService : IRevisadaManualService
         {
             TotalFilas = filas.Count,
             Registros = filas.Count,
-            Subtotal = operaciones.Sum(o => o.Subtotal),
+            Subtotal = filas.Sum(f => f.Subtotal),
             ComisionValor = operaciones.Sum(o => o.ComisionValor ?? 0),
             TotalConComision = operaciones.Sum(o => o.TotalConComision ?? 0),
             DescuentoValor = operaciones.Sum(o => o.DescuentoValor ?? 0),
