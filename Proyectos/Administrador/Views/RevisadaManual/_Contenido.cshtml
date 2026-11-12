@@ -14,6 +14,8 @@
     string Titulo() => esCubierto ? UiTexts.NavRevisadaCubierto : UiTexts.NavRevisadaResumen;
     string Sub() => esCubierto ? UiTexts.RevisadaCubiertoSub : UiTexts.RevisadaResumenSub;
     string Accion() => esCubierto ? "Cubierto" : "Resumen";
+    string Porcentajes(IEnumerable<decimal?> valores) =>
+        string.Join(" y ", valores.Where(v => v.HasValue).Select(v => v!.Value.ToString("0.##", cultura)).Distinct());
     string EnlaceOrden(string orden)
     {
         var valores = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
@@ -69,6 +71,16 @@
 </div>
 }
 <div class="panel" data-pdf-omitir>
+    @if (esCubierto)
+    {
+        <form id="porcentajesForm" method="post" asp-action="GuardarPorcentajes" hidden>
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="desde" value="@Model.Desde.ToString("yyyy-MM-dd")" />
+            <input type="hidden" name="hasta" value="@Model.Hasta.ToString("yyyy-MM-dd")" />
+            <input type="hidden" name="pageSize" value="@Model.Pagina.PageSize" />
+            <input type="hidden" name="orden" value="@Model.Orden" />
+        </form>
+    }
     <form class="toolbar" method="get" asp-action="@Accion()">
         <div class="field">
             <label for="desde">@UiTexts.Desde</label>
@@ -87,6 +99,18 @@
                     <input id="valorMinimo" name="valorMinimo" type="text" inputmode="numeric" autocomplete="off" data-miles data-maximo="999999" value="@Model.ValorMinimo" />
                 </div>
             </div>
+        }
+        else
+        {
+            <div class="field">
+                <label for="comision">@UiTexts.Comision</label>
+                <input id="comision" name="comision" form="porcentajesForm" type="number" inputmode="numeric" min="0" max="99" step="1" maxlength="2" value="@Model.Comision" data-dos-digitos autocomplete="off" />
+            </div>
+            <div class="field">
+                <label for="porcentaje">@UiTexts.Descuento</label>
+                <input id="porcentaje" name="descuento" form="porcentajesForm" type="number" inputmode="numeric" min="0" max="99" step="1" maxlength="2" value="@Model.Porcentaje" data-dos-digitos autocomplete="off" />
+            </div>
+            <button class="secondary" type="submit" form="porcentajesForm">@UiTexts.GuardarPorcentajes</button>
         }
         <div class="field">
             <label for="pageSize">@UiTexts.FilasPorPagina</label>
@@ -112,7 +136,14 @@ else if (!esCubierto && Model.IncluyeHoy && Model.HistoricoResumen is not null)
 }
 @if (Model.IncluyeHoy && Model.Pagina.TotalCount == 0)
 {
-    <div class="panel"><p>@(esCubierto ? UiTexts.CubiertoHoyVacio : UiTexts.SinJugadasRevisada)</p></div>
+    @if (esCubierto)
+    {
+        <div class="panel" data-pdf-omitir><p>@UiTexts.CubiertoHoyVacio</p></div>
+    }
+    else
+    {
+        <div class="panel"><p>@UiTexts.SinJugadasRevisada</p></div>
+    }
 }
 else if (Model.IncluyeHoy)
 {
@@ -148,7 +179,7 @@ else if (Model.IncluyeHoy)
             }
         </ul>
     </section>
-    <div class="revisada-columnas">
+    <div class="revisada-columnas" data-pdf-omitir>
     @foreach (var loteria in Model.Pagina.Items)
     {
         <section class="panel revisada-loteria" data-loteria="@loteria.Nombre"
@@ -179,6 +210,11 @@ else if (Model.IncluyeHoy)
                                 </button>
                             </div>
                             <p><strong>@UiTexts.Subtotal:</strong> @Pesos(subtotal)</p>
+                            <p>@UiTexts.Comision: @Porcentajes(cubiertos.Select(g => g.ComisionPorcentaje)) %</p>
+                            <p>@UiTexts.ValorComision: @Pesos(cubiertos.Sum(g => g.ComisionValor ?? 0))</p>
+                            <p><strong>@UiTexts.TotalConComision:</strong> @Pesos(cubiertos.Sum(g => g.TotalConComision ?? 0))</p>
+                            <p>@UiTexts.Descuento: @Porcentajes(cubiertos.Select(g => g.DescuentoPorcentaje)) %</p>
+                            <p>@UiTexts.ValorDescuento: @Pesos(cubiertos.Sum(g => g.DescuentoValor ?? 0))</p>
                             <p><strong>@UiTexts.TotalAPagar:</strong> @Pesos(cubiertos.Sum(g => g.TotalPagar ?? 0))</p>
                             <template id="@detalleId">
                                 @foreach (var grupo in cubiertos)
@@ -190,8 +226,13 @@ else if (Model.IncluyeHoy)
                                             <p class="revisada-fecha-cubierto">@UiTexts.CubiertoEl: @fechaCubierto.ToString("dd/MM/yyyy HH:mm", cultura)</p>
                                         }
                                         <p><strong>@UiTexts.Subtotal:</strong> @Pesos(grupo.Subtotal)</p>
+                                        <p>@UiTexts.Comision: @((grupo.ComisionPorcentaje ?? 0).ToString("0.##", cultura)) %</p>
+                                        <p>@UiTexts.ValorComision: @Pesos(grupo.ComisionValor ?? 0)</p>
+                                        <p><strong>@UiTexts.TotalConComision:</strong> @Pesos(grupo.TotalConComision ?? 0)</p>
                                         @if (grupo.TotalPagar is not null)
                                         {
+                                            <p>@UiTexts.Descuento: @((grupo.DescuentoPorcentaje ?? 0).ToString("0.##", cultura)) %</p>
+                                            <p>@UiTexts.ValorDescuento: @Pesos(grupo.DescuentoValor ?? 0)</p>
                                             <p><strong>@UiTexts.TotalAPagar:</strong> @Pesos(grupo.TotalPagar.Value)</p>
                                         }
                                     </article>
@@ -226,8 +267,16 @@ else if (Model.IncluyeHoy)
                             </div>
                         }
                         <p><strong>@UiTexts.Subtotal:</strong> @Pesos(grupo.Subtotal)</p>
+                        @if (Model.Modo != "resumen" && totalComision is not null)
+                        {
+                            <p>@UiTexts.Comision: @((grupo.ComisionPorcentaje ?? porcentaje).ToString("0.##", cultura)) %</p>
+                            <p>@UiTexts.ValorComision: @Pesos(comisionValor ?? 0)</p>
+                            <p><strong>@UiTexts.TotalConComision:</strong> @Pesos(totalComision.Value)</p>
+                        }
                         @if (Model.Modo == "cubierto" && totalPagar is not null)
                         {
+                            <p>@UiTexts.Descuento: @((grupo.DescuentoPorcentaje ?? porcentaje).ToString("0.##", cultura)) %</p>
+                            <p>@UiTexts.ValorDescuento: @Pesos(descuentoValor ?? 0)</p>
                             <p><strong>@UiTexts.TotalAPagar:</strong> @Pesos(totalPagar.Value)</p>
                         }
                         @if (Model.Modo == "resumen")
@@ -257,9 +306,17 @@ else if (Model.IncluyeHoy)
     @if (esCubierto)
     {
         var enPagina = Model.Pagina.Items.SelectMany(l => l.Grupos).ToList();
-        <section class="panel revisada-totales" aria-labelledby="revisadaTotalesTitulo" data-revisada-totales>
+        <section class="panel revisada-totales" aria-labelledby="revisadaTotalesTitulo" data-revisada-totales data-pdf-omitir>
             <h2 id="revisadaTotalesTitulo">@UiTexts.TotalesCubiertoTitulo</h2>
             <dl class="revisada-totales-lista">
+                <div>
+                    <dt>@UiTexts.TotalConComision</dt>
+                    <dd data-total="comision">@Pesos(enPagina.Sum(g => g.TotalConComision ?? 0))</dd>
+                </div>
+                <div>
+                    <dt>@UiTexts.TotalValorDescuento</dt>
+                    <dd data-total="descuento">@Pesos(enPagina.Sum(g => g.DescuentoValor ?? 0))</dd>
+                </div>
                 <div class="is-principal">
                     <dt>@UiTexts.TotalAPagar</dt>
                     <dd data-total="pagar">@Pesos(enPagina.Sum(g => g.TotalPagar ?? 0))</dd>
@@ -267,7 +324,9 @@ else if (Model.IncluyeHoy)
             </dl>
         </section>
     }
-    @await Html.PartialAsync("_Pager", Model.Pagina)
+    <div data-pdf-omitir>
+        @await Html.PartialAsync("_Pager", Model.Pagina)
+    </div>
 }
 @if (esCubierto && Model.Historico is not null)
 {
@@ -321,6 +380,8 @@ else if (Model.IncluyeHoy)
             function pesos(valor) {
                 return valor.toLocaleString("es-CO", { maximumFractionDigits: 0 });
             }
+            totales.querySelector('[data-total="comision"]').textContent = pesos(sumar("data-total-comision"));
+            totales.querySelector('[data-total="descuento"]').textContent = pesos(sumar("data-valor-descuento"));
             totales.querySelector('[data-total="pagar"]').textContent = pesos(sumar("data-total-pagar"));
         }
         function aplicar(nombres) {

@@ -2397,12 +2397,15 @@ button.jornada-filtro-opcion {
 }
 .recaudo-col-acciones {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
   align-items: center;
+  white-space: nowrap;
+  min-width: 16.5rem;
 }
 .recaudo-col-acciones .secondary,
 .recaudo-col-acciones .primary {
+  flex: 0 0 auto;
   font-size: 1rem;
   font-weight: 700;
 }

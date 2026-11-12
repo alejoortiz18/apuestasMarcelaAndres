@@ -1210,7 +1210,7 @@ public static class UiTexts
     public const string CubiertoPdfGenerado = "Generado el {0}";
     public const string RevisadaKicker = "Revisión manual";
     public const string RevisadaResumenSub = "Jugadas de Registrar juego del sitio del vendedor, pendientes de cubrir.";
-    public const string RevisadaCubiertoSub = "Grupos cubiertos con su subtotal y el total a pagar.";
+    public const string RevisadaCubiertoSub = "Grupos cubiertos. Ingrese el descuento para consultar el total a pagar.";
     public const string ValorMinimoVisualizar = "Valor mínimo para visualizar";
     public const string ValorMinimoMaximo = "El valor máximo es 999.999.";
     public const decimal ValorMinimoTope = 999_999m;
@@ -1238,7 +1238,7 @@ public static class UiTexts
     public const string HistoricoCargando = "Cargando más…";
     public const string RecubrirBoton = "Recubrir";
     public const string RecubrirAyuda = "Cubre lo pendiente de los números y loterías que ya se cubrieron hoy.";
-    public const string RecubrirResumen = "Se van a cubrir {0} números ({1} registros).";
+    public const string RecubrirResumen = "Se van a cubrir {0} números ({1} registros) con comisión {2} % y descuento {3} %.";
     public const string RecubrirSinPendientes = "No hay números cubiertos hoy que aparezcan en Resumen con estos filtros.";
     public const string RecubrirResultado = "{0} Números: {1}. Registros: {2}.";
     public const string RecubrirRegistros = "Registros";
