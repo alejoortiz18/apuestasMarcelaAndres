@@ -368,7 +368,7 @@ body { margin: 0; font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans
   <p class="m-lema">CONFIANZA · ESTRATEGIA · GRANDES RESULTADOS</p>
   <h2>Manual de usuario del Observador</h2>
   <p>Guía ilustrada, pantalla por pantalla, de la aplicación <b>New Rich · PDA Observador</b> que se usa en el celular o equipo móvil del observador. Cada vista se reproduce tal como se ve en el equipo y cada botón, campo, lista, aviso y mensaje está señalado con un número azul que se explica en las tarjetas que acompañan la imagen.</p>
-  <p>El recorrido empieza al abrir la aplicación, sigue con el ingreso y después recorre el menú inferior en su mismo orden: Inicio, Validar, Consultas, Atención al cliente y Más. También explica los casos de premios y los indicadores (KPI), que se abren desde el Inicio.</p>
+  <p>El recorrido empieza al abrir la aplicación, sigue con el ingreso y después recorre el menú inferior en su mismo orden: Inicio, Validar, Consultas, Atención al cliente y Más. También explica los casos de premios, los Informes (antes KPI) y las acciones sobre vendedores (desbloquear o restablecer contraseña), que se abren desde Inicio o Más. Actualizado a noviembre de 2026.</p>
   <div class="m-cover-meta"><span>Aplicación: New Rich PDA · Compilación 85</span><span>Perfil: Observador</span><span>Documento estático e ilustrativo</span></div>
 </header>
 
@@ -394,9 +394,10 @@ body { margin: 0; font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans
     <li><a href="#cap5"><span>5</span>Validar ticket</a><ul><li><a href="#cap5-1">Formas de validar</a></li><li><a href="#cap5-2">Lectura con la cámara</a></li><li><a href="#cap5-3">Ticket consultado</a></li><li><a href="#cap5-4">Otros estados del ticket</a></li><li><a href="#cap5-5">Mensajes de la validación</a></li></ul></li>
     <li><a href="#cap6"><span>6</span>Consultas</a><ul><li><a href="#cap6-1">Boletos</a></li><li><a href="#cap6-2">Ventas</a></li><li><a href="#cap6-3">Vendedores</a></li><li><a href="#cap6-4">Dispositivos</a></li><li><a href="#cap6-5">Resultados</a></li><li><a href="#cap6-6">Configuración</a></li><li><a href="#cap6-7">Detalle del boleto ganador</a></li><li><a href="#cap6-8">Boletos ganadores de un número</a></li></ul></li>
     <li><a href="#cap7"><span>7</span>Casos de premios</a><ul><li><a href="#cap7-1">Casos asignados</a></li><li><a href="#cap7-2">Registrar ganador: datos</a></li><li><a href="#cap7-3">Registrar ganador: fotografías</a></li><li><a href="#cap7-4">Comprobante de entrega</a></li></ul></li>
-    <li><a href="#cap8"><span>8</span>KPI (indicadores)</a><ul><li><a href="#cap8-1">Tablero general</a></li><li><a href="#cap8-2">Tablero de un vendedor</a></li></ul></li>
+    <li><a href="#cap8"><span>8</span>Informes</a><ul><li><a href="#cap8-1">Tablero general</a></li><li><a href="#cap8-2">Tablero de un vendedor</a></li></ul></li>
     <li><a href="#cap9"><span>9</span>Atención al cliente</a></li>
     <li><a href="#cap10"><span>10</span>Más opciones</a><ul><li><a href="#cap10-1">Menú Más</a></li><li><a href="#cap10-2">Cerrar sesión</a></li></ul></li>
+    <li><a href="#cap11"><span>11</span>Vendedores (acciones)</a></li>
   </ol>
 </section>
 
@@ -643,14 +644,14 @@ body { margin: 0; font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans
       </div></div>
       <ol class="g" style="--t:'9'">
         <li><b>Barra del equipo</b><p>Hora, señal y batería del equipo. La aplicación necesita conexión a internet para consultar y registrar premios.</p></li>
-        <li><b>Título de la pantalla</b><p>Nombre de la pantalla abierta: Inicio, Validar ticket, Consultas, Casos de premios, KPI, Más opciones, etc.</p></li>
+        <li><b>Título de la pantalla</b><p>Nombre de la pantalla abierta: Inicio, Validar ticket, Consultas, Casos de premios, Informes, Más opciones, etc.</p></li>
         <li><b>Atrás</b><p>Aparece en las pantallas que se abren desde otra (por ejemplo, Casos de premios desde Inicio). Regresa a la anterior. El botón atrás del equipo hace lo mismo.</p></li>
         <li><b>Menú inferior</b><p>Barra oscura con borde dorado, siempre visible. Permite cambiar de sección con un toque desde cualquier pantalla.</p></li>
         <li><b>Inicio</b><p>Resumen del día, casos de premios y accesos rápidos (capítulo 3). La sección activa se ve con recuadro dorado.</p></li>
         <li><b>Validar</b><p>Consulta un ticket leyendo su QR con la cámara o con una foto (capítulo 5).</p></li>
         <li><b>Consultas</b><p>Boletos, ventas, vendedores, dispositivos, resultados y configuración (capítulo 6).</p></li>
         <li><b>Atención al cliente</b><p>Chat directo con el administrador (capítulo 9).</p></li>
-        <li><b>Más</b><p>Resultados, validar ticket, KPI y cerrar sesión (capítulo 10).</p></li>
+        <li><b>Más</b><p>Resultados, validar ticket, Informes, Vendedores y cerrar sesión (capítulos 10 y 11).</p></li>
       </ol>
     </div>
   </article>
@@ -682,7 +683,7 @@ body { margin: 0; font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans
       </div></div>
       <ol class="g" style="--t:'2'">
         <li><b>Rueda de espera</b><p>Gira mientras el proceso está en curso. Espere a que desaparezca sola.</p></li>
-        <li><b>Qué se está haciendo</b><p>Textos posibles: <em>Iniciando sesión...</em>, <em>Guardando la contraseña...</em>, <em>Leyendo el QR...</em>, <em>Consultando el ticket...</em> y <em>Cargando...</em> (indicadores KPI).</p></li>
+        <li><b>Qué se está haciendo</b><p>Textos posibles: <em>Iniciando sesión...</em>, <em>Guardando la contraseña...</em>, <em>Leyendo el QR...</em>, <em>Consultando el ticket...</em> y <em>Cargando...</em> (Informes).</p></li>
       </ol>
     </div>
   </article>
@@ -729,8 +730,8 @@ Apunta el lector al código de barras o QR del ticket, o escribe el código del 
 Casos asignados abiertos para registrar la entrega</div>
           <div class="mbtn hl" data-n="13">Consultas
 Consulta boletos, ventas, vendedores y dispositivos.</div>
-          <div class="mbtn hl" data-n="14">KPI
-Indicadores de solo lectura.</div>
+          <div class="mbtn hl" data-n="14">Informes
+Consulta, filtra y genera informes personalizados.</div>
           <div class="ver hl b" data-n="15">Compilación 85</div>
         </div></div>
         <nav class="tabbar"><a class="tab on"><span class="in"><svg><use href="#t-casa"/></svg>Inicio</span></a><a class="tab"><span class="in"><svg><use href="#t-corona"/></svg>Validar</span></a><a class="tab"><span class="in"><svg><use href="#t-doc"/></svg>Consultas</span></a><a class="tab"><span class="in"><svg><use href="#t-aur"/></svg>Atención al cliente</span></a><a class="tab"><span class="in"><svg><use href="#t-globo"/></svg>Más</span></a></nav>
@@ -749,7 +750,7 @@ Indicadores de solo lectura.</div>
         <li><b>Validar ticket ganador</b><p>Mismo acceso que el botón dorado: abre <em>Validar</em>.</p></li>
         <li><b>Casos de premios</b><p>Lista de los casos asignados para registrar la entrega del premio (capítulo 7).</p></li>
         <li><b>Consultas</b><p>Abre la sección <em>Consultas</em> (capítulo 6).</p></li>
-        <li><b>KPI</b><p>Tablero de indicadores de ventas (capítulo 8).</p></li>
+        <li><b>Informes</b><p>Tablero e informes personalizados (capítulo 8).</p></li>
         <li><b>Compilación instalada</b><p>Número de la versión de la aplicación instalada en el equipo.</p></li>
       </ol>
     </div>
@@ -1504,15 +1505,15 @@ Foto de la cédula por el reverso: IMG_20260930_101655.jpg</div>
 
 <!-- ===================================================== CAPÍTULO 8 ===================================================== -->
 <section class="m-chapter" id="cap8">
-  <div class="m-chapter-head"><span class="m-chapter-num">8</span><div><small>Capítulo 8</small><h2>KPI (indicadores)</h2><p>Tablero de solo lectura con las ventas del periodo comparadas con el periodo anterior, la curva diaria, el ranking de vendedores y los movimientos por día.</p></div></div>
+  <div class="m-chapter-head"><span class="m-chapter-num">8</span><div><small>Capítulo 8</small><h2>Informes</h2><p>Consulta, filtre y genere informes personalizados (misma pantalla que antes se llamaba KPI). Tablero de solo lectura con ventas del periodo, curva diaria, ranking y movimientos; también incluye lecturas de personas, recaudadores y cierres según lo disponible en la app.</p></div></div>
 
   <article class="m-screen" id="cap8-1">
     <div class="m-screen-title"><span>Pantalla 8.1</span><h3>Tablero general</h3></div>
-    <p>Se abre desde <b>Inicio › KPI</b> o <b>Más › KPI</b>. Al entrar carga los últimos 7 días de todos los vendedores (espera “Cargando...”).</p>
+    <p>Se abre desde <b>Inicio › Informes</b> o <b>Más › Informes</b>. Al entrar carga los últimos 7 días de todos los vendedores (espera “Cargando...”).</p>
     <div class="m-pair">
       <div class="phone"><div class="ph" inert>
         <div class="ph-st"><span>10:42</span><i>▾ ▮ 87%</i></div>
-        <div class="nb"><svg><use href="#i-back"/></svg>KPI</div>
+        <div class="nb"><svg><use href="#i-back"/></svg>Informes</div>
         <div class="bd"><div class="pg">
           <div class="t13 mut hl" data-n="1">Compara el periodo con el anterior, mira la curva de todos los vendedores y entra a un usuario para ver sus movimientos.</div>
           <div class="lbl">Desde</div><div class="en tr hl" data-n="2">23/09/2026</div>
@@ -1569,7 +1570,7 @@ Foto de la cédula por el reverso: IMG_20260930_101655.jpg</div>
     <div class="m-pair">
       <div class="phone"><div class="ph" inert>
         <div class="ph-st"><span>10:42</span><i>▾ ▮ 87%</i></div>
-        <div class="nb"><svg><use href="#i-back"/></svg>KPI</div>
+        <div class="nb"><svg><use href="#i-back"/></svg>Informes</div>
         <div class="bd"><div class="pg">
           <div class="lbl">Vendedor</div><div class="hl" data-n="1"><div class="en tr dd">Marta Ruiz León</div></div>
           <div class="btn p">Buscar</div>
@@ -1648,7 +1649,7 @@ Foto de la cédula por el reverso: IMG_20260930_101655.jpg</div>
 
 <!-- ===================================================== CAPÍTULO 10 ===================================================== -->
 <section class="m-chapter" id="cap10">
-  <div class="m-chapter-head"><span class="m-chapter-num">10</span><div><small>Capítulo 10</small><h2>Más opciones</h2><p>Accesos a resultados, validación de tickets e indicadores, y cierre de sesión.</p></div></div>
+  <div class="m-chapter-head"><span class="m-chapter-num">10</span><div><small>Capítulo 10</small><h2>Más opciones</h2><p>Accesos a resultados, validación de tickets, Informes, acciones sobre vendedores y cierre de sesión.</p></div></div>
 
   <article class="m-screen" id="cap10-1">
     <div class="m-screen-title"><span>Pantalla 10.1</span><h3>Menú Más</h3></div>
@@ -1662,17 +1663,20 @@ Foto de la cédula por el reverso: IMG_20260930_101655.jpg</div>
 Solo lectura</div>
           <div class="mbtn hl" data-n="2">Validar ticket ganador
 Leer código y validar ticket</div>
-          <div class="mbtn hl" data-n="3">KPI
-Indicadores de solo lectura.</div>
-          <div class="mbtn hl" data-n="4">Cerrar sesión
+          <div class="mbtn hl" data-n="3">Informes
+Consulta, filtra y genera informes personalizados.</div>
+          <div class="mbtn hl" data-n="4">Vendedores
+Desbloquear o restablecer contraseña</div>
+          <div class="mbtn hl" data-n="5">Cerrar sesión
 Salir del PDA</div>
-        </div><div class="ver hl b" data-n="5">Compilación 85</div></div>
+        </div><div class="ver hl b" data-n="6">Compilación 85</div></div>
         <nav class="tabbar"><a class="tab"><span class="in"><svg><use href="#t-casa"/></svg>Inicio</span></a><a class="tab"><span class="in"><svg><use href="#t-corona"/></svg>Validar</span></a><a class="tab"><span class="in"><svg><use href="#t-doc"/></svg>Consultas</span></a><a class="tab"><span class="in"><svg><use href="#t-aur"/></svg>Atención al cliente</span></a><a class="tab on"><span class="in"><svg><use href="#t-globo"/></svg>Más</span></a></nav>
       </div></div>
-      <ol class="g" style="--t:'5'">
+      <ol class="g" style="--t:'6'">
         <li><b>Resultados y números ganadores</b><p>Misma consulta del capítulo 4.</p></li>
         <li><b>Validar ticket ganador</b><p>Abre la sección <em>Validar</em> (capítulo 5).</p></li>
-        <li><b>KPI</b><p>Tablero de indicadores (capítulo 8).</p></li>
+        <li><b>Informes</b><p>Tablero e informes personalizados (capítulo 8).</p></li>
+        <li><b>Vendedores</b><p>Desbloquear o restablecer contraseña de un vendedor (capítulo 11).</p></li>
         <li><b>Cerrar sesión</b><p>Sale de la aplicación de inmediato y vuelve a <em>Iniciar sesión</em> (pantalla 10.2).</p></li>
         <li><b>Compilación instalada</b><p>Número de la versión instalada, al pie de la pantalla.</p></li>
       </ol>
@@ -1703,10 +1707,62 @@ Salir del PDA</div>
     </div>
   </article>
 
-  <div class="m-done"><span class="m-done-ico">✓</span><div><strong>¡Listo!</strong><p>Ya conoce todas las opciones del menú Más. Con esto termina el recorrido completo de la aplicación del observador.</p></div><span class="m-fin">Finalizar</span></div>
+  <div class="m-done"><span class="m-done-ico">✓</span><div><strong>¡Listo!</strong><p>Ya conoce todas las opciones del menú Más. Sigue el capítulo 11 para las acciones sobre vendedores.</p></div><span class="m-fin">Finalizar</span></div>
   <a class="m-top-link" href="#indice">↑ Volver al contenido</a>
 </section>
 
-<footer class="m-foot">New Rich · Manual de usuario del Observador · Compilación 85 · Documento ilustrativo: los datos mostrados son ejemplos.</footer>
+<!-- ===================================================== CAPÍTULO 11 ===================================================== -->
+<section class="m-chapter" id="cap11">
+  <div class="m-chapter-head"><span class="m-chapter-num">11</span><div><small>Capítulo 11</small><h2>Vendedores (acciones)</h2><p>Desde Más › Vendedores el observador puede desbloquear o restablecer la contraseña de un vendedor. La contraseña temporal se muestra una sola vez.</p></div></div>
+
+  <article class="m-screen" id="cap11-1">
+    <div class="m-screen-title"><span>Pantalla 11.1</span><h3>Lista de vendedores</h3></div>
+    <p>Solo aparecen vendedores. Puede filtrar por grupo, estado (bloqueados / sin bloqueo) y buscar por nombre o documento.</p>
+    <div class="m-pair">
+      <div class="phone"><div class="ph" inert>
+        <div class="ph-st"><span>10:42</span><i>▾ ▮ 87%</i></div>
+        <div class="nb"><svg><use href="#i-back"/></svg>Vendedores</div>
+        <div class="bd"><div class="pg s12">
+          <div class="t12 mut hl" data-n="1">Solo vendedores. La contraseña temporal se muestra una vez.</div>
+          <div class="en hl" data-n="2" style="margin-top:8px">Buscar nombre o documento</div>
+          <div class="en tr dd hl" data-n="3">Todos los grupos</div>
+          <div class="en tr dd hl" data-n="4">Sin bloqueo</div>
+          <div class="btn s hl" data-n="5">Limpiar filtros</div>
+          <div class="card hl" data-n="6" style="margin-top:10px">
+            <div class="bold">Juan Pérez Rojas</div>
+            <div class="t12 mut">Documento 79.845.123 · Zona Centro</div>
+            <div class="pill ok" style="display:inline-block;margin:6px 0">Activo</div>
+            <div class="btn s hl" data-n="7">Restablecer contraseña</div>
+          </div>
+          <div class="card hl" data-n="8">
+            <div class="bold">Sofía Díaz Herrera</div>
+            <div class="t12 mut">Documento 52.110.998 · Zona Sur</div>
+            <div class="pill bad" style="display:inline-block;margin:6px 0">Bloqueado</div>
+            <div class="btn p hl" data-n="9">Desbloquear</div>
+            <div class="btn s">Restablecer contraseña</div>
+          </div>
+        </div></div>
+        <nav class="tabbar"><a class="tab"><span class="in"><svg><use href="#t-casa"/></svg>Inicio</span></a><a class="tab"><span class="in"><svg><use href="#t-corona"/></svg>Validar</span></a><a class="tab"><span class="in"><svg><use href="#t-doc"/></svg>Consultas</span></a><a class="tab"><span class="in"><svg><use href="#t-aur"/></svg>Atención al cliente</span></a><a class="tab on"><span class="in"><svg><use href="#t-globo"/></svg>Más</span></a></nav>
+      </div></div>
+      <ol class="g" style="--t:'9'">
+        <li><b>Ayuda</b><p>Recuerda el alcance: solo vendedores y la contraseña temporal se ve una vez.</p></li>
+        <li><b>Buscar</b><p>Filtra por nombre o documento.</p></li>
+        <li><b>Grupo</b><p>Limita a un grupo o deja Todos los grupos.</p></li>
+        <li><b>Estado</b><p>Activos (sin bloqueo) o solo bloqueados.</p></li>
+        <li><b>Limpiar filtros</b><p>Quita búsqueda y filtros.</p></li>
+        <li><b>Tarjeta del vendedor</b><p>Nombre, documento, grupo y estado.</p></li>
+        <li><b>Restablecer contraseña</b><p>Pide confirmación. Si acepta, muestra la contraseña temporal una sola vez; el vendedor deberá cambiarla al ingresar.</p></li>
+        <li><b>Vendedor bloqueado</b><p>Aparece el botón Desbloquear además de restablecer.</p></li>
+        <li><b>Desbloquear</b><p>Confirme con Sí, desbloquear. El vendedor vuelve a poder ingresar.</p></li>
+      </ol>
+    </div>
+  </article>
+
+  <div class="m-done"><span class="m-done-ico">✓</span><div><strong>¡Listo!</strong><p>Ya sabe ayudar a un vendedor bloqueado o sin contraseña desde el menú Más, sin pasar por el administrador.</p></div><span class="m-fin">Finalizar</span></div>
+  <a class="m-top-link" href="#indice">↑ Volver al contenido</a>
+</section>
+
+<footer class="m-foot">New Rich · Manual de usuario del Observador · Actualizado noviembre 2026 · Documento ilustrativo: los datos mostrados son ejemplos.</footer>
 
 </div></body></html>
+
