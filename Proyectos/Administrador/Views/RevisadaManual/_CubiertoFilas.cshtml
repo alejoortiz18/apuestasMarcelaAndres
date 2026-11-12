@@ -14,7 +14,7 @@
         <td>@fila.Loteria</td>
         <td><strong>@fila.Numero</strong></td>
         <td class="num" data-pdf-omitir>@fila.Registros.ToString("N0", cultura)</td>
-        <td class="num">@Pesos(fila.Subtotal)</td>
+        <td class="num">@Pesos(fila.TotalConComision)</td>
         <td class="num" data-pdf-omitir>@Porcentajes(fila.ComisionPorcentajes) %</td>
         <td class="num" data-pdf-omitir>@Pesos(fila.ComisionValor)</td>
         <td class="num" data-pdf-omitir>@Pesos(fila.TotalConComision)</td>
