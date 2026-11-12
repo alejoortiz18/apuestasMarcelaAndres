@@ -303,27 +303,6 @@ else if (Model.IncluyeHoy)
         </section>
     }
     </div>
-    @if (esCubierto)
-    {
-        var enPagina = Model.Pagina.Items.SelectMany(l => l.Grupos).ToList();
-        <section class="panel revisada-totales" aria-labelledby="revisadaTotalesTitulo" data-revisada-totales data-pdf-omitir>
-            <h2 id="revisadaTotalesTitulo">@UiTexts.TotalesCubiertoTitulo</h2>
-            <dl class="revisada-totales-lista">
-                <div>
-                    <dt>@UiTexts.TotalConComision</dt>
-                    <dd data-total="comision">@Pesos(enPagina.Sum(g => g.TotalConComision ?? 0))</dd>
-                </div>
-                <div>
-                    <dt>@UiTexts.TotalValorDescuento</dt>
-                    <dd data-total="descuento">@Pesos(enPagina.Sum(g => g.DescuentoValor ?? 0))</dd>
-                </div>
-                <div class="is-principal">
-                    <dt>@UiTexts.TotalAPagar</dt>
-                    <dd data-total="pagar">@Pesos(enPagina.Sum(g => g.TotalPagar ?? 0))</dd>
-                </div>
-            </dl>
-        </section>
-    }
     <div data-pdf-omitir>
         @await Html.PartialAsync("_Pager", Model.Pagina)
     </div>
