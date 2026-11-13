@@ -1,0 +1,5 @@
+@model NewRich.Admin.Models.RevisadaPaginaViewModel
+<link rel="stylesheet" href="~/css/revisada.css" asp-append-version="true" />
+<partial name="_VentasTabs" />
+<partial name="_PorCubrirTabs" />
+@await Html.PartialAsync("_Contenido", Model)

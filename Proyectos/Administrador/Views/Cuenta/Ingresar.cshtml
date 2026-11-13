@@ -22,6 +22,7 @@
             <h1>@UiTexts.IniciarSesion</h1>
             <p>@UiTexts.LoginAyuda</p>
             <form asp-action="Ingresar" method="post">
+                <input type="hidden" asp-for="ReturnUrl" />
                 <div class="field">
                     <label asp-for="Usuario"></label>
                     <div class="login-input">

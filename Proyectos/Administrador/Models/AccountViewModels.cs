@@ -20,6 +20,8 @@ public sealed class LoginViewModel
 
     public string? LetraUsb { get; set; }
 
+    public string? ReturnUrl { get; set; }
+
     public IReadOnlyList<DiscoUsbInfo> Discos { get; set; } = [];
 }
 

@@ -26,7 +26,7 @@
 }
 <div class="informe-reporte informe-ventas informe-secciones" data-secciones="@secciones.Categoria" aria-labelledby="informeVentasReporteTitulo">
 <div class="informe-movible" data-seccion="grupo" style="order: @secciones.Posicion("grupo")">
-<partial name="_MoverSeccion" model='(secciones, "grupo")' />
+<partial name="~/Views/Informes/_MoverSeccion.cshtml" model='(secciones, "grupo")' />
 <div class="informe-graficos">
     <section class="informe-grafico informe-grafico-ancho" aria-labelledby="informeVentasPorGrupo">
         <h5 id="informeVentasPorGrupo">@UiTexts.InformeIngresosPorGrupo</h5>
@@ -54,7 +54,7 @@
 </div>
 </div>
     <div class="informe-movible" data-seccion="encabezado" style="order: @secciones.Posicion("encabezado")">
-    <partial name="_MoverSeccion" model='(secciones, "encabezado")' />
+    <partial name="~/Views/Informes/_MoverSeccion.cshtml" model='(secciones, "encabezado")' />
     <header class="informe-reporte-head">
         <div>
             <h3 id="informeVentasReporteTitulo">@UiTexts.InformeVentasNombre</h3>
@@ -68,7 +68,7 @@
     </div>
 
     <div class="informe-movible" data-seccion="tarjetas" style="order: @secciones.Posicion("tarjetas")">
-    <partial name="_MoverSeccion" model='(secciones, "tarjetas")' />
+    <partial name="~/Views/Informes/_MoverSeccion.cshtml" model='(secciones, "tarjetas")' />
     <p class="informe-ventas-ayuda">@UiTexts.InformeTarjetasAyuda</p>
     <div class="informe-metricas informe-finanzas">
         <div class="informe-metrica is-principal">
@@ -99,7 +99,7 @@
     </div>
 
     <div class="informe-movible" data-seccion="dias" style="order: @secciones.Posicion("dias")">
-    <partial name="_MoverSeccion" model='(secciones, "dias")' />
+    <partial name="~/Views/Informes/_MoverSeccion.cshtml" model='(secciones, "dias")' />
     <section class="informe-bloque" aria-labelledby="informeVentasIngresos">
         <header class="informe-bloque-head">
             <h4 id="informeVentasIngresos">@UiTexts.InformeSeccionIngresos</h4>
@@ -162,7 +162,7 @@
     </div>
 
     <div class="informe-movible" data-seccion="vendedores" style="order: @secciones.Posicion("vendedores")">
-    <partial name="_MoverSeccion" model='(secciones, "vendedores")' />
+    <partial name="~/Views/Informes/_MoverSeccion.cshtml" model='(secciones, "vendedores")' />
         <section class="informe-tabla" id="informeVentasRankingSeccion" aria-labelledby="informeVentasRanking">
             <div class="informe-tabla-head">
                 <div>

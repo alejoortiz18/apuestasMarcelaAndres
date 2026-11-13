@@ -16,7 +16,7 @@
 }
 <div class="informe-reporte informe-recaudo informe-secciones" data-secciones="@secciones.Categoria" aria-labelledby="informeRecaudoReporteTitulo">
     <div class="informe-movible" data-seccion="encabezado" style="order: @secciones.Posicion("encabezado")">
-    <partial name="_MoverSeccion" model='(secciones, "encabezado")' />
+    <partial name="~/Views/Informes/_MoverSeccion.cshtml" model='(secciones, "encabezado")' />
     <header class="informe-reporte-head">
         <div>
             <h3 id="informeRecaudoReporteTitulo">@UiTexts.InformeRecaudoNombre</h3>
@@ -39,7 +39,7 @@
         else
         {
             <div class="informe-movible" data-seccion="tarjetas" style="order: @secciones.Posicion("tarjetas")">
-            <partial name="_MoverSeccion" model='(secciones, "tarjetas")' />
+            <partial name="~/Views/Informes/_MoverSeccion.cshtml" model='(secciones, "tarjetas")' />
             <p class="informe-ventas-ayuda">@UiTexts.InformeSeccionRecaudoAyuda</p>
             <div class="informe-metricas">
                 <div class="informe-metrica">
@@ -73,7 +73,7 @@
             </div>
 
             <div class="informe-movible" data-seccion="linea" style="order: @secciones.Posicion("linea")">
-            <partial name="_MoverSeccion" model='(secciones, "linea")' />
+            <partial name="~/Views/Informes/_MoverSeccion.cshtml" model='(secciones, "linea")' />
             <div class="informe-graficos">
                 <section class="informe-grafico informe-grafico-ancho" aria-labelledby="informeRecaudoLinea">
                     <h5 id="informeRecaudoLinea">@UiTexts.InformeRecaudoLinea</h5>
@@ -91,7 +91,7 @@
             </div>
 
             <div class="informe-movible" data-seccion="recaudadores" style="order: @secciones.Posicion("recaudadores")">
-            <partial name="_MoverSeccion" model='(secciones, "recaudadores")' />
+            <partial name="~/Views/Informes/_MoverSeccion.cshtml" model='(secciones, "recaudadores")' />
             <div class="informe-graficos">
                 <section class="informe-grafico informe-grafico-ancho" aria-labelledby="informeRecaudoRecaudadores">
                     <h5 id="informeRecaudoRecaudadores">@UiTexts.InformeRecaudadores</h5>
@@ -135,7 +135,7 @@
             </div>
 
             <div class="informe-movible" data-seccion="atrasos" style="order: @secciones.Posicion("atrasos")">
-            <partial name="_MoverSeccion" model='(secciones, "atrasos")' />
+            <partial name="~/Views/Informes/_MoverSeccion.cshtml" model='(secciones, "atrasos")' />
             <section class="informe-tabla" id="informeRecaudoAtrasosSeccion" aria-labelledby="informeRecaudoAtrasos">
                 <div class="informe-tabla-head">
                     <div>
@@ -207,7 +207,7 @@
             </div>
 
             <div class="informe-movible" data-seccion="recaudadoresDeuda" style="order: @secciones.Posicion("recaudadoresDeuda")">
-            <partial name="_MoverSeccion" model='(secciones, "recaudadoresDeuda")' />
+            <partial name="~/Views/Informes/_MoverSeccion.cshtml" model='(secciones, "recaudadoresDeuda")' />
             <section class="informe-tabla" id="informeRecaudoRecaudadoresDeudaSeccion" aria-labelledby="informeRecaudoRecaudadoresDeuda">
                 <div class="informe-tabla-head">
                     <div>

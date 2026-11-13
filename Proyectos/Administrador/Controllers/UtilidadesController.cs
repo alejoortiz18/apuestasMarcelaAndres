@@ -18,6 +18,20 @@ public sealed class UtilidadesController : AdminControllerBase
     public UtilidadesController(IAdminApiClient api) => _api = api;
 
     [HttpGet]
+    public Task<IActionResult> Resumen(
+        string? periodo,
+        DateOnly? desde,
+        DateOnly? hasta,
+        bool abrir = false,
+        Guid? grupoId = null,
+        int pageV = 1,
+        int pageSizeV = 10,
+        string? ordenV = null,
+        string? dirV = null,
+        CancellationToken cancellationToken = default) =>
+        Indicadores(periodo, desde, hasta, grupoId, pageV, pageSizeV, ordenV, dirV, cancellationToken);
+
+    [HttpGet]
     public async Task<IActionResult> Indicadores(
         string? periodo,
         DateOnly? desde,
@@ -30,72 +44,78 @@ public sealed class UtilidadesController : AdminControllerBase
         CancellationToken cancellationToken = default)
     {
         SetNav("utilidades-indicadores", UiTexts.NavUtilidadesIndicadores);
-        var grupos = await _api.ListarGruposAsync(cancellationToken);
-        var negado = RedirectIfUnauthorized(grupos);
-        if (negado is not null)
+        const string vueltaUtilidades = "/Utilidades/Indicadores";
+        try
         {
-            return negado;
+            var grupos = await _api.ListarGruposAsync(cancellationToken);
+            if (grupos.Unauthorized)
+            {
+                return RedirectToAction("Ingresar", "Cuenta", new { expired = true, returnUrl = vueltaUtilidades });
+            }
+
+            IReadOnlyList<GrupoResponse> listaGrupos = grupos.Data ?? [];
+            if (grupoId is { } elegido && listaGrupos.All(g => g.GrupoId != elegido))
+            {
+                grupoId = null;
+            }
+
+            var conocido = VentasInforme.OpcionesPeriodo().Any(p => p.Valor == periodo);
+            var filtros = new FiltrosPeriodoInforme
+            {
+                Periodo = conocido ? periodo! : VentasInforme.Periodo7,
+                Desde = desde,
+                Hasta = hasta,
+                Grupos = grupoId is null ? null : [grupoId.Value]
+            };
+            var invalido = VentasInforme.Validar(filtros);
+            if (invalido is not null)
+            {
+                filtros = new FiltrosPeriodoInforme { Periodo = VentasInforme.Periodo7, Grupos = filtros.Grupos };
+            }
+
+            var aviso = grupos.Success ? invalido : grupos.Message;
+            if (aviso is not null)
+            {
+                SetAvisoModal(aviso);
+            }
+
+            var ahora = ZonaHorariaColombia.ALocal(DateTime.UtcNow);
+            var hoy = DateOnly.FromDateTime(ahora);
+            var (inicio, fin) = VentasInforme.Rango(filtros, hoy);
+            var carga = await InformeVentasCarga.CargarAsync(_api, DatosInforme.Ventas, filtros, listaGrupos, inicio, fin, cancellationToken);
+            if (carga.Unauthorized)
+            {
+                return RedirectToAction("Ingresar", "Cuenta", new { expired = true, returnUrl = vueltaUtilidades });
+            }
+
+            if (aviso is null && carga.Error is not null)
+            {
+                SetAvisoModal(carga.Error);
+            }
+
+            return View("Indicadores", new UtilidadesVentasViewModel
+            {
+                Periodo = filtros.Periodo,
+                Desde = filtros.Desde,
+                Hasta = filtros.Hasta,
+                GrupoId = grupoId,
+                Configuracion = VentasInforme.Construir(CategoriasInforme.Ventas, listaGrupos, filtros, true, hoy),
+                Informe = VentasInforme.Informe(carga.Fuente, filtros, listaGrupos, inicio, fin, ahora, pageV, pageSizeV, ordenV, dirV)
+            });
         }
-
-        IReadOnlyList<GrupoResponse> listaGrupos = grupos.Data ?? [];
-        if (grupoId is { } elegido && listaGrupos.All(g => g.GrupoId != elegido))
+        catch (Exception)
         {
-            grupoId = null;
+            SetAvisoModal(UiTexts.ApiNoDisponible);
+            var hoy = DateOnly.FromDateTime(ZonaHorariaColombia.ALocal(DateTime.UtcNow));
+            var filtros = new FiltrosPeriodoInforme { Periodo = VentasInforme.Periodo7 };
+            var (inicio, fin) = VentasInforme.Rango(filtros, hoy);
+            return View("Indicadores", new UtilidadesVentasViewModel
+            {
+                Periodo = filtros.Periodo,
+                Configuracion = VentasInforme.Construir(CategoriasInforme.Ventas, [], filtros, true, hoy),
+                Informe = VentasInforme.Informe(new FuenteInformeVentas(), filtros, [], inicio, fin, ZonaHorariaColombia.ALocal(DateTime.UtcNow), pageV, pageSizeV, ordenV, dirV)
+            });
         }
-
-        var conocido = VentasInforme.OpcionesPeriodo().Any(p => p.Valor == periodo);
-        var filtros = new FiltrosPeriodoInforme
-        {
-            Periodo = conocido ? periodo! : VentasInforme.Periodo7,
-            Desde = desde,
-            Hasta = hasta,
-            Grupos = grupoId is null ? null : [grupoId.Value]
-        };
-        var invalido = VentasInforme.Validar(filtros);
-        if (invalido is not null)
-        {
-            filtros = new FiltrosPeriodoInforme { Periodo = VentasInforme.Periodo7, Grupos = filtros.Grupos };
-        }
-
-        var aviso = grupos.Success ? invalido : grupos.Message;
-        if (aviso is not null)
-        {
-            SetAvisoModal(aviso);
-        }
-
-        var ahora = ZonaHorariaColombia.ALocal(DateTime.UtcNow);
-        var hoy = DateOnly.FromDateTime(ahora);
-        var (inicio, fin) = VentasInforme.Rango(filtros, hoy);
-        var carga = await InformeVentasCarga.CargarAsync(_api, DatosInforme.Ventas, filtros, listaGrupos, inicio, fin, cancellationToken);
-        if (carga.Unauthorized)
-        {
-            return RedirectToAction("Ingresar", "Cuenta", new { expired = true });
-        }
-
-        if (aviso is null && carga.Error is not null)
-        {
-            SetAvisoModal(carga.Error);
-        }
-
-        return View(new UtilidadesVentasViewModel
-        {
-            Periodo = filtros.Periodo,
-            Desde = filtros.Desde,
-            Hasta = filtros.Hasta,
-            GrupoId = grupoId,
-            Configuracion = VentasInforme.Construir(CategoriasInforme.Ventas, listaGrupos, filtros, true, hoy),
-            Informe = VentasInforme.Informe(carga.Fuente, filtros, listaGrupos, inicio, fin, ahora, pageV, pageSizeV, ordenV, dirV)
-        });
-    }
-
-    public async Task<IActionResult> Resumen(string? periodo, DateOnly? desde, DateOnly? hasta, bool abrir = false, CancellationToken cancellationToken = default)
-    {
-        SetNav("utilidades-resumen", UiTexts.NavUtilidadesResumen);
-        var formulario = await FormularioAsync(new RegistrarGastoAdminViewModel
-        {
-            FechaGasto = DateOnly.FromDateTime(ZonaHorariaColombia.ALocal(DateTime.UtcNow))
-        }, cancellationToken);
-        return await VistaResumenAsync(periodo, desde, hasta, formulario, abrir, cancellationToken);
     }
 
     [HttpGet]

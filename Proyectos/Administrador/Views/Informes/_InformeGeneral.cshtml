@@ -13,7 +13,7 @@
 }
 <div class="informe-reporte informe-general informe-secciones" data-secciones="@secciones.Categoria" aria-labelledby="informeGeneralReporteTitulo">
     <div class="informe-movible" data-seccion="encabezado" style="order: @secciones.Posicion("encabezado")">
-        <partial name="_MoverSeccion" model='(secciones, "encabezado")' />
+        <partial name="~/Views/Informes/_MoverSeccion.cshtml" model='(secciones, "encabezado")' />
         <header class="informe-reporte-head">
             <div>
                 <h3 id="informeGeneralReporteTitulo">@UiTexts.InformeGeneralNombre</h3>
@@ -27,7 +27,7 @@
     </div>
 
     <div class="informe-movible" data-seccion="tarjetas" style="order: @secciones.Posicion("tarjetas")">
-        <partial name="_MoverSeccion" model='(secciones, "tarjetas")' />
+        <partial name="~/Views/Informes/_MoverSeccion.cshtml" model='(secciones, "tarjetas")' />
         <p class="informe-ventas-ayuda">@UiTexts.InformeGeneralSeccionAyuda</p>
         <div class="informe-metricas">
             <div class="informe-metrica@(Model.EnDeuda ? " is-alerta" : "")">

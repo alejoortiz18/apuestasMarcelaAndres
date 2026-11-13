@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using NewRich.Admin.Constants;
 using NewRich.Admin.Filters;
@@ -33,22 +34,37 @@ public sealed class CuentaController : Controller
 
     [HttpGet]
     [AllowAnonymous]
-    public async Task<IActionResult> Ingresar(bool expired = false)
+    public async Task<IActionResult> Ingresar(bool expired = false, string? returnUrl = null)
     {
         // La cookie del administrador puede seguir vigente aunque la API ya rechace su token.
         // Sin cerrarla, Inicio devuelve aquí e Ingresar devuelve a Inicio sin fin.
+        var fallo = HttpContext.Features.Get<IExceptionHandlerPathFeature>();
+        if (fallo is not null)
+        {
+            // Un error en Contabilidad/Utilidades no debe caer en Resumen (Inicio).
+            await _session.SignOutAsync(HttpContext);
+            var destino = string.IsNullOrWhiteSpace(returnUrl) ? fallo.Path : returnUrl;
+            if (!string.IsNullOrWhiteSpace(destino) &&
+                destino.StartsWith("/Utilidades", StringComparison.OrdinalIgnoreCase))
+            {
+                destino = "/Utilidades/Indicadores";
+            }
+
+            return View(CrearLogin(UiTexts.ApiNoDisponible, destino));
+        }
+
         if (expired)
         {
             await _session.SignOutAsync(HttpContext);
-            return View(CrearLogin(UiTexts.SesionExpiradaVista));
+            return View(CrearLogin(UiTexts.SesionExpiradaVista, returnUrl));
         }
 
         if (User.Identity?.IsAuthenticated == true && User.EsAdministrador() && !User.DebeCambiarPassword())
         {
-            return RedirectToAction("Index", "Inicio");
+            return IrTrasIngreso(returnUrl);
         }
 
-        return View(CrearLogin(null));
+        return View(CrearLogin(null, returnUrl));
     }
 
     [HttpGet]
@@ -96,7 +112,7 @@ public sealed class CuentaController : Controller
             return RedirectToAction(nameof(CambiarPassword));
         }
 
-        return RedirectToAction("Index", "Inicio");
+        return IrTrasIngreso(model.ReturnUrl);
     }
 
     [HttpGet]
@@ -168,12 +184,18 @@ public sealed class CuentaController : Controller
         return mensajeApi;
     }
 
-    private LoginViewModel CrearLogin(string? error) =>
+    private LoginViewModel CrearLogin(string? error, string? returnUrl = null) =>
         new()
         {
             Error = error,
+            ReturnUrl = returnUrl,
             Discos = _inventario.Listar()
         };
+
+    private IActionResult IrTrasIngreso(string? returnUrl) =>
+        !string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl)
+            ? LocalRedirect(returnUrl)
+            : RedirectToAction("Index", "Inicio");
 
     private PruebaLlaveAdministradorRequest? ResolverPrueba(string usuario, string? letra, IReadOnlyList<DiscoUsbInfo> discos)
     {

@@ -1,0 +1,16 @@
+@using NewRich.Admin.Constants
+@{
+    var cubierto = ViewData["PorCubrir"] as string == "cubierto";
+}
+<nav class="view-tabs" aria-label="@UiTexts.CrumbPorCubrir">
+    @if (cubierto)
+    {
+        <a class="view-tab" asp-controller="CubrirVenta" asp-action="Resumen">@UiTexts.NavRevisadaResumen</a>
+        <a class="view-tab is-active" asp-controller="CubrirVenta" asp-action="Cubierto" aria-current="page">@UiTexts.NavRevisadaCubierto</a>
+    }
+    else
+    {
+        <a class="view-tab is-active" asp-controller="CubrirVenta" asp-action="Resumen" aria-current="page">@UiTexts.NavRevisadaResumen</a>
+        <a class="view-tab" asp-controller="CubrirVenta" asp-action="Cubierto">@UiTexts.NavRevisadaCubierto</a>
+    }
+</nav>

@@ -40,7 +40,7 @@
 }
 <div class="informe-reporte informe-secciones" data-secciones="@secciones.Categoria" aria-labelledby="informeReporteTitulo">
     <div class="informe-movible" data-seccion="encabezado" style="order: @secciones.Posicion("encabezado")">
-    <partial name="_MoverSeccion" model='(secciones, "encabezado")' />
+    <partial name="~/Views/Informes/_MoverSeccion.cshtml" model='(secciones, "encabezado")' />
     <header class="informe-reporte-head">
         <div>
             <h3 id="informeReporteTitulo">@UiTexts.InformeVendedoresNombre</h3>
@@ -50,7 +50,7 @@
     </div>
 
     <div class="informe-movible" data-seccion="tarjetas" style="order: @secciones.Posicion("tarjetas")">
-    <partial name="_MoverSeccion" model='(secciones, "tarjetas")' />
+    <partial name="~/Views/Informes/_MoverSeccion.cshtml" model='(secciones, "tarjetas")' />
     <div class="informe-metricas">
         <div class="informe-metrica is-principal">
             <small>@UiTexts.InformeMetricaIncluidos</small>
@@ -76,7 +76,7 @@
     </div>
 
     <div class="informe-movible is-media" data-seccion="tipos" style="order: @secciones.Posicion("tipos")">
-    <partial name="_MoverSeccion" model='(secciones, "tipos")' />
+    <partial name="~/Views/Informes/_MoverSeccion.cshtml" model='(secciones, "tipos")' />
         <section class="informe-grafico" aria-labelledby="informeGraficoTipos">
             <h4 id="informeGraficoTipos">@UiTexts.InformeGraficoTipos</h4>
             <p>@UiTexts.InformeGraficoTiposAyuda</p>
@@ -108,7 +108,7 @@
     </div>
 
     <div class="informe-movible is-media" data-seccion="grupos" style="order: @secciones.Posicion("grupos")">
-    <partial name="_MoverSeccion" model='(secciones, "grupos")' />
+    <partial name="~/Views/Informes/_MoverSeccion.cshtml" model='(secciones, "grupos")' />
         <section class="informe-grafico" aria-labelledby="informeGraficoGrupos">
             <h4 id="informeGraficoGrupos">@UiTexts.InformeGraficoGrupos</h4>
             <p>@UiTexts.InformeGraficoGruposAyuda</p>
@@ -135,7 +135,7 @@
     </div>
 
     <div class="informe-movible" data-seccion="estado" style="order: @secciones.Posicion("estado")">
-    <partial name="_MoverSeccion" model='(secciones, "estado")' />
+    <partial name="~/Views/Informes/_MoverSeccion.cshtml" model='(secciones, "estado")' />
         <section class="informe-grafico informe-grafico-ancho" aria-labelledby="informeGraficoEstado">
             <h4 id="informeGraficoEstado">@UiTexts.InformeGraficoEstado</h4>
             <p>@UiTexts.InformeGraficoEstadoAyuda</p>
@@ -158,7 +158,7 @@
     </div>
 
     <div class="informe-movible" data-seccion="tabla" style="order: @secciones.Posicion("tabla")">
-    <partial name="_MoverSeccion" model='(secciones, "tabla")' />
+    <partial name="~/Views/Informes/_MoverSeccion.cshtml" model='(secciones, "tabla")' />
     <section class="informe-tabla" aria-labelledby="informeTablaTitulo">
         <div class="informe-tabla-head">
             <div>

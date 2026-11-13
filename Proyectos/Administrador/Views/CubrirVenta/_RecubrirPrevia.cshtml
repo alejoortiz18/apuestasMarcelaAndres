@@ -1,0 +1,67 @@
+@using System.Globalization
+@using NewRich.Admin.Constants
+@model NewRich.Admin.Models.RecubrirPreviaViewModel
+@{
+    var cultura = CultureInfo.GetCultureInfo("es-CO");
+    string Pesos(decimal valor) => valor.ToString("N0", cultura);
+    var grupos = Model.Vista.Grupos;
+}
+<h2 id="revisadaRecubrirTitulo">@UiTexts.RecubrirBoton</h2>
+@if (Model.Error is not null || grupos.Count == 0)
+{
+    <p>@(Model.Error ?? UiTexts.RecubrirSinPendientes)</p>
+    <div class="dialog-actions">
+        <button type="button" class="primary" data-recubrir-cerrar>@UiTexts.Cerrar</button>
+    </div>
+}
+else
+{
+    <p>@string.Format(cultura, UiTexts.RecubrirResumen, grupos.Count, Model.Vista.Jugadas, Model.Comision.ToString("0.##", cultura), Model.Descuento.ToString("0.##", cultura))</p>
+    <div class="revisada-recubrir-lista">
+        <table class="revisada-recubrir-tabla">
+            <thead>
+                <tr>
+                    <th scope="col">@UiTexts.Loteria</th>
+                    <th scope="col">@UiTexts.NumeroJugado</th>
+                    <th scope="col" class="num">@UiTexts.RecubrirRegistros</th>
+                    <th scope="col" class="num">@UiTexts.Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var grupo in grupos)
+                {
+                    <tr>
+                        <td>@grupo.Loteria</td>
+                        <td><strong>@grupo.Numero</strong></td>
+                        <td class="num">@grupo.Lineas.Count</td>
+                        <td class="num">@Pesos(grupo.Subtotal)</td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th scope="row" colspan="2">@UiTexts.Total</th>
+                    <td class="num">@Model.Vista.Jugadas</td>
+                    <td class="num">@Pesos(Model.Vista.Total)</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    <form method="post" asp-action="Recubrir" data-recubrir-form>
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="desde" value="@Model.Desde.ToString("yyyy-MM-dd")" />
+        <input type="hidden" name="hasta" value="@Model.Hasta.ToString("yyyy-MM-dd")" />
+        <input type="hidden" name="valorMinimo" value="@Model.ValorMinimo" />
+        <input type="hidden" name="page" value="@Model.Page" />
+        <input type="hidden" name="pageSize" value="@Model.PageSize" />
+        <input type="hidden" name="orden" value="@Model.Orden" />
+        @foreach (var linea in grupos.SelectMany(g => g.Lineas))
+        {
+            <input type="hidden" name="claves" value="@linea.Clave" />
+        }
+        <div class="dialog-actions">
+            <button type="button" class="secondary" data-recubrir-cerrar>@UiTexts.Cancelar</button>
+            <button type="submit" class="primary">@UiTexts.Aceptar</button>
+        </div>
+    </form>
+}

@@ -1859,7 +1859,13 @@ iniciarDiasVenta();
     if (!boton || !submenu) {
       return;
     }
-    boton.addEventListener("click", function () {
+    boton.addEventListener("click", function (event) {
+      // Contabilidad es enlace a Utilidades: deja navegar; el chevron solo abre/cierra.
+      if (boton.tagName === "A" && event.target.closest(".nav-chevron")) {
+        event.preventDefault();
+      } else if (boton.tagName === "A") {
+        return;
+      }
       var abierto = boton.getAttribute("aria-expanded") === "true";
       boton.setAttribute("aria-expanded", abierto ? "false" : "true");
       boton.classList.toggle("abierto", !abierto);

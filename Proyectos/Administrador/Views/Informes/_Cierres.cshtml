@@ -41,7 +41,7 @@
     @Html.AntiForgeryToken()
     <div class="informe-secciones" data-secciones="cierres">
     <div class="informe-movible" data-seccion="nuevo" style="order: @secciones.Posicion("nuevo")">
-        <partial name="_MoverSeccion" model='(secciones, "nuevo")' />
+        <partial name="~/Views/Informes/_MoverSeccion.cshtml" model='(secciones, "nuevo")' />
         @if (Model.MostrarNuevo && previa is not null)
         {
             <div class="dialog-back" role="dialog" aria-modal="true" aria-labelledby="cierreDialogTitulo">
@@ -158,7 +158,7 @@
     </div>
 
     <div class="panel informe-movible" id="cierreHistorial" data-seccion="historial" style="order: @secciones.Posicion("historial")">
-        <partial name="_MoverSeccion" model='(secciones, "historial")' />
+        <partial name="~/Views/Informes/_MoverSeccion.cshtml" model='(secciones, "historial")' />
         <h2>@UiTexts.CierreHistorial</h2>
         @if (!Model.Historial.Items.Any())
         {
@@ -217,7 +217,7 @@
     </div>
 
     <div class="panel informe-movible" id="cierreDetalle" data-seccion="detalle" style="order: @secciones.Posicion("detalle")">
-        <partial name="_MoverSeccion" model='(secciones, "detalle")' />
+        <partial name="~/Views/Informes/_MoverSeccion.cshtml" model='(secciones, "detalle")' />
         <h2>@UiTexts.CierreDetalle</h2>
         @if (detalle is null)
         {
@@ -319,7 +319,7 @@
             }
             <div class="informe-secciones cierre-graficos" data-secciones="cierre-graficos">
                 <div class="informe-movible is-media" data-seccion="movimientos" style="order: @graficos.Posicion("movimientos")">
-                    <partial name="_MoverSeccion" model='(graficos, "movimientos")' />
+                    <partial name="~/Views/Informes/_MoverSeccion.cshtml" model='(graficos, "movimientos")' />
                     <section class="informe-grafico" aria-labelledby="cierreMovimientosTitulo">
                         <h3 id="cierreMovimientosTitulo">@UiTexts.CierreCompararMovimientos</h3>
                         <p>@UiTexts.CierreCompararMovimientosAyuda</p>
@@ -345,7 +345,7 @@
                     </section>
                 </div>
                 <div class="informe-movible is-media" data-seccion="conceptos" style="order: @graficos.Posicion("conceptos")">
-                    <partial name="_MoverSeccion" model='(graficos, "conceptos")' />
+                    <partial name="~/Views/Informes/_MoverSeccion.cshtml" model='(graficos, "conceptos")' />
                     <section class="informe-grafico" aria-labelledby="cierreConceptosTitulo">
                         <h3 id="cierreConceptosTitulo">@UiTexts.CierreCompararConceptos</h3>
                         <p>@UiTexts.CierreCompararConceptosAyuda</p>

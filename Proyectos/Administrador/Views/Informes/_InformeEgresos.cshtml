@@ -84,7 +84,7 @@
 }
 <div class="informe-reporte informe-egresos informe-secciones" data-secciones="@secciones.Categoria" aria-labelledby="informeEgresosReporteTitulo">
     <div class="informe-movible" data-seccion="encabezado" style="order: @secciones.Posicion("encabezado")">
-    <partial name="_MoverSeccion" model='(secciones, "encabezado")' />
+    <partial name="~/Views/Informes/_MoverSeccion.cshtml" model='(secciones, "encabezado")' />
     <header class="informe-reporte-head">
         <div>
             <h3 id="informeEgresosReporteTitulo">@UiTexts.InformeEgresosNombre</h3>
@@ -98,7 +98,7 @@
     </div>
 
     <div class="informe-movible is-media" data-seccion="conceptos" style="order: @secciones.Posicion("conceptos")">
-    <partial name="_MoverSeccion" model='(secciones, "conceptos")' />
+    <partial name="~/Views/Informes/_MoverSeccion.cshtml" model='(secciones, "conceptos")' />
             <section class="informe-grafico" aria-labelledby="informeEgresosConceptos">
                 <h5 id="informeEgresosConceptos">@UiTexts.InformeEgresosPorConcepto</h5>
                 <p>@UiTexts.InformeEgresosPorConceptoAyuda</p>
@@ -132,7 +132,7 @@
     @if (Model.Egresos.IncluyeGastos)
     {
     <div class="informe-movible is-media" data-seccion="tipos" style="order: @secciones.Posicion("tipos")">
-    <partial name="_MoverSeccion" model='(secciones, "tipos")' />
+    <partial name="~/Views/Informes/_MoverSeccion.cshtml" model='(secciones, "tipos")' />
             <section class="informe-grafico" aria-labelledby="informeEgresosTiposGasto">
                 <h5 id="informeEgresosTiposGasto">@UiTexts.InformeGastosPorTipo</h5>
                 <p>@UiTexts.InformeGastosPorTipoAyuda</p>
@@ -162,7 +162,7 @@
     @if (Model.Egresos.IncluyePremios)
     {
     <div class="informe-movible is-media" data-seccion="loterias" style="order: @secciones.Posicion("loterias")">
-    <partial name="_MoverSeccion" model='(secciones, "loterias")' />
+    <partial name="~/Views/Informes/_MoverSeccion.cshtml" model='(secciones, "loterias")' />
             <section class="informe-grafico" aria-labelledby="informeEgresosPremiosLoteria">
                 <h5 id="informeEgresosPremiosLoteria">@UiTexts.InformePremiosPorLoteria</h5>
                 <p>@UiTexts.InformePremiosPorLoteriaAyuda</p>
@@ -189,7 +189,7 @@
     </div>
 
     <div class="informe-movible" data-seccion="premios" style="order: @secciones.Posicion("premios")">
-    <partial name="_MoverSeccion" model='(secciones, "premios")' />
+    <partial name="~/Views/Informes/_MoverSeccion.cshtml" model='(secciones, "premios")' />
         <section class="informe-tabla" id="informeEgresosPremiosWeb" aria-labelledby="informeEgresosPremiosWebTitulo">
             <div class="informe-tabla-head">
                 <div>
@@ -258,7 +258,7 @@
     @if (Model.Egresos.IncluyeCubierto)
     {
     <div class="informe-movible is-media" data-seccion="cubiertoloterias" style="order: @secciones.Posicion("cubiertoloterias")">
-    <partial name="_MoverSeccion" model='(secciones, "cubiertoloterias")' />
+    <partial name="~/Views/Informes/_MoverSeccion.cshtml" model='(secciones, "cubiertoloterias")' />
             <section class="informe-grafico" aria-labelledby="informeEgresosCubiertoLoteria">
                 <h5 id="informeEgresosCubiertoLoteria">@UiTexts.InformeCubiertoPorLoteria</h5>
                 <p>@UiTexts.InformeCubiertoPorLoteriaAyuda</p>
@@ -285,7 +285,7 @@
     </div>
 
     <div class="informe-movible" data-seccion="cubiertos" style="order: @secciones.Posicion("cubiertos")">
-    <partial name="_MoverSeccion" model='(secciones, "cubiertos")' />
+    <partial name="~/Views/Informes/_MoverSeccion.cshtml" model='(secciones, "cubiertos")' />
         <section class="informe-tabla" id="informeEgresosCubiertosSeccion" aria-labelledby="informeEgresosCubiertos">
             <div class="informe-tabla-head">
                 <div>
@@ -364,7 +364,7 @@
     @if (Model.Egresos.IncluyeGastos)
     {
     <div class="informe-movible" data-seccion="gastos" style="order: @secciones.Posicion("gastos")">
-    <partial name="_MoverSeccion" model='(secciones, "gastos")' />
+    <partial name="~/Views/Informes/_MoverSeccion.cshtml" model='(secciones, "gastos")' />
         <section class="informe-tabla" id="informeEgresosGastosPersonaSeccion" aria-labelledby="informeEgresosGastosPersona">
             <div class="informe-tabla-head">
                 <div>

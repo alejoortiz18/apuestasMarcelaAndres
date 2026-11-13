@@ -1,16 +1,12 @@
 @using NewRich.Admin.Constants
 @{
-    var porLoteria = ViewData["VentasVista"] as string == UiTexts.VentasVistaLoteria;
+    var vista = ViewData["VentasVista"] as string;
+    var porLoteria = vista == UiTexts.VentasVistaLoteria;
+    var porCubrir = vista == UiTexts.VentasVistaCubrir;
+    var porBoleto = !porLoteria && !porCubrir;
 }
 <nav class="view-tabs" aria-label="@UiTexts.VistaDeVentas">
-    @if (porLoteria)
-    {
-        <a class="view-tab is-active" asp-controller="Loterias" asp-action="Index" aria-current="page">@UiTexts.CrumbPorLoteria</a>
-        <a class="view-tab" asp-controller="Ventas" asp-action="Index">@UiTexts.CrumbPorBoleto</a>
-    }
-    else
-    {
-        <a class="view-tab" asp-controller="Loterias" asp-action="Index">@UiTexts.CrumbPorLoteria</a>
-        <a class="view-tab is-active" asp-controller="Ventas" asp-action="Index" aria-current="page">@UiTexts.CrumbPorBoleto</a>
-    }
+    <a class="view-tab@(porLoteria ? " is-active" : "")" asp-controller="Loterias" asp-action="Index" aria-current="@(porLoteria ? "page" : null)">@UiTexts.CrumbPorLoteria</a>
+    <a class="view-tab@(porBoleto ? " is-active" : "")" asp-controller="Ventas" asp-action="Index" aria-current="@(porBoleto ? "page" : null)">@UiTexts.CrumbPorBoleto</a>
+    <a class="view-tab@(porCubrir ? " is-active" : "")" asp-controller="CubrirVenta" asp-action="Resumen" aria-current="@(porCubrir ? "page" : null)">@UiTexts.CrumbPorCubrir</a>
 </nav>

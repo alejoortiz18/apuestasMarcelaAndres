@@ -34,6 +34,9 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
     public DbSet<OperacionRevisadaManual> OperacionesRevisadaManual => Set<OperacionRevisadaManual>();
     public DbSet<ParametroRevisadaManual> ParametrosRevisadaManual => Set<ParametroRevisadaManual>();
     public DbSet<LineaRevisadaManual> LineasRevisadaManual => Set<LineaRevisadaManual>();
+    public DbSet<OperacionCubrirVenta> OperacionesCubrirVenta => Set<OperacionCubrirVenta>();
+    public DbSet<LineaCubrirVenta> LineasCubrirVenta => Set<LineaCubrirVenta>();
+    public DbSet<ParametroCubrirVenta> ParametrosCubrirVenta => Set<ParametroCubrirVenta>();
     public DbSet<BoletoManual> BoletosManual => Set<BoletoManual>();
     public DbSet<JuegoManual> JuegosManual => Set<JuegoManual>();
     public DbSet<JuegoLoteriaManual> JuegosLoteriasManual => Set<JuegoLoteriaManual>();
@@ -161,6 +164,16 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
         }
 
         await Database.ExecuteSqlRawAsync(EsquemaRevisadaManual.Tablas, cancellationToken);
+    }
+
+    public async Task AsegurarEsquemaCubrirVentaAsync(CancellationToken cancellationToken = default)
+    {
+        if (!Database.IsRelational())
+        {
+            return;
+        }
+
+        await Database.ExecuteSqlRawAsync(EsquemaCubrirVenta.Tablas, cancellationToken);
     }
 
     public async Task AsegurarEsquemaUtilidadesAsync(CancellationToken cancellationToken = default)
@@ -671,6 +684,38 @@ public sealed class NewRichDbContext : DbContext, INewRichDbContext
             e.Property(x => x.Origen).HasMaxLength(20);
             e.Property(x => x.Valor).HasColumnType("decimal(18,2)");
             e.HasIndex(x => new { x.Origen, x.OrigenId }).IsUnique();
+            e.HasOne(x => x.Operacion).WithMany(x => x.Lineas).HasForeignKey(x => x.OperacionId);
+        });
+
+        modelBuilder.Entity<ParametroCubrirVenta>(e =>
+        {
+            e.ToTable("Parametros", "cubrir");
+            e.HasKey(x => x.ParametroId);
+            e.Property(x => x.ComisionPorcentaje).HasColumnType("decimal(5,2)");
+            e.Property(x => x.DescuentoPorcentaje).HasColumnType("decimal(5,2)");
+        });
+
+        modelBuilder.Entity<OperacionCubrirVenta>(e =>
+        {
+            e.ToTable("Operaciones", "cubrir");
+            e.HasKey(x => x.OperacionId);
+            e.Property(x => x.Estado).HasMaxLength(20);
+            e.Property(x => x.Numero).HasColumnType("nvarchar(max)");
+            e.Property(x => x.Subtotal).HasColumnType("decimal(18,2)");
+            e.Property(x => x.ComisionPorcentaje).HasColumnType("decimal(18,2)");
+            e.Property(x => x.ComisionValor).HasColumnType("decimal(18,2)");
+            e.Property(x => x.TotalConComision).HasColumnType("decimal(18,2)");
+            e.Property(x => x.DescuentoPorcentaje).HasColumnType("decimal(18,2)");
+            e.Property(x => x.DescuentoValor).HasColumnType("decimal(18,2)");
+            e.Property(x => x.TotalPagar).HasColumnType("decimal(18,2)");
+        });
+
+        modelBuilder.Entity<LineaCubrirVenta>(e =>
+        {
+            e.ToTable("Lineas", "cubrir");
+            e.HasKey(x => x.LineaId);
+            e.Property(x => x.Valor).HasColumnType("decimal(18,2)");
+            e.HasIndex(x => new { x.JuegoId, x.LoteriaId }).IsUnique();
             e.HasOne(x => x.Operacion).WithMany(x => x.Lineas).HasForeignKey(x => x.OperacionId);
         });
 

@@ -164,6 +164,17 @@ public interface IAdminApiClient
     Task<ApiCallResult<ParametrosRevisadaManualResponse>> GuardarComisionRevisadaManualAsync(decimal porcentaje, CancellationToken cancellationToken);
     Task<ApiCallResult<ParametrosRevisadaManualResponse>> GuardarDescuentoRevisadaManualAsync(decimal porcentaje, CancellationToken cancellationToken);
 
+    Task<ApiCallResult<VistaRevisadaManualResponse>> CubrirVentaResumenAsync(DateTime desde, DateTime hasta, decimal? valorMinimo, CancellationToken cancellationToken);
+    Task<ApiCallResult<GrupoRevisadaManualResponse>> CubrirVentaDesdeResumenAsync(CubrirDesdeResumenRevisadaManualRequest request, CancellationToken cancellationToken);
+    Task<ApiCallResult<VistaRevisadaManualResponse>> CubrirVentaRecubrirPreviaAsync(DateTime desde, DateTime hasta, decimal? valorMinimo, CancellationToken cancellationToken);
+    Task<ApiCallResult<VistaRevisadaManualResponse>> CubrirVentaRecubrirAsync(RecubrirRevisadaManualRequest request, CancellationToken cancellationToken);
+    Task<ApiCallResult<VistaRevisadaManualResponse>> CubrirVentaCubiertoHoyAsync(CancellationToken cancellationToken);
+    Task<ApiCallResult<ResumenHistoricoResponse>> CubrirVentaResumenHistoricoAsync(DateTime desde, DateTime hasta, string? orden, bool descendente, int pagina, int tamano, CancellationToken cancellationToken);
+    Task<ApiCallResult<CubiertoHistoricoResponse>> CubrirVentaCubiertoHistoricoAsync(DateTime desde, DateTime hasta, string? orden, bool descendente, int pagina, int tamano, CancellationToken cancellationToken);
+    Task<ApiCallResult<ParametrosRevisadaManualResponse>> ParametrosCubrirVentaAsync(CancellationToken cancellationToken);
+    Task<ApiCallResult<ParametrosRevisadaManualResponse>> GuardarComisionCubrirVentaAsync(decimal porcentaje, CancellationToken cancellationToken);
+    Task<ApiCallResult<ParametrosRevisadaManualResponse>> GuardarDescuentoCubrirVentaAsync(decimal porcentaje, CancellationToken cancellationToken);
+
     Task<ApiCallResult<ResumenUtilidadesResponse>> UtilidadesResumenAsync(string periodo, DateOnly? desde, DateOnly? hasta, CancellationToken cancellationToken);
     Task<ApiCallResult<InformeGastosPropiosResponse>> UtilidadesIndicadoresAsync(string periodo, DateOnly? desde, DateOnly? hasta, CancellationToken cancellationToken);
     Task<ApiCallResult<MovimientosGastosResponse>> UtilidadesMovimientosAsync(string periodo, DateOnly? desde, DateOnly? hasta, Guid? usuarioId, Guid? tipoGastoId, string? estado, int page, int pageSize, CancellationToken cancellationToken);
@@ -704,6 +715,54 @@ public sealed class AdminApiClient : IAdminApiClient
 
     public Task<ApiCallResult<ParametrosRevisadaManualResponse>> GuardarDescuentoRevisadaManualAsync(decimal porcentaje, CancellationToken cancellationToken) =>
         SendAsync<ParametrosRevisadaManualResponse>(HttpMethod.Post, "api/ParametrosRevisadaManual/Descuento", new GuardarParametroRevisadaManualRequest { Porcentaje = porcentaje }, true, cancellationToken);
+
+    public Task<ApiCallResult<VistaRevisadaManualResponse>> CubrirVentaResumenAsync(DateTime desde, DateTime hasta, decimal? valorMinimo, CancellationToken cancellationToken) =>
+        SendAsync<VistaRevisadaManualResponse>(HttpMethod.Get, "api/CubrirVenta/Resumen" + BuildQuery(
+            ("desde", desde.ToString("o")),
+            ("hasta", hasta.ToString("o")),
+            ("valorMinimo", valorMinimo?.ToString(System.Globalization.CultureInfo.InvariantCulture))), null, true, cancellationToken);
+
+    public Task<ApiCallResult<GrupoRevisadaManualResponse>> CubrirVentaDesdeResumenAsync(CubrirDesdeResumenRevisadaManualRequest request, CancellationToken cancellationToken) =>
+        SendAsync<GrupoRevisadaManualResponse>(HttpMethod.Post, "api/CubrirVenta/CubrirDesdeResumen", request, true, cancellationToken);
+
+    public Task<ApiCallResult<VistaRevisadaManualResponse>> CubrirVentaRecubrirPreviaAsync(DateTime desde, DateTime hasta, decimal? valorMinimo, CancellationToken cancellationToken) =>
+        SendAsync<VistaRevisadaManualResponse>(HttpMethod.Get, "api/CubrirVenta/RecubrirPrevia" + BuildQuery(
+            ("desde", desde.ToString("o")),
+            ("hasta", hasta.ToString("o")),
+            ("valorMinimo", valorMinimo?.ToString(System.Globalization.CultureInfo.InvariantCulture))), null, true, cancellationToken);
+
+    public Task<ApiCallResult<VistaRevisadaManualResponse>> CubrirVentaRecubrirAsync(RecubrirRevisadaManualRequest request, CancellationToken cancellationToken) =>
+        SendAsync<VistaRevisadaManualResponse>(HttpMethod.Post, "api/CubrirVenta/Recubrir", request, true, cancellationToken);
+
+    public Task<ApiCallResult<VistaRevisadaManualResponse>> CubrirVentaCubiertoHoyAsync(CancellationToken cancellationToken) =>
+        SendAsync<VistaRevisadaManualResponse>(HttpMethod.Get, "api/CubrirVenta/CubiertoHoy", null, true, cancellationToken);
+
+    public Task<ApiCallResult<ResumenHistoricoResponse>> CubrirVentaResumenHistoricoAsync(DateTime desde, DateTime hasta, string? orden, bool descendente, int pagina, int tamano, CancellationToken cancellationToken) =>
+        SendAsync<ResumenHistoricoResponse>(HttpMethod.Get, "api/CubrirVenta/ResumenHistorico" + BuildQuery(
+            ("desde", desde.ToString("yyyy-MM-dd")),
+            ("hasta", hasta.ToString("yyyy-MM-dd")),
+            ("orden", orden),
+            ("descendente", descendente ? "true" : "false"),
+            ("pagina", pagina.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+            ("tamano", tamano.ToString(System.Globalization.CultureInfo.InvariantCulture))), null, true, cancellationToken);
+
+    public Task<ApiCallResult<CubiertoHistoricoResponse>> CubrirVentaCubiertoHistoricoAsync(DateTime desde, DateTime hasta, string? orden, bool descendente, int pagina, int tamano, CancellationToken cancellationToken) =>
+        SendAsync<CubiertoHistoricoResponse>(HttpMethod.Get, "api/CubrirVenta/CubiertoHistorico" + BuildQuery(
+            ("desde", desde.ToString("yyyy-MM-dd")),
+            ("hasta", hasta.ToString("yyyy-MM-dd")),
+            ("orden", orden),
+            ("descendente", descendente ? "true" : "false"),
+            ("pagina", pagina.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+            ("tamano", tamano.ToString(System.Globalization.CultureInfo.InvariantCulture))), null, true, cancellationToken);
+
+    public Task<ApiCallResult<ParametrosRevisadaManualResponse>> ParametrosCubrirVentaAsync(CancellationToken cancellationToken) =>
+        SendAsync<ParametrosRevisadaManualResponse>(HttpMethod.Get, "api/ParametrosCubrirVenta", null, true, cancellationToken);
+
+    public Task<ApiCallResult<ParametrosRevisadaManualResponse>> GuardarComisionCubrirVentaAsync(decimal porcentaje, CancellationToken cancellationToken) =>
+        SendAsync<ParametrosRevisadaManualResponse>(HttpMethod.Post, "api/ParametrosCubrirVenta/Comision", new GuardarParametroRevisadaManualRequest { Porcentaje = porcentaje }, true, cancellationToken);
+
+    public Task<ApiCallResult<ParametrosRevisadaManualResponse>> GuardarDescuentoCubrirVentaAsync(decimal porcentaje, CancellationToken cancellationToken) =>
+        SendAsync<ParametrosRevisadaManualResponse>(HttpMethod.Post, "api/ParametrosCubrirVenta/Descuento", new GuardarParametroRevisadaManualRequest { Porcentaje = porcentaje }, true, cancellationToken);
 
     public Task<ApiCallResult<ResumenUtilidadesResponse>> UtilidadesResumenAsync(string periodo, DateOnly? desde, DateOnly? hasta, CancellationToken cancellationToken) =>
         SendAsync<ResumenUtilidadesResponse>(HttpMethod.Get, "api/utilidades/resumen" + Periodo(periodo, desde, hasta), null, true, cancellationToken);

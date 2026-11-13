@@ -154,17 +154,17 @@
                 </div>
             </div>
             <div class="nav-group" data-nav-group="utilidades">
-                <button type="button" class="nav-parent@(menuUtilidadesAbierto ? " abierto" : "")" aria-expanded="@(menuUtilidadesAbierto ? "true" : "false")" aria-controls="submenu-utilidades">
+                <a class="nav-parent@(menuUtilidadesAbierto ? " abierto" : "") @NavClass("utilidades-indicadores")" href="/Utilidades/Indicadores" aria-expanded="@(menuUtilidadesAbierto ? "true" : "false")" aria-controls="submenu-utilidades">
                     <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M4 19V5M4 19h16M8 15l3-4 3 2 4-6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     <span>@UiTexts.MenuUtilidades</span>
                     <svg class="nav-chevron" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                </button>
+                </a>
                 <div class="nav-sub" id="submenu-utilidades" @(menuUtilidadesAbierto ? null : "hidden")>
-                    <a class="@NavClass("utilidades-indicadores")" asp-controller="Utilidades" asp-action="Indicadores">
+                    <a class="@NavClass("utilidades-indicadores")" href="/Utilidades/Indicadores">
                         <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M4 19h16M7 16V9M12 16V5M17 16v-4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
                         <span>@UiTexts.NavUtilidadesIndicadores</span>
                     </a>
-                    <a class="@NavClass("utilidades-movimientos")" asp-controller="Utilidades" asp-action="Movimientos">
+                    <a class="@NavClass("utilidades-movimientos")" href="/Utilidades/Movimientos">
                         <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h10" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
                         <span>@UiTexts.NavUtilidadesMovimientos</span>
                     </a>

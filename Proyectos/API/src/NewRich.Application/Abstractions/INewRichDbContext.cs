@@ -49,6 +49,9 @@ public interface INewRichDbContext
     DbSet<OperacionRevisadaManual> OperacionesRevisadaManual { get; }
     DbSet<ParametroRevisadaManual> ParametrosRevisadaManual { get; }
     DbSet<LineaRevisadaManual> LineasRevisadaManual { get; }
+    DbSet<OperacionCubrirVenta> OperacionesCubrirVenta { get; }
+    DbSet<LineaCubrirVenta> LineasCubrirVenta { get; }
+    DbSet<ParametroCubrirVenta> ParametrosCubrirVenta { get; }
     DbSet<RegistroJuegoManual> RegistrosJuegoManual { get; }
     DbSet<RegistroJuegoNumerosWebManual> RegistrosJuegoNumerosWebManual { get; }
     DbSet<TipoGasto> TiposGasto { get; }
@@ -72,6 +75,7 @@ public interface INewRichDbContext
     Task AsegurarEsquemaRegistroJuegoAsync(CancellationToken cancellationToken = default);
     Task AsegurarEsquemaRegistroJuegoNumerosWebAsync(CancellationToken cancellationToken = default);
     Task AsegurarEsquemaRevisadaManualAsync(CancellationToken cancellationToken = default);
+    Task AsegurarEsquemaCubrirVentaAsync(CancellationToken cancellationToken = default);
     Task AsegurarEsquemaParametrosRevisadaManualAsync(CancellationToken cancellationToken = default);
     Task AsegurarEsquemaComisionDiaAsync(CancellationToken cancellationToken = default);
     Task AsegurarEsquemaUtilidadesAsync(CancellationToken cancellationToken = default);

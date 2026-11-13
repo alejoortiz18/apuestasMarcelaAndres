@@ -315,6 +315,11 @@ public static class UiTexts
     public const string MigaDePan = "Miga de pan";
     public const string CrumbPorLoteria = "Por lotería";
     public const string CrumbPorBoleto = "Por boleto";
+    public const string CrumbPorCubrir = "Por cubrir";
+    public const string VentasVistaCubrir = "cubrir";
+    public const string CubrirVentaKicker = "Por cubrir";
+    public const string CubrirVentaResumenSub = "Jugadas de las ventas del PDA, pendientes de cubrir.";
+    public const string CubrirVentaCubiertoSub = "Grupos cubiertos de las ventas del PDA. Ingrese la comisión y el descuento para calcular el total a pagar.";
     public const string VentasVistaLoteria = "loteria";
     public const string VentasVistaBoleto = "boleto";
     public const string VistaDeVentas = "Vista de ventas";

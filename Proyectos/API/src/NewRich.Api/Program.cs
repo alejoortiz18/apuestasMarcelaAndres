@@ -135,6 +135,7 @@ using (var alcance = app.Services.CreateScope())
     await db.AsegurarEsquemaRegistroJuegoAsync(CancellationToken.None);
     await db.AsegurarEsquemaRegistroJuegoNumerosWebAsync(CancellationToken.None);
     await db.AsegurarEsquemaRevisadaManualAsync(CancellationToken.None);
+    await db.AsegurarEsquemaCubrirVentaAsync(CancellationToken.None);
     await db.AsegurarEsquemaParametrosRevisadaManualAsync(CancellationToken.None);
     await db.AsegurarEsquemaComisionDiaAsync(CancellationToken.None);
     await db.AsegurarEsquemaUtilidadesAsync(CancellationToken.None);
