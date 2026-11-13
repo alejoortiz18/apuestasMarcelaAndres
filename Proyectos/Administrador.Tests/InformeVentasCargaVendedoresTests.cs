@@ -96,6 +96,8 @@ public sealed class InformeVentasCargaVendedoresTests
             .ReturnsAsync(ApiCallResult<VistaRevisadaManualResponse>.Ok(new VistaRevisadaManualResponse(), "Listo."));
         api.Setup(a => a.RevisadaCubiertoAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<IReadOnlyCollection<Guid>?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(ApiCallResult<VistaRevisadaManualResponse>.Ok(new VistaRevisadaManualResponse(), "Listo."));
+        api.Setup(a => a.CubrirVentaCubiertoAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<IReadOnlyCollection<Guid>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ApiCallResult<VistaRevisadaManualResponse>.Ok(new VistaRevisadaManualResponse(), "Listo."));
         api.Setup(a => a.UtilidadesMovimientosAsync(It.IsAny<string>(), It.IsAny<DateOnly?>(), It.IsAny<DateOnly?>(), It.IsAny<Guid?>(), It.IsAny<Guid?>(), It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(ApiCallResult<MovimientosGastosResponse>.Ok(new MovimientosGastosResponse(Hoy, Hoy, 0m, 0, 0, []), "Listo."));
         return api;

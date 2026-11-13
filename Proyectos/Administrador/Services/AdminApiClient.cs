@@ -168,6 +168,7 @@ public interface IAdminApiClient
     Task<ApiCallResult<GrupoRevisadaManualResponse>> CubrirVentaDesdeResumenAsync(CubrirDesdeResumenRevisadaManualRequest request, CancellationToken cancellationToken);
     Task<ApiCallResult<VistaRevisadaManualResponse>> CubrirVentaRecubrirPreviaAsync(DateTime desde, DateTime hasta, decimal? valorMinimo, CancellationToken cancellationToken);
     Task<ApiCallResult<VistaRevisadaManualResponse>> CubrirVentaRecubrirAsync(RecubrirRevisadaManualRequest request, CancellationToken cancellationToken);
+    Task<ApiCallResult<VistaRevisadaManualResponse>> CubrirVentaCubiertoAsync(DateTime desde, DateTime hasta, IReadOnlyCollection<Guid>? vendedores, CancellationToken cancellationToken);
     Task<ApiCallResult<VistaRevisadaManualResponse>> CubrirVentaCubiertoHoyAsync(CancellationToken cancellationToken);
     Task<ApiCallResult<ResumenHistoricoResponse>> CubrirVentaResumenHistoricoAsync(DateTime desde, DateTime hasta, string? orden, bool descendente, int pagina, int tamano, CancellationToken cancellationToken);
     Task<ApiCallResult<CubiertoHistoricoResponse>> CubrirVentaCubiertoHistoricoAsync(DateTime desde, DateTime hasta, string? orden, bool descendente, int pagina, int tamano, CancellationToken cancellationToken);
@@ -733,6 +734,14 @@ public sealed class AdminApiClient : IAdminApiClient
 
     public Task<ApiCallResult<VistaRevisadaManualResponse>> CubrirVentaRecubrirAsync(RecubrirRevisadaManualRequest request, CancellationToken cancellationToken) =>
         SendAsync<VistaRevisadaManualResponse>(HttpMethod.Post, "api/CubrirVenta/Recubrir", request, true, cancellationToken);
+
+    public Task<ApiCallResult<VistaRevisadaManualResponse>> CubrirVentaCubiertoAsync(DateTime desde, DateTime hasta, IReadOnlyCollection<Guid>? vendedores, CancellationToken cancellationToken) =>
+        SendAsync<VistaRevisadaManualResponse>(HttpMethod.Get, "api/CubrirVenta/Cubierto" + BuildQuery(
+        [
+            ("desde", desde.ToString("o")),
+            ("hasta", hasta.ToString("o")),
+            .. (vendedores ?? []).Select(v => ("vendedores", (string?)v.ToString()))
+        ]), null, true, cancellationToken);
 
     public Task<ApiCallResult<VistaRevisadaManualResponse>> CubrirVentaCubiertoHoyAsync(CancellationToken cancellationToken) =>
         SendAsync<VistaRevisadaManualResponse>(HttpMethod.Get, "api/CubrirVenta/CubiertoHoy", null, true, cancellationToken);

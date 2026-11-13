@@ -22,6 +22,7 @@ public sealed class FuenteInformeVentas
     public InformeGastosPropiosResponse? Gastos { get; init; }
     public IReadOnlyList<MovimientoGastoResponse> Movimientos { get; init; } = [];
     public VistaRevisadaManualResponse? Cubierto { get; init; }
+    public VistaRevisadaManualResponse? CubiertoPda { get; init; }
     public TableroRecaudoResponse? Recaudo { get; init; }
 }
 
@@ -36,12 +37,14 @@ public static class VentasInforme
     public const string TipoEgresoPremios = "premios";
     public const string TipoEgresoGastos = "gastos";
     public const string TipoEgresoCubierto = "cubierto";
+    public const string TipoEgresoCubiertoPda = "cubiertopda";
 
     public static readonly IReadOnlyList<OpcionInforme> TiposEgreso =
     [
         new() { Valor = TipoEgresoPremios, Texto = UiTexts.InformeTipoEgresoPremios },
         new() { Valor = TipoEgresoGastos, Texto = UiTexts.InformeTipoEgresoGastos },
-        new() { Valor = TipoEgresoCubierto, Texto = UiTexts.InformeTipoEgresoCubierto }
+        new() { Valor = TipoEgresoCubierto, Texto = UiTexts.InformeTipoEgresoCubierto },
+        new() { Valor = TipoEgresoCubiertoPda, Texto = UiTexts.InformeTipoEgresoCubiertoPda }
     ];
 
     public static bool Incluye(FiltrosPeriodoInforme filtros, string tipo) =>
@@ -373,11 +376,16 @@ public static class VentasInforme
         string? ordenCubiertos = null,
         string? direccionCubiertos = null,
         int paginaCubiertos = 1,
-        int filasCubiertos = 10)
+        int filasCubiertos = 10,
+        string? ordenCubiertosPda = null,
+        string? direccionCubiertosPda = null,
+        int paginaCubiertosPda = 1,
+        int filasCubiertosPda = 10)
     {
         var conPremios = Incluye(filtros, TipoEgresoPremios);
         var conGastos = Incluye(filtros, TipoEgresoGastos);
         var conCubierto = Incluye(filtros, TipoEgresoCubierto);
+        var conCubiertoPda = Incluye(filtros, TipoEgresoCubiertoPda);
         var completo = Resumen(fuente);
         var resumen = new ResumenFinancieroInforme
         {
@@ -390,7 +398,9 @@ public static class VentasInforme
             TotalGastos = conGastos ? completo.TotalGastos : 0m,
             CantidadGastos = conGastos ? completo.CantidadGastos : 0,
             TotalCubierto = conCubierto ? completo.TotalCubierto : 0m,
-            JugadasCubiertas = conCubierto ? completo.JugadasCubiertas : 0
+            JugadasCubiertas = conCubierto ? completo.JugadasCubiertas : 0,
+            TotalCubiertoPda = conCubiertoPda ? completo.TotalCubiertoPda : 0m,
+            JugadasCubiertasPda = conCubiertoPda ? completo.JugadasCubiertasPda : 0
         };
         var premiosWeb = conPremios ? fuente.PremiosWeb : [];
         var (columnaGastos, sentidoGastos) = OrdenTabla.Resolver(ordenGastos, direccionGastos, ColumnasGastosPersona, GastoPersonaTotal, OrdenTabla.Descendente);
@@ -417,7 +427,7 @@ public static class VentasInforme
                 Entrega = InformeTextos.EntregaObservador
             })
             : []), orden, direccion);
-        var egresos = Egresos(resumen, fuente, paginaGastos, filasGastos, columnaGastos, sentidoGastos, conPremios, conGastos, conCubierto);
+        var egresos = Egresos(resumen, fuente, paginaGastos, filasGastos, columnaGastos, sentidoGastos, conPremios, conGastos, conCubierto, conCubiertoPda);
         var porLoteria = premiosWeb
             .GroupBy(p => p.Loteria)
             .Select(g => (Texto: g.Key, Valor: g.Sum(p => p.ValorPremio), Cantidad: g.Count()))
@@ -428,25 +438,17 @@ public static class VentasInforme
             .GroupBy(p => p.Texto)
             .Select(g => (Texto: g.Key, Valor: g.Sum(p => p.Valor), Cantidad: g.Sum(p => p.Cantidad)))
             .ToList();
-        var cubiertos = (conCubierto ? fuente.Cubierto?.Grupos ?? [] : [])
-            .Select(g => new CubiertoInforme
-            {
-                Fecha = DateOnly.FromDateTime(g.FechaOperacion ?? corte),
-                Loteria = g.Loteria,
-                Numero = g.Numero,
-                CubiertoPor = string.IsNullOrWhiteSpace(g.CubiertoPor) ? "-" : g.CubiertoPor,
-                Subtotal = g.Subtotal,
-                DescuentoPorcentaje = g.DescuentoPorcentaje,
-                Descuento = g.DescuentoValor ?? 0m,
-                Pagado = g.TotalPagar ?? 0m
-            })
-            .ToList();
+        var cubiertos = FilasCubiertas(conCubierto ? fuente.Cubierto : null, corte);
+        var cubiertosPda = FilasCubiertas(conCubiertoPda ? fuente.CubiertoPda : null, corte);
         var cubiertoPorLoteria = cubiertos
             .GroupBy(c => c.Loteria)
             .Select(g => (Texto: g.Key, Valor: g.Sum(c => c.Subtotal), Cantidad: g.Count()))
             .ToList();
         var (columnaCubierto, sentidoCubierto) = OrdenTabla.Resolver(ordenCubiertos, direccionCubiertos, ColumnasCubiertos, CubiertoFecha, OrdenTabla.Descendente);
         var ordenCubierto = new EstadoOrden(columnaCubierto, sentidoCubierto);
+        var (columnaCubiertoPda, sentidoCubiertoPda) = OrdenTabla.Resolver(ordenCubiertosPda, direccionCubiertosPda, ColumnasCubiertos, CubiertoFecha, OrdenTabla.Descendente);
+        var ordenCubiertoPda = new EstadoOrden(columnaCubiertoPda, sentidoCubiertoPda);
+        var cubiertosPdaOrdenados = OrdenarCubiertos(cubiertosPda, ordenCubiertoPda, true);
         return new InformeEgresosViewModel
         {
             Corte = corte,
@@ -470,9 +472,12 @@ public static class VentasInforme
                 CubiertoPorLoteria = Segmentos(cubiertoPorLoteria, cubiertoPorLoteria.Sum(c => c.Valor)),
                 Cubiertos = PagingHelper.Paginate(OrdenarCubiertos(cubiertos, ordenCubierto), paginaCubiertos, filasCubiertos),
                 OrdenCubiertos = ordenCubierto,
+                CubiertosPda = PagingHelper.Paginate(cubiertosPdaOrdenados, paginaCubiertosPda, filasCubiertosPda),
+                OrdenCubiertosPda = ordenCubiertoPda,
                 IncluyePremios = conPremios,
                 IncluyeGastos = conGastos,
-                IncluyeCubierto = conCubierto
+                IncluyeCubierto = conCubierto,
+                IncluyeCubiertoPda = conCubiertoPda
             }
         };
     }
@@ -517,7 +522,9 @@ public static class VentasInforme
         TotalGastos = fuente.Gastos?.TotalValor ?? 0m,
         CantidadGastos = fuente.Gastos?.Cantidad ?? 0,
         TotalCubierto = fuente.Cubierto?.Total ?? 0m,
-        JugadasCubiertas = fuente.Cubierto?.Jugadas ?? 0
+        JugadasCubiertas = fuente.Cubierto?.Jugadas ?? 0,
+        TotalCubiertoPda = SubtotalConComisionDe(fuente.CubiertoPda),
+        JugadasCubiertasPda = fuente.CubiertoPda?.Jugadas ?? 0
     };
 
     private static string Alcance(FiltrosPeriodoInforme filtros, IReadOnlyList<GrupoResponse> grupos) =>
@@ -573,6 +580,22 @@ public static class VentasInforme
         };
     }
 
+    private static List<CubiertoInforme> FilasCubiertas(VistaRevisadaManualResponse? cubierto, DateTime corte) =>
+        (cubierto?.Grupos ?? [])
+            .Select(g => new CubiertoInforme
+            {
+                Fecha = DateOnly.FromDateTime(g.FechaOperacion ?? corte),
+                Loteria = g.Loteria,
+                Numero = g.Numero,
+                CubiertoPor = string.IsNullOrWhiteSpace(g.CubiertoPor) ? "-" : g.CubiertoPor,
+                Subtotal = g.Subtotal,
+                SubtotalConComision = g.TotalConComision ?? g.Subtotal,
+                DescuentoPorcentaje = g.DescuentoPorcentaje,
+                Descuento = g.DescuentoValor ?? 0m,
+                Pagado = g.TotalPagar ?? 0m
+            })
+            .ToList();
+
     public const string CubiertoFecha = "fecha";
     public const string CubiertoLoteria = "loteria";
     public const string CubiertoNumero = "numero";
@@ -583,13 +606,20 @@ public static class VentasInforme
     private static readonly string[] ColumnasCubiertos =
         [CubiertoFecha, CubiertoLoteria, CubiertoNumero, CubiertoQuien, CubiertoSubtotal, CubiertoDescuento, CubiertoPagado];
 
-    private static IReadOnlyList<CubiertoInforme> OrdenarCubiertos(IEnumerable<CubiertoInforme> filas, EstadoOrden estado) =>
+    private static decimal SubtotalConComisionDe(VistaRevisadaManualResponse? cubierto) =>
+        cubierto is null
+            ? 0m
+            : cubierto.Grupos.Count > 0
+                ? cubierto.Grupos.Sum(g => g.TotalConComision ?? g.Subtotal)
+                : cubierto.Total;
+
+    private static IReadOnlyList<CubiertoInforme> OrdenarCubiertos(IEnumerable<CubiertoInforme> filas, EstadoOrden estado, bool subtotalConComision = false) =>
         (estado.Orden switch
         {
             CubiertoLoteria => OrdenTabla.Por(filas, c => c.Loteria, estado.Direccion, OrdenTabla.Texto),
             CubiertoNumero => OrdenTabla.Por(filas, c => c.Numero, estado.Direccion, OrdenTabla.Texto),
             CubiertoQuien => OrdenTabla.Por(filas, c => c.CubiertoPor, estado.Direccion, OrdenTabla.Texto),
-            CubiertoSubtotal => OrdenTabla.Por(filas, c => c.Subtotal, estado.Direccion),
+            CubiertoSubtotal => OrdenTabla.Por(filas, c => subtotalConComision ? c.SubtotalConComision : c.Subtotal, estado.Direccion),
             CubiertoDescuento => OrdenTabla.Por(filas, c => c.Descuento, estado.Direccion),
             CubiertoPagado => OrdenTabla.Por(filas, c => c.Pagado, estado.Direccion),
             _ => OrdenTabla.Por(filas, c => c.Fecha, estado.Direccion)
@@ -619,12 +649,14 @@ public static class VentasInforme
         string direccionGastos = OrdenTabla.Descendente,
         bool conPremios = true,
         bool conGastos = true,
-        bool conCubierto = true)
+        bool conCubierto = true,
+        bool conCubiertoPda = true)
     {
         var conceptos = new List<(string Texto, decimal Valor, int Cantidad)>();
         if (conPremios) conceptos.Add((UiTexts.InformeConceptoPremios, resumen.TotalPremios, resumen.EntregasPremio));
         if (conGastos) conceptos.Add((UiTexts.InformeConceptoGastos, resumen.TotalGastos, resumen.CantidadGastos));
         if (conCubierto) conceptos.Add((UiTexts.InformeConceptoCubierto, resumen.TotalCubierto, resumen.JugadasCubiertas));
+        if (conCubiertoPda) conceptos.Add((UiTexts.InformeConceptoCubiertoPda, resumen.TotalCubiertoPda, resumen.JugadasCubiertasPda));
         var porTipo = (conGastos ? fuente.Gastos?.PorTipo ?? [] : [])
             .Select(t => (Texto: t.Tipo, t.Valor, t.Cantidad))
             .ToList();

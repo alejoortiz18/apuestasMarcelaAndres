@@ -15,6 +15,7 @@ public interface ICubrirVentaService
     Task<Result<VistaRevisadaManualResponse>> RecubrirPreviaAsync(DateTime desde, DateTime hasta, decimal? valorMinimo, CancellationToken cancellationToken);
     Task<Result<VistaRevisadaManualResponse>> RecubrirAsync(Guid administradorId, IReadOnlyList<string> claves, decimal comisionPorcentaje, decimal descuentoPorcentaje, CancellationToken cancellationToken);
     Task<Result<VistaRevisadaManualResponse>> CubiertoHoyAsync(CancellationToken cancellationToken);
+    Task<Result<VistaRevisadaManualResponse>> CubiertoAsync(DateTime desde, DateTime hasta, IReadOnlyCollection<Guid>? vendedores, CancellationToken cancellationToken);
     Task<Result<ResumenHistoricoResponse>> ResumenHistoricoAsync(DateTime desde, DateTime hasta, string? orden, bool descendente, int pagina, int tamano, CancellationToken cancellationToken);
     Task<Result<CubiertoHistoricoResponse>> CubiertoHistoricoAsync(DateTime desde, DateTime hasta, string? orden, bool descendente, int pagina, int tamano, CancellationToken cancellationToken);
 }
@@ -146,6 +147,69 @@ public sealed class CubrirVentaService : ICubrirVentaService
             Total = grupos.Sum(g => g.Subtotal),
             Grupos = grupos
         }, RevisadaManualMessages.Recubierto);
+    }
+
+    public async Task<Result<VistaRevisadaManualResponse>> CubiertoAsync(DateTime desde, DateTime hasta, IReadOnlyCollection<Guid>? vendedores, CancellationToken cancellationToken)
+    {
+        var operaciones = await _db.OperacionesCubrirVenta.AsNoTracking()
+            .Include(o => o.Lineas)
+            .Where(o => o.Estado == OperacionCubrirVenta.EstadoCubierto && o.FechaOperacion >= desde && o.FechaOperacion <= hasta)
+            .ToListAsync(cancellationToken);
+        if (vendedores is not null)
+        {
+            await DejarLineasDeVendedoresAsync(operaciones, vendedores, cancellationToken);
+        }
+
+        var nombres = await NombresAsync(operaciones.Select(o => o.LoteriaId), cancellationToken);
+        var idsUsuarios = operaciones.Select(o => o.UsuarioId).Distinct().ToList();
+        var usuarios = await _db.Usuarios.AsNoTracking()
+            .Where(u => idsUsuarios.Contains(u.UsuarioId))
+            .ToDictionaryAsync(u => u.UsuarioId, u => u.NombreCompleto, cancellationToken);
+        var grupos = operaciones
+            .Select(o =>
+            {
+                var grupo = Mapear(o, nombres.GetValueOrDefault(o.LoteriaId) ?? string.Empty);
+                grupo.CubiertoPor = usuarios.GetValueOrDefault(o.UsuarioId);
+                return grupo;
+            })
+            .OrderBy(g => g.Loteria)
+            .ThenBy(g => g.Numero)
+            .ToList();
+        return Result<VistaRevisadaManualResponse>.Ok(new VistaRevisadaManualResponse
+        {
+            Jugadas = grupos.Sum(g => g.Lineas.Count),
+            Loterias = grupos.Select(g => g.Loteria).Distinct().Count(),
+            Total = grupos.Sum(g => g.Subtotal),
+            Grupos = grupos
+        }, RevisadaManualMessages.Consultado);
+    }
+
+    private async Task DejarLineasDeVendedoresAsync(List<OperacionCubrirVenta> operaciones, IReadOnlyCollection<Guid> vendedores, CancellationToken cancellationToken)
+    {
+        var juegos = operaciones.SelectMany(o => o.Lineas.Select(l => l.JuegoId)).Distinct().ToList();
+        var duenos = await _db.Juegos.AsNoTracking()
+            .Where(j => juegos.Contains(j.JuegoId))
+            .Select(j => new { j.JuegoId, j.Boleto!.Venta!.UsuarioId })
+            .ToListAsync(cancellationToken);
+        var permitidos = duenos.Where(d => vendedores.Contains(d.UsuarioId)).Select(d => d.JuegoId).ToHashSet();
+        foreach (var operacion in operaciones)
+        {
+            operacion.Lineas = operacion.Lineas.Where(l => permitidos.Contains(l.JuegoId)).ToList();
+            operacion.Subtotal = operacion.Lineas.Sum(l => l.Valor);
+            if (operacion.ComisionPorcentaje is { } comision)
+            {
+                operacion.ComisionValor = RevisadaManualCalculo.Parte(operacion.Subtotal, comision);
+                operacion.TotalConComision = RevisadaManualCalculo.TotalConComision(operacion.Subtotal, comision);
+            }
+
+            if (operacion.DescuentoPorcentaje is { } descuento && operacion.TotalConComision is { } conComision)
+            {
+                operacion.DescuentoValor = RevisadaManualCalculo.Parte(conComision, descuento);
+                operacion.TotalPagar = RevisadaManualCalculo.TotalAPagar(conComision, descuento);
+            }
+        }
+
+        operaciones.RemoveAll(o => o.Lineas.Count == 0);
     }
 
     public async Task<Result<VistaRevisadaManualResponse>> CubiertoHoyAsync(CancellationToken cancellationToken)

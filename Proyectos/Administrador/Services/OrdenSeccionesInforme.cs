@@ -42,6 +42,7 @@ public static class OrdenSeccionesInforme
                 ("loterias", UiTexts.InformePremiosPorLoteria),
                 ("cubiertoloterias", UiTexts.InformeCubiertoPorLoteria),
                 ("cubiertos", UiTexts.InformeCubiertos),
+                ("cubiertospda", UiTexts.InformeCubiertosPda),
                 ("conceptos", UiTexts.InformeEgresosPorConcepto),
                 ("gastos", UiTexts.InformeGastosPorPersona)
             ],

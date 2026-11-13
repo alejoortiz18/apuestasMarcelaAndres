@@ -49,6 +49,8 @@ public sealed class UtilidadesMenuRutaTests
                 new NewRich.Application.Contracts.Utilidades.InformeGastosPropiosResponse(new DateOnly(2026, 10, 1), new DateOnly(2026, 10, 7), 0m, 0, 0m, null, null, null, 0m, 0, [], [], 0m, 0m), "Listo."));
         api.Setup(x => x.RevisadaCubiertoAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(ApiCallResult<NewRich.Application.Contracts.RevisadaManual.VistaRevisadaManualResponse>.Ok(new NewRich.Application.Contracts.RevisadaManual.VistaRevisadaManualResponse(), "Listo."));
+        api.Setup(x => x.CubrirVentaCubiertoAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<IReadOnlyCollection<Guid>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ApiCallResult<NewRich.Application.Contracts.RevisadaManual.VistaRevisadaManualResponse>.Ok(new NewRich.Application.Contracts.RevisadaManual.VistaRevisadaManualResponse(), "Listo."));
         var http = new DefaultHttpContext();
         var sut = new UtilidadesController(api.Object)
         {

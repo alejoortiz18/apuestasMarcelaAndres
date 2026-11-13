@@ -64,6 +64,8 @@ public sealed class UtilidadesInformeVentasTests
                 new InformeGastosPropiosResponse(new DateOnly(2026, 10, 1), new DateOnly(2026, 10, 7), 0m, 0, 0m, null, null, null, 0m, 0, [], [], 0m, 0m), "Listo."));
         api.Setup(x => x.RevisadaCubiertoAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(ApiCallResult<VistaRevisadaManualResponse>.Ok(new VistaRevisadaManualResponse(), "Listo."));
+        api.Setup(x => x.CubrirVentaCubiertoAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<IReadOnlyCollection<Guid>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ApiCallResult<VistaRevisadaManualResponse>.Ok(new VistaRevisadaManualResponse(), "Listo."));
         return api;
     }
 

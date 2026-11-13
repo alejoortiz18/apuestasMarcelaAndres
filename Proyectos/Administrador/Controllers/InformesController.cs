@@ -50,6 +50,10 @@ public sealed class InformesController : AdminControllerBase
         string? dirC = null,
         int pageC = 1,
         int pageSizeC = 10,
+        string? ordenCp = null,
+        string? dirCp = null,
+        int pageCp = 1,
+        int pageSizeCp = 10,
         string? pestana = null,
         Guid? cierre = null,
         string? grupo = null,
@@ -65,7 +69,7 @@ public sealed class InformesController : AdminControllerBase
         CancellationToken cancellationToken = default)
     {
         SetNav("informes", UiTexts.NavInformes);
-        var premios = new OrdenesInforme(ordenP, dirP, pageP, pageSizeP, ordenG, dirG, ordenV, dirV, ordenAt, dirAt, pageAt, pageSizeAt, ordenC, dirC, pageC, pageSizeC);
+        var premios = new OrdenesInforme(ordenP, dirP, pageP, pageSizeP, ordenG, dirG, ordenV, dirV, ordenAt, dirAt, pageAt, pageSizeAt, ordenC, dirC, pageC, pageSizeC, ordenCp, dirCp, pageCp, pageSizeCp);
         var (modelo, salida) = await ConstruirAsync(orden, dir, page, pageSize, pageV, pageSizeV, pageG, pageSizeG, premios, pestana, cierre, grupo, pageH, pageSizeH, pageD, pageSizeD, ordenH, dirH, ordenD, dirD, nuevo, pageRd, pageSizeRd, cancellationToken);
         return salida ?? View(modelo);
     }
@@ -216,7 +220,8 @@ public sealed class InformesController : AdminControllerBase
             InformeEgresos = cargaEgresos.Carga is { } fuenteEgresos
                 ? VentasInforme.InformeEgresos(fuenteEgresos.Fuente, egresos.Filtros, listaGrupos, cargaEgresos.Desde, cargaEgresos.Hasta, ahora, pageG, pageSizeG,
                     premios.Orden, premios.Direccion, premios.Pagina, premios.Filas, premios.OrdenGastos, premios.DireccionGastos,
-                    premios.OrdenCubiertos, premios.DireccionCubiertos, premios.PaginaCubiertos, PagingHelper.NormalizePageSize(premios.FilasCubiertos))
+                    premios.OrdenCubiertos, premios.DireccionCubiertos, premios.PaginaCubiertos, PagingHelper.NormalizePageSize(premios.FilasCubiertos),
+                    premios.OrdenCubiertosPda, premios.DireccionCubiertosPda, premios.PaginaCubiertosPda, PagingHelper.NormalizePageSize(premios.FilasCubiertosPda))
                 : null,
             Recaudo = recaudo,
             InformeRecaudo = cargaRecaudo.Carga is { } fuenteRecaudo
@@ -441,5 +446,9 @@ public sealed class InformesController : AdminControllerBase
         string? OrdenCubiertos,
         string? DireccionCubiertos,
         int PaginaCubiertos,
-        int FilasCubiertos);
+        int FilasCubiertos,
+        string? OrdenCubiertosPda,
+        string? DireccionCubiertosPda,
+        int PaginaCubiertosPda,
+        int FilasCubiertosPda);
 }

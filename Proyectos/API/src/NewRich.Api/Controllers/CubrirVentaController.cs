@@ -32,6 +32,10 @@ public sealed class CubrirVentaController : ApiControllerBase
     public async Task<IActionResult> ResumenHistorico([FromQuery] DateTime desde, [FromQuery] DateTime hasta, [FromQuery] string? orden, [FromQuery] bool descendente = false, [FromQuery] int pagina = 1, [FromQuery] int tamano = 20, CancellationToken cancellationToken = default) =>
         From(await _cubrir.ResumenHistoricoAsync(desde, hasta, orden, descendente, pagina, tamano, cancellationToken));
 
+    [HttpGet("Cubierto")]
+    public async Task<IActionResult> Cubierto([FromQuery] DateTime desde, [FromQuery] DateTime hasta, [FromQuery] List<Guid>? vendedores, CancellationToken cancellationToken) =>
+        From(await _cubrir.CubiertoAsync(desde, hasta, vendedores is { Count: > 0 } ? vendedores : null, cancellationToken));
+
     [HttpGet("CubiertoHoy")]
     public async Task<IActionResult> CubiertoHoy(CancellationToken cancellationToken) =>
         From(await _cubrir.CubiertoHoyAsync(cancellationToken));

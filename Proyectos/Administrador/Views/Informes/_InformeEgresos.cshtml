@@ -361,6 +361,85 @@
     </div>
     }
 
+    @if (Model.Egresos.IncluyeCubiertoPda)
+    {
+    <div class="informe-movible" data-seccion="cubiertospda" style="order: @secciones.Posicion("cubiertospda")">
+    <partial name="~/Views/Informes/_MoverSeccion.cshtml" model='(secciones, "cubiertospda")' />
+        <section class="informe-tabla" id="informeEgresosCubiertosPdaSeccion" aria-labelledby="informeEgresosCubiertosPda">
+            <div class="informe-tabla-head">
+                <div>
+                    <h5 id="informeEgresosCubiertosPda">@UiTexts.InformeCubiertosPda</h5>
+                    <p>@UiTexts.InformeCubiertosPdaAyuda</p>
+                </div>
+                <form method="get" asp-action="Index" class="informe-filas" data-submit-on-change>
+                    @foreach (var q in conservar(["pageCp", "pageSizeCp"]))
+                    {
+                        <input type="hidden" name="@q.Key" value="@q.Value" />
+                    }
+                    <label for="informeEgresosPageSizeCp">@UiTexts.FilasPorPagina</label>
+                    <select id="informeEgresosPageSizeCp" name="pageSizeCp">
+                        @foreach (var size in PagingHelper.PageSizes)
+                        {
+                            <option value="@size" selected="@(Model.Egresos.CubiertosPda.PageSize == size)">@size</option>
+                        }
+                    </select>
+                </form>
+            </div>
+            @if (Model.Egresos.CubiertosPda.TotalCount == 0)
+            {
+                <p class="empty">@UiTexts.InformeSinCubiertosPda</p>
+            }
+            else
+            {
+                <div class="table-wrap">
+                    <table class="informe-table">
+                        <thead>
+                        <tr>
+                            @foreach (var (clave, texto, numero) in new[]
+                            {
+                                (VentasInforme.CubiertoFecha, UiTexts.Fecha, false),
+                                (VentasInforme.CubiertoLoteria, UiTexts.Loteria, false),
+                                (VentasInforme.CubiertoNumero, UiTexts.InformeColumnaNumero, false),
+                                (VentasInforme.CubiertoQuien, UiTexts.InformeColumnaQuienCubrio, false),
+                                (VentasInforme.CubiertoSubtotal, UiTexts.InformeColumnaSubtotalConComision, true),
+                                (VentasInforme.CubiertoDescuento, UiTexts.Descuento, true),
+                                (VentasInforme.CubiertoPagado, UiTexts.InformeColumnaValorPagado, true)
+                            })
+                            {
+                                <partial name="_ColumnaOrden" model='new ColumnaOrdenViewModel { Clave = clave, Texto = texto, Estado = Model.Egresos.OrdenCubiertosPda, ParamOrden = "ordenCp", ParamDireccion = "dirCp", ParamPagina = "pageCp", Ancla = "informeEgresosCubiertosPdaSeccion", Numero = numero }' />
+                            }
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var c in Model.Egresos.CubiertosPda.Items)
+                        {
+                            <tr>
+                                <td>@c.Fecha.ToString("dd/MM/yyyy", cultura)</td>
+                                <td>@c.Loteria</td>
+                                <td><strong>@c.Numero</strong></td>
+                                <td>@c.CubiertoPor</td>
+                                <td class="num">@Pesos(c.SubtotalConComision)</td>
+                                <td class="num">
+                                    @Pesos(c.Descuento)
+                                    @if (c.DescuentoPorcentaje is { } porcentajePda)
+                                    {
+                                        <small>(@Porc(porcentajePda) %)</small>
+                                    }
+                                </td>
+                                <td class="num"><strong>@Pesos(c.Pagado)</strong></td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+                ViewData["PagerPageKey"] = "pageCp";
+                ViewData["PagerPageSizeKey"] = "pageSizeCp";
+                <partial name="_Pager" model="Model.Egresos.CubiertosPda" />
+            }
+        </section>
+    </div>
+    }
+
     @if (Model.Egresos.IncluyeGastos)
     {
     <div class="informe-movible" data-seccion="gastos" style="order: @secciones.Posicion("gastos")">

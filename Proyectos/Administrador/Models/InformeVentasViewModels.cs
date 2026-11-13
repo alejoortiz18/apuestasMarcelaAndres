@@ -81,7 +81,9 @@ public sealed class ResumenFinancieroInforme
     public int CantidadGastos { get; init; }
     public decimal TotalCubierto { get; init; }
     public int JugadasCubiertas { get; init; }
-    public decimal TotalEgresos => TotalPremios + TotalGastos + TotalCubierto;
+    public decimal TotalCubiertoPda { get; init; }
+    public int JugadasCubiertasPda { get; init; }
+    public decimal TotalEgresos => TotalPremios + TotalGastos + TotalCubierto + TotalCubiertoPda;
     public decimal Ganancias => TotalIngresos - TotalEgresos;
     public decimal? Margen => TotalIngresos == 0 ? null : Math.Round(Ganancias * 100m / TotalIngresos, 1, MidpointRounding.AwayFromZero);
     public decimal? PesoEgresos => TotalIngresos == 0 ? null : Math.Round(TotalEgresos * 100m / TotalIngresos, 1, MidpointRounding.AwayFromZero);
@@ -142,6 +144,7 @@ public sealed class CubiertoInforme
     public string Numero { get; init; } = string.Empty;
     public string CubiertoPor { get; init; } = string.Empty;
     public decimal Subtotal { get; init; }
+    public decimal SubtotalConComision { get; init; }
     public decimal? DescuentoPorcentaje { get; init; }
     public decimal Descuento { get; init; }
     public decimal Pagado { get; init; }
@@ -174,9 +177,12 @@ public sealed class EgresosInforme
     public IReadOnlyList<SegmentoValorInforme> CubiertoPorLoteria { get; init; } = [];
     public PagedViewModel<CubiertoInforme> Cubiertos { get; init; } = new();
     public EstadoOrden OrdenCubiertos { get; init; } = new("fecha", "desc");
+    public PagedViewModel<CubiertoInforme> CubiertosPda { get; init; } = new();
+    public EstadoOrden OrdenCubiertosPda { get; init; } = new("fecha", "desc");
     public bool IncluyePremios { get; init; } = true;
     public bool IncluyeGastos { get; init; } = true;
     public bool IncluyeCubierto { get; init; } = true;
+    public bool IncluyeCubiertoPda { get; init; } = true;
 }
 
 public sealed class RecaudadorInforme

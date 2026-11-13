@@ -155,6 +155,71 @@ public sealed class VentasInformeTests
         sinCubierto.Egresos.CubiertoPorLoteria.Should().BeEmpty();
     }
 
+    [Fact]
+    public void El_cubierto_del_pda_entra_en_egresos_por_concepto_y_en_su_tabla()
+    {
+        var fuente = new FuenteInformeVentas
+        {
+            Cubierto = new VistaRevisadaManualResponse { Total = 700m, Jugadas = 1 },
+            CubiertoPda = new VistaRevisadaManualResponse
+            {
+                Total = 400m,
+                Jugadas = 1,
+                Grupos = [Cubierto("Medellín", "2468", 400m, new DateTime(2026, 10, 20, 11, 0, 0))]
+            }
+        };
+
+        var informe = VentasInforme.InformeEgresos(fuente, new FiltrosPeriodoInforme { Periodo = "hoy" }, [], Hoy, Hoy, DateTime.Now, 1, 10);
+        var oculto = VentasInforme.InformeEgresos(fuente, new FiltrosPeriodoInforme { Periodo = "hoy", TiposEgreso = [VentasInforme.TipoEgresoCubierto] }, [], Hoy, Hoy, DateTime.Now, 1, 10);
+
+        informe.Egresos.Conceptos.Should().Contain(c => c.Texto == UiTexts.InformeConceptoCubiertoPda && c.Valor == 400m);
+        informe.Egresos.CubiertosPda.Items.Should().ContainSingle(c => c.Loteria == "Medellín" && c.Numero == "2468" && c.Subtotal == 400m && c.Pagado == 432m);
+        informe.Resumen.TotalEgresos.Should().Be(1_100m);
+        informe.Egresos.IncluyeCubiertoPda.Should().BeTrue();
+        oculto.Egresos.CubiertosPda.TotalCount.Should().Be(0);
+        oculto.Egresos.Conceptos.Should().NotContain(c => c.Texto == UiTexts.InformeConceptoCubiertoPda);
+        oculto.Resumen.TotalEgresos.Should().Be(700m);
+    }
+
+    [Fact]
+    public void El_cubierto_pda_del_informe_usa_el_subtotal_con_comision_del_historico()
+    {
+        var fuente = new FuenteInformeVentas
+        {
+            CubiertoPda = new VistaRevisadaManualResponse
+            {
+                Total = 1_000m,
+                Jugadas = 1,
+                Grupos =
+                [
+                    new GrupoRevisadaManualResponse
+                    {
+                        Loteria = "Bogotá",
+                        Numero = "321",
+                        Subtotal = 1_000m,
+                        TotalConComision = 1_050m,
+                        FechaOperacion = new DateTime(2026, 10, 20, 22, 3, 0),
+                        CubiertoPor = "Dora",
+                        DescuentoPorcentaje = 10m,
+                        DescuentoValor = 105m,
+                        TotalPagar = 945m
+                    }
+                ]
+            }
+        };
+
+        var informe = VentasInforme.InformeEgresos(fuente, new FiltrosPeriodoInforme { Periodo = "hoy" }, [], Hoy, Hoy, DateTime.Now, 1, 10);
+        var fila = informe.Egresos.CubiertosPda.Items.Should().ContainSingle().Subject;
+
+        fila.SubtotalConComision.Should().Be(1_050m);
+        informe.Egresos.Conceptos.Should().Contain(c => c.Texto == UiTexts.InformeConceptoCubiertoPda && c.Valor == 1_050m);
+        informe.Resumen.TotalEgresos.Should().Be(1_050m);
+        File.ReadAllText(RutaVistaEgresos()).Should().Contain("InformeColumnaSubtotalConComision");
+    }
+
+    private static string RutaVistaEgresos() => Path.GetFullPath(Path.Combine(
+        AppContext.BaseDirectory, "..", "..", "..", "..", "Administrador", "Views", "Informes", "_InformeEgresos.cshtml"));
+
     private static GrupoRevisadaManualResponse Cubierto(string loteria, string numero, decimal valor, DateTime fecha) => new()
     {
         OperacionId = Guid.NewGuid(),
@@ -242,7 +307,7 @@ public sealed class VentasInformeTests
         var informe = VentasInforme.InformeEgresos(fuente, new FiltrosPeriodoInforme { Periodo = "hoy" }, [], Hoy, Hoy, DateTime.Now, 1, 10);
 
         informe.Resumen.TotalEgresos.Should().Be(1_150_000m);
-        informe.Egresos.Conceptos.Select(c => c.Texto).Should().Equal(UiTexts.InformeConceptoCubierto, UiTexts.InformeConceptoPremios, UiTexts.InformeConceptoGastos);
+        informe.Egresos.Conceptos.Select(c => c.Texto).Should().Equal(UiTexts.InformeConceptoCubierto, UiTexts.InformeConceptoPremios, UiTexts.InformeConceptoGastos, UiTexts.InformeConceptoCubiertoPda);
     }
 
     [Fact]

@@ -46,6 +46,22 @@ public sealed class CubrirVentaServiceTests
         (await db.Ventas.CountAsync()).Should().Be(1);
         (await sut.CubrirDesdeResumenAsync(admin, cali.Lineas.Select(l => l.Clave).ToList(), 20, 10, CancellationToken.None)).Message
             .Should().Be(RevisadaManualMessages.YaProcesado);
+
+        db.Usuarios.Add(new Usuario
+        {
+            UsuarioId = admin,
+            NombreCompleto = "Ana Admin",
+            NombreUsuario = "admin",
+            PasswordHash = "h",
+            PasswordSalt = "s",
+            Rol = RolUsuario.Administrador,
+            Estado = EstadoUsuario.Activo,
+            FechaCreacion = desde
+        });
+        await db.SaveChangesAsync();
+        var delPeriodo = await sut.CubiertoAsync(desde, hasta, null, CancellationToken.None);
+        delPeriodo.Data!.Grupos.Should().ContainSingle(g => g.Loteria == "Cali" && g.Numero == "1234" && g.Subtotal == 1_000 && g.CubiertoPor == "Ana Admin");
+        (await sut.CubiertoAsync(desde, hasta, [Guid.NewGuid()], CancellationToken.None)).Data!.Grupos.Should().BeEmpty();
     }
 
     private static async Task<(CubrirVentaService Sut, NewRichDbContext Db, Guid Admin)> CreateSutAsync()

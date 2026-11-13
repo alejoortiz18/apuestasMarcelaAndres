@@ -143,6 +143,7 @@ public static class InformeVentasCarga
         }
 
         VistaRevisadaManualResponse? cubierto = null;
+        VistaRevisadaManualResponse? cubiertoPda = null;
         if (datos.HasFlag(DatosInforme.Cubierto))
         {
             var inicio = desde.ToDateTime(TimeOnly.MinValue);
@@ -151,6 +152,8 @@ public static class InformeVentasCarga
                 ? await api.RevisadaCubiertoAsync(inicio, fin, cancellationToken)
                 : await api.RevisadaCubiertoAsync(inicio, fin, filtros.Vendedores, cancellationToken);
             if (Revisar(respuesta)) cubierto = respuesta.Data;
+            var pda = await api.CubrirVentaCubiertoAsync(inicio, fin, filtros.Vendedores, cancellationToken);
+            if (Revisar(pda)) cubiertoPda = pda.Data;
         }
 
         var tableros = new List<TableroRecaudoResponse>();
@@ -183,6 +186,7 @@ public static class InformeVentasCarga
                 Gastos = gastos,
                 Movimientos = movimientos,
                 Cubierto = cubierto,
+                CubiertoPda = cubiertoPda,
                 Recaudo = VentasInforme.FusionarTablero(tableros)
             }
         };
